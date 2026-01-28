@@ -55,6 +55,9 @@ import Investments from './pages/Investments';
 import AIAssistant from './pages/AIAssistant';
 import Tasks from './pages/Tasks';
 import Accounts from './pages/Accounts';
+import Analytics from './pages/Analytics';
+import Settings from './pages/Settings';
+import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
@@ -66,9 +69,12 @@ export const PAGES = {
     "AIAssistant": AIAssistant,
     "Tasks": Tasks,
     "Accounts": Accounts,
+    "Analytics": Analytics,
+    "Settings": Settings,
 }
 
 export const pagesConfig = {
     mainPage: "Dashboard",
     Pages: PAGES,
+    Layout: __Layout,
 };
