@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,8 +6,9 @@ import { format, isToday, isTomorrow, isPast, addDays } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
   Plus, CheckCircle2, Circle, Calendar, Clock, Edit2, Trash2,
-  Flag, X, Check, Coins, ListTodo, AlertCircle
+  Flag, X, Check, Coins, ListTodo, AlertCircle, Mic, MicOff
 } from 'lucide-react';
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,6 +65,9 @@ export default function Tasks() {
   const [editTask, setEditTask] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const recognitionRef = useRef(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -155,6 +159,102 @@ export default function Tasks() {
       id: task.id, 
       data: { ...task, status: newStatus }
     });
+  };
+
+  // Voice recognition
+  const startVoiceRecording = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast.error('Голосовой ввод не поддерживается в вашем браузере');
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    
+    recognition.lang = 'ru-RU';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+      toast.info('Говорите...');
+    };
+
+    recognition.onresult = async (event) => {
+      const transcript = event.results[0][0].transcript;
+      setIsRecording(false);
+      setIsTranscribing(true);
+
+      try {
+        // Use AI to parse the voice input into task fields
+        const result = await base44.integrations.Core.InvokeLLM({
+          prompt: `Распознай задачу из следующего текста и извлеки информацию в JSON формате.
+          
+Текст: "${transcript}"
+
+Определи:
+- title: название задачи (обязательно)
+- description: подробное описание (если есть)
+- type: тип задачи - "personal" (личная), "financial" (финансовая, если упомянута сумма), или "family" (семейная)
+- priority: приоритет - "low" (низкий), "medium" (средний), "high" (высокий, срочный)
+- amount: сумма в рублях (только число, если упомянута)
+
+Примеры:
+- "купить молоко завтра" -> {title: "Купить молоко", type: "personal", priority: "medium"}
+- "срочно оплатить аренду 45000 рублей" -> {title: "Оплатить аренду", type: "financial", priority: "high", amount: 45000}`,
+          response_json_schema: {
+            type: 'object',
+            properties: {
+              title: { type: 'string' },
+              description: { type: 'string' },
+              type: { type: 'string' },
+              priority: { type: 'string' },
+              amount: { type: 'number' }
+            },
+            required: ['title']
+          }
+        });
+
+        setFormData({
+          title: result.title || transcript,
+          description: result.description || '',
+          type: result.type || 'personal',
+          due_date: null,
+          priority: result.priority || 'medium',
+          amount: result.amount?.toString() || ''
+        });
+
+        toast.success('Задача распознана!');
+      } catch (error) {
+        console.error('Voice parsing error:', error);
+        // Fallback: just use transcript as title
+        setFormData({ ...formData, title: transcript });
+        toast.success('Текст распознан');
+      } finally {
+        setIsTranscribing(false);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setIsRecording(false);
+      setIsTranscribing(false);
+      toast.error('Ошибка распознавания речи');
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const stopVoiceRecording = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsRecording(false);
   };
 
   const getDateLabel = (dateStr) => {
@@ -341,13 +441,51 @@ export default function Tasks() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Название</Label>
-              <Input
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Что нужно сделать?"
-                className="rounded-xl mt-1"
-              />
+              <div className="flex items-center justify-between mb-2">
+                <Label>Название</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
+                  disabled={isTranscribing}
+                  className={`h-8 px-3 ${isRecording ? 'text-rose-600' : 'text-violet-600'}`}
+                >
+                  {isTranscribing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-violet-600 border-t-transparent rounded-full animate-spin mr-2" />
+                      Обработка...
+                    </>
+                  ) : isRecording ? (
+                    <>
+                      <MicOff className="w-4 h-4 mr-1" />
+                      Стоп
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-4 h-4 mr-1" />
+                      Голос
+                    </>
+                  )}
+                </Button>
+              </div>
+              <div className="relative">
+                <Input
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Что нужно сделать?"
+                  className={`rounded-xl ${isRecording ? 'ring-2 ring-rose-500' : ''}`}
+                  disabled={isRecording || isTranscribing}
+                />
+                {isRecording && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="flex gap-1">
+                      <div className="w-1 h-3 bg-rose-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
+                      <div className="w-1 h-3 bg-rose-500 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+                      <div className="w-1 h-3 bg-rose-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <div>
               <Label>Описание</Label>

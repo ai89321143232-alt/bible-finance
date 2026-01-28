@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import {
   User, Bell, Moon, Sun, Globe, Shield, CreditCard, 
-  HelpCircle, LogOut, ChevronRight, Crown, Check
+  HelpCircle, LogOut, ChevronRight, Crown, Check, Tag, Users, Database
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -266,19 +268,38 @@ export default function Settings() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Shield className="w-5 h-5 text-violet-600" />
-                  Безопасность
+                  Данные и настройки
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <Button variant="ghost" className="w-full justify-between rounded-xl h-12">
-                    <span>Экспорт данных</span>
-                    <ChevronRight className="w-4 h-4 text-slate-400" />
-                  </Button>
-                  <Button variant="ghost" className="w-full justify-between rounded-xl h-12">
-                    <span>Политика конфиденциальности</span>
-                    <ChevronRight className="w-4 h-4 text-slate-400" />
-                  </Button>
+                  <Link to={createPageUrl('Categories')}>
+                    <Button variant="ghost" className="w-full justify-between rounded-xl h-12">
+                      <div className="flex items-center gap-2">
+                        <Tag className="w-4 h-4" />
+                        <span>Категории</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </Button>
+                  </Link>
+                  <Link to={createPageUrl('Family')}>
+                    <Button variant="ghost" className="w-full justify-between rounded-xl h-12">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        <span>Семья</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </Button>
+                  </Link>
+                  <Link to={createPageUrl('Backup')}>
+                    <Button variant="ghost" className="w-full justify-between rounded-xl h-12">
+                      <div className="flex items-center gap-2">
+                        <Database className="w-4 h-4" />
+                        <span>Резервные копии</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>

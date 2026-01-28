@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, ArrowLeftRight, Wallet, Target, 
   TrendingUp, Sparkles, ListTodo, PieChart, Settings, 
-  CreditCard
+  CreditCard, Tag, Users, Database
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -18,6 +18,9 @@ const NAV_ITEMS = [
   { name: 'Tasks', icon: ListTodo, label: 'Задачи' },
   { name: 'Analytics', icon: PieChart, label: 'Аналитика' },
   { name: 'AIAssistant', icon: Sparkles, label: 'AI' },
+  { name: 'Categories', icon: Tag, label: 'Категории' },
+  { name: 'Family', icon: Users, label: 'Семья' },
+  { name: 'Backup', icon: Database, label: 'Резервные копии' },
   { name: 'Settings', icon: Settings, label: 'Настройки' },
 ];
 
@@ -113,7 +116,9 @@ export default function Layout({ children, currentPageName }) {
           <Link
             to={createPageUrl('Settings')}
             className={`flex flex-col items-center py-2 px-3 rounded-xl transition-all ${
-              isActive('Settings') || isActive('Analytics') || isActive('Tasks') || isActive('AIAssistant') || isActive('Investments')
+              isActive('Settings') || isActive('Analytics') || isActive('Tasks') || 
+              isActive('AIAssistant') || isActive('Investments') || isActive('Categories') || 
+              isActive('Family') || isActive('Backup')
                 ? 'text-violet-600 dark:text-violet-400'
                 : 'text-slate-400 dark:text-slate-500'
             }`}
