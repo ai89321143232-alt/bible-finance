@@ -57,6 +57,9 @@ import Tasks from './pages/Tasks';
 import Accounts from './pages/Accounts';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
+import Categories from './pages/Categories';
+import Family from './pages/Family';
+import Backup from './pages/Backup';
 import __Layout from './Layout.jsx';
 
 
@@ -71,6 +74,9 @@ export const PAGES = {
     "Accounts": Accounts,
     "Analytics": Analytics,
     "Settings": Settings,
+    "Categories": Categories,
+    "Family": Family,
+    "Backup": Backup,
 }
 
 export const pagesConfig = {
