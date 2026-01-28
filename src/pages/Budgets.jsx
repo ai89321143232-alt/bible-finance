@@ -1,0 +1,428 @@
+import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
+import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
+import {
+  Plus, Wallet, AlertCircle, Edit2, Trash2, X, Check, TrendingUp
+} from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+const BUDGET_CATEGORIES = [
+  { value: 'Еда', icon: '🍔', color: '#F59E0B' },
+  { value: 'Транспорт', icon: '🚗', color: '#3B82F6' },
+  { value: 'Жильё', icon: '🏠', color: '#8B5CF6' },
+  { value: 'Развлечения', icon: '🎮', color: '#EC4899' },
+  { value: 'Здоровье', icon: '💊', color: '#10B981' },
+  { value: 'Одежда', icon: '👕', color: '#6366F1' },
+  { value: 'Подписки', icon: '📱', color: '#EF4444' },
+  { value: 'Образование', icon: '📚', color: '#14B8A6' },
+  { value: 'Другое', icon: '📦', color: '#64748B' },
+];
+
+export default function Budgets() {
+  const queryClient = useQueryClient();
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editBudget, setEditBudget] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    category: '',
+    limit_amount: '',
+    period: 'monthly',
+    notify_at_percent: 80
+  });
+
+  const { data: budgets = [], isLoading } = useQuery({
+    queryKey: ['budgets'],
+    queryFn: () => base44.entities.Budget.list()
+  });
+
+  const { data: transactions = [] } = useQuery({
+    queryKey: ['transactions'],
+    queryFn: () => base44.entities.Transaction.list('-date', 500)
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.Budget.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      resetForm();
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Budget.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      resetForm();
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Budget.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      setDeleteId(null);
+    }
+  });
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      category: '',
+      limit_amount: '',
+      period: 'monthly',
+      notify_at_percent: 80
+    });
+    setShowAddModal(false);
+    setEditBudget(null);
+  };
+
+  const handleEdit = (budget) => {
+    setEditBudget(budget);
+    setFormData({
+      name: budget.name,
+      category: budget.category,
+      limit_amount: budget.limit_amount.toString(),
+      period: budget.period || 'monthly',
+      notify_at_percent: budget.notify_at_percent || 80
+    });
+    setShowAddModal(true);
+  };
+
+  const handleSubmit = () => {
+    const data = {
+      ...formData,
+      limit_amount: parseFloat(formData.limit_amount),
+      is_active: true
+    };
+
+    if (editBudget) {
+      updateMutation.mutate({ id: editBudget.id, data });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  // Calculate spent for each budget
+  const getBudgetSpent = (budget) => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    return transactions
+      .filter(t => 
+        t.type === 'expense' && 
+        t.category === budget.category &&
+        new Date(t.date) >= monthStart
+      )
+      .reduce((sum, t) => sum + t.amount, 0);
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('ru-RU', { 
+      style: 'currency', 
+      currency: 'RUB',
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const totalBudget = budgets.reduce((sum, b) => sum + (b.limit_amount || 0), 0);
+  const totalSpent = budgets.reduce((sum, b) => sum + getBudgetSpent(b), 0);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
+        {/* Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between mb-6"
+        >
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+            Бюджеты
+          </h1>
+          <Button
+            onClick={() => setShowAddModal(true)}
+            className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Создать
+          </Button>
+        </motion.div>
+
+        {/* Overview Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-violet-600 to-indigo-700">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-violet-200 text-sm">Общий бюджет на месяц</p>
+                  <p className="text-3xl font-bold text-white">{formatCurrency(totalBudget)}</p>
+                </div>
+                <div className="p-3 bg-white/20 rounded-xl">
+                  <Wallet className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <Progress 
+                value={totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0} 
+                className="h-3 bg-white/20 [&>div]:bg-white"
+              />
+              <div className="flex justify-between mt-2 text-sm text-violet-200">
+                <span>Потрачено: {formatCurrency(totalSpent)}</span>
+                <span>Осталось: {formatCurrency(totalBudget - totalSpent)}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Budgets Grid */}
+        {budgets.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {budgets.map((budget, index) => {
+              const spent = getBudgetSpent(budget);
+              const progress = budget.limit_amount > 0 ? (spent / budget.limit_amount) * 100 : 0;
+              const isOverBudget = progress > 100;
+              const isWarning = progress >= (budget.notify_at_percent || 80) && !isOverBudget;
+              const catInfo = BUDGET_CATEGORIES.find(c => c.value === budget.category) || BUDGET_CATEGORIES[8];
+
+              return (
+                <motion.div
+                  key={budget.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-shadow group">
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                            style={{ backgroundColor: `${catInfo.color}20` }}
+                          >
+                            {catInfo.icon}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-slate-900 dark:text-white">
+                              {budget.name}
+                            </h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              {budget.category}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(budget)}
+                            className="h-8 w-8"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeleteId(budget.id)}
+                            className="h-8 w-8 text-rose-600"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-2xl font-bold text-slate-900 dark:text-white">
+                            {formatCurrency(spent)}
+                          </span>
+                          {(isOverBudget || isWarning) && (
+                            <div className={`flex items-center gap-1 text-sm ${
+                              isOverBudget ? 'text-rose-600' : 'text-amber-600'
+                            }`}>
+                              <AlertCircle className="w-4 h-4" />
+                              {isOverBudget ? 'Превышен' : 'Внимание'}
+                            </div>
+                          )}
+                        </div>
+                        <Progress 
+                          value={Math.min(progress, 100)} 
+                          className={`h-2 ${
+                            isOverBudget 
+                              ? 'bg-rose-100 [&>div]:bg-rose-500' 
+                              : isWarning
+                              ? 'bg-amber-100 [&>div]:bg-amber-500'
+                              : 'bg-slate-200 dark:bg-slate-600'
+                          }`}
+                          style={{ 
+                            '--progress-color': isOverBudget || isWarning ? undefined : catInfo.color 
+                          }}
+                        />
+                        <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400">
+                          <span>{progress.toFixed(0)}% использовано</span>
+                          <span>из {formatCurrency(budget.limit_amount)}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-16">
+            <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Wallet className="w-8 h-8 text-slate-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+              Нет бюджетов
+            </h3>
+            <p className="text-slate-500 dark:text-slate-400 mb-4">
+              Создайте первый бюджет для контроля расходов
+            </p>
+            <Button
+              onClick={() => setShowAddModal(true)}
+              className="rounded-xl"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Создать бюджет
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Add/Edit Modal */}
+      <Dialog open={showAddModal} onOpenChange={() => resetForm()}>
+        <DialogContent className="rounded-2xl max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editBudget ? 'Редактировать бюджет' : 'Новый бюджет'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Название</Label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Например: Еда на месяц"
+                className="rounded-xl mt-1"
+              />
+            </div>
+            <div>
+              <Label>Категория</Label>
+              <Select 
+                value={formData.category} 
+                onValueChange={(v) => setFormData({ ...formData, category: v })}
+              >
+                <SelectTrigger className="rounded-xl mt-1">
+                  <SelectValue placeholder="Выберите категорию" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BUDGET_CATEGORIES.map(cat => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.icon} {cat.value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Лимит</Label>
+              <div className="relative mt-1">
+                <Input
+                  type="number"
+                  value={formData.limit_amount}
+                  onChange={(e) => setFormData({ ...formData, limit_amount: e.target.value })}
+                  placeholder="0"
+                  className="rounded-xl pr-8"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
+              </div>
+            </div>
+            <div>
+              <Label>Период</Label>
+              <Select 
+                value={formData.period} 
+                onValueChange={(v) => setFormData({ ...formData, period: v })}
+              >
+                <SelectTrigger className="rounded-xl mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weekly">Неделя</SelectItem>
+                  <SelectItem value="monthly">Месяц</SelectItem>
+                  <SelectItem value="quarterly">Квартал</SelectItem>
+                  <SelectItem value="yearly">Год</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              onClick={handleSubmit}
+              disabled={!formData.name || !formData.category || !formData.limit_amount}
+              className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"
+            >
+              <Check className="w-4 h-4 mr-2" />
+              {editBudget ? 'Сохранить' : 'Создать'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить бюджет?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Это действие нельзя отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate(deleteId)}
+              className="bg-rose-600 hover:bg-rose-700 rounded-xl"
+            >
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
