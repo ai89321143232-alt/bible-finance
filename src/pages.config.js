@@ -52,6 +52,9 @@ import Transactions from './pages/Transactions';
 import Budgets from './pages/Budgets';
 import Goals from './pages/Goals';
 import Investments from './pages/Investments';
+import AIAssistant from './pages/AIAssistant';
+import Tasks from './pages/Tasks';
+import Accounts from './pages/Accounts';
 
 
 export const PAGES = {
@@ -60,6 +63,9 @@ export const PAGES = {
     "Budgets": Budgets,
     "Goals": Goals,
     "Investments": Investments,
+    "AIAssistant": AIAssistant,
+    "Tasks": Tasks,
+    "Accounts": Accounts,
 }
 
 export const pagesConfig = {
