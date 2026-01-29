@@ -3,7 +3,9 @@ import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
-import { X, ArrowUpRight, ArrowDownRight, Check, Calendar, Camera, Loader2, Upload } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
+import { X, ArrowUpRight, ArrowDownRight, Check, Calendar, Camera, Loader2, Upload, Plus } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -273,7 +275,20 @@ export default function QuickAddTransaction({ transaction, onClose, accounts }) 
 
         {/* Category */}
         <div className="mb-4">
-          <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Категория</Label>
+          <div className="flex items-center justify-between mb-2">
+            <Label className="text-slate-500 dark:text-slate-400 text-sm">Категория</Label>
+            <Link to={createPageUrl('Categories')}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-violet-600"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                Добавить категорию
+              </Button>
+            </Link>
+          </div>
           <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
             {filteredCategories.map((cat) => (
               <Button

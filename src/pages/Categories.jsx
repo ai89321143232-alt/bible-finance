@@ -201,7 +201,10 @@ export default function Categories() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-all group">
+                  <Card 
+                    className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-all group cursor-pointer"
+                    onClick={() => !category.is_system && handleEdit(category)}
+                  >
                     <CardContent className="p-4">
                       <div className="flex items-center gap-3">
                         <div 
