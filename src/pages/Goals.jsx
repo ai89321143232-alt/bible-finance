@@ -211,7 +211,10 @@ export default function Goals() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-all overflow-hidden group">
+                    <Card 
+                      className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-all overflow-hidden group cursor-pointer"
+                      onClick={() => handleEdit(goal)}
+                    >
                       <div 
                         className="h-1"
                         style={{ 
@@ -222,7 +225,7 @@ export default function Goals() {
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center gap-3">
                             <div 
-                              className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                              className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm"
                               style={{ backgroundColor: `${typeInfo.color}20` }}
                             >
                               {typeInfo.icon}
@@ -240,7 +243,10 @@ export default function Goals() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleEdit(goal)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(goal);
+                              }}
                               className="h-8 w-8"
                             >
                               <Edit2 className="w-4 h-4" />
@@ -248,7 +254,10 @@ export default function Goals() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => setDeleteId(goal.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteId(goal.id);
+                              }}
                               className="h-8 w-8 text-rose-600"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -286,7 +295,10 @@ export default function Goals() {
 
                           <Button
                             variant="outline"
-                            onClick={() => setShowAddFundsModal(goal)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowAddFundsModal(goal);
+                            }}
                             className="w-full rounded-xl mt-2"
                           >
                             <Coins className="w-4 h-4 mr-2" />
