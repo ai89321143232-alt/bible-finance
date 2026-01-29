@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import {
-  User, Bell, Globe, Shield, CreditCard, 
+  User, Bell, Moon, Globe, Shield, CreditCard, 
   HelpCircle, LogOut, ChevronRight, Crown, Check, Tag, Users, Database
 } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -142,24 +142,25 @@ export default function Settings() {
           transition={{ delay: 0.15 }}
           className="mb-6"
         >
-          <Card className="border-0 shadow-sm bg-gradient-to-br from-violet-600 to-indigo-700 text-white overflow-hidden">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold mb-1">Разблокируйте Premium</h3>
-                  <p className="text-violet-200 text-sm">
-                    AI-ассистент, расширенная аналитика и многое другое
-                  </p>
+          <Link to={createPageUrl('Subscription')}>
+            <Card className="border-0 shadow-sm bg-gradient-to-br from-violet-600 to-indigo-700 text-white overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold mb-1">Разблокируйте Premium</h3>
+                    <p className="text-violet-200 text-sm">
+                      AI-ассистент, расширенная аналитика и многое другое
+                    </p>
+                  </div>
+                  <Button 
+                    className="bg-white text-violet-700 hover:bg-violet-50 rounded-xl"
+                  >
+                    Улучшить
+                  </Button>
                 </div>
-                <Button 
-                  onClick={() => setShowPlanModal(true)}
-                  className="bg-white text-violet-700 hover:bg-violet-50 rounded-xl"
-                >
-                  Улучшить
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
         </motion.div>
 
         {/* Settings Sections */}
@@ -228,16 +229,7 @@ export default function Settings() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-slate-900 dark:text-white">Тёмная тема</p>
-                    <p className="text-sm text-slate-500">Переключить тему приложения</p>
-                  </div>
-                  <Switch 
-                    checked={isDark}
-                    onCheckedChange={setIsDark}
-                  />
-                </div>
+                <ThemeToggle />
                 <Separator />
                 <div className="flex items-center justify-between">
                   <div>
