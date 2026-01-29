@@ -233,7 +233,10 @@ export default function Accounts() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleEdit(account)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(account);
+                            }}
                             className="h-8 w-8"
                           >
                             <Edit2 className="w-4 h-4" />
@@ -241,7 +244,10 @@ export default function Accounts() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => setDeleteId(account.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteId(account.id);
+                            }}
                             className="h-8 w-8 text-rose-600"
                           >
                             <Trash2 className="w-4 h-4" />

@@ -229,7 +229,10 @@ export default function Budgets() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-shadow group">
+                  <Card 
+                    className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-shadow group cursor-pointer"
+                    onClick={() => handleEdit(budget)}
+                  >
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
@@ -252,7 +255,10 @@ export default function Budgets() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleEdit(budget)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(budget);
+                            }}
                             className="h-8 w-8"
                           >
                             <Edit2 className="w-4 h-4" />
@@ -260,7 +266,10 @@ export default function Budgets() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => setDeleteId(budget.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteId(budget.id);
+                            }}
                             className="h-8 w-8 text-rose-600"
                           >
                             <Trash2 className="w-4 h-4" />

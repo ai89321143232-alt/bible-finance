@@ -226,7 +226,10 @@ export default function Categories() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleEdit(category)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(category);
+                              }}
                               className="h-8 w-8"
                             >
                               <Edit2 className="w-4 h-4" />
@@ -234,7 +237,10 @@ export default function Categories() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => setDeleteId(category.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteId(category.id);
+                              }}
                               className="h-8 w-8 text-rose-600"
                             >
                               <Trash2 className="w-4 h-4" />

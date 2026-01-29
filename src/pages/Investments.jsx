@@ -299,12 +299,15 @@ export default function Investments() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-all group">
+                  <Card 
+                    className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-all group cursor-pointer"
+                    onClick={() => handleEdit(investment)}
+                  >
                     <CardContent className="p-5">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div 
-                            className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                            className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm"
                             style={{ backgroundColor: `${typeInfo.color}20` }}
                           >
                             {typeInfo.icon}
@@ -345,7 +348,10 @@ export default function Investments() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleEdit(investment)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(investment);
+                              }}
                               className="h-8 w-8"
                             >
                               <Edit2 className="w-4 h-4" />
@@ -353,7 +359,10 @@ export default function Investments() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => setDeleteId(investment.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteId(investment.id);
+                              }}
                               className="h-8 w-8 text-rose-600"
                             >
                               <Trash2 className="w-4 h-4" />
