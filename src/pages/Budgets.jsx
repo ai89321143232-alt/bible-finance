@@ -56,7 +56,7 @@ export default function Budgets() {
 
   const [formData, setFormData] = useState({
     name: '',
-    category: '',
+    categories: [],
     limit_amount: '',
     period: 'monthly',
     notify_at_percent: 80
@@ -99,7 +99,7 @@ export default function Budgets() {
   const resetForm = () => {
     setFormData({
       name: '',
-      category: '',
+      categories: [],
       limit_amount: '',
       period: 'monthly',
       notify_at_percent: 80
@@ -112,7 +112,7 @@ export default function Budgets() {
     setEditBudget(budget);
     setFormData({
       name: budget.name,
-      category: budget.category,
+      categories: budget.categories || (budget.category ? [budget.category] : []),
       limit_amount: budget.limit_amount.toString(),
       period: budget.period || 'monthly',
       notify_at_percent: budget.notify_at_percent || 80
@@ -139,10 +139,12 @@ export default function Budgets() {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     
+    const budgetCategories = budget.categories || (budget.category ? [budget.category] : []);
+    
     return transactions
       .filter(t => 
         t.type === 'expense' && 
-        t.category === budget.category &&
+        budgetCategories.includes(t.category) &&
         new Date(t.date) >= monthStart
       )
       .reduce((sum, t) => sum + t.amount, 0);
@@ -217,7 +219,8 @@ export default function Budgets() {
               const progress = budget.limit_amount > 0 ? (spent / budget.limit_amount) * 100 : 0;
               const isOverBudget = progress > 100;
               const isWarning = progress >= (budget.notify_at_percent || 80) && !isOverBudget;
-              const catInfo = BUDGET_CATEGORIES.find(c => c.value === budget.category) || BUDGET_CATEGORIES[8];
+              const budgetCategories = budget.categories || (budget.category ? [budget.category] : []);
+              const catInfo = BUDGET_CATEGORIES.find(c => c.value === budgetCategories[0]) || BUDGET_CATEGORIES[8];
 
               return (
                 <motion.div
@@ -231,7 +234,7 @@ export default function Budgets() {
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
                           <div 
-                            className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                            className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm"
                             style={{ backgroundColor: `${catInfo.color}20` }}
                           >
                             {catInfo.icon}
@@ -241,7 +244,7 @@ export default function Budgets() {
                               {budget.name}
                             </h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400">
-                              {budget.category}
+                              {budgetCategories.join(', ')}
                             </p>
                           </div>
                         </div>
@@ -344,22 +347,39 @@ export default function Budgets() {
               />
             </div>
             <div>
-              <Label>Категория</Label>
-              <Select 
-                value={formData.category} 
-                onValueChange={(v) => setFormData({ ...formData, category: v })}
-              >
-                <SelectTrigger className="rounded-xl mt-1">
-                  <SelectValue placeholder="Выберите категорию" />
-                </SelectTrigger>
-                <SelectContent>
-                  {BUDGET_CATEGORIES.map(cat => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.icon} {cat.value}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Категории (можно выбрать несколько)</Label>
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                {BUDGET_CATEGORIES.map(cat => {
+                  const isSelected = formData.categories.includes(cat.value);
+                  return (
+                    <button
+                      key={cat.value}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          setFormData({ 
+                            ...formData, 
+                            categories: formData.categories.filter(c => c !== cat.value) 
+                          });
+                        } else {
+                          setFormData({ 
+                            ...formData, 
+                            categories: [...formData.categories, cat.value] 
+                          });
+                        }
+                      }}
+                      className={`h-auto py-3 flex flex-col items-center gap-1 rounded-xl border-2 transition-all ${
+                        isSelected 
+                          ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20' 
+                          : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                      }`}
+                    >
+                      <span className="text-xl drop-shadow-sm">{cat.icon}</span>
+                      <span className="text-xs font-medium">{cat.value}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div>
               <Label>Лимит</Label>
@@ -393,7 +413,7 @@ export default function Budgets() {
             </div>
             <Button
               onClick={handleSubmit}
-              disabled={!formData.name || !formData.category || !formData.limit_amount}
+              disabled={!formData.name || formData.categories.length === 0 || !formData.limit_amount}
               className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"
             >
               <Check className="w-4 h-4 mr-2" />

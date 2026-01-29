@@ -50,6 +50,7 @@ const CATEGORY_ICONS = {
 export default function Transactions() {
   const queryClient = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editTransaction, setEditTransaction] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
@@ -225,7 +226,7 @@ export default function Transactions() {
                         className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0 group"
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg ${
+                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg shadow-sm ${
                             transaction.type === 'income' 
                               ? 'bg-emerald-100 dark:bg-emerald-900/30' 
                               : 'bg-rose-100 dark:bg-rose-900/30'
@@ -252,14 +253,27 @@ export default function Transactions() {
                             {transaction.type === 'income' ? '+' : '-'}
                             {formatCurrency(transaction.amount)}
                           </p>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteId(transaction.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-slate-400 hover:text-rose-600"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setEditTransaction(transaction);
+                                setShowAddModal(true);
+                              }}
+                              className="h-8 w-8 text-slate-400 hover:text-violet-600"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteId(transaction.id)}
+                              className="h-8 w-8 text-slate-400 hover:text-rose-600"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
                       </motion.div>
                     ))}
@@ -286,11 +300,15 @@ export default function Transactions() {
         </div>
       </div>
 
-      {/* Add Modal */}
+      {/* Add/Edit Modal */}
       <AnimatePresence>
         {showAddModal && (
           <QuickAddTransaction 
-            onClose={() => setShowAddModal(false)}
+            transaction={editTransaction}
+            onClose={() => {
+              setShowAddModal(false);
+              setEditTransaction(null);
+            }}
             accounts={accounts}
           />
         )}

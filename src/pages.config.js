@@ -47,36 +47,38 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
-import Dashboard from './pages/Dashboard';
-import Transactions from './pages/Transactions';
-import Budgets from './pages/Budgets';
-import Goals from './pages/Goals';
-import Investments from './pages/Investments';
 import AIAssistant from './pages/AIAssistant';
-import Tasks from './pages/Tasks';
 import Accounts from './pages/Accounts';
 import Analytics from './pages/Analytics';
-import Settings from './pages/Settings';
-import Categories from './pages/Categories';
-import Family from './pages/Family';
 import Backup from './pages/Backup';
+import Budgets from './pages/Budgets';
+import Categories from './pages/Categories';
+import Dashboard from './pages/Dashboard';
+import Family from './pages/Family';
+import Goals from './pages/Goals';
+import Investments from './pages/Investments';
+import Settings from './pages/Settings';
+import Tasks from './pages/Tasks';
+import Transactions from './pages/Transactions';
+import Subscription from './pages/Subscription';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "Dashboard": Dashboard,
-    "Transactions": Transactions,
-    "Budgets": Budgets,
-    "Goals": Goals,
-    "Investments": Investments,
     "AIAssistant": AIAssistant,
-    "Tasks": Tasks,
     "Accounts": Accounts,
     "Analytics": Analytics,
-    "Settings": Settings,
-    "Categories": Categories,
-    "Family": Family,
     "Backup": Backup,
+    "Budgets": Budgets,
+    "Categories": Categories,
+    "Dashboard": Dashboard,
+    "Family": Family,
+    "Goals": Goals,
+    "Investments": Investments,
+    "Settings": Settings,
+    "Tasks": Tasks,
+    "Transactions": Transactions,
+    "Subscription": Subscription,
 }
 
 export const pagesConfig = {

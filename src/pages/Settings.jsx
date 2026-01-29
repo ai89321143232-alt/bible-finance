@@ -4,9 +4,10 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import {
-  User, Bell, Moon, Sun, Globe, Shield, CreditCard, 
+  User, Bell, Globe, Shield, CreditCard, 
   HelpCircle, LogOut, ChevronRight, Crown, Check, Tag, Users, Database
 } from 'lucide-react';
+import ThemeToggle from '@/components/ThemeToggle';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

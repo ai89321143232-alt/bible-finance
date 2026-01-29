@@ -25,15 +25,15 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-export default function QuickAddTransaction({ onClose, accounts }) {
+export default function QuickAddTransaction({ transaction, onClose, accounts }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('manual');
-  const [type, setType] = useState('expense');
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('');
-  const [description, setDescription] = useState('');
-  const [date, setDate] = useState(new Date());
-  const [accountId, setAccountId] = useState('');
+  const [type, setType] = useState(transaction?.type || 'expense');
+  const [amount, setAmount] = useState(transaction?.amount?.toString() || '');
+  const [category, setCategory] = useState(transaction?.category || '');
+  const [description, setDescription] = useState(transaction?.description || '');
+  const [date, setDate] = useState(transaction?.date ? new Date(transaction.date) : new Date());
+  const [accountId, setAccountId] = useState(transaction?.account_id || '');
   const [isScanning, setIsScanning] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -51,17 +51,32 @@ export default function QuickAddTransaction({ onClose, accounts }) {
     }
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Transaction.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      toast.success('Операция обновлена');
+      onClose();
+    }
+  });
+
   const handleSubmit = () => {
     if (!amount || !category) return;
 
-    createMutation.mutate({
+    const data = {
       type,
       amount: parseFloat(amount),
       category,
       description,
       date: format(date, 'yyyy-MM-dd'),
       account_id: accountId || undefined
-    });
+    };
+
+    if (transaction) {
+      updateMutation.mutate({ id: transaction.id, data });
+    } else {
+      createMutation.mutate(data);
+    }
   };
 
   // Scan receipt using camera or file
@@ -140,7 +155,7 @@ export default function QuickAddTransaction({ onClose, accounts }) {
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-            Новая операция
+            {transaction ? 'Редактировать операцию' : 'Новая операция'}
           </h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
             <X className="w-5 h-5" />
@@ -270,7 +285,7 @@ export default function QuickAddTransaction({ onClose, accounts }) {
                   category === cat.name && 'bg-violet-500 hover:bg-violet-600 border-0'
                 )}
               >
-                <span className="text-xl">{cat.icon === 'Utensils' ? '🍔' : cat.icon === 'Car' ? '🚗' : cat.icon === 'Home' ? '🏠' : cat.icon === 'Gamepad2' ? '🎮' : cat.icon === 'Heart' ? '💊' : cat.icon === 'Shirt' ? '👕' : cat.icon === 'CreditCard' ? '💳' : cat.icon === 'BookOpen' ? '📚' : cat.icon === 'Wallet' ? '💰' : cat.icon === 'Laptop' ? '💻' : cat.icon === 'TrendingUp' ? '📈' : cat.icon === 'Gift' ? '🎁' : '📦'}</span>
+                <span className="text-xl drop-shadow-sm">{cat.icon === 'Utensils' ? '🍔' : cat.icon === 'Car' ? '🚗' : cat.icon === 'Home' ? '🏠' : cat.icon === 'Gamepad2' ? '🎮' : cat.icon === 'Heart' ? '💊' : cat.icon === 'Shirt' ? '👕' : cat.icon === 'CreditCard' ? '💳' : cat.icon === 'BookOpen' ? '📚' : cat.icon === 'Wallet' ? '💰' : cat.icon === 'Laptop' ? '💻' : cat.icon === 'TrendingUp' ? '📈' : cat.icon === 'Gift' ? '🎁' : '📦'}</span>
                 <span className="text-xs">{cat.name}</span>
               </Button>
             ))}
@@ -335,15 +350,15 @@ export default function QuickAddTransaction({ onClose, accounts }) {
         {/* Submit Button */}
         <Button
           onClick={handleSubmit}
-          disabled={!amount || !category || createMutation.isPending}
+          disabled={!amount || !category || createMutation.isPending || updateMutation.isPending}
           className="w-full h-14 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold text-lg shadow-lg shadow-violet-500/25"
         >
-          {createMutation.isPending ? (
+          {(createMutation.isPending || updateMutation.isPending) ? (
             <span className="animate-pulse">Сохранение...</span>
           ) : (
             <>
               <Check className="w-5 h-5 mr-2" />
-              Сохранить
+              {transaction ? 'Обновить' : 'Сохранить'}
             </>
           )}
         </Button>
