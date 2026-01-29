@@ -1,5 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { Eye, EyeOff, TrendingUp, TrendingDown } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -68,30 +70,38 @@ export default function BalanceCard({
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4">
-                <p className="text-slate-400 text-xs mb-1">Счета</p>
-                <p className="text-white font-semibold text-lg">
-                  {showBalance ? formatCurrency(totalBalance) : '••••'}
-                </p>
-              </div>
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4">
-                <p className="text-slate-400 text-xs mb-1">Инвестиции</p>
-                <p className="text-white font-semibold text-lg">
-                  {showBalance ? formatCurrency(investmentValue) : '••••'}
-                </p>
-              </div>
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4">
-                <p className="text-slate-400 text-xs mb-1">Доходы</p>
-                <p className="text-emerald-400 font-semibold text-lg">
-                  {showBalance ? formatCurrency(monthIncome) : '••••'}
-                </p>
-              </div>
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4">
-                <p className="text-slate-400 text-xs mb-1">Расходы</p>
-                <p className="text-rose-400 font-semibold text-lg">
-                  {showBalance ? formatCurrency(monthExpenses) : '••••'}
-                </p>
-              </div>
+              <Link to={createPageUrl('Accounts')}>
+                <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 cursor-pointer hover:bg-white/10 transition-colors">
+                  <p className="text-slate-400 text-xs mb-1">Счета</p>
+                  <p className="text-white font-semibold text-lg">
+                    {showBalance ? formatCurrency(totalBalance) : '••••'}
+                  </p>
+                </div>
+              </Link>
+              <Link to={createPageUrl('Investments')}>
+                <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 cursor-pointer hover:bg-white/10 transition-colors">
+                  <p className="text-slate-400 text-xs mb-1">Инвестиции</p>
+                  <p className="text-white font-semibold text-lg">
+                    {showBalance ? formatCurrency(investmentValue) : '••••'}
+                  </p>
+                </div>
+              </Link>
+              <Link to={createPageUrl('Transactions')}>
+                <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 cursor-pointer hover:bg-white/10 transition-colors">
+                  <p className="text-slate-400 text-xs mb-1">Доходы</p>
+                  <p className="text-emerald-400 font-semibold text-lg">
+                    {showBalance ? formatCurrency(monthIncome) : '••••'}
+                  </p>
+                </div>
+              </Link>
+              <Link to={createPageUrl('Transactions')}>
+                <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 cursor-pointer hover:bg-white/10 transition-colors">
+                  <p className="text-slate-400 text-xs mb-1">Расходы</p>
+                  <p className="text-rose-400 font-semibold text-lg">
+                    {showBalance ? formatCurrency(monthExpenses) : '••••'}
+                  </p>
+                </div>
+              </Link>
             </div>
           </div>
         </CardContent>
