@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
-  Plus, Target, Edit2, Trash2, Check, Calendar, TrendingUp, Coins
+  Plus, Target, Edit2, Trash2, Check, Calendar, TrendingUp, Coins, MinusCircle
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,9 +55,13 @@ export default function Goals() {
   const queryClient = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddFundsModal, setShowAddFundsModal] = useState(null);
+  const [showSpendModal, setShowSpendModal] = useState(null);
   const [editGoal, setEditGoal] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [addFundsAmount, setAddFundsAmount] = useState('');
+  const [spendAmount, setSpendAmount] = useState('');
+  const [spendCategory, setSpendCategory] = useState('');
+  const [spendDescription, setSpendDescription] = useState('');
   const [selectedAccount, setSelectedAccount] = useState('');
 
   const [formData, setFormData] = useState({
@@ -77,6 +81,11 @@ export default function Goals() {
   const { data: accounts = [] } = useQuery({
     queryKey: ['accounts'],
     queryFn: () => base44.entities.Account.list()
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => base44.entities.Category.filter({ type: 'expense' })
   });
 
   const createMutation = useMutation({
@@ -171,18 +180,48 @@ export default function Goals() {
       }
     });
     
-    // Create transaction
+    // Create transfer transaction (not expense!)
     await base44.entities.Transaction.create({
-      type: 'expense',
+      type: 'transfer',
       amount: amount,
-      category: 'Накопления на цель',
-      description: `Пополнение цели: ${showAddFundsModal.title}`,
+      category: 'Перенос на цель',
+      description: `${account?.name} → Цель: ${showAddFundsModal.title}`,
       date: format(new Date(), 'yyyy-MM-dd'),
       account_id: selectedAccount
     });
     
     queryClient.invalidateQueries({ queryKey: ['accounts'] });
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
+  };
+
+  const handleSpendFromGoal = async () => {
+    if (!showSpendModal || !spendAmount || !spendCategory) return;
+    
+    const amount = parseFloat(spendAmount);
+    const newAmount = Math.max((showSpendModal.current_amount || 0) - amount, 0);
+    
+    // Update goal
+    updateMutation.mutate({
+      id: showSpendModal.id,
+      data: {
+        current_amount: newAmount
+      }
+    });
+    
+    // Create expense transaction
+    await base44.entities.Transaction.create({
+      type: 'expense',
+      amount: amount,
+      category: spendCategory,
+      description: `${spendDescription || ''} (из цели: ${showSpendModal.title})`,
+      date: format(new Date(), 'yyyy-MM-dd')
+    });
+    
+    queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    setShowSpendModal(null);
+    setSpendAmount('');
+    setSpendCategory('');
+    setSpendDescription('');
   };
 
   const formatCurrency = (amount) => {
@@ -322,17 +361,31 @@ export default function Goals() {
                             style={{ '--progress-color': typeInfo.color }}
                           />
 
-                          <Button
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowAddFundsModal(goal);
-                            }}
-                            className="w-full rounded-xl mt-2"
-                          >
-                            <Coins className="w-4 h-4 mr-2" />
-                            Пополнить
-                          </Button>
+                          <div className="grid grid-cols-2 gap-2 mt-2">
+                            <Button
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowAddFundsModal(goal);
+                              }}
+                              className="rounded-xl"
+                            >
+                              <Coins className="w-4 h-4 mr-2" />
+                              Пополнить
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowSpendModal(goal);
+                              }}
+                              className="rounded-xl text-rose-600 border-rose-200 hover:bg-rose-50"
+                              disabled={(goal.current_amount || 0) === 0}
+                            >
+                              <MinusCircle className="w-4 h-4 mr-2" />
+                              Потратить
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -550,6 +603,74 @@ export default function Goals() {
             >
               <Coins className="w-4 h-4 mr-2" />
               Пополнить
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Spend from Goal Modal */}
+      <Dialog open={!!showSpendModal} onOpenChange={() => { 
+        setShowSpendModal(null); 
+        setSpendAmount(''); 
+        setSpendCategory('');
+        setSpendDescription('');
+      }}>
+        <DialogContent className="rounded-2xl max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Потратить из цели</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-slate-500">
+              {showSpendModal?.title}
+            </p>
+            <p className="text-sm text-slate-600">
+              Доступно: {formatCurrency(showSpendModal?.current_amount || 0)}
+            </p>
+            <div>
+              <Label>Сумма</Label>
+              <div className="relative mt-1">
+                <Input
+                  type="number"
+                  value={spendAmount}
+                  onChange={(e) => setSpendAmount(e.target.value)}
+                  placeholder="0"
+                  max={showSpendModal?.current_amount || 0}
+                  className="rounded-xl pr-8 text-xl font-semibold h-14"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
+              </div>
+            </div>
+            <div>
+              <Label>Категория расхода</Label>
+              <Select value={spendCategory} onValueChange={setSpendCategory}>
+                <SelectTrigger className="rounded-xl mt-1">
+                  <SelectValue placeholder="Выберите категорию" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(cat => (
+                    <SelectItem key={cat.id} value={cat.name}>
+                      {cat.icon === 'Utensils' ? '🍔' : cat.icon === 'Car' ? '🚗' : cat.icon === 'Home' ? '🏠' : '📦'} {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Комментарий</Label>
+              <Input
+                value={spendDescription}
+                onChange={(e) => setSpendDescription(e.target.value)}
+                placeholder="Описание расхода"
+                className="rounded-xl mt-1"
+              />
+            </div>
+            <Button
+              onClick={handleSpendFromGoal}
+              disabled={!spendAmount || !spendCategory || parseFloat(spendAmount) > (showSpendModal?.current_amount || 0)}
+              className="w-full rounded-xl bg-gradient-to-r from-rose-600 to-pink-600"
+            >
+              <MinusCircle className="w-4 h-4 mr-2" />
+              Потратить
             </Button>
           </div>
         </DialogContent>

@@ -36,6 +36,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   const [description, setDescription] = useState(transaction?.description || '');
   const [date, setDate] = useState(transaction?.date ? new Date(transaction.date) : new Date());
   const [accountId, setAccountId] = useState(transaction?.account_id || '');
+  const [toAccountId, setToAccountId] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -62,12 +63,50 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     }
   });
 
-  const handleSubmit = () => {
-    if (!amount || !category) return;
+  const handleSubmit = async () => {
+    if (!amount) return;
+    if (type !== 'transfer' && !category) return;
+    if (type === 'transfer' && (!accountId || !toAccountId)) return;
+
+    const amountNum = parseFloat(amount);
+
+    if (type === 'transfer') {
+      // Update source account
+      const sourceAccount = accounts.find(a => a.id === accountId);
+      if (sourceAccount) {
+        await base44.entities.Account.update(accountId, {
+          balance: sourceAccount.balance - amountNum
+        });
+      }
+
+      // Update destination account
+      const destAccount = accounts.find(a => a.id === toAccountId);
+      if (destAccount) {
+        await base44.entities.Account.update(toAccountId, {
+          balance: destAccount.balance + amountNum
+        });
+      }
+
+      // Create transfer transaction
+      await base44.entities.Transaction.create({
+        type: 'transfer',
+        amount: amountNum,
+        category: 'Перенос между счетами',
+        description: `${sourceAccount?.name} → ${destAccount?.name}${description ? ': ' + description : ''}`,
+        date: format(date, 'yyyy-MM-dd'),
+        account_id: accountId
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      toast.success('Перенос выполнен');
+      onClose();
+      return;
+    }
 
     const data = {
       type,
-      amount: parseFloat(amount),
+      amount: amountNum,
       category,
       description,
       date: format(date, 'yyyy-MM-dd'),
@@ -254,6 +293,17 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
             <ArrowUpRight className="w-4 h-4 mr-2" />
             Доход
           </Button>
+          <Button
+            variant={type === 'transfer' ? 'default' : 'outline'}
+            onClick={() => setType('transfer')}
+            className={cn(
+              'flex-1 h-12 rounded-xl transition-all',
+              type === 'transfer' && 'bg-blue-500 hover:bg-blue-600 border-0'
+            )}
+          >
+            <ArrowUpRight className="w-4 h-4 mr-2 transform rotate-90" />
+            Перенос
+          </Button>
         </div>
 
         {/* Amount Input */}
@@ -273,39 +323,74 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           </div>
         </div>
 
-        {/* Category */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <Label className="text-slate-500 dark:text-slate-400 text-sm">Категория</Label>
-            <Link to={createPageUrl('Categories')}>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs text-violet-600"
-              >
-                <Plus className="w-3 h-3 mr-1" />
-                Добавить категорию
-              </Button>
-            </Link>
+        {/* Category or Transfer Accounts */}
+        {type === 'transfer' ? (
+          <>
+            <div className="mb-4">
+              <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Откуда</Label>
+              <Select value={accountId} onValueChange={setAccountId}>
+                <SelectTrigger className="h-12 rounded-xl">
+                  <SelectValue placeholder="Выберите счёт списания" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts?.map((acc) => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      {acc.icon} {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="mb-4">
+              <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Куда</Label>
+              <Select value={toAccountId} onValueChange={setToAccountId}>
+                <SelectTrigger className="h-12 rounded-xl">
+                  <SelectValue placeholder="Выберите счёт зачисления" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts?.filter(a => a.id !== accountId).map((acc) => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      {acc.icon} {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        ) : (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-slate-500 dark:text-slate-400 text-sm">Категория</Label>
+              <Link to={createPageUrl('Categories')}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-violet-600"
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  Добавить категорию
+                </Button>
+              </Link>
+            </div>
+            <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+              {filteredCategories.map((cat) => (
+                <Button
+                  key={cat.id}
+                  variant={category === cat.name ? 'default' : 'outline'}
+                  onClick={() => setCategory(cat.name)}
+                  className={cn(
+                    'h-auto py-3 flex-col gap-1 rounded-xl transition-all',
+                    category === cat.name && 'bg-violet-500 hover:bg-violet-600 border-0'
+                  )}
+                >
+                  <span className="text-xl drop-shadow-sm">{cat.icon === 'Utensils' ? '🍔' : cat.icon === 'Car' ? '🚗' : cat.icon === 'Home' ? '🏠' : cat.icon === 'Gamepad2' ? '🎮' : cat.icon === 'Heart' ? '💊' : cat.icon === 'Shirt' ? '👕' : cat.icon === 'CreditCard' ? '💳' : cat.icon === 'BookOpen' ? '📚' : cat.icon === 'Wallet' ? '💰' : cat.icon === 'Laptop' ? '💻' : cat.icon === 'TrendingUp' ? '📈' : cat.icon === 'Gift' ? '🎁' : '📦'}</span>
+                  <span className="text-xs">{cat.name}</span>
+                </Button>
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-            {filteredCategories.map((cat) => (
-              <Button
-                key={cat.id}
-                variant={category === cat.name ? 'default' : 'outline'}
-                onClick={() => setCategory(cat.name)}
-                className={cn(
-                  'h-auto py-3 flex-col gap-1 rounded-xl transition-all',
-                  category === cat.name && 'bg-violet-500 hover:bg-violet-600 border-0'
-                )}
-              >
-                <span className="text-xl drop-shadow-sm">{cat.icon === 'Utensils' ? '🍔' : cat.icon === 'Car' ? '🚗' : cat.icon === 'Home' ? '🏠' : cat.icon === 'Gamepad2' ? '🎮' : cat.icon === 'Heart' ? '💊' : cat.icon === 'Shirt' ? '👕' : cat.icon === 'CreditCard' ? '💳' : cat.icon === 'BookOpen' ? '📚' : cat.icon === 'Wallet' ? '💰' : cat.icon === 'Laptop' ? '💻' : cat.icon === 'TrendingUp' ? '📈' : cat.icon === 'Gift' ? '🎁' : '📦'}</span>
-                <span className="text-xs">{cat.name}</span>
-              </Button>
-            ))}
-          </div>
-        </div>
+        )}
 
         {/* Date */}
         <div className="mb-4">
@@ -332,7 +417,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         </div>
 
         {/* Account */}
-        {accounts && accounts.length > 0 && (
+        {accounts && accounts.length > 0 && type !== 'transfer' && (
           <div className="mb-4">
             <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Счёт</Label>
             <Select value={accountId} onValueChange={setAccountId}>
@@ -365,7 +450,13 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         {/* Submit Button */}
         <Button
           onClick={handleSubmit}
-          disabled={!amount || !category || createMutation.isPending || updateMutation.isPending}
+          disabled={
+            !amount || 
+            (type !== 'transfer' && !category) ||
+            (type === 'transfer' && (!accountId || !toAccountId)) ||
+            createMutation.isPending || 
+            updateMutation.isPending
+          }
           className="w-full h-14 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold text-lg shadow-lg shadow-violet-500/25"
         >
           {(createMutation.isPending || updateMutation.isPending) ? (
@@ -373,7 +464,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           ) : (
             <>
               <Check className="w-5 h-5 mr-2" />
-              {transaction ? 'Обновить' : 'Сохранить'}
+              {transaction ? 'Обновить' : type === 'transfer' ? 'Перенести' : 'Сохранить'}
             </>
           )}
         </Button>
