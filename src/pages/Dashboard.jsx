@@ -17,11 +17,12 @@ import QuickAddTransaction from '@/components/transactions/QuickAddTransaction';
 import BalanceCard from '@/components/dashboard/BalanceCard';
 import SpendingChart from '@/components/dashboard/SpendingChart';
 import RecentTransactions from '@/components/dashboard/RecentTransactions';
-import GoalProgress from '@/components/dashboard/GoalProgress';
+import AllGoalsProgress from '@/components/dashboard/AllGoalsProgress';
 import BudgetOverview from '@/components/dashboard/BudgetOverview';
 
 export default function Dashboard() {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickAddType, setQuickAddType] = useState('expense');
   const [currentPeriod] = useState({
     start: startOfMonth(new Date()),
     end: endOfMonth(new Date())
@@ -102,7 +103,10 @@ export default function Dashboard() {
             </p>
           </div>
           <Button
-            onClick={() => setShowQuickAdd(true)}
+            onClick={() => {
+              setQuickAddType('expense');
+              setShowQuickAdd(true);
+            }}
             className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl h-11 px-5"
           >
             <Plus className="w-5 h-5 mr-2" />
@@ -127,7 +131,13 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-shadow">
+            <Card 
+              className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => {
+                setQuickAddType('income');
+                setShowQuickAdd(true);
+              }}
+            >
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
@@ -149,7 +159,13 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
           >
-            <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-shadow">
+            <Card 
+              className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => {
+                setQuickAddType('expense');
+                setShowQuickAdd(true);
+              }}
+            >
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-xl bg-rose-100 dark:bg-rose-900/30">
@@ -171,21 +187,23 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-violet-100 dark:bg-violet-900/30">
-                    <TrendingUp className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+            <Link to={createPageUrl('Investments')}>
+              <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-shadow cursor-pointer">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-violet-100 dark:bg-violet-900/30">
+                      <TrendingUp className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Инвестиции</p>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-white">
+                        {formatCurrency(investmentValue)}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Инвестиции</p>
-                    <p className="text-lg font-semibold text-slate-900 dark:text-white">
-                      {formatCurrency(investmentValue)}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           </motion.div>
 
           <motion.div
@@ -225,7 +243,7 @@ export default function Dashboard() {
           {/* Right Column - Budgets & Goals */}
           <div className="space-y-6">
             <BudgetOverview budgets={budgets} formatCurrency={formatCurrency} />
-            <GoalProgress goals={goals} formatCurrency={formatCurrency} />
+            <AllGoalsProgress goals={goals} formatCurrency={formatCurrency} />
           </div>
         </div>
       </div>
@@ -236,6 +254,7 @@ export default function Dashboard() {
           <QuickAddTransaction 
             onClose={() => setShowQuickAdd(false)}
             accounts={accounts}
+            defaultType={quickAddType}
           />
         )}
       </AnimatePresence>

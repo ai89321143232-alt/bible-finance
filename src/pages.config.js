@@ -58,9 +58,9 @@ import Family from './pages/Family';
 import Goals from './pages/Goals';
 import Investments from './pages/Investments';
 import Settings from './pages/Settings';
+import Subscription from './pages/Subscription';
 import Tasks from './pages/Tasks';
 import Transactions from './pages/Transactions';
-import Subscription from './pages/Subscription';
 import __Layout from './Layout.jsx';
 
 
@@ -76,9 +76,9 @@ export const PAGES = {
     "Goals": Goals,
     "Investments": Investments,
     "Settings": Settings,
+    "Subscription": Subscription,
     "Tasks": Tasks,
     "Transactions": Transactions,
-    "Subscription": Subscription,
 }
 
 export const pagesConfig = {

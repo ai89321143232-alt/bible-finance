@@ -58,6 +58,7 @@ export default function Goals() {
   const [editGoal, setEditGoal] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [addFundsAmount, setAddFundsAmount] = useState('');
+  const [selectedAccount, setSelectedAccount] = useState('');
 
   const [formData, setFormData] = useState({
     title: '',
@@ -71,6 +72,11 @@ export default function Goals() {
   const { data: goals = [], isLoading } = useQuery({
     queryKey: ['goals'],
     queryFn: () => base44.entities.Goal.list()
+  });
+
+  const { data: accounts = [] } = useQuery({
+    queryKey: ['accounts'],
+    queryFn: () => base44.entities.Account.list()
   });
 
   const createMutation = useMutation({
@@ -141,12 +147,22 @@ export default function Goals() {
     }
   };
 
-  const handleAddFunds = () => {
-    if (!showAddFundsModal || !addFundsAmount) return;
+  const handleAddFunds = async () => {
+    if (!showAddFundsModal || !addFundsAmount || !selectedAccount) return;
     
-    const newAmount = (showAddFundsModal.current_amount || 0) + parseFloat(addFundsAmount);
+    const amount = parseFloat(addFundsAmount);
+    const newAmount = (showAddFundsModal.current_amount || 0) + amount;
     const isCompleted = newAmount >= showAddFundsModal.target_amount;
     
+    // Update account balance
+    const account = accounts.find(a => a.id === selectedAccount);
+    if (account) {
+      await base44.entities.Account.update(selectedAccount, {
+        balance: account.balance - amount
+      });
+    }
+    
+    // Update goal
     updateMutation.mutate({
       id: showAddFundsModal.id,
       data: {
@@ -154,6 +170,19 @@ export default function Goals() {
         status: isCompleted ? 'completed' : 'active'
       }
     });
+    
+    // Create transaction
+    await base44.entities.Transaction.create({
+      type: 'expense',
+      amount: amount,
+      category: 'Накопления на цель',
+      description: `Пополнение цели: ${showAddFundsModal.title}`,
+      date: format(new Date(), 'yyyy-MM-dd'),
+      account_id: selectedAccount
+    });
+    
+    queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    queryClient.invalidateQueries({ queryKey: ['transactions'] });
   };
 
   const formatCurrency = (amount) => {
@@ -470,7 +499,11 @@ export default function Goals() {
       </Dialog>
 
       {/* Add Funds Modal */}
-      <Dialog open={!!showAddFundsModal} onOpenChange={() => { setShowAddFundsModal(null); setAddFundsAmount(''); }}>
+      <Dialog open={!!showAddFundsModal} onOpenChange={() => { 
+        setShowAddFundsModal(null); 
+        setAddFundsAmount(''); 
+        setSelectedAccount('');
+      }}>
         <DialogContent className="rounded-2xl max-w-sm">
           <DialogHeader>
             <DialogTitle>Пополнить цель</DialogTitle>
@@ -479,6 +512,24 @@ export default function Goals() {
             <p className="text-slate-500">
               {showAddFundsModal?.title}
             </p>
+            <div>
+              <Label>Счет списания</Label>
+              <Select 
+                value={selectedAccount} 
+                onValueChange={setSelectedAccount}
+              >
+                <SelectTrigger className="rounded-xl mt-1">
+                  <SelectValue placeholder="Выберите счет" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map(account => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.icon} {account.name} ({formatCurrency(account.balance)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label>Сумма</Label>
               <div className="relative mt-1">
@@ -494,7 +545,7 @@ export default function Goals() {
             </div>
             <Button
               onClick={handleAddFunds}
-              disabled={!addFundsAmount}
+              disabled={!addFundsAmount || !selectedAccount}
               className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600"
             >
               <Coins className="w-4 h-4 mr-2" />
