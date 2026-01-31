@@ -27,10 +27,10 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-export default function QuickAddTransaction({ transaction, onClose, accounts }) {
+export default function QuickAddTransaction({ transaction, onClose, accounts, defaultType = 'expense' }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('manual');
-  const [type, setType] = useState(transaction?.type || 'expense');
+  const [type, setType] = useState(transaction?.type || defaultType);
   const [amount, setAmount] = useState(transaction?.amount?.toString() || '');
   const [category, setCategory] = useState(transaction?.category || '');
   const [description, setDescription] = useState(transaction?.description || '');
