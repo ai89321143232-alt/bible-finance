@@ -45,6 +45,11 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     queryFn: () => base44.entities.Category.list()
   });
 
+  const { data: goals = [] } = useQuery({
+    queryKey: ['goals'],
+    queryFn: () => base44.entities.Goal.filter({ status: 'active' })
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Transaction.create(data),
     onSuccess: () => {
@@ -71,7 +76,10 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     const amountNum = parseFloat(amount);
 
     if (type === 'transfer') {
-      // Update source account
+      const isSourceGoal = toAccountId.startsWith('goal_');
+      const isDestGoal = toAccountId.startsWith('goal_');
+
+      // Update source (always account for now)
       const sourceAccount = accounts.find(a => a.id === accountId);
       if (sourceAccount) {
         await base44.entities.Account.update(accountId, {
@@ -79,20 +87,36 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         });
       }
 
-      // Update destination account
-      const destAccount = accounts.find(a => a.id === toAccountId);
-      if (destAccount) {
-        await base44.entities.Account.update(toAccountId, {
-          balance: destAccount.balance + amountNum
-        });
+      let destName = '';
+      // Update destination (account or goal)
+      if (isDestGoal) {
+        const goalId = toAccountId.replace('goal_', '');
+        const goal = goals.find(g => g.id === goalId);
+        if (goal) {
+          const newAmount = (goal.current_amount || 0) + amountNum;
+          await base44.entities.Goal.update(goalId, {
+            current_amount: newAmount,
+            status: newAmount >= goal.target_amount ? 'completed' : 'active'
+          });
+          destName = `Цель: ${goal.title}`;
+          queryClient.invalidateQueries({ queryKey: ['goals'] });
+        }
+      } else {
+        const destAccount = accounts.find(a => a.id === toAccountId);
+        if (destAccount) {
+          await base44.entities.Account.update(toAccountId, {
+            balance: destAccount.balance + amountNum
+          });
+          destName = destAccount.name;
+        }
       }
 
       // Create transfer transaction
       await base44.entities.Transaction.create({
         type: 'transfer',
         amount: amountNum,
-        category: 'Перенос между счетами',
-        description: `${sourceAccount?.name} → ${destAccount?.name}${description ? ': ' + description : ''}`,
+        category: isDestGoal ? 'Перенос на цель' : 'Перенос между счетами',
+        description: `${sourceAccount?.name} → ${destName}${description ? ': ' + description : ''}`,
         date: format(date, 'yyyy-MM-dd'),
         account_id: accountId
       });
@@ -345,7 +369,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
               <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Куда</Label>
               <Select value={toAccountId} onValueChange={setToAccountId}>
                 <SelectTrigger className="h-12 rounded-xl">
-                  <SelectValue placeholder="Выберите счёт зачисления" />
+                  <SelectValue placeholder="Выберите счёт или цель" />
                 </SelectTrigger>
                 <SelectContent>
                   {accounts?.filter(a => a.id !== accountId).map((acc) => (
@@ -353,6 +377,23 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                       {acc.icon} {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
                     </SelectItem>
                   ))}
+                  {goals?.length > 0 && (
+                    <>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 border-t mt-1 pt-2">
+                        Цели
+                      </div>
+                      {goals.map((goal) => {
+                        const progress = goal.target_amount > 0 
+                          ? Math.min((goal.current_amount / goal.target_amount) * 100, 100)
+                          : 0;
+                        return (
+                          <SelectItem key={`goal_${goal.id}`} value={`goal_${goal.id}`}>
+                            🎯 {goal.title} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(goal.current_amount || 0)} / {progress.toFixed(0)}%)
+                          </SelectItem>
+                        );
+                      })}
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
