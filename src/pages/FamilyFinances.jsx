@@ -66,7 +66,7 @@ export default function FamilyFinances() {
       const txs = await base44.entities.Transaction.list('-date', 500);
       // Filter only transactions from family members
       return txs.filter(tx => 
-        family.members.some(m => m.user_id === tx.created_by || tx.created_by.includes(m.user_id))
+        family.members.some(m => m.user_id === tx.created_by)
       );
     },
     enabled: !!family
@@ -78,7 +78,7 @@ export default function FamilyFinances() {
       const accounts = await base44.entities.Account.list();
       // Filter only accounts from family members
       return accounts.filter(acc => 
-        family.members.some(m => m.user_id === acc.created_by || acc.created_by.includes(m.user_id))
+        family.members.some(m => m.user_id === acc.created_by)
       );
     },
     enabled: !!family
@@ -90,7 +90,7 @@ export default function FamilyFinances() {
       const goals = await base44.entities.Goal.list();
       // Filter only goals from family members
       return goals.filter(g => 
-        family.members.some(m => m.user_id === g.created_by || g.created_by.includes(m.user_id))
+        family.members.some(m => m.user_id === g.created_by)
       );
     },
     enabled: !!family
@@ -102,7 +102,7 @@ export default function FamilyFinances() {
       const investments = await base44.entities.Investment.list();
       // Filter only investments from family members
       return investments.filter(inv => 
-        family.members.some(m => m.user_id === inv.created_by || inv.created_by.includes(m.user_id))
+        family.members.some(m => m.user_id === inv.created_by)
       );
     },
     enabled: !!family
@@ -119,13 +119,7 @@ export default function FamilyFinances() {
   const getMemberInfo = (createdBy) => {
     if (!family?.members) return { name: 'Неизвестно', avatar_color: '#64748B', user_id: null };
     
-    // Try to find by exact user_id match
-    let member = family.members.find(m => m.user_id === createdBy);
-    
-    // If not found, try to find by email in user_id
-    if (!member) {
-      member = family.members.find(m => createdBy.includes(m.user_id));
-    }
+    const member = family.members.find(m => m.user_id === createdBy);
     
     return member || { name: 'Неизвестно', avatar_color: '#64748B', user_id: null };
   };
@@ -133,16 +127,16 @@ export default function FamilyFinances() {
   // Calculate member stats
   const getMemberStats = (memberId) => {
     const memberAccounts = allAccounts.filter(a => 
-      a.created_by === memberId || a.created_by.includes(memberId)
+      a.created_by === memberId
     );
     const memberTransactions = allTransactions.filter(t => 
-      t.created_by === memberId || t.created_by.includes(memberId)
+      t.created_by === memberId
     );
     const memberGoals = allGoals.filter(g => 
-      g.created_by === memberId || g.created_by.includes(memberId)
+      g.created_by === memberId
     );
     const memberInvestments = allInvestments.filter(i => 
-      i.created_by === memberId || i.created_by.includes(memberId)
+      i.created_by === memberId
     );
 
     const balance = memberAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
