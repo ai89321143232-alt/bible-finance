@@ -40,6 +40,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   const [toAccountId, setToAccountId] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef(null);
 
   React.useEffect(() => {
@@ -88,7 +89,18 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     if (!amount) return;
     if (type !== 'transfer' && !category) return;
     if (type === 'transfer' && (!accountId || !toAccountId)) return;
+    if (isSubmitting) return;
 
+    setIsSubmitting(true);
+    
+    try {
+      await handleSubmitInternal();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmitInternal = async () => {
     const amountNum = parseFloat(amount);
     
     // Get current user
@@ -530,11 +542,12 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
             (type !== 'transfer' && !category) ||
             (type === 'transfer' && (!accountId || !toAccountId)) ||
             createMutation.isPending || 
-            updateMutation.isPending
+            updateMutation.isPending ||
+            isSubmitting
           }
           className="w-full h-14 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold text-lg shadow-lg shadow-violet-500/25"
         >
-          {(createMutation.isPending || updateMutation.isPending) ? (
+          {(createMutation.isPending || updateMutation.isPending || isSubmitting) ? (
             <span className="animate-pulse">Сохранение...</span>
           ) : (
             <>
