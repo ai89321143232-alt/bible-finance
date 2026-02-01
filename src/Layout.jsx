@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, ArrowLeftRight, Wallet, Target, 
   TrendingUp, Sparkles, ListTodo, PieChart, Settings, 
-  CreditCard, Tag, Users, Gift, FileText, Lightbulb
+  CreditCard, Tag, Users, Gift, FileText, Lightbulb, Baby
 } from 'lucide-react';
 const NAV_ITEMS = [
   { name: 'Dashboard', icon: LayoutDashboard, label: 'Главная' },
@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { name: 'Investments', icon: TrendingUp, label: 'Инвестиции' },
   { name: 'Tasks', icon: ListTodo, label: 'Задачи' },
   { name: 'Notes', icon: FileText, label: 'Заметки' },
+  { name: 'ChildExpenses', icon: Baby, label: 'На детей' },
   { name: 'Analytics', icon: PieChart, label: 'Аналитика' },
   { name: 'FinancialPlanning', icon: Lightbulb, label: 'Планирование' },
   { name: 'AIAssistant', icon: Sparkles, label: 'AI' },
