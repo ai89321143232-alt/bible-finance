@@ -65,6 +65,7 @@ import Subscription from './pages/Subscription';
 import Tasks from './pages/Tasks';
 import Transactions from './pages/Transactions';
 import Referral from './pages/Referral';
+import BackupReports from './pages/BackupReports';
 import __Layout from './Layout.jsx';
 
 
@@ -87,6 +88,7 @@ export const PAGES = {
     "Tasks": Tasks,
     "Transactions": Transactions,
     "Referral": Referral,
+    "BackupReports": BackupReports,
 }
 
 export const pagesConfig = {
