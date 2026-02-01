@@ -64,6 +64,7 @@ import Settings from './pages/Settings';
 import Subscription from './pages/Subscription';
 import Tasks from './pages/Tasks';
 import Transactions from './pages/Transactions';
+import Referral from './pages/Referral';
 import __Layout from './Layout.jsx';
 
 
@@ -85,6 +86,7 @@ export const PAGES = {
     "Subscription": Subscription,
     "Tasks": Tasks,
     "Transactions": Transactions,
+    "Referral": Referral,
 }
 
 export const pagesConfig = {

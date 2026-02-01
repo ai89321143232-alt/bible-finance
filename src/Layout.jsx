@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, ArrowLeftRight, Wallet, Target, 
   TrendingUp, Sparkles, ListTodo, PieChart, Settings, 
-  CreditCard, Tag, Users, Database
+  CreditCard, Tag, Users, Database, Gift
 } from 'lucide-react';
 const NAV_ITEMS = [
   { name: 'Dashboard', icon: LayoutDashboard, label: 'Главная' },
@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { name: 'AIAssistant', icon: Sparkles, label: 'AI' },
   { name: 'FamilyFinances', icon: Users, label: 'Финансы семьи' },
   { name: 'Settings', icon: Settings, label: 'Настройки' },
+  { name: 'Referral', icon: Users, label: 'Рефералы' },
 ];
 
 export default function Layout({ children, currentPageName }) {
@@ -94,7 +95,7 @@ export default function Layout({ children, currentPageName }) {
       {/* Mobile Bottom Navigation */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-40 safe-area-pb">
         <div className="flex justify-around items-center py-2 px-1">
-          {NAV_ITEMS.slice(0, 5).map((item) => (
+          {NAV_ITEMS.filter(item => item.name !== 'Referral').slice(0, 5).map((item) => (
             <Link
               key={item.name}
               to={createPageUrl(item.name)}
