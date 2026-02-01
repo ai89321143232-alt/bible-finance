@@ -27,6 +27,7 @@ import RecentTransactions from '@/components/dashboard/RecentTransactions';
 import AllGoalsProgress from '@/components/dashboard/AllGoalsProgress';
 import BudgetOverview from '@/components/dashboard/BudgetOverview';
 import AIInsights from '@/components/dashboard/AIInsights';
+import BibleVerse from '@/components/dashboard/BibleVerse';
 
 export default function Dashboard() {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -184,6 +185,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <BibleVerse />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 sm:pb-6">
         {/* Header */}
         <motion.div 
