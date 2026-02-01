@@ -67,6 +67,7 @@ import Transactions from './pages/Transactions';
 import Referral from './pages/Referral';
 import BackupReports from './pages/BackupReports';
 import Notes from './pages/Notes';
+import FinancialPlanning from './pages/FinancialPlanning';
 import __Layout from './Layout.jsx';
 
 
@@ -91,6 +92,7 @@ export const PAGES = {
     "Referral": Referral,
     "BackupReports": BackupReports,
     "Notes": Notes,
+    "FinancialPlanning": FinancialPlanning,
 }
 
 export const pagesConfig = {
