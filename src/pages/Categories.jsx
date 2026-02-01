@@ -194,12 +194,15 @@ export default function Categories() {
     setShowAddModal(true);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.name) return;
 
     const data = {
-      ...formData,
-      is_system: false
+      name: formData.name,
+      type: formData.type,
+      icon: formData.icon,
+      color: formData.color,
+      is_system: editCategory?.is_system || false
     };
 
     if (editCategory) {
