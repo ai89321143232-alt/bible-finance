@@ -8,11 +8,18 @@ import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
   ArrowUpRight, ArrowDownRight, TrendingUp, Plus, Wallet,
-  PiggyBank, Target, ChevronRight, Sparkles, CreditCard
+  PiggyBank, Target, ChevronRight, Sparkles, CreditCard, Calendar
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import QuickAddTransaction from '@/components/transactions/QuickAddTransaction';
 import BalanceCard from '@/components/dashboard/BalanceCard';
 import SpendingChart from '@/components/dashboard/SpendingChart';
@@ -23,10 +30,41 @@ import BudgetOverview from '@/components/dashboard/BudgetOverview';
 export default function Dashboard() {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickAddType, setQuickAddType] = useState('expense');
-  const [currentPeriod] = useState({
+  const [periodType, setPeriodType] = useState('month');
+  const [currentPeriod, setCurrentPeriod] = useState({
     start: startOfMonth(new Date()),
     end: endOfMonth(new Date())
   });
+
+  const updatePeriod = (type) => {
+    const now = new Date();
+    let start, end;
+    
+    switch(type) {
+      case 'week':
+        start = new Date(now.setDate(now.getDate() - now.getDay()));
+        end = new Date(now.setDate(start.getDate() + 6));
+        break;
+      case 'month':
+        start = startOfMonth(now);
+        end = endOfMonth(now);
+        break;
+      case 'year':
+        start = new Date(now.getFullYear(), 0, 1);
+        end = new Date(now.getFullYear(), 11, 31);
+        break;
+      case 'all':
+        start = new Date(2000, 0, 1);
+        end = new Date(2099, 11, 31);
+        break;
+      default:
+        start = startOfMonth(now);
+        end = endOfMonth(now);
+    }
+    
+    setCurrentPeriod({ start, end });
+    setPeriodType(type);
+  };
 
   const { data: transactions = [], isLoading: loadingTransactions } = useQuery({
     queryKey: ['transactions'],
@@ -123,6 +161,36 @@ export default function Dashboard() {
           investmentProfit={investmentProfit}
           formatCurrency={formatCurrency}
         />
+
+        {/* Period Selector */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-6"
+        >
+          <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-violet-600" />
+                  <span className="font-medium text-slate-900 dark:text-white">Период статистики</span>
+                </div>
+                <Select value={periodType} onValueChange={updatePeriod}>
+                  <SelectTrigger className="w-40 rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="week">Неделя</SelectItem>
+                    <SelectItem value="month">Месяц</SelectItem>
+                    <SelectItem value="year">Год</SelectItem>
+                    <SelectItem value="all">Всё время</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
