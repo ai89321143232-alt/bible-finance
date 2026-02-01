@@ -66,6 +66,7 @@ import Tasks from './pages/Tasks';
 import Transactions from './pages/Transactions';
 import Referral from './pages/Referral';
 import BackupReports from './pages/BackupReports';
+import Notes from './pages/Notes';
 import __Layout from './Layout.jsx';
 
 
@@ -89,6 +90,7 @@ export const PAGES = {
     "Transactions": Transactions,
     "Referral": Referral,
     "BackupReports": BackupReports,
+    "Notes": Notes,
 }
 
 export const pagesConfig = {
