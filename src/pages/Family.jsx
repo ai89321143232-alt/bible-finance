@@ -41,18 +41,30 @@ export default function Family() {
   const [currentUser, setCurrentUser] = useState(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('editor');
   const [familyName, setFamilyName] = useState('');
+  const [joinCode, setJoinCode] = useState('');
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     loadCurrentUser();
+    checkInviteCode();
   }, []);
 
   const loadCurrentUser = async () => {
     const user = await base44.auth.me();
     setCurrentUser(user);
+  };
+
+  const checkInviteCode = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('invite');
+    if (code) {
+      setJoinCode(code);
+      setShowJoinModal(true);
+    }
   };
 
   const { data: families = [] } = useQuery({
@@ -78,6 +90,51 @@ export default function Family() {
       setShowInviteModal(false);
       setInviteEmail('');
       toast.success('Приглашение отправлено!');
+    }
+  });
+
+  const joinFamilyMutation = useMutation({
+    mutationFn: async (code) => {
+      const allFamilies = await base44.entities.Family.list();
+      const targetFamily = allFamilies.find(f => f.invite_code === code.toUpperCase());
+      
+      if (!targetFamily) {
+        throw new Error('Семья с таким кодом не найдена');
+      }
+
+      const isAlreadyMember = targetFamily.members?.some(m => m.user_id === currentUser.id);
+      if (isAlreadyMember) {
+        throw new Error('Вы уже являетесь участником этой семьи');
+      }
+
+      const updatedMembers = [
+        ...(targetFamily.members || []),
+        {
+          user_id: currentUser.id,
+          name: currentUser.full_name || currentUser.email,
+          role: 'editor',
+          avatar_color: '#' + Math.floor(Math.random()*16777215).toString(16)
+        }
+      ];
+
+      await base44.entities.Family.update(targetFamily.id, {
+        members: updatedMembers
+      });
+
+      return targetFamily;
+    },
+    onSuccess: (family) => {
+      queryClient.invalidateQueries({ queryKey: ['families'] });
+      setShowJoinModal(false);
+      setJoinCode('');
+      toast.success(`Вы присоединились к семье "${family.name}"!`);
+      // Очищаем URL от параметра invite
+      const url = new URL(window.location);
+      url.searchParams.delete('invite');
+      window.history.replaceState({}, '', url);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Не удалось присоединиться к семье');
     }
   });
 
@@ -107,10 +164,16 @@ export default function Family() {
   };
 
   const copyInviteCode = (code) => {
-    navigator.clipboard.writeText(code);
+    const inviteUrl = `${window.location.origin}${window.location.pathname}?invite=${code}`;
+    navigator.clipboard.writeText(inviteUrl);
     setCopied(true);
-    toast.success('Код скопирован!');
+    toast.success('Ссылка скопирована!');
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleJoinFamily = () => {
+    if (!joinCode) return;
+    joinFamilyMutation.mutate(joinCode);
   };
 
   const myFamily = families.find(f => f.owner_id === currentUser?.id);
@@ -141,13 +204,23 @@ export default function Family() {
               Пригласить
             </Button>
           ) : (
-            <Button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl"
-            >
-              <Users className="w-5 h-5 mr-2" />
-              Создать семью
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowJoinModal(true)}
+                variant="outline"
+                className="rounded-xl"
+              >
+                <LinkIcon className="w-5 h-5 mr-2" />
+                Присоединиться
+              </Button>
+              <Button
+                onClick={() => setShowCreateModal(true)}
+                className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl"
+              >
+                <Users className="w-5 h-5 mr-2" />
+                Создать
+              </Button>
+            </div>
           )}
         </motion.div>
 
@@ -175,20 +248,23 @@ export default function Family() {
 
                   {/* Invite Code */}
                   <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                    <p className="text-violet-200 text-xs mb-2">Код приглашения:</p>
+                    <p className="text-violet-200 text-xs mb-2">Пригласительная ссылка:</p>
                     <div className="flex items-center gap-2">
-                      <code className="flex-1 font-mono text-lg bg-white/10 px-3 py-2 rounded-lg">
-                        {myFamily.invite_code}
-                      </code>
+                      <div className="flex-1 font-mono text-sm bg-white/10 px-3 py-2 rounded-lg truncate">
+                        {window.location.origin}/Family?invite={myFamily.invite_code}
+                      </div>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => copyInviteCode(myFamily.invite_code)}
-                        className="text-white hover:bg-white/20"
+                        className="text-white hover:bg-white/20 flex-shrink-0"
                       >
                         {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       </Button>
                     </div>
+                    <p className="text-violet-200 text-xs mt-2">
+                      Код: <span className="font-bold">{myFamily.invite_code}</span>
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -362,6 +438,44 @@ export default function Family() {
             >
               <Mail className="w-4 h-4 mr-2" />
               Отправить приглашение
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Join Family Modal */}
+      <Dialog open={showJoinModal} onOpenChange={setShowJoinModal}>
+        <DialogContent className="rounded-2xl max-w-md">
+          <DialogHeader>
+            <DialogTitle>Присоединиться к семье</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Код приглашения</Label>
+              <Input
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                placeholder="Введите код"
+                className="rounded-xl mt-1 font-mono uppercase"
+                maxLength={8}
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Введите код из приглашения или перейдите по ссылке
+              </p>
+            </div>
+            <Button
+              onClick={handleJoinFamily}
+              disabled={!joinCode || joinFamilyMutation.isPending}
+              className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"
+            >
+              {joinFamilyMutation.isPending ? (
+                'Присоединение...'
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Присоединиться
+                </>
+              )}
             </Button>
           </div>
         </DialogContent>
