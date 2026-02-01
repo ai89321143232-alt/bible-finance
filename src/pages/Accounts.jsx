@@ -54,6 +54,7 @@ export default function Accounts() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editAccount, setEditAccount] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+  const [relatedTransactionsCount, setRelatedTransactionsCount] = useState(0);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -110,11 +111,20 @@ export default function Accounts() {
       if (account && account.created_by !== user.email && !account.created_by.includes(user.id)) {
         throw new Error('Действия с данными других пользователей запрещены!');
       }
+
+      // Delete related transactions
+      const relatedTransactions = transactions.filter(t => t.account_id === id);
+      for (const tx of relatedTransactions) {
+        await base44.entities.Transaction.delete(tx.id);
+      }
+
       return base44.entities.Account.delete(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setDeleteId(null);
+      toast.success('Счет и связанные транзакции удалены');
     },
     onError: (error) => {
       toast.error(error.message);
@@ -278,6 +288,8 @@ export default function Accounts() {
                             size="icon"
                             onClick={(e) => {
                               e.stopPropagation();
+                              const count = transactions.filter(t => t.account_id === account.id).length;
+                              setRelatedTransactionsCount(count);
                               setDeleteId(account.id);
                             }}
                             className="h-8 w-8 text-rose-600"
@@ -411,7 +423,13 @@ export default function Accounts() {
           <AlertDialogHeader>
             <AlertDialogTitle>Удалить счёт?</AlertDialogTitle>
             <AlertDialogDescription>
-              Это действие нельзя отменить. Связанные транзакции не будут удалены.
+              {relatedTransactionsCount > 0 ? (
+                <>
+                  <span className="font-semibold text-rose-600">{relatedTransactionsCount} {relatedTransactionsCount === 1 ? 'транзакция' : relatedTransactionsCount % 10 === 1 && relatedTransactionsCount % 100 !== 11 ? 'транзакция' : relatedTransactionsCount % 10 >= 2 && relatedTransactionsCount % 10 <= 4 && (relatedTransactionsCount % 100 < 10 || relatedTransactionsCount % 100 >= 20) ? 'транзакции' : 'транзакций'}</span> будет удалена вместе со счётом. Это действие нельзя отменить.
+                </>
+              ) : (
+                'Это действие нельзя отменить.'
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
