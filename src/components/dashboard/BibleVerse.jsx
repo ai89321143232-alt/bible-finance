@@ -63,24 +63,42 @@ export default function BibleVerse() {
   const checkAndShowVerse = () => {
     try {
       const cached = localStorage.getItem('bible_verse_cache');
+      const today = new Date().toDateString();
+
       if (!cached) {
         showTodayVerse();
         return;
       }
 
-      const { date, verse } = JSON.parse(cached);
-      const today = new Date().toDateString();
+      const { date, verse, shown } = JSON.parse(cached);
       const cacheDate = new Date(date).toDateString();
 
       if (today !== cacheDate) {
+        // New day - show new verse
         showTodayVerse();
-      } else {
+      } else if (!shown) {
+        // Same day but not shown yet - show it
         setTodayVerse(verse);
-        // Show modal only once per day on first app open
+        markVerseAsShown(verse);
         setShowModal(true);
+      } else {
+        // Same day and already shown - don't show modal
+        setTodayVerse(verse);
       }
     } catch {
       showTodayVerse();
+    }
+  };
+
+  const markVerseAsShown = (verse) => {
+    try {
+      localStorage.setItem('bible_verse_cache', JSON.stringify({
+        verse,
+        date: new Date().toISOString(),
+        shown: true
+      }));
+    } catch {
+      console.error('Failed to update verse cache');
     }
   };
 
@@ -91,7 +109,8 @@ export default function BibleVerse() {
     try {
       localStorage.setItem('bible_verse_cache', JSON.stringify({
         verse,
-        date: new Date().toISOString()
+        date: new Date().toISOString(),
+        shown: false
       }));
     } catch {
       console.error('Failed to cache verse');
@@ -111,6 +130,7 @@ export default function BibleVerse() {
         source: todayVerse.book,
         category: 'verse'
       });
+      markVerseAsShown(todayVerse);
       setShowModal(false);
       setSaveNoteTitle('');
     } catch (error) {
@@ -118,7 +138,7 @@ export default function BibleVerse() {
     } finally {
       setSaving(false);
     }
-  };
+  }
 
   return (
     <Dialog open={showModal} onOpenChange={setShowModal}>
