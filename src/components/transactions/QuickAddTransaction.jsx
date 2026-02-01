@@ -336,13 +336,26 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   const filteredCategories = categories.filter(c => c.type === type);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
-      onClick={onClose}
-    >
+    <>
+      <AnimatePresence>
+        {showReviewModal && (
+          <ReceiptReviewModal 
+            items={scannedItems}
+            categories={categories}
+            onConfirm={handleReviewConfirm}
+            onClose={() => setShowReviewModal(false)}
+            isLoading={isScanning}
+          />
+        )}
+      </AnimatePresence>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
+        onClick={onClose}
+      >
       <motion.div
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -666,5 +679,6 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         )}
       </motion.div>
     </motion.div>
+    </>
   );
 }
