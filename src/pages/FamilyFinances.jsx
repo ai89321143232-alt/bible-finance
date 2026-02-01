@@ -40,13 +40,14 @@ export default function FamilyFinances() {
   };
 
   const { data: family } = useQuery({
-    queryKey: ['my-family'],
+    queryKey: ['my-family', currentUser?.id],
     queryFn: async () => {
       const families = await base44.entities.Family.list();
-      return families.find(f => 
+      const myFamily = families.find(f => 
         f.owner_id === currentUser?.id || 
         f.members?.some(m => m.user_id === currentUser?.id)
       );
+      return myFamily;
     },
     enabled: !!currentUser
   });
@@ -54,31 +55,31 @@ export default function FamilyFinances() {
   const { data: transactions = [] } = useQuery({
     queryKey: ['family-transactions'],
     queryFn: () => base44.entities.Transaction.list('-date', 100),
-    enabled: !!currentUser?.family_id
+    enabled: !!family
   });
 
   const { data: accounts = [] } = useQuery({
     queryKey: ['family-accounts'],
     queryFn: () => base44.entities.Account.list(),
-    enabled: !!currentUser?.family_id
+    enabled: !!family
   });
 
   const { data: goals = [] } = useQuery({
     queryKey: ['family-goals'],
     queryFn: () => base44.entities.Goal.list(),
-    enabled: !!currentUser?.family_id
+    enabled: !!family
   });
 
   const { data: investments = [] } = useQuery({
     queryKey: ['family-investments'],
     queryFn: () => base44.entities.Investment.list(),
-    enabled: !!currentUser?.family_id
+    enabled: !!family
   });
 
   const { data: budgets = [] } = useQuery({
     queryKey: ['family-budgets'],
     queryFn: () => base44.entities.Budget.list(),
-    enabled: !!currentUser?.family_id
+    enabled: !!family
   });
 
   const formatCurrency = (amount) => {
@@ -103,7 +104,7 @@ export default function FamilyFinances() {
     sum + (inv.quantity * (inv.current_price || inv.purchase_price)), 0
   );
 
-  if (!currentUser?.family_id) {
+  if (!family && currentUser) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center p-6">
         <div className="text-center">
