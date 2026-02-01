@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { X, ArrowUpRight, ArrowDownRight, Check, Calendar, Camera, Loader2, Upload, Plus } from 'lucide-react';
+import ReceiptReviewModal from './ReceiptReviewModal';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +42,8 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   const [isScanning, setIsScanning] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [scannedItems, setScannedItems] = useState([]);
+  const [showReviewModal, setShowReviewModal] = useState(false);
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
 
@@ -197,7 +200,6 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     
     setIsScanning(true);
     try {
-      // Convert file to base64 for upload
       const reader = new FileReader();
       reader.onload = async () => {
         try {
@@ -206,7 +208,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           // Upload file
           const { file_url } = await base44.integrations.Core.UploadFile({ file: base64String });
           
-          // Extract data from receipt using AI
+          // Extract raw data from receipt
           const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
             file_url,
             json_schema: {
@@ -215,7 +217,6 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                 amount: { type: 'number' },
                 date: { type: 'string' },
                 merchant: { type: 'string' },
-                category: { type: 'string' },
                 items: {
                   type: 'array',
                   items: {
@@ -231,16 +232,32 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           });
 
           if (result.status === 'success' && result.output) {
-            setAmount(result.output.amount?.toString() || '');
-            setDescription(result.output.merchant || '');
-            setCategory(result.output.category || '');
-            if (result.output.date) {
-              try {
-                setDate(new Date(result.output.date));
-              } catch (e) {}
+            const items = result.output.items || [];
+            
+            if (items.length > 1) {
+              // Несколько товаров - показываем модал для уточнения категорий
+              setScannedItems(items.map(item => ({
+                name: item.name || 'Товар',
+                price: item.price || 0,
+                category: '' // AI определит в модале
+              })));
+              setDescription(result.output.merchant || '');
+              if (result.output.date) {
+                try {
+                  setDate(new Date(result.output.date));
+                } catch (e) {}
+              }
+              setShowReviewModal(true);
+            } else if (items.length === 1) {
+              // Один товар - определяем категорию через AI
+              await categorizeAndAddSingleItem(items[0], result.output);
+            } else {
+              // Нет товаров, создаем одну операцию с общей суммой
+              setAmount(result.output.amount?.toString() || '');
+              setDescription(result.output.merchant || '');
+              setActiveTab('manual');
+              toast.success('Чек распознан успешно!');
             }
-            setActiveTab('manual');
-            toast.success('Чек распознан успешно!');
           } else {
             toast.error('Не удалось распознать чек');
           }
@@ -257,6 +274,63 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
       toast.error('Ошибка при загрузке файла');
       setIsScanning(false);
     }
+  };
+
+  // Категоризировать один товар через AI
+  const categorizeAndAddSingleItem = async (item, receiptData) => {
+    try {
+      const categoryNames = categories.map(c => c.name).join(', ');
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `Определи наиболее подходящую категорию для товара "${item.name}" стоимостью ${item.price}₽.
+        
+Доступные категории: ${categoryNames}
+
+Ответь только с названием категории.`,
+        add_context_from_internet: false
+      });
+
+      setAmount(item.price?.toString() || '');
+      setDescription(`${receiptData.merchant || ''} - ${item.name}`);
+      setCategory(response.trim());
+      if (receiptData.date) {
+        try {
+          setDate(new Date(receiptData.date));
+        } catch (e) {}
+      }
+      setActiveTab('manual');
+      toast.success('Товар добавлен!');
+    } catch (error) {
+      console.error('Categorization error:', error);
+      // Fallback - просто показываем товар без категории
+      setAmount(item.price?.toString() || '');
+      setDescription(`${receiptData.merchant || ''} - ${item.name}`);
+      setActiveTab('manual');
+    }
+  };
+
+  // Обработка нескольких товаров после уточнения категорий
+  const handleReviewConfirm = async (itemsWithCategories) => {
+    setShowReviewModal(false);
+    
+    // Создаем отдельные операции для каждого товара
+    const user = await base44.auth.me();
+    
+    for (const item of itemsWithCategories) {
+      const data = await addFamilyId({
+        type: 'expense',
+        amount: item.price,
+        category: item.category,
+        description: `${description} - ${item.name}`,
+        date: format(date, 'yyyy-MM-dd'),
+        account_id: accountId || undefined
+      });
+      await base44.entities.Transaction.create(data);
+    }
+    
+    queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    toast.success(`Добавлено ${itemsWithCategories.length} операций`);
+    onClose();
   };
 
   const filteredCategories = categories.filter(c => c.type === type);
