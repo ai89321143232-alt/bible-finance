@@ -62,25 +62,49 @@ export default function FamilyFinances() {
 
   const { data: allTransactions = [] } = useQuery({
     queryKey: ['family-transactions'],
-    queryFn: () => base44.entities.Transaction.list('-date', 500),
+    queryFn: async () => {
+      const txs = await base44.entities.Transaction.list('-date', 500);
+      // Filter only transactions from family members
+      return txs.filter(tx => 
+        family.members.some(m => m.user_id === tx.created_by || tx.created_by.includes(m.user_id))
+      );
+    },
     enabled: !!family
   });
 
   const { data: allAccounts = [] } = useQuery({
     queryKey: ['family-accounts'],
-    queryFn: () => base44.entities.Account.list(),
+    queryFn: async () => {
+      const accounts = await base44.entities.Account.list();
+      // Filter only accounts from family members
+      return accounts.filter(acc => 
+        family.members.some(m => m.user_id === acc.created_by || acc.created_by.includes(m.user_id))
+      );
+    },
     enabled: !!family
   });
 
   const { data: allGoals = [] } = useQuery({
     queryKey: ['family-goals'],
-    queryFn: () => base44.entities.Goal.list(),
+    queryFn: async () => {
+      const goals = await base44.entities.Goal.list();
+      // Filter only goals from family members
+      return goals.filter(g => 
+        family.members.some(m => m.user_id === g.created_by || g.created_by.includes(m.user_id))
+      );
+    },
     enabled: !!family
   });
 
   const { data: allInvestments = [] } = useQuery({
     queryKey: ['family-investments'],
-    queryFn: () => base44.entities.Investment.list(),
+    queryFn: async () => {
+      const investments = await base44.entities.Investment.list();
+      // Filter only investments from family members
+      return investments.filter(inv => 
+        family.members.some(m => m.user_id === inv.created_by || inv.created_by.includes(m.user_id))
+      );
+    },
     enabled: !!family
   });
 
