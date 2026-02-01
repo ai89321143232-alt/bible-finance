@@ -57,7 +57,7 @@ export default function Referral() {
   };
 
   const referralLink = currentUser?.referral_code 
-    ? `${window.location.origin}?ref=${currentUser.referral_code}`
+    ? `https://financeapp.com?ref=${currentUser.referral_code}`
     : null;
 
   return (
