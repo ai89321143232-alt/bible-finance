@@ -270,13 +270,13 @@ export default function Dashboard() {
         >
           <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-violet-600" />
                   <span className="font-medium text-slate-900 dark:text-white">Период статистики</span>
                 </div>
                 <Select value={periodType} onValueChange={updatePeriod}>
-                  <SelectTrigger className="w-40 rounded-xl">
+                  <SelectTrigger className="w-full sm:w-40 rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
