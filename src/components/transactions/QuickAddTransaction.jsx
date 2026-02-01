@@ -317,7 +317,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                 ref={cameraInputRef}
                 type="file"
                 accept="image/*"
-                capture="environment"
+                capture
                 onChange={(e) => {
                   if (e.target.files?.[0]) {
                     handleReceiptScan(e.target.files[0]);
