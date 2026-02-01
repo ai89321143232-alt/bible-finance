@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { addFamilyId } from '@/components/FamilyDataWrapper';
 import { motion } from 'framer-motion';
 import {
   Plus, Wallet, CreditCard, Building2, PiggyBank, 
-  Edit2, Trash2, Check, ArrowUpRight, ArrowDownRight
+  Edit2, Trash2, Check, ArrowUpRight, ArrowDownRight, User
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +53,7 @@ export default function Accounts() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editAccount, setEditAccount] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -60,6 +61,27 @@ export default function Accounts() {
     balance: '',
     currency: 'RUB',
     color: ACCOUNT_COLORS[0]
+  });
+
+  useEffect(() => {
+    loadUser();
+  }, []);
+
+  const loadUser = async () => {
+    const user = await base44.auth.me();
+    setCurrentUser(user);
+  };
+
+  const { data: family } = useQuery({
+    queryKey: ['my-family', currentUser?.id],
+    queryFn: async () => {
+      const families = await base44.entities.Family.list();
+      return families.find(f => 
+        f.owner_id === currentUser?.id || 
+        f.members?.some(m => m.user_id === currentUser?.id)
+      );
+    },
+    enabled: !!currentUser
   });
 
   const { data: accounts = [], isLoading } = useQuery({
@@ -152,6 +174,13 @@ export default function Accounts() {
 
   const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
 
+  const getOwnerName = (createdBy) => {
+    if (createdBy === currentUser?.email) return 'Мой счёт';
+    if (!family?.members) return null;
+    const member = family.members.find(m => m.user_id === createdBy || createdBy.includes(m.user_id));
+    return member ? member.name : null;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
@@ -225,35 +254,48 @@ export default function Accounts() {
                             <h3 className="font-semibold text-slate-900 dark:text-white">
                               {account.name}
                             </h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                              {typeInfo.label}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm text-slate-500 dark:text-slate-400">
+                                {typeInfo.label}
+                              </p>
+                              {getOwnerName(account.created_by) && (
+                                <>
+                                  <span className="text-slate-300">•</span>
+                                  <p className="text-xs text-slate-400 flex items-center gap-1">
+                                    <User className="w-3 h-3" />
+                                    {getOwnerName(account.created_by)}
+                                  </p>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEdit(account);
-                            }}
-                            className="h-8 w-8"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteId(account.id);
-                            }}
-                            className="h-8 w-8 text-rose-600"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        {account.created_by === currentUser?.email && (
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(account);
+                              }}
+                              className="h-8 w-8"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteId(account.id);
+                              }}
+                              className="h-8 w-8 text-rose-600"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
 
                       <p className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
