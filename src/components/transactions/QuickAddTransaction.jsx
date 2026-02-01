@@ -41,7 +41,8 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   const [isScanning, setIsScanning] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
 
   React.useEffect(() => {
     loadUser();
@@ -300,22 +301,35 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
               </p>
               
               <input
-                ref={fileInputRef}
+                ref={cameraInputRef}
                 type="file"
-                accept="image/*,.pdf"
+                accept="image/*"
+                capture="environment"
                 onChange={(e) => {
                   if (e.target.files?.[0]) {
                     handleReceiptScan(e.target.files[0]);
-                    // Reset input для повторного выбора того же файла
                     e.target.value = '';
                   }
                 }}
                 className="hidden"
               />
-              
+
+              <input
+                ref={galleryInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    handleReceiptScan(e.target.files[0]);
+                    e.target.value = '';
+                  }
+                }}
+                className="hidden"
+              />
+
               <div className="flex flex-col gap-3">
                 <Button
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => cameraInputRef.current?.click()}
                   disabled={isScanning}
                   className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
                 >
@@ -323,12 +337,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                   Сфотографировать чек
                 </Button>
                 <Button
-                  onClick={() => {
-                    const input = fileInputRef.current;
-                    if (input) {
-                      input.click();
-                    }
-                  }}
+                  onClick={() => galleryInputRef.current?.click()}
                   variant="outline"
                   disabled={isScanning}
                 >
