@@ -85,18 +85,18 @@ export default function FinancialPlanning() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 lg:px-8 py-6 pb-24 sm:pb-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6 sm:mb-8"
         >
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-2">
             Финансовое планирование
           </h1>
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
             Умные рекомендации для ваших финансов
           </p>
         </motion.div>
@@ -109,9 +109,9 @@ export default function FinancialPlanning() {
           className="mb-6"
         >
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-end gap-4 flex-wrap">
-                <div className="flex-1 min-w-64">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+                <div className="flex-1">
                   <Label className="text-sm font-medium mb-2 block">Ежемесячный доход</Label>
                   <div className="relative">
                     <Input
@@ -119,7 +119,7 @@ export default function FinancialPlanning() {
                       value={monthlyIncome}
                       onChange={(e) => setMonthlyIncome(e.target.value)}
                       placeholder={`Или используйте среднее: ${formatCurrency(calculatedIncome)}`}
-                      className="pr-8"
+                      className="pr-8 text-sm"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
                   </div>
@@ -132,7 +132,7 @@ export default function FinancialPlanning() {
                 <Button
                   variant="outline"
                   onClick={() => setMonthlyIncome(calculatedIncome.toString())}
-                  className="whitespace-nowrap"
+                  className="whitespace-nowrap w-full sm:w-auto text-sm"
                 >
                   Использовать среднее
                 </Button>
@@ -147,10 +147,10 @@ export default function FinancialPlanning() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
           >
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="budget">Правило 50/30/20</TabsTrigger>
-              <TabsTrigger value="goals">Калькулятор целей</TabsTrigger>
-              <TabsTrigger value="projection">Прогноз</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 h-auto">
+              <TabsTrigger value="budget" className="text-xs sm:text-sm py-2">50/30/20</TabsTrigger>
+              <TabsTrigger value="goals" className="text-xs sm:text-sm py-2">Цели</TabsTrigger>
+              <TabsTrigger value="projection" className="text-xs sm:text-sm py-2">Прогноз</TabsTrigger>
             </TabsList>
           </motion.div>
 
@@ -168,10 +168,10 @@ export default function FinancialPlanning() {
                     Распределение дохода (правило 50/30/20)
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid lg:grid-cols-2 gap-8">
-                    <div className="flex items-center justify-center">
-                      <ResponsiveContainer width="100%" height={300}>
+                <CardContent className="p-4 sm:p-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                    <div className="flex items-center justify-center h-64 sm:h-80 lg:h-auto">
+                      <ResponsiveContainer width="100%" height={280}>
                         <PieChart>
                           <Pie
                             data={budgetData}
@@ -245,8 +245,8 @@ export default function FinancialPlanning() {
                     Калькулятор: Сколько откладывать на цель
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-4">
+                <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                       <Label className="text-sm font-medium mb-2 block">Выберите цель</Label>
                       <select
@@ -276,33 +276,33 @@ export default function FinancialPlanning() {
                   </div>
 
                   {selectedGoal && (
-                    <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                          <p className="text-sm text-slate-600 dark:text-slate-400">Цель</p>
-                          <p className="text-2xl font-bold text-slate-900 dark:text-white">{selectedGoal.title}</p>
+                    <div className="space-y-3 sm:space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        <div className="p-3 sm:p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Цель</p>
+                         <p className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white truncate">{selectedGoal.title}</p>
                         </div>
 
-                        <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                          <p className="text-sm text-slate-600 dark:text-slate-400">Уже накоплено</p>
-                          <p className="text-2xl font-bold text-emerald-600">{formatCurrency(selectedGoal.current_amount)}</p>
+                        <div className="p-3 sm:p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Уже накоплено</p>
+                         <p className="text-lg sm:text-2xl font-bold text-emerald-600">{formatCurrency(selectedGoal.current_amount)}</p>
                         </div>
 
-                        <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                          <p className="text-sm text-slate-600 dark:text-slate-400">Осталось</p>
-                          <p className="text-2xl font-bold text-violet-600">{formatCurrency(remainingAmount)}</p>
+                        <div className="p-3 sm:p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Осталось</p>
+                         <p className="text-lg sm:text-2xl font-bold text-violet-600">{formatCurrency(remainingAmount)}</p>
                         </div>
 
-                        <div className="p-4 bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 rounded-xl border border-violet-200 dark:border-violet-800">
-                          <p className="text-sm text-violet-700 dark:text-violet-300 font-medium">💡 Откладывайте ежемесячно</p>
-                          <p className="text-3xl font-bold text-violet-600 dark:text-violet-400">{formatCurrency(monthlyNeeded)}</p>
-                          <p className="text-xs text-violet-600 dark:text-violet-400 mt-2">За {monthsLeft} месяцев</p>
+                        <div className="p-3 sm:p-4 bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 rounded-xl border border-violet-200 dark:border-violet-800">
+                         <p className="text-xs sm:text-sm text-violet-700 dark:text-violet-300 font-medium">💡 Откладывайте ежемесячно</p>
+                         <p className="text-2xl sm:text-3xl font-bold text-violet-600 dark:text-violet-400">{formatCurrency(monthlyNeeded)}</p>
+                         <p className="text-xs text-violet-600 dark:text-violet-400 mt-1">За {monthsLeft} месяцев</p>
                         </div>
                       </div>
 
-                      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                        <p className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-2">📊 Анализ</p>
-                        <p className="text-sm text-blue-800 dark:text-blue-300">
+                      <div className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                        <p className="text-xs sm:text-sm font-semibold text-blue-900 dark:text-blue-200 mb-2">📊 Анализ</p>
+                        <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-300">
                           {monthlyNeeded <= savings ? (
                             <>
                             ✅ Вы можете откладывать <span className="font-semibold">{formatCurrency(monthlyNeeded)}</span> в месяц из бюджета на сбережения ({formatCurrency(savings)})
@@ -335,8 +335,8 @@ export default function FinancialPlanning() {
                     Прогноз накоплений на год
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={350}>
+                <CardContent className="p-4 sm:p-6">
+                  <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={savingsProjection}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis dataKey="month" stroke="#64748b" />
@@ -384,30 +384,30 @@ export default function FinancialPlanning() {
                 </CardContent>
               </Card>
 
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <Card className="border-0 shadow-sm">
-                  <CardContent className="p-6">
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">За 6 месяцев</p>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  <CardContent className="p-4 sm:p-6">
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-2">За 6 месяцев</p>
+                    <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
                       {formatCurrency(savings * 6)}
                     </p>
                   </CardContent>
                 </Card>
 
                 <Card className="border-0 shadow-sm">
-                  <CardContent className="p-6">
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">За год</p>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  <CardContent className="p-4 sm:p-6">
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-2">За год</p>
+                    <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
                       {formatCurrency(savings * 12)}
                     </p>
                   </CardContent>
                 </Card>
 
                 {selectedGoal && (
-                  <Card className="border-0 shadow-sm">
-                    <CardContent className="p-6">
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Прогноз на конец года</p>
-                      <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  <Card className="border-0 shadow-sm col-span-1 sm:col-span-2 lg:col-span-1">
+                    <CardContent className="p-4 sm:p-6">
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-2">Прогноз на конец года</p>
+                      <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
                         {formatCurrency(currentAmount + monthlyNeeded * 12)}
                       </p>
                     </CardContent>
