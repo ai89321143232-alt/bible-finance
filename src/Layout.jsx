@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, ArrowLeftRight, Wallet, Target, 
   TrendingUp, Sparkles, ListTodo, PieChart, Settings, 
-  CreditCard, Tag, Users, Gift, FileText, Lightbulb, Baby, TrendingDown
+  CreditCard, Tag, Users, Gift, FileText, Lightbulb, Baby
 } from 'lucide-react';
 const NAV_ITEMS = [
   { name: 'Dashboard', icon: LayoutDashboard, label: 'Главная' },
@@ -18,10 +18,12 @@ const NAV_ITEMS = [
   { name: 'Notes', icon: FileText, label: 'Заметки' },
   { name: 'ChildExpenses', icon: Baby, label: 'На детей' },
   { name: 'Analytics', icon: PieChart, label: 'Аналитика' },
-  { name: 'PremiumAnalytics', icon: TrendingUp, label: 'Премиум' },
+  { name: 'PremiumAnalytics', icon: Sparkles, label: 'Премиум' },
   { name: 'FinancialPlanning', icon: Lightbulb, label: 'Планирование' },
   { name: 'AIAssistant', icon: Sparkles, label: 'AI' },
   { name: 'FamilyFinances', icon: Users, label: 'Финансы семьи' },
+  { name: 'BankSync', icon: CreditCard, label: 'Синхронизация' },
+  { name: 'TaxExport', icon: FileText, label: 'Налоги' },
   { name: 'Settings', icon: Settings, label: 'Настройки' },
   { name: 'Referral', icon: Users, label: 'Рефералы' },
 ];
