@@ -198,7 +198,7 @@ export default function Accounts() {
         >
           <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden">
             <CardContent className="p-6">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-violet-500/20 to-transparent rounded-full blur-3xl" />
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-violet-500/20 to-transparent rounded-full blur-3xl pointer-events-none" />
               <div className="relative">
                 <p className="text-slate-400 text-sm mb-1">Общий баланс</p>
                 <p className="text-4xl font-bold text-white">{formatCurrency(totalBalance)}</p>
