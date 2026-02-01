@@ -25,6 +25,17 @@ export default function Layout({ children, currentPageName }) {
   const isActive = (name) => currentPageName === name;
 
   return (
+                  <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+            {/* PWA Meta Tags */}
+            {typeof document !== 'undefined' && !document.querySelector('meta[name="viewport"]') && (
+              <>
+                <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+                <meta name="theme-color" content="#7c3aed" />
+                <meta name="description" content="Приложение для управления семейными финансами" />
+                <link rel="manifest" href="/manifest.json" />
+                <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%237c3aed' width='180' height='180' rx='40'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='90' fill='white' font-weight='bold'>₽</text></svg>" />
+              </>
+            )}
             <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-40">
