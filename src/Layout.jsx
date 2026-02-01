@@ -7,8 +7,6 @@ import {
   TrendingUp, Sparkles, ListTodo, PieChart, Settings, 
   CreditCard, Tag, Users, Database
 } from 'lucide-react';
-import OnboardingCheck from '@/components/OnboardingCheck';
-
 const NAV_ITEMS = [
   { name: 'Dashboard', icon: LayoutDashboard, label: 'Главная' },
   { name: 'Transactions', icon: ArrowLeftRight, label: 'Операции' },
@@ -30,9 +28,7 @@ export default function Layout({ children, currentPageName }) {
   const isActive = (name) => currentPageName === name;
 
   return (
-    <>
-      <OnboardingCheck />
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-40">
         {/* Logo */}
@@ -145,6 +141,5 @@ export default function Layout({ children, currentPageName }) {
             }
             `}</style>
             </div>
-            </>
             );
             }
