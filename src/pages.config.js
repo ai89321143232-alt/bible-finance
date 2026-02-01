@@ -52,23 +52,23 @@ import Accounts from './pages/Accounts';
 import Admin from './pages/Admin';
 import Analytics from './pages/Analytics';
 import Backup from './pages/Backup';
+import BackupReports from './pages/BackupReports';
 import Budgets from './pages/Budgets';
 import Categories from './pages/Categories';
+import ChildExpenses from './pages/ChildExpenses';
 import CleanupDuplicates from './pages/CleanupDuplicates';
 import Dashboard from './pages/Dashboard';
 import Family from './pages/Family';
 import FamilyFinances from './pages/FamilyFinances';
+import FinancialPlanning from './pages/FinancialPlanning';
 import Goals from './pages/Goals';
 import Investments from './pages/Investments';
+import Notes from './pages/Notes';
+import Referral from './pages/Referral';
 import Settings from './pages/Settings';
 import Subscription from './pages/Subscription';
 import Tasks from './pages/Tasks';
 import Transactions from './pages/Transactions';
-import Referral from './pages/Referral';
-import BackupReports from './pages/BackupReports';
-import Notes from './pages/Notes';
-import FinancialPlanning from './pages/FinancialPlanning';
-import ChildExpenses from './pages/ChildExpenses';
 import __Layout from './Layout.jsx';
 
 
@@ -78,23 +78,23 @@ export const PAGES = {
     "Admin": Admin,
     "Analytics": Analytics,
     "Backup": Backup,
+    "BackupReports": BackupReports,
     "Budgets": Budgets,
     "Categories": Categories,
+    "ChildExpenses": ChildExpenses,
     "CleanupDuplicates": CleanupDuplicates,
     "Dashboard": Dashboard,
     "Family": Family,
     "FamilyFinances": FamilyFinances,
+    "FinancialPlanning": FinancialPlanning,
     "Goals": Goals,
     "Investments": Investments,
+    "Notes": Notes,
+    "Referral": Referral,
     "Settings": Settings,
     "Subscription": Subscription,
     "Tasks": Tasks,
     "Transactions": Transactions,
-    "Referral": Referral,
-    "BackupReports": BackupReports,
-    "Notes": Notes,
-    "FinancialPlanning": FinancialPlanning,
-    "ChildExpenses": ChildExpenses,
 }
 
 export const pagesConfig = {
