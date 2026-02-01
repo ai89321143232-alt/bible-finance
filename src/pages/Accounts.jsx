@@ -226,7 +226,7 @@ export default function Accounts() {
                               {account.name}
                             </h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400">
-                              {typeInfo.label}
+                              {typeInfo.label} • {account.created_by.split('@')[0]}
                             </p>
                           </div>
                         </div>
