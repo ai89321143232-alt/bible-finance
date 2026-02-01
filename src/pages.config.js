@@ -63,6 +63,7 @@ import Tasks from './pages/Tasks';
 import Transactions from './pages/Transactions';
 import Accounts from './pages/Accounts';
 import FamilyFinances from './pages/FamilyFinances';
+import CleanupDuplicates from './pages/CleanupDuplicates';
 import __Layout from './Layout.jsx';
 
 
@@ -83,6 +84,7 @@ export const PAGES = {
     "Transactions": Transactions,
     "Accounts": Accounts,
     "FamilyFinances": FamilyFinances,
+    "CleanupDuplicates": CleanupDuplicates,
 }
 
 export const pagesConfig = {
