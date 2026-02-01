@@ -197,51 +197,64 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     
     setIsScanning(true);
     try {
-      // Upload file
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      
-      // Extract data from receipt using AI
-      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url,
-        json_schema: {
-          type: 'object',
-          properties: {
-            amount: { type: 'number' },
-            date: { type: 'string' },
-            merchant: { type: 'string' },
-            category: { type: 'string' },
-            items: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  name: { type: 'string' },
-                  price: { type: 'number' }
+      // Convert file to base64 for upload
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64String = reader.result;
+          
+          // Upload file
+          const { file_url } = await base44.integrations.Core.UploadFile({ file: base64String });
+          
+          // Extract data from receipt using AI
+          const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+            file_url,
+            json_schema: {
+              type: 'object',
+              properties: {
+                amount: { type: 'number' },
+                date: { type: 'string' },
+                merchant: { type: 'string' },
+                category: { type: 'string' },
+                items: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      price: { type: 'number' }
+                    }
+                  }
                 }
               }
             }
-          }
-        }
-      });
+          });
 
-      if (result.status === 'success' && result.output) {
-        setAmount(result.output.amount?.toString() || '');
-        setDescription(result.output.merchant || '');
-        setCategory(result.output.category || '');
-        if (result.output.date) {
-          try {
-            setDate(new Date(result.output.date));
-          } catch (e) {}
+          if (result.status === 'success' && result.output) {
+            setAmount(result.output.amount?.toString() || '');
+            setDescription(result.output.merchant || '');
+            setCategory(result.output.category || '');
+            if (result.output.date) {
+              try {
+                setDate(new Date(result.output.date));
+              } catch (e) {}
+            }
+            setActiveTab('manual');
+            toast.success('Чек распознан успешно!');
+          } else {
+            toast.error('Не удалось распознать чек');
+          }
+        } catch (error) {
+          console.error('Receipt scan error:', error);
+          toast.error('Ошибка при сканировании чека');
+        } finally {
+          setIsScanning(false);
         }
-        setActiveTab('manual');
-        toast.success('Чек распознан успешно!');
-      } else {
-        toast.error('Не удалось распознать чек');
-      }
+      };
+      reader.readAsDataURL(file);
     } catch (error) {
       console.error('Receipt scan error:', error);
-      toast.error('Ошибка при сканировании чека');
-    } finally {
+      toast.error('Ошибка при загрузке файла');
       setIsScanning(false);
     }
   };
