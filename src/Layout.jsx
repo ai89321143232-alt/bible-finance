@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { name: 'AIAssistant', icon: Sparkles, label: 'AI' },
   { name: 'Categories', icon: Tag, label: 'Категории' },
   { name: 'Family', icon: Users, label: 'Семья' },
+  { name: 'FamilyFinances', icon: Users, label: 'Финансы семьи' },
   { name: 'Backup', icon: Database, label: 'Резервные копии' },
   { name: 'Settings', icon: Settings, label: 'Настройки' },
 ];
