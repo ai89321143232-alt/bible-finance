@@ -56,19 +56,54 @@ export default function Layout({ children, currentPageName }) {
       {/* Mobile Menu Button & Navigation */}
       <button
         onClick={() => setShowMobileMenu(!showMobileMenu)}
-        className="lg:hidden fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg z-40"
+        className="lg:hidden fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg z-40 transition-transform hover:scale-110"
       >
         ☰
       </button>
 
       {showMobileMenu && (
-        <div className="lg:hidden fixed inset-0 bg-black/50 z-30" onClick={() => setShowMobileMenu(false)}>
-          <div className="absolute bottom-20 right-6 bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-80 max-h-[60vh] overflow-y-auto">
+        <div className="lg:hidden fixed inset-0 bg-black/50 z-30 backdrop-blur-sm" onClick={() => setShowMobileMenu(false)}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            onClick={(e) => e.stopPropagation()}
+            className="absolute inset-0 top-auto bg-gradient-to-t from-white via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 rounded-t-3xl shadow-2xl max-h-[85vh] overflow-y-auto"
+          >
+            {/* Header */}
+            <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Меню</h2>
+              <button
+                onClick={() => setShowMobileMenu(false)}
+                className="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Navigation Menu */}
             <NavigationMenu 
               currentPageName={currentPageName}
               onNavigate={() => setShowMobileMenu(false)}
             />
-          </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-slate-200 dark:border-slate-800">
+              <Link to={createPageUrl('Settings')}>
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 cursor-pointer">
+                  <p className="text-sm font-semibold text-violet-900 dark:text-violet-200">
+                    Разблокируйте Premium
+                  </p>
+                  <p className="text-xs text-violet-600 dark:text-violet-400 mt-1">
+                    AI-ассистент и расширенная аналитика
+                  </p>
+                  <div className="mt-3 w-full py-2 px-4 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-medium text-center hover:from-violet-700 hover:to-indigo-700 transition-all">
+                    Улучшить план
+                  </div>
+                </div>
+              </Link>
+            </div>
+          </motion.div>
         </div>
       )}
 
