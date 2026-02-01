@@ -61,51 +61,63 @@ export default function FamilyFinances() {
   });
 
   const { data: allTransactions = [] } = useQuery({
-    queryKey: ['family-transactions'],
+    queryKey: ['family-transactions', family?.id],
     queryFn: async () => {
       const txs = await base44.entities.Transaction.list('-date', 500);
+      console.log('All transactions:', txs);
+      console.log('Family members:', family?.members);
       // Filter only transactions from family members
-      return txs.filter(tx => 
-        family.members.some(m => m.user_id === tx.created_by)
-      );
+      const filtered = txs.filter(tx => {
+        const match = family.members.some(m => {
+          // Compare both ways - user_id might be in created_by
+          return tx.created_by === m.user_id || tx.created_by.includes(m.user_id);
+        });
+        if (match) console.log('Matched transaction:', tx);
+        return match;
+      });
+      console.log('Filtered transactions:', filtered);
+      return filtered;
     },
-    enabled: !!family
+    enabled: !!family && family.members?.length > 0
   });
 
   const { data: allAccounts = [] } = useQuery({
-    queryKey: ['family-accounts'],
+    queryKey: ['family-accounts', family?.id],
     queryFn: async () => {
       const accounts = await base44.entities.Account.list();
+      console.log('All accounts:', accounts);
       // Filter only accounts from family members
-      return accounts.filter(acc => 
-        family.members.some(m => m.user_id === acc.created_by)
+      const filtered = accounts.filter(acc => 
+        family.members.some(m => acc.created_by === m.user_id || acc.created_by.includes(m.user_id))
       );
+      console.log('Filtered accounts:', filtered);
+      return filtered;
     },
-    enabled: !!family
+    enabled: !!family && family.members?.length > 0
   });
 
   const { data: allGoals = [] } = useQuery({
-    queryKey: ['family-goals'],
+    queryKey: ['family-goals', family?.id],
     queryFn: async () => {
       const goals = await base44.entities.Goal.list();
       // Filter only goals from family members
       return goals.filter(g => 
-        family.members.some(m => m.user_id === g.created_by)
+        family.members.some(m => g.created_by === m.user_id || g.created_by.includes(m.user_id))
       );
     },
-    enabled: !!family
+    enabled: !!family && family.members?.length > 0
   });
 
   const { data: allInvestments = [] } = useQuery({
-    queryKey: ['family-investments'],
+    queryKey: ['family-investments', family?.id],
     queryFn: async () => {
       const investments = await base44.entities.Investment.list();
       // Filter only investments from family members
       return investments.filter(inv => 
-        family.members.some(m => m.user_id === inv.created_by)
+        family.members.some(m => inv.created_by === m.user_id || inv.created_by.includes(m.user_id))
       );
     },
-    enabled: !!family
+    enabled: !!family && family.members?.length > 0
   });
 
   const formatCurrency = (amount) => {
@@ -119,7 +131,9 @@ export default function FamilyFinances() {
   const getMemberInfo = (createdBy) => {
     if (!family?.members) return { name: 'Неизвестно', avatar_color: '#64748B', user_id: null };
     
-    const member = family.members.find(m => m.user_id === createdBy);
+    const member = family.members.find(m => 
+      m.user_id === createdBy || createdBy.includes(m.user_id)
+    );
     
     return member || { name: 'Неизвестно', avatar_color: '#64748B', user_id: null };
   };
@@ -127,16 +141,16 @@ export default function FamilyFinances() {
   // Calculate member stats
   const getMemberStats = (memberId) => {
     const memberAccounts = allAccounts.filter(a => 
-      a.created_by === memberId
+      a.created_by === memberId || a.created_by.includes(memberId)
     );
     const memberTransactions = allTransactions.filter(t => 
-      t.created_by === memberId
+      t.created_by === memberId || t.created_by.includes(memberId)
     );
     const memberGoals = allGoals.filter(g => 
-      g.created_by === memberId
+      g.created_by === memberId || g.created_by.includes(memberId)
     );
     const memberInvestments = allInvestments.filter(i => 
-      i.created_by === memberId
+      i.created_by === memberId || i.created_by.includes(memberId)
     );
 
     const balance = memberAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
