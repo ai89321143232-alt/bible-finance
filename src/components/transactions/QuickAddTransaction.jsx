@@ -39,7 +39,22 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   const [accountId, setAccountId] = useState(transaction?.account_id || '');
   const [toAccountId, setToAccountId] = useState('');
   const [isScanning, setIsScanning] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const fileInputRef = useRef(null);
+
+  React.useEffect(() => {
+    loadUser();
+  }, []);
+
+  const loadUser = async () => {
+    const user = await base44.auth.me();
+    setCurrentUser(user);
+  };
+
+  // Filter accounts to show only current user's accounts
+  const myAccounts = accounts?.filter(acc => 
+    currentUser && (acc.created_by === currentUser.email || acc.created_by.includes(currentUser.id))
+  ) || [];
 
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
@@ -88,7 +103,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
       if (sourceAccount) {
         // Check if user owns this account
         if (sourceAccount.created_by !== user.email && !sourceAccount.created_by.includes(user.id)) {
-          toast.error('Вы можете переводить только со своих счетов!');
+          toast.error('Действия с данными других пользователей запрещены!');
           return;
         }
         await base44.entities.Account.update(accountId, {
@@ -142,7 +157,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     if (accountId && (type === 'expense' || type === 'income')) {
       const selectedAccount = accounts.find(a => a.id === accountId);
       if (selectedAccount && selectedAccount.created_by !== user.email && !selectedAccount.created_by.includes(user.id)) {
-        toast.error('Вы можете добавлять транзакции только для своих счетов!');
+        toast.error('Действия с данными других пользователей запрещены!');
         return;
       }
     }
@@ -370,15 +385,15 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         {type === 'transfer' ? (
           <>
             <div className="mb-4">
-              <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Откуда (только ваши счета)</Label>
+              <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Откуда</Label>
               <Select value={accountId} onValueChange={setAccountId}>
                 <SelectTrigger className="h-12 rounded-xl">
-                  <SelectValue placeholder="Выберите счёт списания" />
+                  <SelectValue placeholder="Выберите ваш счёт" />
                 </SelectTrigger>
                 <SelectContent>
-                  {accounts?.map((acc) => (
+                  {myAccounts.map((acc) => (
                     <SelectItem key={acc.id} value={acc.id}>
-                      {acc.icon} {acc.name} • {acc.created_by.split('@')[0]} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
+                      {acc.icon} {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -391,7 +406,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                   <SelectValue placeholder="Выберите счёт или цель" />
                 </SelectTrigger>
                 <SelectContent>
-                  {accounts?.filter(a => a.id !== accountId).map((acc) => (
+                  {myAccounts.filter(a => a.id !== accountId).map((acc) => (
                     <SelectItem key={acc.id} value={acc.id}>
                       {acc.icon} {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
                     </SelectItem>
@@ -477,17 +492,17 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         </div>
 
         {/* Account */}
-        {accounts && accounts.length > 0 && type !== 'transfer' && (
+        {myAccounts && myAccounts.length > 0 && type !== 'transfer' && (
           <div className="mb-4">
             <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Счёт</Label>
             <Select value={accountId} onValueChange={setAccountId}>
               <SelectTrigger className="h-12 rounded-xl">
-                <SelectValue placeholder="Выберите счёт" />
+                <SelectValue placeholder="Выберите ваш счёт" />
               </SelectTrigger>
               <SelectContent>
-                {accounts.map((acc) => (
+                {myAccounts.map((acc) => (
                   <SelectItem key={acc.id} value={acc.id}>
-                    {acc.name} • {acc.created_by.split('@')[0]}
+                    {acc.name}
                   </SelectItem>
                 ))}
               </SelectContent>

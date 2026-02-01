@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { addFamilyId } from '@/components/FamilyDataWrapper';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 import {
   Plus, Wallet, CreditCard, Building2, PiggyBank, 
   Edit2, Trash2, Check, ArrowUpRight, ArrowDownRight
@@ -89,9 +90,20 @@ export default function Accounts() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Account.delete(id),
+    mutationFn: async (id) => {
+      const user = await base44.auth.me();
+      const account = accounts.find(a => a.id === id);
+      if (account && account.created_by !== user.email && !account.created_by.includes(user.id)) {
+        throw new Error('Действия с данными других пользователей запрещены!');
+      }
+      return base44.entities.Account.delete(id);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      setDeleteId(null);
+    },
+    onError: (error) => {
+      toast.error(error.message);
       setDeleteId(null);
     }
   });
@@ -108,7 +120,12 @@ export default function Accounts() {
     setEditAccount(null);
   };
 
-  const handleEdit = (account) => {
+  const handleEdit = async (account) => {
+    const user = await base44.auth.me();
+    if (account.created_by !== user.email && !account.created_by.includes(user.id)) {
+      toast.error('Действия с данными других пользователей запрещены!');
+      return;
+    }
     setEditAccount(account);
     setFormData({
       name: account.name,
