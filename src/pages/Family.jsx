@@ -73,7 +73,14 @@ export default function Family() {
   });
 
   const createFamilyMutation = useMutation({
-    mutationFn: (data) => base44.entities.Family.create(data),
+    mutationFn: async (data) => {
+      const family = await base44.entities.Family.create(data);
+      // Сохраняем family_id в профиле пользователя
+      await base44.auth.updateMe({
+        family_id: family.id
+      });
+      return family;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['families'] });
       setShowCreateModal(false);
@@ -121,6 +128,11 @@ export default function Family() {
         members: updatedMembers
       });
 
+      // Сохраняем family_id в профиле пользователя
+      await base44.auth.updateMe({
+        family_id: targetFamily.id
+      });
+
       return targetFamily;
     },
     onSuccess: (family) => {
@@ -143,7 +155,7 @@ export default function Family() {
 
     const inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
 
-    createFamilyMutation.mutate({
+    const familyData = {
       name: familyName,
       owner_id: currentUser.id,
       currency: 'RUB',
@@ -155,7 +167,9 @@ export default function Family() {
       }],
       invite_code: inviteCode,
       subscription_tier: 'free'
-    });
+    };
+
+    createFamilyMutation.mutate(familyData);
   };
 
   const handleInvite = () => {
