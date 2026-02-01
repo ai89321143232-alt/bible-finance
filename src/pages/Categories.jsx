@@ -67,6 +67,7 @@ export default function Categories() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editCategory, setEditCategory] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+  const [selectedCategories, setSelectedCategories] = useState([]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -123,6 +124,49 @@ export default function Categories() {
       setDeleteId(null);
     }
   });
+
+  const handleBulkDelete = async () => {
+    const errors = [];
+    
+    for (const categoryId of selectedCategories) {
+      const category = categories.find(c => c.id === categoryId);
+      if (!category) continue;
+
+      const hasTransactions = transactions.some(t => t.category === category.name);
+      if (hasTransactions) {
+        errors.push(category.name);
+        continue;
+      }
+
+      try {
+        await base44.entities.Category.delete(categoryId);
+      } catch (error) {
+        errors.push(category.name);
+      }
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['categories'] });
+    setSelectedCategories([]);
+
+    if (errors.length > 0) {
+      alert(`Не удалось удалить категории с транзакциями: ${errors.join(', ')}`);
+    }
+  };
+
+  const toggleCategory = (id) => {
+    setSelectedCategories(prev => 
+      prev.includes(id) ? prev.filter(cid => cid !== id) : [...prev, id]
+    );
+  };
+
+  const selectAll = () => {
+    const ids = filteredCategories.filter(c => !c.is_system).map(c => c.id);
+    setSelectedCategories(ids);
+  };
+
+  const deselectAll = () => {
+    setSelectedCategories([]);
+  };
 
   const resetForm = () => {
     setFormData({
@@ -184,16 +228,28 @@ export default function Categories() {
               Управление категориями доходов и расходов
             </p>
           </div>
-          <Button
-            onClick={() => {
-              setFormData({ ...formData, type: activeTab });
-              setShowAddModal(true);
-            }}
-            className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Добавить
-          </Button>
+          <div className="flex gap-2">
+            {selectedCategories.length > 0 && (
+              <Button
+                onClick={handleBulkDelete}
+                variant="outline"
+                className="rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Удалить ({selectedCategories.length})
+              </Button>
+            )}
+            <Button
+              onClick={() => {
+                setFormData({ ...formData, type: activeTab });
+                setShowAddModal(true);
+              }}
+              className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Добавить
+            </Button>
+          </div>
         </motion.div>
 
         {/* Tabs */}
@@ -207,6 +263,30 @@ export default function Categories() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+
+        {/* Selection Controls */}
+        {filteredCategories.filter(c => !c.is_system).length > 0 && (
+          <div className="flex gap-2 mb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={selectAll}
+              className="rounded-xl"
+            >
+              Выбрать все
+            </Button>
+            {selectedCategories.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={deselectAll}
+                className="rounded-xl"
+              >
+                Снять выбор
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Categories Grid */}
         {filteredCategories.length > 0 ? (
@@ -222,11 +302,25 @@ export default function Categories() {
                   transition={{ delay: index * 0.05 }}
                 >
                   <Card 
-                    className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-all group cursor-pointer"
+                    className={`border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-all group cursor-pointer ${
+                      selectedCategories.includes(category.id) ? 'ring-2 ring-violet-500' : ''
+                    }`}
                     onClick={() => !category.is_system && handleEdit(category)}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-center gap-3">
+                        {!category.is_system && (
+                          <input
+                            type="checkbox"
+                            checked={selectedCategories.includes(category.id)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              toggleCategory(category.id);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-4 h-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                          />
+                        )}
                         <div 
                           className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
                           style={{ backgroundColor: `${category.color}20` }}

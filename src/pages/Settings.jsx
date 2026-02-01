@@ -74,7 +74,13 @@ export default function Settings() {
   const [user, setUser] = useState(null);
   const [isDark, setIsDark] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+  const [profileData, setProfileData] = useState({
+    firstName: '',
+    lastName: '',
+    telegramNick: ''
+  });
   const [notifications, setNotifications] = useState({
     budgetAlerts: true,
     goalReminders: true,
@@ -94,6 +100,24 @@ export default function Settings() {
     setUser(userData);
     const status = getSubscriptionStatus(userData);
     setSubscriptionStatus(status);
+    
+    // Load profile data
+    setProfileData({
+      firstName: userData.data?.firstName || '',
+      lastName: userData.data?.lastName || '',
+      telegramNick: userData.data?.telegramNick || ''
+    });
+  };
+
+  const handleSaveProfile = async () => {
+    await base44.auth.updateMe({
+      ...user.data,
+      firstName: profileData.firstName,
+      lastName: profileData.lastName,
+      telegramNick: profileData.telegramNick
+    });
+    await loadUser();
+    setShowEditProfile(false);
   };
 
   const handleLogout = () => {
@@ -125,13 +149,18 @@ export default function Settings() {
             <CardContent className="p-5">
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold">
-                  {user?.full_name?.[0] || user?.email?.[0] || '?'}
+                  {profileData.firstName?.[0] || user?.full_name?.[0] || user?.email?.[0] || '?'}
                 </div>
                 <div className="flex-1">
                   <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-                    {user?.full_name || 'Пользователь'}
+                    {profileData.firstName && profileData.lastName 
+                      ? `${profileData.firstName} ${profileData.lastName}` 
+                      : user?.full_name || 'Пользователь'}
                   </h2>
                   <p className="text-slate-500 dark:text-slate-400">{user?.email}</p>
+                  {profileData.telegramNick && (
+                    <p className="text-sm text-violet-600">@{profileData.telegramNick}</p>
+                  )}
                   <div className="flex flex-wrap gap-2 mt-2">
                     <Badge 
                       variant="secondary" 
@@ -154,6 +183,14 @@ export default function Settings() {
                     )}
                   </div>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowEditProfile(true)}
+                  className="rounded-xl"
+                >
+                  <User className="w-5 h-5" />
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -381,6 +418,51 @@ export default function Settings() {
           </div>
         </div>
       </div>
+
+      {/* Edit Profile Modal */}
+      <Dialog open={showEditProfile} onOpenChange={setShowEditProfile}>
+        <DialogContent className="rounded-2xl max-w-md">
+          <DialogHeader>
+            <DialogTitle>Редактировать профиль</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Имя</Label>
+              <Input
+                value={profileData.firstName}
+                onChange={(e) => setProfileData({...profileData, firstName: e.target.value})}
+                placeholder="Введите имя"
+                className="rounded-xl mt-1"
+              />
+            </div>
+            <div>
+              <Label>Фамилия</Label>
+              <Input
+                value={profileData.lastName}
+                onChange={(e) => setProfileData({...profileData, lastName: e.target.value})}
+                placeholder="Введите фамилию"
+                className="rounded-xl mt-1"
+              />
+            </div>
+            <div>
+              <Label>Телеграм ник</Label>
+              <Input
+                value={profileData.telegramNick}
+                onChange={(e) => setProfileData({...profileData, telegramNick: e.target.value})}
+                placeholder="username"
+                className="rounded-xl mt-1"
+              />
+            </div>
+            <Button
+              onClick={handleSaveProfile}
+              className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"
+            >
+              <Check className="w-4 h-4 mr-2" />
+              Сохранить
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Subscription Plans Modal */}
       <Dialog open={showPlanModal} onOpenChange={setShowPlanModal}>
