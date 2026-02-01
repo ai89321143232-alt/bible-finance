@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { addFamilyId } from '@/components/FamilyDataWrapper';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -112,7 +113,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
       }
 
       // Create transfer transaction
-      await base44.entities.Transaction.create({
+      const transferData = await addFamilyId({
         type: 'transfer',
         amount: amountNum,
         category: isDestGoal ? 'Перенос на цель' : 'Перенос между счетами',
@@ -120,6 +121,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         date: format(date, 'yyyy-MM-dd'),
         account_id: accountId
       });
+      await base44.entities.Transaction.create(transferData);
 
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
@@ -128,14 +130,14 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
       return;
     }
 
-    const data = {
+    const data = await addFamilyId({
       type,
       amount: amountNum,
       category,
       description,
       date: format(date, 'yyyy-MM-dd'),
       account_id: accountId || undefined
-    };
+    });
 
     if (transaction) {
       updateMutation.mutate({ id: transaction.id, data });
