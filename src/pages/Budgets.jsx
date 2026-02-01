@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { addFamilyId } from '@/components/FamilyDataWrapper';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -120,12 +121,12 @@ export default function Budgets() {
     setShowAddModal(true);
   };
 
-  const handleSubmit = () => {
-    const data = {
+  const handleSubmit = async () => {
+    const data = await addFamilyId({
       ...formData,
       limit_amount: parseFloat(formData.limit_amount),
       is_active: true
-    };
+    });
 
     if (editBudget) {
       updateMutation.mutate({ id: editBudget.id, data });

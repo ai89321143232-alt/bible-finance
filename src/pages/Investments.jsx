@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { addFamilyId } from '@/components/FamilyDataWrapper';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -121,13 +122,13 @@ export default function Investments() {
     setShowAddModal(true);
   };
 
-  const handleSubmit = () => {
-    const data = {
+  const handleSubmit = async () => {
+    const data = await addFamilyId({
       ...formData,
       quantity: parseFloat(formData.quantity),
       purchase_price: parseFloat(formData.purchase_price),
       current_price: parseFloat(formData.current_price) || parseFloat(formData.purchase_price)
-    };
+    });
 
     if (editInvestment) {
       updateMutation.mutate({ id: editInvestment.id, data });

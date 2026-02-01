@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { addFamilyId } from '@/components/FamilyDataWrapper';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -140,14 +141,14 @@ export default function Goals() {
     setShowAddModal(true);
   };
 
-  const handleSubmit = () => {
-    const data = {
+  const handleSubmit = async () => {
+    const data = await addFamilyId({
       ...formData,
       target_amount: parseFloat(formData.target_amount),
       current_amount: parseFloat(formData.current_amount) || 0,
       deadline: formData.deadline ? format(formData.deadline, 'yyyy-MM-dd') : null,
       status: 'active'
-    };
+    });
 
     if (editGoal) {
       updateMutation.mutate({ id: editGoal.id, data });

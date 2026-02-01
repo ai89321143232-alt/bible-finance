@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { addFamilyId } from '@/components/FamilyDataWrapper';
 import { motion } from 'framer-motion';
 import {
   Plus, Wallet, CreditCard, Building2, PiggyBank, 
@@ -119,12 +120,12 @@ export default function Accounts() {
     setShowAddModal(true);
   };
 
-  const handleSubmit = () => {
-    const data = {
+  const handleSubmit = async () => {
+    const data = await addFamilyId({
       ...formData,
       balance: parseFloat(formData.balance) || 0,
       is_active: true
-    };
+    });
 
     if (editAccount) {
       updateMutation.mutate({ id: editAccount.id, data });
