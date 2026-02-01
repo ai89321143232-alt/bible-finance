@@ -35,16 +35,7 @@ export default function OnboardingCheck() {
           )
         );
 
-        // Создаем стартовый счет с нулевым балансом
-        await base44.entities.Account.create({
-          name: 'Основной счёт',
-          type: 'cash',
-          balance: 0,
-          currency: 'RUB',
-          color: '#8B5CF6',
-          icon: 'Wallet',
-          is_active: true
-        }).catch(() => {});
+        // НЕ создаем стартовый счет - пользователь начинает с нуля
 
         // Помечаем пользователя как инициализированного
         await base44.auth.updateMe({ initialized: true });
