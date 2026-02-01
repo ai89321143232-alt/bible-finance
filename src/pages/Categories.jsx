@@ -80,6 +80,11 @@ export default function Categories() {
     queryFn: () => base44.entities.Category.list()
   });
 
+  const { data: transactions = [] } = useQuery({
+    queryKey: ['transactions'],
+    queryFn: () => base44.entities.Transaction.list('-date', 100)
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Category.create(data),
     onSuccess: () => {
@@ -97,9 +102,24 @@ export default function Categories() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Category.delete(id),
+    mutationFn: async (id) => {
+      // Проверяем, есть ли транзакции с этой категорией
+      const category = categories.find(c => c.id === id);
+      if (!category) return;
+
+      const hasTransactions = transactions.some(t => t.category === category.name);
+      if (hasTransactions) {
+        throw new Error('Невозможно удалить категорию, так как существуют связанные с ней транзакции');
+      }
+
+      return base44.entities.Category.delete(id);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
+      setDeleteId(null);
+    },
+    onError: (error) => {
+      alert(error.message);
       setDeleteId(null);
     }
   });
