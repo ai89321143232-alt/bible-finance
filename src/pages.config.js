@@ -61,6 +61,7 @@ import Settings from './pages/Settings';
 import Subscription from './pages/Subscription';
 import Tasks from './pages/Tasks';
 import Transactions from './pages/Transactions';
+import Admin from './pages/Admin';
 import __Layout from './Layout.jsx';
 
 
@@ -79,6 +80,7 @@ export const PAGES = {
     "Subscription": Subscription,
     "Tasks": Tasks,
     "Transactions": Transactions,
+    "Admin": Admin,
 }
 
 export const pagesConfig = {

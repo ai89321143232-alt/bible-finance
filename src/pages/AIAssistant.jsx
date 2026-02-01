@@ -20,6 +20,8 @@ const QUICK_PROMPTS = [
 ];
 
 export default function AIAssistant() {
+  const [user, setUser] = useState(null);
+  const [hasAccess, setHasAccess] = useState(false);
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -30,6 +32,18 @@ export default function AIAssistant() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    checkAccess();
+  }, []);
+
+  const checkAccess = async () => {
+    const userData = await base44.auth.me();
+    setUser(userData);
+    // AI доступен только администратору (владельцу) или пользователям с премиум подпиской
+    const access = userData.role === 'admin' || userData.data?.subscription === 'premium' || userData.data?.subscription === 'family';
+    setHasAccess(access);
+  };
 
   const { data: transactions = [] } = useQuery({
     queryKey: ['transactions'],
@@ -147,6 +161,37 @@ ${financialContext}
   const handleQuickPrompt = (prompt) => {
     sendMessage(prompt);
   };
+
+  if (!hasAccess) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center px-4">
+        <Card className="max-w-md w-full border-0 shadow-xl">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="w-8 h-8 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+              AI Ассистент Premium
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 mb-6">
+              Для доступа к AI-ассистенту необходима Premium подписка. Обратитесь к владельцу приложения для активации.
+            </p>
+            <a 
+              href="https://t.me/RussianExpert" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-block"
+            >
+              <Button className="rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
+                <span className="mr-2">💬</span>
+                Связаться в Telegram
+              </Button>
+            </a>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex flex-col">

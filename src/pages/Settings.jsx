@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import {
   User, Bell, Moon, Globe, Shield, CreditCard, 
-  HelpCircle, LogOut, ChevronRight, Crown, Check, Tag, Users, Database
+  HelpCircle, LogOut, ChevronRight, Crown, Check, Tag, Users, Database, Settings as SettingsIcon
 } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 import { Button } from "@/components/ui/button";
@@ -135,6 +135,35 @@ export default function Settings() {
           </Card>
         </motion.div>
 
+        {/* Admin Panel */}
+        {user?.role === 'admin' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="mb-6"
+          >
+            <Link to={createPageUrl('Admin')}>
+              <Card className="border-0 shadow-sm bg-gradient-to-br from-amber-500 to-orange-600 text-white overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold mb-1 flex items-center gap-2">
+                        <SettingsIcon className="w-5 h-5" />
+                        Панель администратора
+                      </h3>
+                      <p className="text-orange-100 text-sm">
+                        Управление пользователями и подписками
+                      </p>
+                    </div>
+                    <ChevronRight className="w-5 h-5" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </motion.div>
+        )}
+
         {/* Subscription */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -142,25 +171,25 @@ export default function Settings() {
           transition={{ delay: 0.15 }}
           className="mb-6"
         >
-          <Link to={createPageUrl('Subscription')}>
-            <Card className="border-0 shadow-sm bg-gradient-to-br from-violet-600 to-indigo-700 text-white overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold mb-1">Разблокируйте Premium</h3>
-                    <p className="text-violet-200 text-sm">
-                      AI-ассистент, расширенная аналитика и многое другое
-                    </p>
-                  </div>
-                  <Button 
-                    className="bg-white text-violet-700 hover:bg-violet-50 rounded-xl"
-                  >
-                    Улучшить
-                  </Button>
+          <Card className="border-0 shadow-sm bg-gradient-to-br from-violet-600 to-indigo-700 text-white overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+            onClick={() => setShowPlanModal(true)}
+          >
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold mb-1">Разблокируйте Premium</h3>
+                  <p className="text-violet-200 text-sm">
+                    AI-ассистент, расширенная аналитика и многое другое
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          </Link>
+                <Button 
+                  className="bg-white text-violet-700 hover:bg-violet-50 rounded-xl"
+                >
+                  Выбрать план
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
 
         {/* Settings Sections */}
@@ -332,7 +361,7 @@ export default function Settings() {
             {SUBSCRIPTION_PLANS.map((plan) => (
               <Card 
                 key={plan.id}
-                className={`border-2 cursor-pointer transition-all hover:border-violet-500 ${
+                className={`border-2 transition-all ${
                   plan.popular ? 'border-violet-500 shadow-lg shadow-violet-500/20' : 'border-slate-200'
                 }`}
               >
@@ -340,32 +369,37 @@ export default function Settings() {
                   {plan.popular && (
                     <Badge className="mb-3 bg-violet-600">Популярный</Badge>
                   )}
-                  <h3 className="font-semibold text-lg text-slate-900">{plan.name}</h3>
+                  <h3 className="font-semibold text-lg text-slate-900 dark:text-white">{plan.name}</h3>
                   <div className="flex items-baseline gap-1 my-3">
-                    <span className="text-3xl font-bold text-slate-900">{plan.price}</span>
-                    <span className="text-slate-500">₽/мес</span>
+                    <span className="text-3xl font-bold text-slate-900 dark:text-white">{plan.price}</span>
+                    <span className="text-slate-500 dark:text-slate-400">₽/мес</span>
                   </div>
                   <ul className="space-y-2 mb-4">
                     {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
+                      <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
                         <Check className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
                         {feature}
                       </li>
                     ))}
                   </ul>
-                  <Button 
-                    className={`w-full rounded-xl ${
-                      plan.popular 
-                        ? 'bg-gradient-to-r from-violet-600 to-indigo-600' 
-                        : ''
-                    }`}
-                    variant={plan.popular ? 'default' : 'outline'}
-                  >
-                    {plan.price === 0 ? 'Текущий план' : 'Выбрать'}
-                  </Button>
                 </CardContent>
               </Card>
             ))}
+          </div>
+          <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl text-center">
+            <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">
+              Для подключения тарифа свяжитесь с разработчиком
+            </p>
+            <a 
+              href="https://t.me/RussianExpert" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <Button className="rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
+                <span className="mr-2">💬</span>
+                Написать в Telegram
+              </Button>
+            </a>
           </div>
         </DialogContent>
       </Dialog>
