@@ -48,7 +48,6 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AIAssistant from './pages/AIAssistant';
-import Accounts from './pages/Accounts';
 import Admin from './pages/Admin';
 import Analytics from './pages/Analytics';
 import Backup from './pages/Backup';
@@ -56,19 +55,19 @@ import Budgets from './pages/Budgets';
 import Categories from './pages/Categories';
 import Dashboard from './pages/Dashboard';
 import Family from './pages/Family';
-import FamilyFinances from './pages/FamilyFinances';
 import Goals from './pages/Goals';
 import Investments from './pages/Investments';
 import Settings from './pages/Settings';
 import Subscription from './pages/Subscription';
 import Tasks from './pages/Tasks';
 import Transactions from './pages/Transactions';
+import Accounts from './pages/Accounts';
+import FamilyFinances from './pages/FamilyFinances';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AIAssistant": AIAssistant,
-    "Accounts": Accounts,
     "Admin": Admin,
     "Analytics": Analytics,
     "Backup": Backup,
@@ -76,13 +75,14 @@ export const PAGES = {
     "Categories": Categories,
     "Dashboard": Dashboard,
     "Family": Family,
-    "FamilyFinances": FamilyFinances,
     "Goals": Goals,
     "Investments": Investments,
     "Settings": Settings,
     "Subscription": Subscription,
     "Tasks": Tasks,
     "Transactions": Transactions,
+    "Accounts": Accounts,
+    "FamilyFinances": FamilyFinances,
 }
 
 export const pagesConfig = {

@@ -75,6 +75,9 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     if (type === 'transfer' && (!accountId || !toAccountId)) return;
 
     const amountNum = parseFloat(amount);
+    
+    // Get current user
+    const user = await base44.auth.me();
 
     if (type === 'transfer') {
       const isSourceGoal = toAccountId.startsWith('goal_');
@@ -83,6 +86,11 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
       // Update source (always account for now)
       const sourceAccount = accounts.find(a => a.id === accountId);
       if (sourceAccount) {
+        // Check if user owns this account
+        if (sourceAccount.created_by !== user.email && !sourceAccount.created_by.includes(user.id)) {
+          toast.error('Вы можете переводить только со своих счетов!');
+          return;
+        }
         await base44.entities.Account.update(accountId, {
           balance: sourceAccount.balance - amountNum
         });
@@ -128,6 +136,15 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
       toast.success('Перенос выполнен');
       onClose();
       return;
+    }
+
+    // Check if selected account belongs to the current user (for expense/income)
+    if (accountId && (type === 'expense' || type === 'income')) {
+      const selectedAccount = accounts.find(a => a.id === accountId);
+      if (selectedAccount && selectedAccount.created_by !== user.email && !selectedAccount.created_by.includes(user.id)) {
+        toast.error('Вы можете добавлять транзакции только для своих счетов!');
+        return;
+      }
     }
 
     const data = await addFamilyId({
@@ -353,7 +370,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         {type === 'transfer' ? (
           <>
             <div className="mb-4">
-              <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Откуда</Label>
+              <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Откуда (только ваши счета)</Label>
               <Select value={accountId} onValueChange={setAccountId}>
                 <SelectTrigger className="h-12 rounded-xl">
                   <SelectValue placeholder="Выберите счёт списания" />
@@ -361,7 +378,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                 <SelectContent>
                   {accounts?.map((acc) => (
                     <SelectItem key={acc.id} value={acc.id}>
-                      {acc.icon} {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
+                      {acc.icon} {acc.name} • {acc.created_by.split('@')[0]} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -470,7 +487,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
               <SelectContent>
                 {accounts.map((acc) => (
                   <SelectItem key={acc.id} value={acc.id}>
-                    {acc.name}
+                    {acc.name} • {acc.created_by.split('@')[0]}
                   </SelectItem>
                 ))}
               </SelectContent>

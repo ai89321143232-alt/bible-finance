@@ -132,10 +132,18 @@ export default function FamilyFinances() {
 
   // Calculate member stats
   const getMemberStats = (memberId) => {
-    const memberAccounts = allAccounts.filter(a => a.created_by === memberId);
-    const memberTransactions = allTransactions.filter(t => t.created_by === memberId);
-    const memberGoals = allGoals.filter(g => g.created_by === memberId);
-    const memberInvestments = allInvestments.filter(i => i.created_by === memberId);
+    const memberAccounts = allAccounts.filter(a => 
+      a.created_by === memberId || a.created_by.includes(memberId)
+    );
+    const memberTransactions = allTransactions.filter(t => 
+      t.created_by === memberId || t.created_by.includes(memberId)
+    );
+    const memberGoals = allGoals.filter(g => 
+      g.created_by === memberId || g.created_by.includes(memberId)
+    );
+    const memberInvestments = allInvestments.filter(i => 
+      i.created_by === memberId || i.created_by.includes(memberId)
+    );
 
     const balance = memberAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
     const income = memberTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
