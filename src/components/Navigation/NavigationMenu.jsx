@@ -130,14 +130,14 @@ export default function NavigationMenu({ currentPageName, onNavigate }) {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: itemIdx * 0.05 }}
                   >
-                    <a
-                      href={createPageUrl(item.name)}
+                    <Link
+                      to={createPageUrl(item.name)}
                       onClick={onNavigate}
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${category.hoverBg} ${category.colorBg}`}
                     >
                       <item.icon className={`w-4 h-4 ${category.colorText}`} />
                       <span className={`text-sm font-medium ${category.colorText}`}>{item.label}</span>
-                    </a>
+                    </Link>
                   </motion.div>
                 ))}
               </motion.div>
