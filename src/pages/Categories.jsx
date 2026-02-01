@@ -160,7 +160,7 @@ export default function Categories() {
   };
 
   const selectAll = () => {
-    const ids = filteredCategories.filter(c => !c.is_system).map(c => c.id);
+    const ids = filteredCategories.map(c => c.id);
     setSelectedCategories(ids);
   };
 
@@ -265,7 +265,7 @@ export default function Categories() {
         </Tabs>
 
         {/* Selection Controls */}
-        {filteredCategories.filter(c => !c.is_system).length > 0 && (
+        {filteredCategories.length > 0 && (
           <div className="flex gap-2 mb-4">
             <Button
               variant="outline"
@@ -305,22 +305,20 @@ export default function Categories() {
                     className={`border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-all group cursor-pointer ${
                       selectedCategories.includes(category.id) ? 'ring-2 ring-violet-500' : ''
                     }`}
-                    onClick={() => !category.is_system && handleEdit(category)}
+                    onClick={() => handleEdit(category)}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-center gap-3">
-                        {!category.is_system && (
-                          <input
-                            type="checkbox"
-                            checked={selectedCategories.includes(category.id)}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              toggleCategory(category.id);
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-4 h-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
-                          />
-                        )}
+                        <input
+                          type="checkbox"
+                          checked={selectedCategories.includes(category.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            toggleCategory(category.id);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-4 h-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                        />
                         <div 
                           className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
                           style={{ backgroundColor: `${category.color}20` }}
@@ -335,32 +333,30 @@ export default function Categories() {
                             {category.type === 'expense' ? 'Расход' : 'Доход'}
                           </p>
                         </div>
-                        {!category.is_system && (
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEdit(category);
-                              }}
-                              className="h-8 w-8"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteId(category.id);
-                              }}
-                              className="h-8 w-8 text-rose-600"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        )}
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(category);
+                            }}
+                            className="h-8 w-8"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteId(category.id);
+                            }}
+                            className="h-8 w-8 text-rose-600"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
