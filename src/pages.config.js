@@ -49,6 +49,7 @@
  */
 import AIAssistant from './pages/AIAssistant';
 import Accounts from './pages/Accounts';
+import Admin from './pages/Admin';
 import Analytics from './pages/Analytics';
 import Backup from './pages/Backup';
 import Budgets from './pages/Budgets';
@@ -61,13 +62,13 @@ import Settings from './pages/Settings';
 import Subscription from './pages/Subscription';
 import Tasks from './pages/Tasks';
 import Transactions from './pages/Transactions';
-import Admin from './pages/Admin';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AIAssistant": AIAssistant,
     "Accounts": Accounts,
+    "Admin": Admin,
     "Analytics": Analytics,
     "Backup": Backup,
     "Budgets": Budgets,
@@ -80,7 +81,6 @@ export const PAGES = {
     "Subscription": Subscription,
     "Tasks": Tasks,
     "Transactions": Transactions,
-    "Admin": Admin,
 }
 
 export const pagesConfig = {

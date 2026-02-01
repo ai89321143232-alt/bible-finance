@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import {
   User, Bell, Moon, Globe, Shield, CreditCard, 
-  HelpCircle, LogOut, ChevronRight, Crown, Check, Tag, Users, Database, Settings as SettingsIcon
+  HelpCircle, LogOut, ChevronRight, Crown, Check, Tag, Users, Database, Settings as SettingsIcon, Clock
 } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useTrialActivation, getSubscriptionStatus } from '@/components/SubscriptionManager';
 
 const SUBSCRIPTION_PLANS = [
   {
@@ -73,12 +74,16 @@ export default function Settings() {
   const [user, setUser] = useState(null);
   const [isDark, setIsDark] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [notifications, setNotifications] = useState({
     budgetAlerts: true,
     goalReminders: true,
     weeklyReport: false,
     tips: true
   });
+
+  // Автоматическая активация демо-периода при первом входе
+  useTrialActivation();
 
   useEffect(() => {
     loadUser();
@@ -87,6 +92,8 @@ export default function Settings() {
   const loadUser = async () => {
     const userData = await base44.auth.me();
     setUser(userData);
+    const status = getSubscriptionStatus(userData);
+    setSubscriptionStatus(status);
   };
 
   const handleLogout = () => {
@@ -125,10 +132,27 @@ export default function Settings() {
                     {user?.full_name || 'Пользователь'}
                   </h2>
                   <p className="text-slate-500 dark:text-slate-400">{user?.email}</p>
-                  <Badge variant="secondary" className="mt-2 bg-violet-100 text-violet-700">
-                    <Crown className="w-3 h-3 mr-1" />
-                    Бесплатный план
-                  </Badge>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <Badge 
+                      variant="secondary" 
+                      className={
+                        subscriptionStatus?.plan === 'premium' 
+                          ? 'bg-violet-100 text-violet-700' 
+                          : subscriptionStatus?.plan === 'family'
+                          ? 'bg-indigo-100 text-indigo-700'
+                          : 'bg-slate-100 text-slate-700'
+                      }
+                    >
+                      <Crown className="w-3 h-3 mr-1" />
+                      {subscriptionStatus?.displayName || 'Бесплатный'}
+                    </Badge>
+                    {subscriptionStatus?.isTrial && subscriptionStatus?.daysLeft > 0 && (
+                      <Badge className="bg-amber-100 text-amber-700">
+                        <Clock className="w-3 h-3 mr-1" />
+                        Осталось {subscriptionStatus.daysLeft} дн.
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -171,25 +195,32 @@ export default function Settings() {
           transition={{ delay: 0.15 }}
           className="mb-6"
         >
-          <Card className="border-0 shadow-sm bg-gradient-to-br from-violet-600 to-indigo-700 text-white overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-            onClick={() => setShowPlanModal(true)}
-          >
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold mb-1">Разблокируйте Premium</h3>
-                  <p className="text-violet-200 text-sm">
-                    AI-ассистент, расширенная аналитика и многое другое
-                  </p>
+          {(!subscriptionStatus?.isActive || subscriptionStatus?.isTrial) && (
+            <Card className="border-0 shadow-sm bg-gradient-to-br from-violet-600 to-indigo-700 text-white overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => setShowPlanModal(true)}
+            >
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold mb-1">
+                      {subscriptionStatus?.isTrial ? 'Продлите доступ к Premium' : 'Разблокируйте Premium'}
+                    </h3>
+                    <p className="text-violet-200 text-sm">
+                      {subscriptionStatus?.isTrial 
+                        ? `Демо-период заканчивается через ${subscriptionStatus.daysLeft} дн.`
+                        : 'AI-ассистент, расширенная аналитика и многое другое'
+                      }
+                    </p>
+                  </div>
+                  <Button 
+                    className="bg-white text-violet-700 hover:bg-violet-50 rounded-xl"
+                  >
+                    Выбрать план
+                  </Button>
                 </div>
-                <Button 
-                  className="bg-white text-violet-700 hover:bg-violet-50 rounded-xl"
-                >
-                  Выбрать план
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </motion.div>
 
         {/* Settings Sections */}
