@@ -76,36 +76,83 @@ const MENU_CATEGORIES = [
 
 export default function NavigationMenu({ currentPageName, onNavigate }) {
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleCategoryClick = (category) => {
+    if (isMobile) {
+      setSelectedCategory(selectedCategory?.id === category.id ? null : category);
+    } else {
+      setSelectedCategory(category);
+    }
+  };
 
   return (
     <>
       <div className="p-6 space-y-3">
         {MENU_CATEGORIES.map((category, idx) => (
-          <motion.button
-            key={category.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.05 }}
-            onClick={() => setSelectedCategory(category)}
-            className={`w-full p-4 rounded-xl transition-all border-2 border-slate-200 dark:border-slate-700 ${category.hoverBg}`}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-lg ${category.colorBg}`}>
-                <category.icon className={`w-5 h-5 ${category.colorText}`} />
+          <div key={category.id}>
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.05 }}
+              onClick={() => handleCategoryClick(category)}
+              className={`w-full p-4 rounded-xl transition-all border-2 border-slate-200 dark:border-slate-700 ${category.hoverBg}`}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`p-2.5 rounded-lg ${category.colorBg}`}>
+                  <category.icon className={`w-5 h-5 ${category.colorText}`} />
+                </div>
+                <span className={`font-semibold ${category.colorText}`}>{category.label}</span>
               </div>
-              <span className={`font-semibold ${category.colorText}`}>{category.label}</span>
-            </div>
-          </motion.button>
+            </motion.button>
+
+            {/* Mobile: блоки в меню */}
+            {isMobile && selectedCategory?.id === category.id && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-2 p-3 space-y-2"
+              >
+                {category.items.map((item, itemIdx) => (
+                  <motion.div
+                    key={item.name}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: itemIdx * 0.05 }}
+                  >
+                    <a
+                      href={createPageUrl(item.name)}
+                      onClick={onNavigate}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${category.hoverBg} ${category.colorBg}`}
+                    >
+                      <item.icon className={`w-4 h-4 ${category.colorText}`} />
+                      <span className={`text-sm font-medium ${category.colorText}`}>{item.label}</span>
+                    </a>
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </div>
         ))}
       </div>
 
-      <CategoryModal
-        isOpen={selectedCategory !== null}
-        category={selectedCategory}
-        onClose={() => setSelectedCategory(null)}
-      />
+      {/* Desktop: модальное окно */}
+      {!isMobile && (
+        <CategoryModal
+          isOpen={selectedCategory !== null}
+          category={selectedCategory}
+          onClose={() => setSelectedCategory(null)}
+        />
+      )}
     </>
   );
 }
