@@ -57,6 +57,20 @@ export default function Dashboard() {
     }
   };
 
+  // Check if user is in a family
+  const { data: family } = useQuery({
+    queryKey: ['my-family', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const families = await base44.entities.Family.list();
+      return families.find(f => 
+        f.owner_id === user?.id || 
+        f.members?.some(m => m.user_id === user?.id)
+      );
+    },
+    enabled: !!user
+  });
+
   const updatePeriod = (type) => {
     const now = new Date();
     let start, end;
@@ -159,6 +173,9 @@ export default function Dashboard() {
             </h1>
             <p className="text-slate-500 dark:text-slate-400 mt-1">
               {format(new Date(), "EEEE, d MMMM", { locale: ru })}
+              {family && (
+                <span className="ml-2 text-violet-600">• {family.name}</span>
+              )}
             </p>
           </div>
           <Button

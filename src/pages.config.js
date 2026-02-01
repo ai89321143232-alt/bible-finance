@@ -56,13 +56,13 @@ import Budgets from './pages/Budgets';
 import Categories from './pages/Categories';
 import Dashboard from './pages/Dashboard';
 import Family from './pages/Family';
+import FamilyFinances from './pages/FamilyFinances';
 import Goals from './pages/Goals';
 import Investments from './pages/Investments';
 import Settings from './pages/Settings';
 import Subscription from './pages/Subscription';
 import Tasks from './pages/Tasks';
 import Transactions from './pages/Transactions';
-import FamilyFinances from './pages/FamilyFinances';
 import __Layout from './Layout.jsx';
 
 
@@ -76,13 +76,13 @@ export const PAGES = {
     "Categories": Categories,
     "Dashboard": Dashboard,
     "Family": Family,
+    "FamilyFinances": FamilyFinances,
     "Goals": Goals,
     "Investments": Investments,
     "Settings": Settings,
     "Subscription": Subscription,
     "Tasks": Tasks,
     "Transactions": Transactions,
-    "FamilyFinances": FamilyFinances,
 }
 
 export const pagesConfig = {
