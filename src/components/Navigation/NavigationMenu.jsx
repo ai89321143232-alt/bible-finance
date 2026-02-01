@@ -46,6 +46,8 @@ const MENU_CATEGORIES = [
     hoverBg: 'hover:bg-amber-50 dark:hover:bg-amber-900/20',
     items: [
       { name: 'FinancialPlanning', label: 'Финплан', icon: Lightbulb },
+      { name: 'Tasks', label: 'Задачи', icon: ListTodo },
+      { name: 'Notes', label: 'Заметки', icon: FileText },
     ]
   },
   {
@@ -68,8 +70,6 @@ const MENU_CATEGORIES = [
     colorText: 'text-slate-600 dark:text-slate-400',
     hoverBg: 'hover:bg-slate-50 dark:hover:bg-slate-900/20',
     items: [
-      { name: 'Tasks', label: 'Задачи', icon: ListTodo },
-      { name: 'Notes', label: 'Заметки', icon: FileText },
       { name: 'Settings', label: 'Настройки', icon: Settings },
     ]
   }
