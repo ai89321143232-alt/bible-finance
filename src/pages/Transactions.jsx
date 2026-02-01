@@ -72,6 +72,11 @@ export default function Transactions() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setDeleteId(null);
+    },
+    onError: (error) => {
+      console.error('Delete error:', error);
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      setDeleteId(null);
     }
   });
 
