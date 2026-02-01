@@ -69,9 +69,6 @@ import BackupReports from './pages/BackupReports';
 import Notes from './pages/Notes';
 import FinancialPlanning from './pages/FinancialPlanning';
 import ChildExpenses from './pages/ChildExpenses';
-import PremiumAnalytics from './pages/PremiumAnalytics';
-import BankSync from './pages/BankSync';
-import TaxExport from './pages/TaxExport';
 import __Layout from './Layout.jsx';
 
 
@@ -98,9 +95,6 @@ export const PAGES = {
     "Notes": Notes,
     "FinancialPlanning": FinancialPlanning,
     "ChildExpenses": ChildExpenses,
-    "PremiumAnalytics": PremiumAnalytics,
-    "BankSync": BankSync,
-    "TaxExport": TaxExport,
 }
 
 export const pagesConfig = {
