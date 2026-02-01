@@ -225,28 +225,26 @@ export default function Dashboard() {
             className="mb-4"
           >
             <div className="flex gap-2 p-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
-             <Button
+             <button
                onClick={() => setBalanceMode('personal')}
-               variant="ghost"
-               className={`flex-1 rounded-lg font-medium transition-all ${
+               className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-all pointer-events-auto cursor-pointer ${
                  balanceMode === 'personal'
-                   ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md hover:from-violet-700 hover:to-indigo-700'
+                   ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
                }`}
              >
                Личный баланс
-             </Button>
-             <Button
+             </button>
+             <button
                onClick={() => setBalanceMode('family')}
-               variant="ghost"
-               className={`flex-1 rounded-lg font-medium transition-all ${
+               className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-all pointer-events-auto cursor-pointer ${
                  balanceMode === 'family'
-                   ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md hover:from-violet-700 hover:to-indigo-700'
+                   ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
                }`}
              >
                Семейный баланс
-             </Button>
+             </button>
             </div>
           </motion.div>
         )}
