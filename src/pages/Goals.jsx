@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { addFamilyId } from '@/components/FamilyDataWrapper';
@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
-  Plus, Target, Edit2, Trash2, Check, Calendar, TrendingUp, Coins, MinusCircle
+  Plus, Target, Edit2, Trash2, Check, Calendar, TrendingUp, Coins, MinusCircle,
+  Users, Zap
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import GoalCard from '@/components/goals/GoalCard';
+import AutoDistributeModal from '@/components/goals/AutoDistributeModal';
+import SubgoalsManager from '@/components/goals/SubgoalsManager';
 
 const GOAL_TYPES = [
   { value: 'savings', label: 'Накопления', icon: '💰', color: '#10B981' },
@@ -54,9 +58,11 @@ const GOAL_TYPES = [
 
 export default function Goals() {
   const queryClient = useQueryClient();
+  const [user, setUser] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddFundsModal, setShowAddFundsModal] = useState(null);
   const [showSpendModal, setShowSpendModal] = useState(null);
+  const [showAutoDistribute, setShowAutoDistribute] = useState(false);
   const [editGoal, setEditGoal] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [addFundsAmount, setAddFundsAmount] = useState('');
@@ -64,6 +70,8 @@ export default function Goals() {
   const [spendCategory, setSpendCategory] = useState('');
   const [spendDescription, setSpendDescription] = useState('');
   const [selectedAccount, setSelectedAccount] = useState('');
+  const [viewMode, setViewMode] = useState('personal'); // 'personal' or 'family'
+  const [shareWithUsers, setShareWithUsers] = useState([]);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -71,12 +79,53 @@ export default function Goals() {
     target_amount: '',
     current_amount: '0',
     deadline: null,
-    priority: 'medium'
+    priority: 'medium',
+    is_family_goal: false,
+    share_with: [],
+    subgoals: []
   });
 
-  const { data: goals = [], isLoading } = useQuery({
-    queryKey: ['goals'],
-    queryFn: () => base44.entities.Goal.list()
+  useEffect(() => {
+    loadUser();
+  }, []);
+
+  const loadUser = async () => {
+    const userData = await base44.auth.me();
+    setUser(userData);
+  };
+
+  // Check if user is in a family
+  const { data: family } = useQuery({
+    queryKey: ['my-family', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const families = await base44.entities.Family.list();
+      return families.find(f => 
+        f.owner_id === user?.id || 
+        f.members?.some(m => m.user_id === user?.id)
+      );
+    },
+    enabled: !!user
+  });
+
+  const { data: myGoals = [] } = useQuery({
+    queryKey: ['my-goals', user?.id],
+    queryFn: async () => {
+      const goals = await base44.entities.Goal.list();
+      return goals.filter(g => g.created_by_id === user?.id);
+    },
+    enabled: !!user
+  });
+
+  const { data: sharedGoals = [] } = useQuery({
+    queryKey: ['shared-goals', user?.id],
+    queryFn: async () => {
+      const goals = await base44.entities.Goal.list();
+      return goals.filter(g => 
+        g.share_with?.includes(user?.id) && g.created_by_id !== user?.id
+      );
+    },
+    enabled: !!user
   });
 
   const { data: accounts = [] } = useQuery({
@@ -92,7 +141,8 @@ export default function Goals() {
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Goal.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['goals'] });
+      queryClient.invalidateQueries({ queryKey: ['my-goals'] });
+      queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
       resetForm();
     }
   });
@@ -100,7 +150,8 @@ export default function Goals() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Goal.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['goals'] });
+      queryClient.invalidateQueries({ queryKey: ['my-goals'] });
+      queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
       resetForm();
       setShowAddFundsModal(null);
       setAddFundsAmount('');
@@ -110,7 +161,8 @@ export default function Goals() {
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Goal.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['goals'] });
+      queryClient.invalidateQueries({ queryKey: ['my-goals'] });
+      queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
       setDeleteId(null);
     }
   });
@@ -122,10 +174,14 @@ export default function Goals() {
       target_amount: '',
       current_amount: '0',
       deadline: null,
-      priority: 'medium'
+      priority: 'medium',
+      is_family_goal: false,
+      share_with: [],
+      subgoals: []
     });
     setShowAddModal(false);
     setEditGoal(null);
+    setShareWithUsers([]);
   };
 
   const handleEdit = (goal) => {
@@ -136,8 +192,12 @@ export default function Goals() {
       target_amount: goal.target_amount.toString(),
       current_amount: (goal.current_amount || 0).toString(),
       deadline: goal.deadline ? new Date(goal.deadline) : null,
-      priority: goal.priority || 'medium'
+      priority: goal.priority || 'medium',
+      is_family_goal: goal.is_family_goal || false,
+      share_with: goal.share_with || [],
+      subgoals: goal.subgoals || []
     });
+    setShareWithUsers(goal.share_with || []);
     setShowAddModal(true);
   };
 
@@ -147,7 +207,8 @@ export default function Goals() {
       target_amount: parseFloat(formData.target_amount),
       current_amount: parseFloat(formData.current_amount) || 0,
       deadline: formData.deadline ? format(formData.deadline, 'yyyy-MM-dd') : null,
-      status: 'active'
+      status: 'active',
+      share_with: shareWithUsers
     });
 
     if (editGoal) {
@@ -164,7 +225,6 @@ export default function Goals() {
     const newAmount = (showAddFundsModal.current_amount || 0) + amount;
     const isCompleted = newAmount >= showAddFundsModal.target_amount;
     
-    // Update account balance
     const account = accounts.find(a => a.id === selectedAccount);
     if (account) {
       await base44.entities.Account.update(selectedAccount, {
@@ -172,7 +232,6 @@ export default function Goals() {
       });
     }
     
-    // Update goal
     updateMutation.mutate({
       id: showAddFundsModal.id,
       data: {
@@ -181,7 +240,6 @@ export default function Goals() {
       }
     });
     
-    // Create transfer transaction (not expense!)
     await base44.entities.Transaction.create({
       type: 'transfer',
       amount: amount,
@@ -193,6 +251,30 @@ export default function Goals() {
     
     queryClient.invalidateQueries({ queryKey: ['accounts'] });
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    setShowAddFundsModal(null);
+    setAddFundsAmount('');
+    setSelectedAccount('');
+  };
+
+  const handleAutoDistribute = async (distribution, totalAmount) => {
+    for (const [goalId, amount] of Object.entries(distribution)) {
+      if (amount > 0) {
+        const goal = (viewMode === 'personal' ? myGoals : sharedGoals).find(g => g.id === goalId);
+        if (goal) {
+          const newAmount = (goal.current_amount || 0) + amount;
+          const isCompleted = newAmount >= goal.target_amount;
+          
+          await updateMutation.mutateAsync({
+            id: goalId,
+            data: {
+              current_amount: newAmount,
+              status: isCompleted ? 'completed' : 'active'
+            }
+          });
+        }
+      }
+    }
+    setShowAutoDistribute(false);
   };
 
   const handleSpendFromGoal = async () => {
@@ -201,7 +283,6 @@ export default function Goals() {
     const amount = parseFloat(spendAmount);
     const newAmount = Math.max((showSpendModal.current_amount || 0) - amount, 0);
     
-    // Update goal
     updateMutation.mutate({
       id: showSpendModal.id,
       data: {
@@ -209,7 +290,6 @@ export default function Goals() {
       }
     });
     
-    // Create expense transaction
     await base44.entities.Transaction.create({
       type: 'expense',
       amount: amount,
@@ -225,6 +305,34 @@ export default function Goals() {
     setSpendDescription('');
   };
 
+  // Check for deadline notifications
+  useEffect(() => {
+    const checkNotifications = () => {
+      const allGoals = viewMode === 'personal' ? myGoals : sharedGoals;
+      allGoals.forEach(goal => {
+        if (goal.status === 'active' && goal.deadline && !goal.notification_sent) {
+          const daysLeft = differenceInDays(new Date(goal.deadline), new Date());
+          if (daysLeft === 7 || daysLeft === 3 || daysLeft === 1) {
+            base44.integrations.Core.SendEmail({
+              to: user?.email,
+              subject: `Приближается дедлайн цели: ${goal.title}`,
+              body: `У вас осталось ${daysLeft} дней до дедлайна цели "${goal.title}". Текущий прогресс: ${((goal.current_amount / goal.target_amount) * 100).toFixed(0)}%`
+            });
+            
+            updateMutation.mutate({
+              id: goal.id,
+              data: { notification_sent: true }
+            });
+          }
+        }
+      });
+    };
+    
+    checkNotifications();
+    const interval = setInterval(checkNotifications, 86400000); // Check daily
+    return () => clearInterval(interval);
+  }, [myGoals, sharedGoals, user?.email, viewMode]);
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('ru-RU', { 
       style: 'currency', 
@@ -233,8 +341,10 @@ export default function Goals() {
     }).format(amount);
   };
 
-  const activeGoals = goals.filter(g => g.status === 'active');
-  const completedGoals = goals.filter(g => g.status === 'completed');
+  const displayGoals = viewMode === 'personal' ? myGoals : sharedGoals;
+  const activeGoals = displayGoals.filter(g => g.status === 'active');
+  const completedGoals = displayGoals.filter(g => g.status === 'completed');
+  const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -257,6 +367,57 @@ export default function Goals() {
           </Button>
         </motion.div>
 
+        {/* View Mode Selector */}
+        {family && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="mb-6 flex gap-2"
+          >
+            <button
+              onClick={() => setViewMode('personal')}
+              className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all ${
+                viewMode === 'personal'
+                  ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
+                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+              }`}
+            >
+              Мои цели
+            </button>
+            <button
+              onClick={() => setViewMode('family')}
+              className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
+                viewMode === 'family'
+                  ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
+                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Семейные
+            </button>
+          </motion.div>
+        )}
+
+        {/* Auto Distribute Button */}
+        {viewMode === 'personal' && activeGoals.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mb-6"
+          >
+            <Button
+              onClick={() => setShowAutoDistribute(true)}
+              variant="outline"
+              className="w-full rounded-xl border-violet-200 text-violet-700 dark:text-violet-400"
+            >
+              <Zap className="w-4 h-4 mr-2" />
+              Распределить {formatCurrency(totalBalance)} между целями
+            </Button>
+          </motion.div>
+        )}
+
         {/* Active Goals */}
         {activeGoals.length > 0 && (
           <div className="mb-8">
@@ -264,135 +425,19 @@ export default function Goals() {
               Активные цели
             </h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              {activeGoals.map((goal, index) => {
-                const typeInfo = GOAL_TYPES.find(t => t.value === goal.type) || GOAL_TYPES[5];
-                const progress = goal.target_amount > 0 
-                  ? Math.min((goal.current_amount / goal.target_amount) * 100, 100)
-                  : 0;
-                const daysLeft = goal.deadline 
-                  ? differenceInDays(new Date(goal.deadline), new Date())
-                  : null;
-
-                return (
-                  <motion.div
-                    key={goal.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <Card 
-                      className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-all overflow-hidden group cursor-pointer"
-                      onClick={() => handleEdit(goal)}
-                    >
-                      <div 
-                        className="h-1"
-                        style={{ 
-                          background: `linear-gradient(to right, ${typeInfo.color} ${progress}%, transparent ${progress}%)`
-                        }}
-                      />
-                      <CardContent className="p-5">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div 
-                              className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm"
-                              style={{ backgroundColor: `${typeInfo.color}20` }}
-                            >
-                              {typeInfo.icon}
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-slate-900 dark:text-white">
-                                {goal.title}
-                              </h3>
-                              <p className="text-sm text-slate-500 dark:text-slate-400">
-                                {typeInfo.label}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEdit(goal);
-                              }}
-                              className="h-8 w-8"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteId(goal.id);
-                              }}
-                              className="h-8 w-8 text-rose-600"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="space-y-3">
-                          <div className="flex items-end justify-between">
-                            <div>
-                              <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                                {formatCurrency(goal.current_amount || 0)}
-                              </p>
-                              <p className="text-sm text-slate-500">
-                                из {formatCurrency(goal.target_amount)}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-lg font-semibold" style={{ color: typeInfo.color }}>
-                                {progress.toFixed(0)}%
-                              </p>
-                              {daysLeft !== null && daysLeft > 0 && (
-                                <p className="text-sm text-slate-500">
-                                  {daysLeft} дн. осталось
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          <Progress 
-                            value={progress} 
-                            className="h-2"
-                            style={{ '--progress-color': typeInfo.color }}
-                          />
-
-                          <div className="grid grid-cols-2 gap-2 mt-2">
-                            <Button
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShowAddFundsModal(goal);
-                              }}
-                              className="rounded-xl"
-                            >
-                              <Coins className="w-4 h-4 mr-2" />
-                              Пополнить
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShowSpendModal(goal);
-                              }}
-                              className="rounded-xl text-rose-600 border-rose-200 hover:bg-rose-50"
-                              disabled={(goal.current_amount || 0) === 0}
-                            >
-                              <MinusCircle className="w-4 h-4 mr-2" />
-                              Потратить
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                );
-              })}
+              {activeGoals.map((goal, index) => (
+                <GoalCard
+                  key={goal.id}
+                  goal={goal}
+                  index={index}
+                  isEditable={viewMode === 'personal' || goal.created_by_id === user?.id}
+                  onEdit={handleEdit}
+                  onDelete={(id) => setDeleteId(id)}
+                  onAddFunds={setShowAddFundsModal}
+                  onSpend={setShowSpendModal}
+                  formatCurrency={formatCurrency}
+                />
+              ))}
             </div>
           </div>
         )}
@@ -432,31 +477,36 @@ export default function Goals() {
         )}
 
         {/* Empty State */}
-        {goals.length === 0 && (
+        {displayGoals.length === 0 && (
           <div className="text-center py-16">
             <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <Target className="w-8 h-8 text-slate-400" />
             </div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-              Нет целей
+              {viewMode === 'personal' ? 'Нет целей' : 'Нет общих целей'}
             </h3>
             <p className="text-slate-500 dark:text-slate-400 mb-4">
-              Создайте первую финансовую цель
+              {viewMode === 'personal' 
+                ? 'Создайте первую финансовую цель'
+                : 'Семейные члены пока не создали общих целей'
+              }
             </p>
-            <Button
-              onClick={() => setShowAddModal(true)}
-              className="rounded-xl"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Создать цель
-            </Button>
+            {viewMode === 'personal' && (
+              <Button
+                onClick={() => setShowAddModal(true)}
+                className="rounded-xl"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Создать цель
+              </Button>
+            )}
           </div>
         )}
       </div>
 
       {/* Add/Edit Modal */}
       <Dialog open={showAddModal} onOpenChange={() => resetForm()}>
-        <DialogContent className="rounded-2xl max-w-md">
+        <DialogContent className="rounded-2xl max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editGoal ? 'Редактировать цель' : 'Новая цель'}
@@ -490,17 +540,35 @@ export default function Goals() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Целевая сумма</Label>
-              <div className="relative mt-1">
-                <Input
-                  type="number"
-                  value={formData.target_amount}
-                  onChange={(e) => setFormData({ ...formData, target_amount: e.target.value })}
-                  placeholder="0"
-                  className="rounded-xl pr-8"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Целевая сумма</Label>
+                <div className="relative mt-1">
+                  <Input
+                    type="number"
+                    value={formData.target_amount}
+                    onChange={(e) => setFormData({ ...formData, target_amount: e.target.value })}
+                    placeholder="0"
+                    className="rounded-xl pr-8"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
+                </div>
+              </div>
+              <div>
+                <Label>Приоритет</Label>
+                <Select 
+                  value={formData.priority} 
+                  onValueChange={(v) => setFormData({ ...formData, priority: v })}
+                >
+                  <SelectTrigger className="rounded-xl mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">🟢 Низкий</SelectItem>
+                    <SelectItem value="medium">🟡 Средний</SelectItem>
+                    <SelectItem value="high">🔴 Высокий</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div>
@@ -540,6 +608,59 @@ export default function Goals() {
                 </PopoverContent>
               </Popover>
             </div>
+
+            {family && (
+              <>
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_family_goal}
+                      onChange={(e) => setFormData({ ...formData, is_family_goal: e.target.checked })}
+                      className="rounded"
+                    />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Это семейная цель
+                    </span>
+                  </label>
+                </div>
+                {formData.is_family_goal && (
+                  <div>
+                    <Label>Поделиться с членами семьи</Label>
+                    <div className="mt-2 space-y-2">
+                      {family.members
+                        ?.filter(m => m.user_id !== user?.id)
+                        .map(member => (
+                          <label key={member.user_id} className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={shareWithUsers.includes(member.user_id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setShareWithUsers([...shareWithUsers, member.user_id]);
+                                } else {
+                                  setShareWithUsers(shareWithUsers.filter(id => id !== member.user_id));
+                                }
+                              }}
+                              className="rounded"
+                            />
+                            <span className="text-sm text-slate-700 dark:text-slate-300">
+                              {member.name}
+                            </span>
+                          </label>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            <SubgoalsManager 
+              subgoals={formData.subgoals}
+              onChange={(subgoals) => setFormData({ ...formData, subgoals })}
+              formatCurrency={formatCurrency}
+            />
+
             <Button
               onClick={handleSubmit}
               disabled={!formData.title || !formData.target_amount}
@@ -551,6 +672,16 @@ export default function Goals() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Auto Distribute Modal */}
+      <AutoDistributeModal
+        open={showAutoDistribute}
+        onOpenChange={setShowAutoDistribute}
+        goals={activeGoals}
+        availableAmount={totalBalance}
+        onDistribute={handleAutoDistribute}
+        formatCurrency={formatCurrency}
+      />
 
       {/* Add Funds Modal */}
       <Dialog open={!!showAddFundsModal} onOpenChange={() => { 
@@ -578,7 +709,7 @@ export default function Goals() {
                 <SelectContent>
                   {accounts.map(account => (
                     <SelectItem key={account.id} value={account.id}>
-                      {account.icon} {account.name} ({formatCurrency(account.balance)})
+                      {account.name} ({formatCurrency(account.balance)})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -650,7 +781,7 @@ export default function Goals() {
                 <SelectContent>
                   {categories.map(cat => (
                     <SelectItem key={cat.id} value={cat.name}>
-                      {cat.icon === 'Utensils' ? '🍔' : cat.icon === 'Car' ? '🚗' : cat.icon === 'Home' ? '🏠' : '📦'} {cat.name}
+                      {cat.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
