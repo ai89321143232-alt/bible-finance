@@ -111,14 +111,17 @@ export default function Settings() {
   };
 
   const handleSaveProfile = async () => {
-    await base44.auth.updateMe({
-      ...user.data,
-      firstName: profileData.firstName,
-      lastName: profileData.lastName,
-      telegramNick: profileData.telegramNick
-    });
-    await loadUser();
-    setShowEditProfile(false);
+    try {
+      await base44.auth.updateMe({
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        telegramNick: profileData.telegramNick
+      });
+      await loadUser();
+      setShowEditProfile(false);
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+    }
   };
 
   const handleLogout = () => {
