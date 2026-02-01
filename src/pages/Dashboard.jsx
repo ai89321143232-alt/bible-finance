@@ -26,6 +26,7 @@ import SpendingChart from '@/components/dashboard/SpendingChart';
 import RecentTransactions from '@/components/dashboard/RecentTransactions';
 import AllGoalsProgress from '@/components/dashboard/AllGoalsProgress';
 import BudgetOverview from '@/components/dashboard/BudgetOverview';
+import AIInsights from '@/components/dashboard/AIInsights';
 
 export default function Dashboard() {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -397,6 +398,22 @@ export default function Dashboard() {
             </motion.div>
           </div>
         )}
+
+        {/* AI Insights */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mb-8"
+        >
+          <AIInsights 
+            transactions={transactions}
+            accounts={displayAccounts}
+            budgets={budgets}
+            investments={investments}
+            formatCurrency={formatCurrency}
+          />
+        </motion.div>
 
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-6">
