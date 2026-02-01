@@ -302,9 +302,14 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={(e) => e.target.files?.[0] && handleReceiptScan(e.target.files[0])}
+                accept="image/*,.pdf"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    handleReceiptScan(e.target.files[0]);
+                    // Reset input для повторного выбора того же файла
+                    e.target.value = '';
+                  }
+                }}
                 className="hidden"
               />
               
@@ -321,7 +326,6 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                   onClick={() => {
                     const input = fileInputRef.current;
                     if (input) {
-                      input.capture = '';
                       input.click();
                     }
                   }}
