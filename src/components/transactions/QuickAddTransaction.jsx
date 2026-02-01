@@ -341,23 +341,29 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
               />
 
               <div className="flex flex-col gap-3">
-                <Button
-                  onClick={() => cameraInputRef.current?.click()}
-                  disabled={isScanning}
-                  className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
-                >
-                  <Camera className="w-5 h-5 mr-2" />
-                  Сфотографировать чек
-                </Button>
-                <Button
-                  onClick={() => galleryInputRef.current?.click()}
-                  variant="outline"
-                  disabled={isScanning}
-                >
-                  <Upload className="w-5 h-5 mr-2" />
-                  Загрузить из галереи
-                </Button>
-              </div>
+                 <Button
+                   onClick={(e) => {
+                     e.stopPropagation();
+                     cameraInputRef.current?.click();
+                   }}
+                   disabled={isScanning}
+                   className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+                 >
+                   <Camera className="w-5 h-5 mr-2" />
+                   Сфотографировать чек
+                 </Button>
+                 <Button
+                   onClick={(e) => {
+                     e.stopPropagation();
+                     galleryInputRef.current?.click();
+                   }}
+                   variant="outline"
+                   disabled={isScanning}
+                 >
+                   <Upload className="w-5 h-5 mr-2" />
+                   Загрузить из галереи
+                 </Button>
+               </div>
             </div>
           </div>
         )}
