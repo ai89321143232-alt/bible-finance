@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
   Users, Wallet, Target, TrendingUp, ArrowUpRight, ArrowDownRight,
-  ChevronRight, X
+  ChevronRight, X, Edit2, Check
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const CATEGORY_ICONS = {
   'Еда': '🍔', 'Транспорт': '🚗', 'Жильё': '🏠', 'Развлечения': '🎮',
@@ -35,8 +37,11 @@ const GOAL_TYPES = {
 };
 
 export default function FamilyFinances() {
+  const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [editingMemberId, setEditingMemberId] = useState(null);
+  const [editingName, setEditingName] = useState('');
 
   React.useEffect(() => {
     loadCurrentUser();
@@ -108,6 +113,27 @@ export default function FamilyFinances() {
     enabled: !!family && family.members?.length > 0
   });
 
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => base44.entities.User.list()
+  });
+
+  const updateMemberDisplayName = useMutation({
+    mutationFn: async (newName) => {
+      const updatedMembers = family.members.map(m => 
+        m.user_id === editingMemberId 
+          ? { ...m, display_name: newName }
+          : m
+      );
+      return base44.entities.Family.update(family.id, { members: updatedMembers });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-family'] });
+      setEditingMemberId(null);
+      setEditingName('');
+    }
+  });
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('ru-RU', { 
       style: 'currency', 
@@ -120,8 +146,16 @@ export default function FamilyFinances() {
     if (!family?.members) return { name: 'Неизвестно', avatar_color: '#64748B', user_id: null };
     
     const member = family.members.find(m => m.user_id === createdById);
+    if (!member) return { name: 'Неизвестно', avatar_color: '#64748B', user_id: null };
     
-    return member || { name: 'Неизвестно', avatar_color: '#64748B', user_id: null };
+    // Use display_name if set, otherwise use real name from User entity
+    const displayName = member.display_name || member.name;
+    return { ...member, display_name: displayName };
+  };
+
+  const getRealUserName = (userId) => {
+    const user = allUsers.find(u => u.id === userId);
+    return user?.full_name || 'Неизвестно';
   };
 
   // Calculate member stats
@@ -272,8 +306,11 @@ export default function FamilyFinances() {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-semibold text-slate-900 dark:text-white">
-                          {member.name}
+                          {member.display_name || member.name}
                         </h3>
+                        <p className="text-xs text-slate-400">
+                          {getRealUserName(member.user_id)}
+                        </p>
                         <p className="text-sm text-slate-500">
                           {member.role === 'admin' ? 'Администратор' : 'Участник'}
                         </p>
@@ -366,9 +403,9 @@ export default function FamilyFinances() {
                 className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
                 style={{ backgroundColor: selectedMember?.avatar_color }}
               >
-                {selectedMember?.name?.[0] || '?'}
+                {(selectedMember?.display_name || selectedMember?.name)?.[0] || '?'}
               </div>
-              <span>Финансы: {selectedMember?.name}</span>
+              <span>Финансы: {selectedMember?.display_name || selectedMember?.name}</span>
             </DialogTitle>
           </DialogHeader>
 
@@ -415,13 +452,53 @@ export default function FamilyFinances() {
                 </div>
 
                 {/* Tabs */}
+                <div className="bg-slate-50 dark:bg-slate-700/30 p-4 rounded-xl mb-4">
+                   <div className="flex items-center justify-between">
+                     <div>
+                       <p className="text-sm text-slate-500 dark:text-slate-400">Реальное имя</p>
+                       <p className="font-medium text-slate-900 dark:text-white">
+                         {getRealUserName(selectedMember.user_id)}
+                       </p>
+                     </div>
+                     {currentUser?.id === family?.owner_id && (
+                       <button
+                         onClick={() => {
+                           setEditingMemberId(selectedMember.user_id);
+                           setEditingName(selectedMember.display_name || selectedMember.name || '');
+                         }}
+                         className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
+                       >
+                         <Edit2 className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                       </button>
+                     )}
+                   </div>
+                   {editingMemberId === selectedMember.user_id && (
+                     <div className="mt-3 flex gap-2">
+                       <Input
+                         value={editingName}
+                         onChange={(e) => setEditingName(e.target.value)}
+                         placeholder="Как отображать это имя в приложении?"
+                         className="rounded-lg"
+                       />
+                       <Button
+                         size="sm"
+                         onClick={() => updateMemberDisplayName.mutate(editingName)}
+                         disabled={updateMemberDisplayName.isPending}
+                         className="bg-gradient-to-r from-violet-600 to-indigo-600"
+                       >
+                         <Check className="w-4 h-4" />
+                       </Button>
+                     </div>
+                   )}
+                 </div>
+
                 <Tabs defaultValue="accounts" className="space-y-4">
-                  <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="accounts">Счета</TabsTrigger>
-                    <TabsTrigger value="goals">Цели</TabsTrigger>
-                    <TabsTrigger value="investments">Инвестиции</TabsTrigger>
-                    <TabsTrigger value="transactions">Операции</TabsTrigger>
-                  </TabsList>
+                      <TabsList className="grid w-full grid-cols-4">
+                        <TabsTrigger value="accounts">Счета</TabsTrigger>
+                        <TabsTrigger value="goals">Цели</TabsTrigger>
+                        <TabsTrigger value="investments">Инвестиции</TabsTrigger>
+                        <TabsTrigger value="transactions">Операции</TabsTrigger>
+                      </TabsList>
 
                   <TabsContent value="accounts" className="space-y-3">
                     {stats.accounts.map((account) => (
