@@ -64,19 +64,10 @@ export default function FamilyFinances() {
     queryKey: ['family-transactions', family?.id],
     queryFn: async () => {
       const txs = await base44.entities.Transaction.list('-date', 500);
-      console.log('All transactions:', txs);
-      console.log('Family members:', family?.members);
       // Filter only transactions from family members
-      const filtered = txs.filter(tx => {
-        const match = family.members.some(m => {
-          // Compare both ways - user_id might be in created_by
-          return tx.created_by === m.user_id || tx.created_by.includes(m.user_id);
-        });
-        if (match) console.log('Matched transaction:', tx);
-        return match;
-      });
-      console.log('Filtered transactions:', filtered);
-      return filtered;
+      return txs.filter(tx => 
+        family.members.some(m => m.user_id === tx.created_by_id)
+      );
     },
     enabled: !!family && family.members?.length > 0
   });
@@ -85,13 +76,10 @@ export default function FamilyFinances() {
     queryKey: ['family-accounts', family?.id],
     queryFn: async () => {
       const accounts = await base44.entities.Account.list();
-      console.log('All accounts:', accounts);
       // Filter only accounts from family members
-      const filtered = accounts.filter(acc => 
-        family.members.some(m => acc.created_by === m.user_id || acc.created_by.includes(m.user_id))
+      return accounts.filter(acc => 
+        family.members.some(m => m.user_id === acc.created_by_id)
       );
-      console.log('Filtered accounts:', filtered);
-      return filtered;
     },
     enabled: !!family && family.members?.length > 0
   });
@@ -102,7 +90,7 @@ export default function FamilyFinances() {
       const goals = await base44.entities.Goal.list();
       // Filter only goals from family members
       return goals.filter(g => 
-        family.members.some(m => g.created_by === m.user_id || g.created_by.includes(m.user_id))
+        family.members.some(m => m.user_id === g.created_by_id)
       );
     },
     enabled: !!family && family.members?.length > 0
@@ -114,7 +102,7 @@ export default function FamilyFinances() {
       const investments = await base44.entities.Investment.list();
       // Filter only investments from family members
       return investments.filter(inv => 
-        family.members.some(m => inv.created_by === m.user_id || inv.created_by.includes(m.user_id))
+        family.members.some(m => m.user_id === inv.created_by_id)
       );
     },
     enabled: !!family && family.members?.length > 0
@@ -128,12 +116,10 @@ export default function FamilyFinances() {
     }).format(amount);
   };
 
-  const getMemberInfo = (createdBy) => {
+  const getMemberInfo = (createdById) => {
     if (!family?.members) return { name: 'Неизвестно', avatar_color: '#64748B', user_id: null };
     
-    const member = family.members.find(m => 
-      m.user_id === createdBy || createdBy.includes(m.user_id)
-    );
+    const member = family.members.find(m => m.user_id === createdById);
     
     return member || { name: 'Неизвестно', avatar_color: '#64748B', user_id: null };
   };
@@ -141,16 +127,16 @@ export default function FamilyFinances() {
   // Calculate member stats
   const getMemberStats = (memberId) => {
     const memberAccounts = allAccounts.filter(a => 
-      a.created_by === memberId || a.created_by.includes(memberId)
+      a.created_by_id === memberId
     );
     const memberTransactions = allTransactions.filter(t => 
-      t.created_by === memberId || t.created_by.includes(memberId)
+      t.created_by_id === memberId
     );
     const memberGoals = allGoals.filter(g => 
-      g.created_by === memberId || g.created_by.includes(memberId)
+      g.created_by_id === memberId
     );
     const memberInvestments = allInvestments.filter(i => 
-      i.created_by === memberId || i.created_by.includes(memberId)
+      i.created_by_id === memberId
     );
 
     const balance = memberAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
@@ -329,7 +315,7 @@ export default function FamilyFinances() {
           </CardHeader>
           <CardContent className="space-y-3">
             {allTransactions.slice(0, 15).map((transaction) => {
-              const member = getMemberInfo(transaction.created_by);
+              const member = getMemberInfo(transaction.created_by_id);
               return (
                 <div 
                   key={transaction.id}
