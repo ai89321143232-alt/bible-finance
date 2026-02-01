@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { addFamilyId } from '@/components/FamilyDataWrapper';
@@ -63,10 +63,24 @@ export default function Accounts() {
     color: ACCOUNT_COLORS[0]
   });
 
-  const { data: accounts = [], isLoading } = useQuery({
+  const { data: allAccounts = [], isLoading } = useQuery({
     queryKey: ['accounts'],
     queryFn: () => base44.entities.Account.list()
   });
+
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    loadCurrentUser();
+  }, []);
+
+  const loadCurrentUser = async () => {
+    const user = await base44.auth.me();
+    setCurrentUser(user);
+  };
+
+  // Show only personal accounts
+  const accounts = allAccounts.filter(acc => acc.created_by_id === currentUser?.id);
 
   const { data: transactions = [] } = useQuery({
     queryKey: ['transactions'],

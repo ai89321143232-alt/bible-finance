@@ -36,6 +36,7 @@ export default function Dashboard() {
     end: endOfMonth(new Date())
   });
   const [user, setUser] = useState(null);
+  const [balanceMode, setBalanceMode] = useState('personal'); // 'personal' or 'family'
   const [visibleBlocks, setVisibleBlocks] = useState({
     balance: true,
     quickStats: true,
@@ -111,6 +112,18 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Account.list()
   });
 
+  // Fetch family accounts
+  const { data: familyAccounts = [] } = useQuery({
+    queryKey: ['family-accounts', family?.id],
+    queryFn: async () => {
+      const allAccounts = await base44.entities.Account.list();
+      return allAccounts.filter(acc => 
+        family.members.some(m => m.user_id === acc.created_by_id)
+      );
+    },
+    enabled: !!family && family.members?.length > 0 && balanceMode === 'family'
+  });
+
   const { data: budgets = [] } = useQuery({
     queryKey: ['budgets'],
     queryFn: () => base44.entities.Budget.filter({ is_active: true })
@@ -126,8 +139,9 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Investment.list()
   });
 
-  // Calculate totals
-  const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+  // Calculate totals based on mode
+  const displayAccounts = balanceMode === 'family' ? familyAccounts : accounts;
+  const totalBalance = displayAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
   
   const monthTransactions = transactions.filter(t => {
     const date = new Date(t.date);
@@ -189,6 +203,39 @@ export default function Dashboard() {
             <span className="hidden sm:inline">Добавить</span>
           </Button>
         </motion.div>
+
+        {/* Balance Mode Selector */}
+        {family && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="mb-4"
+          >
+            <div className="flex gap-2 p-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+              <button
+                onClick={() => setBalanceMode('personal')}
+                className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all ${
+                  balanceMode === 'personal'
+                    ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                }`}
+              >
+                Личный баланс
+              </button>
+              <button
+                onClick={() => setBalanceMode('family')}
+                className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all ${
+                  balanceMode === 'family'
+                    ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                }`}
+              >
+                Семейный баланс
+              </button>
+            </div>
+          </motion.div>
+        )}
 
         {/* Main Balance Card */}
         {visibleBlocks.balance && (
