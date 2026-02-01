@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
-  Users, Crown, Shield, CheckCircle, XCircle, Edit2, Search, Filter
+  Users, Crown, Shield, CheckCircle, XCircle, Edit2, Search, Filter, LayoutDashboard
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 export default function Admin() {
@@ -30,6 +31,14 @@ export default function Admin() {
   const [searchQuery, setSearchQuery] = useState('');
   const [editUser, setEditUser] = useState(null);
   const [subscription, setSubscription] = useState('');
+  const [dashboardBlocks, setDashboardBlocks] = useState({
+    balance: true,
+    quickStats: true,
+    spendingChart: true,
+    transactions: true,
+    budgets: true,
+    goals: true
+  });
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -70,7 +79,8 @@ export default function Admin() {
       userId: editUser.id,
       data: {
         ...editUser.data,
-        subscription: subscription
+        subscription: subscription,
+        visible_dashboard_blocks: dashboardBlocks
       }
     });
   };
@@ -223,6 +233,14 @@ export default function Admin() {
                     onClick={() => {
                       setEditUser(user);
                       setSubscription(user.data?.subscription || 'free');
+                      setDashboardBlocks(user.data?.visible_dashboard_blocks || {
+                        balance: true,
+                        quickStats: true,
+                        spendingChart: true,
+                        transactions: true,
+                        budgets: true,
+                        goals: true
+                      });
                     }}
                     className="rounded-xl"
                   >
@@ -238,17 +256,18 @@ export default function Admin() {
 
       {/* Edit User Modal */}
       <Dialog open={!!editUser} onOpenChange={() => setEditUser(null)}>
-        <DialogContent className="rounded-2xl">
+        <DialogContent className="rounded-2xl max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Редактировать пользователя</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
               <p className="font-semibold text-slate-900 dark:text-white">
                 {editUser?.full_name || 'Пользователь'}
               </p>
               <p className="text-sm text-slate-500">{editUser?.email}</p>
             </div>
+            
             <div>
               <Label>Тип подписки</Label>
               <Select value={subscription} onValueChange={setSubscription}>
@@ -262,6 +281,58 @@ export default function Admin() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div>
+              <Label className="flex items-center gap-2 mb-3">
+                <LayoutDashboard className="w-4 h-4" />
+                Блоки на главной странице
+              </Label>
+              <div className="space-y-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Карта баланса</span>
+                  <Switch
+                    checked={dashboardBlocks.balance}
+                    onCheckedChange={(v) => setDashboardBlocks({...dashboardBlocks, balance: v})}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Быстрая статистика</span>
+                  <Switch
+                    checked={dashboardBlocks.quickStats}
+                    onCheckedChange={(v) => setDashboardBlocks({...dashboardBlocks, quickStats: v})}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-700 dark:text-slate-300">График расходов</span>
+                  <Switch
+                    checked={dashboardBlocks.spendingChart}
+                    onCheckedChange={(v) => setDashboardBlocks({...dashboardBlocks, spendingChart: v})}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Последние транзакции</span>
+                  <Switch
+                    checked={dashboardBlocks.transactions}
+                    onCheckedChange={(v) => setDashboardBlocks({...dashboardBlocks, transactions: v})}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Бюджеты</span>
+                  <Switch
+                    checked={dashboardBlocks.budgets}
+                    onCheckedChange={(v) => setDashboardBlocks({...dashboardBlocks, budgets: v})}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Цели</span>
+                  <Switch
+                    checked={dashboardBlocks.goals}
+                    onCheckedChange={(v) => setDashboardBlocks({...dashboardBlocks, goals: v})}
+                  />
+                </div>
+              </div>
+            </div>
+
             <Button
               onClick={handleUpdateSubscription}
               className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"

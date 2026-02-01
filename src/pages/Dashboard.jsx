@@ -35,6 +35,27 @@ export default function Dashboard() {
     start: startOfMonth(new Date()),
     end: endOfMonth(new Date())
   });
+  const [user, setUser] = useState(null);
+  const [visibleBlocks, setVisibleBlocks] = useState({
+    balance: true,
+    quickStats: true,
+    spendingChart: true,
+    transactions: true,
+    budgets: true,
+    goals: true
+  });
+
+  useEffect(() => {
+    loadUser();
+  }, []);
+
+  const loadUser = async () => {
+    const userData = await base44.auth.me();
+    setUser(userData);
+    if (userData.data?.visible_dashboard_blocks) {
+      setVisibleBlocks(userData.data.visible_dashboard_blocks);
+    }
+  };
 
   const updatePeriod = (type) => {
     const now = new Date();
@@ -153,14 +174,16 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Main Balance Card */}
-        <BalanceCard 
-          totalBalance={totalBalance}
-          monthIncome={monthIncome}
-          monthExpenses={monthExpenses}
-          investmentValue={investmentValue}
-          investmentProfit={investmentProfit}
-          formatCurrency={formatCurrency}
-        />
+        {visibleBlocks.balance && (
+          <BalanceCard 
+            totalBalance={totalBalance}
+            monthIncome={monthIncome}
+            monthExpenses={monthExpenses}
+            investmentValue={investmentValue}
+            investmentProfit={investmentProfit}
+            formatCurrency={formatCurrency}
+          />
+        )}
 
         {/* Period Selector */}
         <motion.div
@@ -193,125 +216,135 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <Card 
-              className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => {
-                setQuickAddType('income');
-                setShowQuickAdd(true);
-              }}
+        {visibleBlocks.quickStats && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
             >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
-                    <ArrowUpRight className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Доходы</p>
-                    <p className="text-lg font-semibold text-slate-900 dark:text-white">
-                      {formatCurrency(monthIncome)}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-          >
-            <Card 
-              className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => {
-                setQuickAddType('expense');
-                setShowQuickAdd(true);
-              }}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-rose-100 dark:bg-rose-900/30">
-                    <ArrowDownRight className="w-5 h-5 text-rose-600 dark:text-rose-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Расходы</p>
-                    <p className="text-lg font-semibold text-slate-900 dark:text-white">
-                      {formatCurrency(monthExpenses)}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Link to={createPageUrl('Investments')}>
-              <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-shadow cursor-pointer">
+              <Card 
+                className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => {
+                  setQuickAddType('income');
+                  setShowQuickAdd(true);
+                }}
+              >
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-violet-100 dark:bg-violet-900/30">
-                      <TrendingUp className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                    <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
+                      <ArrowUpRight className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Инвестиции</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Доходы</p>
                       <p className="text-lg font-semibold text-slate-900 dark:text-white">
-                        {formatCurrency(investmentValue)}
+                        {formatCurrency(monthIncome)}
                       </p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            </Link>
-          </motion.div>
+            </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-          >
-            <Link to={createPageUrl('AIAssistant')}>
-              <Card className="border-0 shadow-sm bg-gradient-to-br from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 transition-all cursor-pointer group">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <Card 
+                className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => {
+                  setQuickAddType('expense');
+                  setShowQuickAdd(true);
+                }}
+              >
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-white/20">
-                      <Sparkles className="w-5 h-5 text-white" />
+                    <div className="p-2.5 rounded-xl bg-rose-100 dark:bg-rose-900/30">
+                      <ArrowDownRight className="w-5 h-5 text-rose-600 dark:text-rose-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-white/80">AI Ассистент</p>
-                      <p className="text-lg font-semibold text-white flex items-center gap-1">
-                        Спросить
-                        <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Расходы</p>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-white">
+                        {formatCurrency(monthExpenses)}
                       </p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            </Link>
-          </motion.div>
-        </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Link to={createPageUrl('Investments')}>
+                <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-shadow cursor-pointer">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-violet-100 dark:bg-violet-900/30">
+                        <TrendingUp className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Инвестиции</p>
+                        <p className="text-lg font-semibold text-slate-900 dark:text-white">
+                          {formatCurrency(investmentValue)}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+            >
+              <Link to={createPageUrl('AIAssistant')}>
+                <Card className="border-0 shadow-sm bg-gradient-to-br from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 transition-all cursor-pointer group">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-white/20">
+                        <Sparkles className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-white/80">AI Ассистент</p>
+                        <p className="text-lg font-semibold text-white flex items-center gap-1">
+                          Спросить
+                          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            </motion.div>
+          </div>
+        )}
 
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left Column - Chart & Transactions */}
           <div className="lg:col-span-2 space-y-6">
-            <SpendingChart transactions={monthTransactions} formatCurrency={formatCurrency} />
-            <RecentTransactions transactions={transactions.slice(0, 5)} formatCurrency={formatCurrency} />
+            {visibleBlocks.spendingChart && (
+              <SpendingChart transactions={monthTransactions} formatCurrency={formatCurrency} />
+            )}
+            {visibleBlocks.transactions && (
+              <RecentTransactions transactions={transactions.slice(0, 5)} formatCurrency={formatCurrency} />
+            )}
           </div>
 
           {/* Right Column - Budgets & Goals */}
           <div className="space-y-6">
-            <BudgetOverview budgets={budgets} formatCurrency={formatCurrency} />
-            <AllGoalsProgress goals={goals} formatCurrency={formatCurrency} />
+            {visibleBlocks.budgets && (
+              <BudgetOverview budgets={budgets} formatCurrency={formatCurrency} />
+            )}
+            {visibleBlocks.goals && (
+              <AllGoalsProgress goals={goals} formatCurrency={formatCurrency} />
+            )}
           </div>
         </div>
       </div>
