@@ -107,16 +107,25 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Transaction.list('-date', 50)
   });
 
-  const { data: accounts = [], isLoading: loadingAccounts } = useQuery({
+  const { data: allAccounts = [], isLoading: loadingAccounts } = useQuery({
     queryKey: ['accounts'],
     queryFn: () => base44.entities.Account.list()
+  });
+
+  // Filter personal accounts (only current user)
+  const { data: personalAccounts = [] } = useQuery({
+    queryKey: ['personal-accounts', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      return allAccounts.filter(acc => acc.created_by_id === user?.id);
+    },
+    enabled: !!user
   });
 
   // Fetch family accounts
   const { data: familyAccounts = [] } = useQuery({
     queryKey: ['family-accounts', family?.id],
     queryFn: async () => {
-      const allAccounts = await base44.entities.Account.list();
       return allAccounts.filter(acc => 
         family.members.some(m => m.user_id === acc.created_by_id)
       );
@@ -140,7 +149,7 @@ export default function Dashboard() {
   });
 
   // Calculate totals based on mode
-  const displayAccounts = balanceMode === 'family' ? familyAccounts : accounts;
+  const displayAccounts = balanceMode === 'family' ? familyAccounts : personalAccounts;
   const totalBalance = displayAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
   
   const monthTransactions = transactions.filter(t => {
@@ -418,7 +427,7 @@ export default function Dashboard() {
         {showQuickAdd && (
           <QuickAddTransaction 
             onClose={() => setShowQuickAdd(false)}
-            accounts={accounts}
+            accounts={personalAccounts}
             defaultType={quickAddType}
           />
         )}
