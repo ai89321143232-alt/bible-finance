@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import GoogleDriveBackup from '@/components/GoogleDriveBackup';
 
 export default function Backup() {
   const [isExporting, setIsExporting] = useState(false);
@@ -358,11 +359,21 @@ export default function Backup() {
           </Card>
         </motion.div>
 
-        {/* Security Note */}
+        {/* Google Drive Backup */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
+          className="mb-6"
+        >
+          <GoogleDriveBackup />
+        </motion.div>
+
+        {/* Security Note */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
           className="mt-6"
         >
           <Card className="border-0 shadow-sm bg-violet-50 dark:bg-violet-900/20">
