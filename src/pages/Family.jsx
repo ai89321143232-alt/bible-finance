@@ -176,7 +176,10 @@ export default function Family() {
     joinFamilyMutation.mutate(joinCode);
   };
 
-  const myFamily = families.find(f => f.owner_id === currentUser?.id);
+  const myFamily = families.find(f => 
+    f.owner_id === currentUser?.id || 
+    f.members?.some(m => m.user_id === currentUser?.id)
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
