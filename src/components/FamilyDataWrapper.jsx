@@ -37,4 +37,79 @@ export const addFamilyId = async (data) => {
   }
 };
 
-export default { useFamilyId, addFamilyId };
+// Обёртка для SDK методов с автоматическим добавлением family_id
+export const createFamilyAwareSDK = () => {
+  const wrapCreate = (entityName) => async (data) => {
+    const dataWithFamily = await addFamilyId(data);
+    return base44.entities[entityName].create(dataWithFamily);
+  };
+
+  const wrapBulkCreate = (entityName) => async (dataArray) => {
+    const user = await base44.auth.me();
+    const dataWithFamily = user.family_id 
+      ? dataArray.map(item => ({ ...item, family_id: user.family_id }))
+      : dataArray;
+    return base44.entities[entityName].bulkCreate(dataWithFamily);
+  };
+
+  return {
+    Transaction: {
+      create: wrapCreate('Transaction'),
+      bulkCreate: wrapBulkCreate('Transaction'),
+      update: base44.entities.Transaction.update,
+      delete: base44.entities.Transaction.delete,
+      list: base44.entities.Transaction.list,
+      filter: base44.entities.Transaction.filter,
+    },
+    Account: {
+      create: wrapCreate('Account'),
+      bulkCreate: wrapBulkCreate('Account'),
+      update: base44.entities.Account.update,
+      delete: base44.entities.Account.delete,
+      list: base44.entities.Account.list,
+      filter: base44.entities.Account.filter,
+    },
+    Investment: {
+      create: wrapCreate('Investment'),
+      bulkCreate: wrapBulkCreate('Investment'),
+      update: base44.entities.Investment.update,
+      delete: base44.entities.Investment.delete,
+      list: base44.entities.Investment.list,
+      filter: base44.entities.Investment.filter,
+    },
+    ChildExpense: {
+      create: wrapCreate('ChildExpense'),
+      bulkCreate: wrapBulkCreate('ChildExpense'),
+      update: base44.entities.ChildExpense.update,
+      delete: base44.entities.ChildExpense.delete,
+      list: base44.entities.ChildExpense.list,
+      filter: base44.entities.ChildExpense.filter,
+    },
+    Goal: {
+      create: wrapCreate('Goal'),
+      bulkCreate: wrapBulkCreate('Goal'),
+      update: base44.entities.Goal.update,
+      delete: base44.entities.Goal.delete,
+      list: base44.entities.Goal.list,
+      filter: base44.entities.Goal.filter,
+    },
+    Budget: {
+      create: wrapCreate('Budget'),
+      bulkCreate: wrapBulkCreate('Budget'),
+      update: base44.entities.Budget.update,
+      delete: base44.entities.Budget.delete,
+      list: base44.entities.Budget.list,
+      filter: base44.entities.Budget.filter,
+    },
+    Task: {
+      create: wrapCreate('Task'),
+      bulkCreate: wrapBulkCreate('Task'),
+      update: base44.entities.Task.update,
+      delete: base44.entities.Task.delete,
+      list: base44.entities.Task.list,
+      filter: base44.entities.Task.filter,
+    }
+  };
+};
+
+export default { useFamilyId, addFamilyId, createFamilyAwareSDK };
