@@ -89,7 +89,10 @@ export default function Accounts() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Account.create(data),
+    mutationFn: async (data) => {
+      const dataWithFamily = await addFamilyId(data);
+      return base44.entities.Account.create(dataWithFamily);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       resetForm();
@@ -97,7 +100,10 @@ export default function Accounts() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Account.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const dataWithFamily = await addFamilyId(data);
+      return base44.entities.Account.update(id, dataWithFamily);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       resetForm();
@@ -162,11 +168,11 @@ export default function Accounts() {
   };
 
   const handleSubmit = async () => {
-    const data = await addFamilyId({
+    const data = {
       ...formData,
       balance: parseFloat(formData.balance) || 0,
       is_active: true
-    });
+    };
 
     if (editAccount) {
       updateMutation.mutate({ id: editAccount.id, data });

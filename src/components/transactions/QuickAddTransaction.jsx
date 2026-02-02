@@ -72,7 +72,10 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Transaction.create(data),
+    mutationFn: async (data) => {
+      const dataWithFamily = await addFamilyId(data);
+      return base44.entities.Transaction.create(dataWithFamily);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       toast.success('Операция добавлена');
@@ -81,7 +84,10 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Transaction.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const dataWithFamily = await addFamilyId(data);
+      return base44.entities.Transaction.update(id, dataWithFamily);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       toast.success('Операция обновлена');
@@ -159,15 +165,15 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
       }
 
       // Create transfer transaction
-      const transferData = await addFamilyId({
+      const transferData = {
         type: 'transfer',
         amount: amountNum,
         category: isDestGoal ? 'Перенос на цель' : 'Перенос между счетами',
         description: `${sourceAccount?.name} → ${destName}${description ? ': ' + description : ''}`,
         date: format(date, 'yyyy-MM-dd'),
         account_id: accountId
-      });
-      await base44.entities.Transaction.create(transferData);
+      };
+      await createMutation.mutateAsync(transferData);
 
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
@@ -193,14 +199,14 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
       }
     }
 
-    const data = await addFamilyId({
+    const data = {
       type,
       amount: amountNum,
       category,
       description,
       date: format(date, 'yyyy-MM-dd'),
       account_id: accountId || undefined
-    });
+    };
 
     if (transaction) {
       updateMutation.mutate({ id: transaction.id, data });
@@ -328,18 +334,16 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     setShowReviewModal(false);
     
     // Создаем отдельные операции для каждого товара
-    const user = await base44.auth.me();
-    
     for (const item of itemsWithCategories) {
-      const data = await addFamilyId({
+      const data = {
         type: 'expense',
         amount: item.price,
         category: item.category,
         description: `${description} - ${item.name}`,
         date: format(date, 'yyyy-MM-dd'),
         account_id: accountId || undefined
-      });
-      await base44.entities.Transaction.create(data);
+      };
+      await createMutation.mutateAsync(data);
     }
     
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
