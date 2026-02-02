@@ -69,6 +69,7 @@ import Settings from './pages/Settings';
 import Subscription from './pages/Subscription';
 import Tasks from './pages/Tasks';
 import Transactions from './pages/Transactions';
+import Menu from './pages/Menu';
 import __Layout from './Layout.jsx';
 
 
@@ -95,6 +96,7 @@ export const PAGES = {
     "Subscription": Subscription,
     "Tasks": Tasks,
     "Transactions": Transactions,
+    "Menu": Menu,
 }
 
 export const pagesConfig = {

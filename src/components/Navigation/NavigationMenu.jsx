@@ -4,7 +4,7 @@ import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, ArrowLeftRight, CreditCard, Target, TrendingUp,
-  ListTodo, PieChart, Settings, Users, FileText, Lightbulb, Baby, ChevronDown
+  ListTodo, PieChart, Settings, Users, FileText, Lightbulb, Baby
 } from 'lucide-react';
 
 const MENU_CATEGORIES = [
@@ -75,100 +75,93 @@ const MENU_CATEGORIES = [
 ];
 
 export default function NavigationMenu({ currentPageName, onNavigate }) {
-  const [expandedCategory, setExpandedCategory] = useState(null);
-
-  const handleCategoryClick = (category) => {
-    setExpandedCategory(expandedCategory?.id === category.id ? null : category);
-  };
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   return (
-    <div className="flex h-full">
-      {/* Left: Main Categories */}
-      <div className="w-64 border-r border-slate-200 dark:border-slate-800 p-4 space-y-2">
-        {MENU_CATEGORIES.map((category, idx) => (
-          <motion.button
-            key={category.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.05 }}
-            onClick={() => handleCategoryClick(category)}
-            className={`w-full p-3 rounded-xl transition-all ${
-              expandedCategory?.id === category.id 
-                ? `${category.colorBg} border-2 ${category.colorText.replace('text-', 'border-')}`
-                : 'border-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
-            }`}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${expandedCategory?.id === category.id ? 'bg-white/30' : category.colorBg}`}>
+    <>
+      {/* Mobile Bottom Navigation Bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-50 safe-area-pb">
+        <div className="flex items-center justify-around px-2 py-2">
+          {MENU_CATEGORIES.map((category) => (
+            <button
+              key={category.id}
+              onClick={() => {
+                setSelectedCategory(category);
+                setShowMobileMenu(true);
+              }}
+              className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
+              <div className={`p-2 rounded-lg ${category.colorBg}`}>
                 <category.icon className={`w-5 h-5 ${category.colorText}`} />
               </div>
-              <span className={`font-semibold text-sm ${category.colorText}`}>{category.label}</span>
-            </div>
-          </motion.button>
-        ))}
+              <span className={`text-xs font-medium ${category.colorText}`}>
+                {category.label.split(' ')[0]}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Right: Submenu Items */}
-      <div className="flex-1 p-6">
-        <AnimatePresence mode="wait">
-          {expandedCategory ? (
+      {/* Mobile Submenu Modal */}
+      <AnimatePresence>
+        {showMobileMenu && selectedCategory && (
+          <div 
+            className="lg:hidden fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
+            onClick={() => setShowMobileMenu(false)}
+          >
             <motion.div
-              key={expandedCategory.id}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="absolute inset-0 top-auto bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl max-h-[70vh] overflow-y-auto"
             >
-              <h3 className={`text-lg font-bold mb-4 ${expandedCategory.colorText}`}>
-                {expandedCategory.label}
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {expandedCategory.items.map((item, itemIdx) => (
+              <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between">
+                <h2 className={`text-lg font-bold ${selectedCategory.colorText}`}>
+                  {selectedCategory.label}
+                </h2>
+                <button
+                  onClick={() => setShowMobileMenu(false)}
+                  className="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="p-6 grid grid-cols-2 gap-3">
+                {selectedCategory.items.map((item, idx) => (
                   <motion.div
                     key={item.name}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: itemIdx * 0.05 }}
+                    transition={{ delay: idx * 0.05 }}
                   >
                     <Link
                       to={createPageUrl(item.name)}
-                      onClick={onNavigate}
-                      className={`flex items-center gap-3 p-4 rounded-xl transition-all ${expandedCategory.hoverBg} ${
+                      onClick={() => {
+                        onNavigate();
+                        setShowMobileMenu(false);
+                      }}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-xl transition-all ${
                         currentPageName === item.name 
-                          ? `${expandedCategory.colorBg} border-2 ${expandedCategory.colorText.replace('text-', 'border-')}`
-                          : 'bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700'
+                          ? `${selectedCategory.colorBg} border-2 ${selectedCategory.colorText.replace('text-', 'border-')}`
+                          : 'bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700'
                       }`}
                     >
-                      <div className={`p-2.5 rounded-lg ${expandedCategory.colorBg}`}>
-                        <item.icon className={`w-5 h-5 ${expandedCategory.colorText}`} />
+                      <div className={`p-3 rounded-lg ${selectedCategory.colorBg}`}>
+                        <item.icon className={`w-6 h-6 ${selectedCategory.colorText}`} />
                       </div>
-                      <span className={`font-medium ${expandedCategory.colorText}`}>{item.label}</span>
+                      <span className={`text-sm font-medium text-center ${selectedCategory.colorText}`}>
+                        {item.label}
+                      </span>
                     </Link>
                   </motion.div>
                 ))}
               </div>
             </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center justify-center h-full text-center"
-            >
-              <div>
-                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <LayoutDashboard className="w-8 h-8 text-slate-400" />
-                </div>
-                <p className="text-slate-500 dark:text-slate-400">
-                  Выберите категорию слева
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
