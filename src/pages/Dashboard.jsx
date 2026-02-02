@@ -135,13 +135,27 @@ export default function Dashboard() {
     enabled: !!user
   });
 
-  // Filter personal vs family accounts based on mode
+  // Get family members for display
+  const familyMembers = family?.members || [];
+  
+  // Filter accounts based on mode
   const personalAccounts = allAccounts.filter(acc => acc.created_by_id === user?.id);
-  const familyAccounts = allAccounts;
+  const familyAccounts = allAccounts; // RLS automatically filters by family_id
 
   // Calculate totals based on mode
   const displayAccounts = balanceMode === 'family' ? familyAccounts : personalAccounts;
   const totalBalance = displayAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+  
+  // Calculate balance per family member
+  const memberBalances = familyMembers.map(member => {
+    const memberAccounts = allAccounts.filter(acc => acc.created_by_id === member.user_id);
+    const balance = memberAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+    return {
+      ...member,
+      balance,
+      accountsCount: memberAccounts.length
+    };
+  });
   
   const monthTransactions = transactions.filter(t => {
     const date = new Date(t.date);
@@ -248,6 +262,60 @@ export default function Dashboard() {
             investmentProfit={investmentProfit}
             formatCurrency={formatCurrency}
           />
+        )}
+
+        {/* Family Members Balance Breakdown */}
+        {balanceMode === 'family' && family && memberBalances.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="mb-6"
+          >
+            <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-lg">Баланс по членам семьи</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {memberBalances.map((member, idx) => (
+                    <motion.div
+                      key={member.user_id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.05 * idx }}
+                      className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                          style={{ backgroundColor: member.avatar_color || '#8B5CF6' }}
+                        >
+                          {member.display_name?.[0] || member.name?.[0] || '?'}
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900 dark:text-white">
+                            {member.display_name || member.name}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {member.accountsCount} {member.accountsCount === 1 ? 'счёт' : 'счетов'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-slate-900 dark:text-white">
+                          {formatCurrency(member.balance)}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {totalBalance > 0 ? Math.round((member.balance / totalBalance) * 100) : 0}%
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
 
         {/* Period Selector */}
