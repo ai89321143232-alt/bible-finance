@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -30,6 +30,7 @@ import AIInsights from '@/components/dashboard/AIInsights';
 import BibleVerse from '@/components/dashboard/BibleVerse';
 
 export default function Dashboard() {
+  const queryClient = useQueryClient();
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickAddType, setQuickAddType] = useState('expense');
   const [periodType, setPeriodType] = useState('month');
@@ -57,9 +58,12 @@ export default function Dashboard() {
     try {
       const user = await base44.auth.me();
       if (user?.family_id) {
-        await base44.functions.invoke('migrateFamilyData', {});
+        const result = await base44.functions.invoke('migrateFamilyData', {});
+        console.log('Migration result:', result.data);
         // Refresh data after migration
-        queryClient.invalidateQueries();
+        setTimeout(() => {
+          queryClient.invalidateQueries();
+        }, 1000);
       }
     } catch (error) {
       console.error('Migration error:', error);
