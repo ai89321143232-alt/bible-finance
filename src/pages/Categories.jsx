@@ -58,7 +58,13 @@ const LUCIDE_ICON_MAP = {
   'Film': '🎬',
   'Dumbbell': '🏋️',
   'Coffee': '☕',
-  'Pizza': '🍕'
+  'Pizza': '🍕',
+  'PartyPopper': '🎉',
+  'GraduationCap': '🎓',
+  'Smartphone': '📱',
+  'Sparkles': '✨',
+  'Briefcase': '💼',
+  'DollarSign': '💵'
 };
 
 export default function Categories() {
