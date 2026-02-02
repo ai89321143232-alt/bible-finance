@@ -122,6 +122,13 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           toast.error('Действия с данными других пользователей запрещены!');
           return;
         }
+        
+        // Проверка на отрицательный баланс
+        if (sourceAccount.balance - amountNum < 0) {
+          toast.error('Недостаточно средств на счёте для выполнения операции');
+          return;
+        }
+        
         await base44.entities.Account.update(accountId, {
           balance: sourceAccount.balance - amountNum
         });
@@ -175,6 +182,14 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
       if (selectedAccount && selectedAccount.created_by !== user.email && !selectedAccount.created_by.includes(user.id)) {
         toast.error('Действия с данными других пользователей запрещены!');
         return;
+      }
+      
+      // Проверка на отрицательный баланс для расходов
+      if (type === 'expense' && selectedAccount) {
+        if (selectedAccount.balance - amountNum < 0) {
+          toast.error('Недостаточно средств на счёте для выполнения операции');
+          return;
+        }
       }
     }
 
