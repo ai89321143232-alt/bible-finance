@@ -104,51 +104,40 @@ export default function Dashboard() {
     setPeriodType(type);
   };
 
+  // Fetch all data - RLS will automatically filter based on family_id
   const { data: transactions = [], isLoading: loadingTransactions } = useQuery({
-    queryKey: ['transactions'],
-    queryFn: () => base44.entities.Transaction.list('-date', 50)
-  });
-
-  const { data: allAccounts = [], isLoading: loadingAccounts } = useQuery({
-    queryKey: ['accounts'],
-    queryFn: () => base44.entities.Account.list()
-  });
-
-  // Filter personal accounts (only current user)
-  const { data: personalAccounts = [] } = useQuery({
-    queryKey: ['personal-accounts', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      return allAccounts.filter(acc => acc.created_by_id === user?.id);
-    },
+    queryKey: ['transactions', user?.family_id],
+    queryFn: () => base44.entities.Transaction.list('-date', 200),
     enabled: !!user
   });
 
-  // Fetch family accounts
-  const { data: familyAccounts = [] } = useQuery({
-    queryKey: ['family-accounts', family?.id],
-    queryFn: async () => {
-      return allAccounts.filter(acc => 
-        family.members.some(m => m.user_id === acc.created_by_id)
-      );
-    },
-    enabled: !!family && family.members?.length > 0 && balanceMode === 'family'
+  const { data: allAccounts = [], isLoading: loadingAccounts } = useQuery({
+    queryKey: ['accounts', user?.family_id],
+    queryFn: () => base44.entities.Account.list(),
+    enabled: !!user
   });
 
   const { data: budgets = [] } = useQuery({
-    queryKey: ['budgets'],
-    queryFn: () => base44.entities.Budget.filter({ is_active: true })
+    queryKey: ['budgets', user?.family_id],
+    queryFn: () => base44.entities.Budget.filter({ is_active: true }),
+    enabled: !!user
   });
 
   const { data: goals = [] } = useQuery({
-    queryKey: ['goals'],
-    queryFn: () => base44.entities.Goal.filter({ status: 'active' })
+    queryKey: ['goals', user?.family_id],
+    queryFn: () => base44.entities.Goal.filter({ status: 'active' }),
+    enabled: !!user
   });
 
   const { data: investments = [] } = useQuery({
-    queryKey: ['investments'],
-    queryFn: () => base44.entities.Investment.list()
+    queryKey: ['investments', user?.family_id],
+    queryFn: () => base44.entities.Investment.list(),
+    enabled: !!user
   });
+
+  // Filter personal vs family accounts based on mode
+  const personalAccounts = allAccounts.filter(acc => acc.created_by_id === user?.id);
+  const familyAccounts = allAccounts;
 
   // Calculate totals based on mode
   const displayAccounts = balanceMode === 'family' ? familyAccounts : personalAccounts;
@@ -446,7 +435,7 @@ export default function Dashboard() {
         {showQuickAdd && (
           <QuickAddTransaction 
             onClose={() => setShowQuickAdd(false)}
-            accounts={personalAccounts}
+            accounts={allAccounts}
             defaultType={quickAddType}
           />
         )}
