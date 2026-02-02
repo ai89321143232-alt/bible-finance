@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, ArrowLeftRight, CreditCard, Target, TrendingUp,
-  ListTodo, PieChart, Settings, Users, FileText, Lightbulb, Baby
+  ListTodo, PieChart, Settings, Users, FileText, Lightbulb, Baby, ChevronDown
 } from 'lucide-react';
-import CategoryModal from './CategoryModal';
 
 const MENU_CATEGORIES = [
   {
@@ -76,84 +75,73 @@ const MENU_CATEGORIES = [
 ];
 
 export default function NavigationMenu({ currentPageName, onNavigate }) {
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-
-  React.useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const [expandedCategory, setExpandedCategory] = useState(null);
 
   const handleCategoryClick = (category) => {
-    if (isMobile) {
-      setSelectedCategory(selectedCategory?.id === category.id ? null : category);
-    } else {
-      setSelectedCategory(category);
-    }
+    setExpandedCategory(expandedCategory?.id === category.id ? null : category);
   };
 
   return (
-    <>
-      <div className="p-6 space-y-3">
-        {MENU_CATEGORIES.map((category, idx) => (
-          <div key={category.id}>
-            <motion.button
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.05 }}
-              onClick={() => handleCategoryClick(category)}
-              className={`w-full p-4 rounded-xl transition-all border-2 border-slate-200 dark:border-slate-700 ${category.hoverBg}`}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
+    <div className="p-6 space-y-3">
+      {MENU_CATEGORIES.map((category, idx) => (
+        <div key={category.id}>
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.05 }}
+            onClick={() => handleCategoryClick(category)}
+            className={`w-full p-4 rounded-xl transition-all border-2 border-slate-200 dark:border-slate-700 ${category.hoverBg}`}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className={`p-2.5 rounded-lg ${category.colorBg}`}>
                   <category.icon className={`w-5 h-5 ${category.colorText}`} />
                 </div>
                 <span className={`font-semibold ${category.colorText}`}>{category.label}</span>
               </div>
-            </motion.button>
+              <ChevronDown 
+                className={`w-5 h-5 ${category.colorText} transition-transform ${expandedCategory?.id === category.id ? 'rotate-180' : ''}`}
+              />
+            </div>
+          </motion.button>
 
-            {/* Mobile: блоки в меню */}
-            {isMobile && selectedCategory?.id === category.id && (
+          <AnimatePresence>
+            {expandedCategory?.id === category.id && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="mt-2 p-3 space-y-2"
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
               >
-                {category.items.map((item, itemIdx) => (
-                  <motion.div
-                    key={item.name}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: itemIdx * 0.05 }}
-                  >
-                    <Link
-                      to={createPageUrl(item.name)}
-                      onClick={onNavigate}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${category.hoverBg} ${category.colorBg}`}
+                <div className="mt-2 p-3 space-y-2">
+                  {category.items.map((item, itemIdx) => (
+                    <motion.div
+                      key={item.name}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: itemIdx * 0.05 }}
                     >
-                      <item.icon className={`w-4 h-4 ${category.colorText}`} />
-                      <span className={`text-sm font-medium ${category.colorText}`}>{item.label}</span>
-                    </Link>
-                  </motion.div>
-                ))}
+                      <Link
+                        to={createPageUrl(item.name)}
+                        onClick={onNavigate}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${category.hoverBg} ${
+                          currentPageName === item.name ? category.colorBg : 'bg-white dark:bg-slate-800'
+                        }`}
+                      >
+                        <item.icon className={`w-4 h-4 ${category.colorText}`} />
+                        <span className={`text-sm font-medium ${category.colorText}`}>{item.label}</span>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
               </motion.div>
             )}
-          </div>
-        ))}
-      </div>
-
-      {/* Desktop: модальное окно */}
-      {!isMobile && (
-        <CategoryModal
-          isOpen={selectedCategory !== null}
-          category={selectedCategory}
-          onClose={() => setSelectedCategory(null)}
-        />
-      )}
-    </>
+          </AnimatePresence>
+        </div>
+      ))}
+    </div>
   );
 }
