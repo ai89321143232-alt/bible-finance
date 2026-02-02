@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   LayoutDashboard, ArrowLeftRight, CreditCard, Target, TrendingUp,
   ListTodo, PieChart, Settings, Users, FileText, Lightbulb, Baby
 } from 'lucide-react';
+import CategoryModal from './CategoryModal';
 
 const MENU_CATEGORIES = [
   {
@@ -75,93 +76,84 @@ const MENU_CATEGORIES = [
 ];
 
 export default function NavigationMenu({ currentPageName, onNavigate }) {
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleCategoryClick = (category) => {
+    if (isMobile) {
+      setSelectedCategory(selectedCategory?.id === category.id ? null : category);
+    } else {
+      setSelectedCategory(category);
+    }
+  };
 
   return (
     <>
-      {/* Mobile Bottom Navigation Bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-50 safe-area-pb">
-        <div className="flex items-center justify-around px-2 py-2">
-          {MENU_CATEGORIES.map((category) => (
-            <button
-              key={category.id}
-              onClick={() => {
-                setSelectedCategory(category);
-                setShowMobileMenu(true);
-              }}
-              className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-            >
-              <div className={`p-2 rounded-lg ${category.colorBg}`}>
-                <category.icon className={`w-5 h-5 ${category.colorText}`} />
-              </div>
-              <span className={`text-xs font-medium ${category.colorText}`}>
-                {category.label.split(' ')[0]}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Mobile Submenu Modal */}
-      <AnimatePresence>
-        {showMobileMenu && selectedCategory && (
-          <div 
-            className="lg:hidden fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
-            onClick={() => setShowMobileMenu(false)}
-          >
-            <motion.div
+      <div className="p-6 space-y-3">
+        {MENU_CATEGORIES.map((category, idx) => (
+          <div key={category.id}>
+            <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
-              className="absolute inset-0 top-auto bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl max-h-[70vh] overflow-y-auto"
+              transition={{ delay: idx * 0.05 }}
+              onClick={() => handleCategoryClick(category)}
+              className={`w-full p-4 rounded-xl transition-all border-2 border-slate-200 dark:border-slate-700 ${category.hoverBg}`}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between">
-                <h2 className={`text-lg font-bold ${selectedCategory.colorText}`}>
-                  {selectedCategory.label}
-                </h2>
-                <button
-                  onClick={() => setShowMobileMenu(false)}
-                  className="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
-                >
-                  ✕
-                </button>
+              <div className="flex items-center gap-3">
+                <div className={`p-2.5 rounded-lg ${category.colorBg}`}>
+                  <category.icon className={`w-5 h-5 ${category.colorText}`} />
+                </div>
+                <span className={`font-semibold ${category.colorText}`}>{category.label}</span>
               </div>
-              <div className="p-6 grid grid-cols-2 gap-3">
-                {selectedCategory.items.map((item, idx) => (
+            </motion.button>
+
+            {/* Mobile: блоки в меню */}
+            {isMobile && selectedCategory?.id === category.id && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-2 p-3 space-y-2"
+              >
+                {category.items.map((item, itemIdx) => (
                   <motion.div
                     key={item.name}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: itemIdx * 0.05 }}
                   >
                     <Link
                       to={createPageUrl(item.name)}
-                      onClick={() => {
-                        onNavigate();
-                        setShowMobileMenu(false);
-                      }}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-xl transition-all ${
-                        currentPageName === item.name 
-                          ? `${selectedCategory.colorBg} border-2 ${selectedCategory.colorText.replace('text-', 'border-')}`
-                          : 'bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700'
-                      }`}
+                      onClick={onNavigate}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${category.hoverBg} ${category.colorBg}`}
                     >
-                      <div className={`p-3 rounded-lg ${selectedCategory.colorBg}`}>
-                        <item.icon className={`w-6 h-6 ${selectedCategory.colorText}`} />
-                      </div>
-                      <span className={`text-sm font-medium text-center ${selectedCategory.colorText}`}>
-                        {item.label}
-                      </span>
+                      <item.icon className={`w-4 h-4 ${category.colorText}`} />
+                      <span className={`text-sm font-medium ${category.colorText}`}>{item.label}</span>
                     </Link>
                   </motion.div>
                 ))}
-              </div>
-            </motion.div>
+              </motion.div>
+            )}
           </div>
-        )}
-      </AnimatePresence>
+        ))}
+      </div>
+
+      {/* Desktop: модальное окно */}
+      {!isMobile && (
+        <CategoryModal
+          isOpen={selectedCategory !== null}
+          category={selectedCategory}
+          onClose={() => setSelectedCategory(null)}
+        />
+      )}
     </>
   );
 }
