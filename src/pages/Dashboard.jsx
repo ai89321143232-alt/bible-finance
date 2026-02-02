@@ -50,7 +50,21 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadUser();
+    migrateUserData();
   }, []);
+
+  const migrateUserData = async () => {
+    try {
+      const user = await base44.auth.me();
+      if (user?.family_id) {
+        await base44.functions.invoke('migrateFamilyData', {});
+        // Refresh data after migration
+        queryClient.invalidateQueries();
+      }
+    } catch (error) {
+      console.error('Migration error:', error);
+    }
+  };
 
   const loadUser = async () => {
     const userData = await base44.auth.me();
