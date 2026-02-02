@@ -82,66 +82,93 @@ export default function NavigationMenu({ currentPageName, onNavigate }) {
   };
 
   return (
-    <div className="p-6 space-y-3">
-      {MENU_CATEGORIES.map((category, idx) => (
-        <div key={category.id}>
+    <div className="flex h-full">
+      {/* Left: Main Categories */}
+      <div className="w-64 border-r border-slate-200 dark:border-slate-800 p-4 space-y-2">
+        {MENU_CATEGORIES.map((category, idx) => (
           <motion.button
+            key={category.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.05 }}
             onClick={() => handleCategoryClick(category)}
-            className={`w-full p-4 rounded-xl transition-all border-2 border-slate-200 dark:border-slate-700 ${category.hoverBg}`}
+            className={`w-full p-3 rounded-xl transition-all ${
+              expandedCategory?.id === category.id 
+                ? `${category.colorBg} border-2 ${category.colorText.replace('text-', 'border-')}`
+                : 'border-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+            }`}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`p-2.5 rounded-lg ${category.colorBg}`}>
-                  <category.icon className={`w-5 h-5 ${category.colorText}`} />
-                </div>
-                <span className={`font-semibold ${category.colorText}`}>{category.label}</span>
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${expandedCategory?.id === category.id ? 'bg-white/30' : category.colorBg}`}>
+                <category.icon className={`w-5 h-5 ${category.colorText}`} />
               </div>
-              <ChevronDown 
-                className={`w-5 h-5 ${category.colorText} transition-transform ${expandedCategory?.id === category.id ? 'rotate-180' : ''}`}
-              />
+              <span className={`font-semibold text-sm ${category.colorText}`}>{category.label}</span>
             </div>
           </motion.button>
+        ))}
+      </div>
 
-          <AnimatePresence>
-            {expandedCategory?.id === category.id && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
-              >
-                <div className="mt-2 p-3 space-y-2">
-                  {category.items.map((item, itemIdx) => (
-                    <motion.div
-                      key={item.name}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: itemIdx * 0.05 }}
+      {/* Right: Submenu Items */}
+      <div className="flex-1 p-6">
+        <AnimatePresence mode="wait">
+          {expandedCategory ? (
+            <motion.div
+              key={expandedCategory.id}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <h3 className={`text-lg font-bold mb-4 ${expandedCategory.colorText}`}>
+                {expandedCategory.label}
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {expandedCategory.items.map((item, itemIdx) => (
+                  <motion.div
+                    key={item.name}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: itemIdx * 0.05 }}
+                  >
+                    <Link
+                      to={createPageUrl(item.name)}
+                      onClick={onNavigate}
+                      className={`flex items-center gap-3 p-4 rounded-xl transition-all ${expandedCategory.hoverBg} ${
+                        currentPageName === item.name 
+                          ? `${expandedCategory.colorBg} border-2 ${expandedCategory.colorText.replace('text-', 'border-')}`
+                          : 'bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700'
+                      }`}
                     >
-                      <Link
-                        to={createPageUrl(item.name)}
-                        onClick={onNavigate}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${category.hoverBg} ${
-                          currentPageName === item.name ? category.colorBg : 'bg-white dark:bg-slate-800'
-                        }`}
-                      >
-                        <item.icon className={`w-4 h-4 ${category.colorText}`} />
-                        <span className={`text-sm font-medium ${category.colorText}`}>{item.label}</span>
-                      </Link>
-                    </motion.div>
-                  ))}
+                      <div className={`p-2.5 rounded-lg ${expandedCategory.colorBg}`}>
+                        <item.icon className={`w-5 h-5 ${expandedCategory.colorText}`} />
+                      </div>
+                      <span className={`font-medium ${expandedCategory.colorText}`}>{item.label}</span>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center justify-center h-full text-center"
+            >
+              <div>
+                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <LayoutDashboard className="w-8 h-8 text-slate-400" />
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      ))}
+                <p className="text-slate-500 dark:text-slate-400">
+                  Выберите категорию слева
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
