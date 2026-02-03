@@ -153,33 +153,20 @@ export default function Dashboard() {
     enabled: !!user
   });
 
-  // Load all users to map user_id to email
-  const { data: allUsers = [] } = useQuery({
-    queryKey: ['all-users'],
-    queryFn: () => base44.entities.User.list(),
-    enabled: !!family && balanceMode === 'family'
-  });
-
   // Get family members for display
   const familyMembers = family?.members || [];
   
-  // Filter accounts based on mode
-  const personalAccounts = allAccounts.filter(acc => acc.created_by === user?.email);
+  // Filter accounts based on mode - используем user_id
+  const personalAccounts = allAccounts.filter(acc => acc.user_id === user?.id);
   const familyAccounts = allAccounts; // RLS automatically filters by family_id
 
   // Calculate totals based on mode
   const displayAccounts = balanceMode === 'family' ? familyAccounts : personalAccounts;
   const totalBalance = displayAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
   
-  // Calculate balance per family member
+  // Calculate balance per family member - используем user_id напрямую
   const memberBalances = familyMembers.map(member => {
-    // Find user by ID to get email
-    const memberUser = allUsers.find(u => u.id === member.user_id);
-    const memberEmail = memberUser?.email;
-    
-    const memberAccounts = allAccounts.filter(acc => 
-      memberEmail && acc.created_by === memberEmail
-    );
+    const memberAccounts = allAccounts.filter(acc => acc.user_id === member.user_id);
     const balance = memberAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
     return {
       ...member,
