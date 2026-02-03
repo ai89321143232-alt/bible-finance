@@ -23,14 +23,21 @@ export const useFamilyId = () => {
   return { familyId, loading };
 };
 
-// Функция-помощник для автоматического добавления family_id к данным
+// Функция-помощник для автоматического добавления family_id и user_id к данным
 export const addFamilyId = async (data) => {
   try {
     const user = await base44.auth.me();
-    if (user.family_id) {
-      return { ...data, family_id: user.family_id };
+    if (user?.family_id) {
+      return {
+        ...data,
+        family_id: user.family_id,
+        user_id: user.id
+      };
     }
-    return data;
+    return {
+      ...data,
+      user_id: user?.id
+    };
   } catch (error) {
     console.error('Error adding family_id:', error);
     return data;
@@ -46,9 +53,9 @@ export const createFamilyAwareSDK = () => {
 
   const wrapBulkCreate = (entityName) => async (dataArray) => {
     const user = await base44.auth.me();
-    const dataWithFamily = user.family_id 
-      ? dataArray.map(item => ({ ...item, family_id: user.family_id }))
-      : dataArray;
+    const dataWithFamily = user?.family_id 
+      ? dataArray.map(item => ({ ...item, family_id: user.family_id, user_id: user.id }))
+      : dataArray.map(item => ({ ...item, user_id: user?.id }));
     return base44.entities[entityName].bulkCreate(dataWithFamily);
   };
 
