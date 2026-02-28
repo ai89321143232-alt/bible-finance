@@ -448,6 +448,18 @@ export default function Dashboard() {
           />
         </motion.div>
 
+        {/* Premium AI Analytics */}
+        {user?.subscription_tier === 'premium' || user?.subscription_tier === 'family' ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="mb-8"
+          >
+            <PremiumAIAnalytics />
+          </motion.div>
+        ) : null}
+
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left Column - Chart & Transactions */}
