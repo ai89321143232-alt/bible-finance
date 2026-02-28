@@ -2,181 +2,77 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ChevronRight, Target } from 'lucide-react';
+import { ChevronRight, Plus } from 'lucide-react';
 
 const GOAL_COLORS = {
-  savings: '#10B981',
-  debt_payoff: '#EF4444',
-  investment: '#8B5CF6',
-  purchase: '#F59E0B',
-  emergency_fund: '#3B82F6',
-  other: '#64748B'
+  savings: '#34d399', debt_payoff: '#f87171', investment: '#a78bfa',
+  purchase: '#fbbf24', emergency_fund: '#60a5fa', other: '#6b7280'
 };
 
 export default function AllGoalsProgress({ goals, formatCurrency }) {
   if (goals.length === 0) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-      >
-        <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">
-                Цели
-              </CardTitle>
-              <Link to={createPageUrl('Goals')}>
-                <Button variant="ghost" size="sm" className="text-violet-600 hover:text-violet-700 hover:bg-violet-50">
-                  Создать <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="py-6 text-center">
-              <Target className="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
-              <p className="text-slate-400 text-sm">Нет активных целей</p>
-            </div>
-          </CardContent>
-        </Card>
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+        <div className="rounded-xl border border-white/8 bg-[#141820] p-6 text-center">
+          <p className="text-white/25 text-sm mb-3">Нет активных целей</p>
+          <Link to={createPageUrl('Goals')}>
+            <span className="inline-flex items-center gap-1 text-white/50 hover:text-white/80 text-xs border border-white/10 rounded-lg px-3 py-1.5 transition-colors">
+              <Plus className="w-3.5 h-3.5" /> Создать цель
+            </span>
+          </Link>
+        </div>
       </motion.div>
     );
   }
 
-  // Calculate overall progress
   const totalTarget = goals.reduce((sum, g) => sum + g.target_amount, 0);
   const totalCurrent = goals.reduce((sum, g) => sum + (g.current_amount || 0), 0);
   const overallProgress = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
 
-  // Create segments for the circular progress
-  const segments = goals.map(goal => {
-    const progress = goal.target_amount > 0 
-      ? Math.min((goal.current_amount / goal.target_amount) * 100, 100)
-      : 0;
-    return {
-      id: goal.id,
-      title: goal.title,
-      progress,
-      color: GOAL_COLORS[goal.type] || GOAL_COLORS.other,
-      current: goal.current_amount,
-      target: goal.target_amount
-    };
-  });
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.6 }}
-    >
-      <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">
-              Цели
-            </CardTitle>
-            <Link to={createPageUrl('Goals')}>
-              <Button variant="ghost" size="sm" className="text-violet-600 hover:text-violet-700 hover:bg-violet-50">
-                Все <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </Link>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center">
-            {/* Circular Progress */}
-            <div className="relative w-32 h-32 mb-4">
-              <svg className="w-32 h-32 transform -rotate-90">
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="56"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  fill="none"
-                  className="text-slate-200 dark:text-slate-700"
-                />
-                {segments.map((segment, index) => {
-                  const offset = segments.slice(0, index).reduce((sum, s) => sum + (s.progress / goals.length), 0);
-                  const segmentLength = (segment.progress / goals.length);
-                  const circumference = 2 * Math.PI * 56;
-                  const strokeDasharray = `${(segmentLength / 100) * circumference} ${circumference}`;
-                  const strokeDashoffset = -((offset / 100) * circumference);
-                  
-                  return (
-                    <circle
-                      key={segment.id}
-                      cx="64"
-                      cy="64"
-                      r="56"
-                      stroke={segment.color}
-                      strokeWidth="8"
-                      fill="none"
-                      strokeDasharray={strokeDasharray}
-                      strokeDashoffset={strokeDashoffset}
-                      strokeLinecap="round"
-                      className="transition-all duration-500"
-                    />
-                  );
-                })}
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {overallProgress.toFixed(0)}%
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {goals.length} {goals.length === 1 ? 'цель' : 'цели'}
-                  </p>
-                </div>
-              </div>
-            </div>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+      <div className="rounded-xl border border-white/8 bg-[#141820] overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+          <span className="text-white/40 text-xs uppercase tracking-widest font-medium">Цели</span>
+          <Link to={createPageUrl('Goals')}>
+            <span className="text-white/40 hover:text-white/70 text-xs flex items-center gap-1 transition-colors">
+              Все <ChevronRight className="w-3.5 h-3.5" />
+            </span>
+          </Link>
+        </div>
 
-            {/* Goals List */}
-            <div className="w-full space-y-2">
-              {segments.map((segment) => (
-                <div 
-                  key={segment.id}
-                  className="flex items-center justify-between text-sm"
-                >
-                  <div className="flex items-center gap-2 flex-1">
-                    <div 
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: segment.color }}
-                    />
-                    <span className="text-slate-700 dark:text-slate-300 truncate">
-                      {segment.title}
-                    </span>
+        <div className="p-4 space-y-3">
+          {goals.map((goal) => {
+            const progress = goal.target_amount > 0
+              ? Math.min((goal.current_amount / goal.target_amount) * 100, 100)
+              : 0;
+            const color = GOAL_COLORS[goal.type] || GOAL_COLORS.other;
+
+            return (
+              <div key={goal.id}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                    <span className="text-white/75 text-sm">{goal.title}</span>
                   </div>
-                  <span className="font-medium text-slate-900 dark:text-white ml-2">
-                    {segment.progress.toFixed(0)}%
-                  </span>
+                  <span className="text-white/40 text-xs">{progress.toFixed(0)}%</span>
                 </div>
-              ))}
-            </div>
+                <div className="h-1 rounded-full bg-white/8">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{ width: `${progress}%`, backgroundColor: color }}
+                  />
+                </div>
+              </div>
+            );
+          })}
 
-            {/* Total */}
-            <div className="w-full mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500 dark:text-slate-400">Накоплено</span>
-                <span className="font-semibold text-slate-900 dark:text-white">
-                  {formatCurrency(totalCurrent)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm mt-1">
-                <span className="text-slate-500 dark:text-slate-400">Цель</span>
-                <span className="font-semibold text-slate-900 dark:text-white">
-                  {formatCurrency(totalTarget)}
-                </span>
-              </div>
-            </div>
+          <div className="pt-2 border-t border-white/5 flex justify-between text-xs">
+            <span className="text-white/30">Накоплено: <span className="text-white/60">{formatCurrency(totalCurrent)}</span></span>
+            <span className="text-white/30">Цель: <span className="text-white/60">{formatCurrency(totalTarget)}</span></span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </motion.div>
   );
 }
