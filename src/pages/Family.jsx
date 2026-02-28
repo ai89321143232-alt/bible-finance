@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   Users, UserPlus, Copy, Check, Crown, Mail, Shield, Trash2, 
-  Link as LinkIcon, Settings, X
+  Link as LinkIcon, Settings, X, LogOut
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
