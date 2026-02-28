@@ -433,7 +433,7 @@ export default function Goals() {
                   key={goal.id}
                   goal={goal}
                   index={index}
-                  isEditable={viewMode === 'personal' || goal.created_by_id === user?.id}
+                  isEditable={viewMode === 'personal' || goal.created_by === user?.email}
                   onEdit={handleEdit}
                   onDelete={(id) => setDeleteId(id)}
                   onAddFunds={setShowAddFundsModal}

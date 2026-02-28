@@ -337,7 +337,7 @@ export default function Budgets() {
                 budget={budget}
                 index={index}
                 spent={getBudgetSpent(budget)}
-                isEditable={viewMode === 'personal' || budget.created_by_id === user?.id}
+                isEditable={viewMode === 'personal' || budget.created_by === user?.email}
                 onEdit={handleEdit}
                 onDelete={(id) => setDeleteId(id)}
                 formatCurrency={formatCurrency}
