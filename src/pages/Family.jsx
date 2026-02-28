@@ -102,36 +102,40 @@ export default function Family() {
 
   const joinFamilyMutation = useMutation({
     mutationFn: async (code) => {
-      const allFamilies = await base44.entities.Family.list();
-      const targetFamily = allFamilies.find(f => f.invite_code === code.toUpperCase());
+      // Need to search all families - try getting from public list
+      let targetFamily = null;
       
+      // First try to find among families visible to user
+      const visibleFamilies = await base44.entities.Family.list();
+      targetFamily = visibleFamilies.find(f => f.invite_code === code.trim().toUpperCase());
+
       if (!targetFamily) {
-        throw new Error('Семья с таким кодом не найдена');
+        throw new Error('Семья с таким кодом не найдена. Проверьте код и попробуйте снова.');
       }
 
-      const isAlreadyMember = targetFamily.members?.some(m => m.user_id === currentUser.id);
+      const isAlreadyMember = targetFamily.members?.some(m => m.user_id === currentUser?.id);
       if (isAlreadyMember) {
         throw new Error('Вы уже являетесь участником этой семьи');
       }
+
+      const colors = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#EC4899'];
+      const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
       const updatedMembers = [
         ...(targetFamily.members || []),
         {
           user_id: currentUser.id,
           name: currentUser.full_name || currentUser.email,
+          display_name: currentUser.full_name || currentUser.email,
           role: 'editor',
-          avatar_color: '#' + Math.floor(Math.random()*16777215).toString(16)
+          avatar_color: randomColor
         }
       ];
 
-      await base44.entities.Family.update(targetFamily.id, {
-        members: updatedMembers
-      });
+      await base44.entities.Family.update(targetFamily.id, { members: updatedMembers });
 
-      // Сохраняем family_id в профиле пользователя
-      await base44.auth.updateMe({
-        family_id: targetFamily.id
-      });
+      // Save family_id to user profile
+      await base44.auth.updateMe({ family_id: targetFamily.id });
 
       return targetFamily;
     },
