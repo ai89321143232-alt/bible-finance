@@ -194,10 +194,41 @@ export default function Family() {
     joinFamilyMutation.mutate(joinCode);
   };
 
+  const leaveFamilyMutation = useMutation({
+    mutationFn: async () => {
+      if (!myFamily || !currentUser) return;
+      if (myFamily.owner_id === currentUser.id) {
+        throw new Error('Владелец не может покинуть семью. Удалите семью или передайте права.');
+      }
+      const updatedMembers = (myFamily.members || []).filter(m => m.user_id !== currentUser.id);
+      await base44.entities.Family.update(myFamily.id, { members: updatedMembers });
+      await base44.auth.updateMe({ family_id: null });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['families'] });
+      toast.success('Вы вышли из семьи');
+    },
+    onError: (err) => toast.error(err.message || 'Ошибка выхода')
+  });
+
+  const removeMemberMutation = useMutation({
+    mutationFn: async (memberId) => {
+      if (!myFamily) return;
+      const updatedMembers = (myFamily.members || []).filter(m => m.user_id !== memberId);
+      await base44.entities.Family.update(myFamily.id, { members: updatedMembers });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['families'] });
+      toast.success('Участник удалён');
+    }
+  });
+
   const myFamily = families.find(f => 
     f.owner_id === currentUser?.id || 
     f.members?.some(m => m.user_id === currentUser?.id)
   );
+  
+  const isOwner = myFamily?.owner_id === currentUser?.id;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
