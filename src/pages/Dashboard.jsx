@@ -309,54 +309,36 @@ export default function Dashboard() {
         {/* Family Members Balance Breakdown */}
         {balanceMode === 'family' && family && memberBalances.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="mb-6"
+            className="mb-4"
           >
-            <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-lg">Баланс по членам семьи</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {memberBalances.map((member, idx) => (
-                    <motion.div
-                      key={member.user_id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.05 * idx }}
-                      className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50"
+            <div className="rounded-xl border border-white/8 bg-[#141820] divide-y divide-white/5">
+              <div className="px-4 py-3 text-white/40 text-xs uppercase tracking-widest font-medium">
+                Баланс по членам семьи
+              </div>
+              {memberBalances.map((member) => (
+                <div key={member.user_id} className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                      style={{ backgroundColor: member.avatar_color || '#555' }}
                     >
-                      <div className="flex items-center gap-3">
-                        <div 
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
-                          style={{ backgroundColor: member.avatar_color || '#8B5CF6' }}
-                        >
-                          {member.display_name?.[0] || member.name?.[0] || '?'}
-                        </div>
-                        <div>
-                          <p className="font-medium text-slate-900 dark:text-white">
-                            {member.display_name || member.name}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {member.accountsCount} {member.accountsCount === 1 ? 'счёт' : 'счетов'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-slate-900 dark:text-white">
-                          {formatCurrency(member.balance)}
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {totalBalance > 0 ? Math.round((member.balance / totalBalance) * 100) : 0}%
-                        </p>
-                      </div>
-                    </motion.div>
-                  ))}
+                      {member.display_name?.[0] || member.name?.[0] || '?'}
+                    </div>
+                    <div>
+                      <p className="text-white/80 text-sm font-medium">{member.display_name || member.name}</p>
+                      <p className="text-white/30 text-xs">{member.accountsCount} счетов</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-white font-semibold text-sm">{formatCurrency(member.balance)}</p>
+                    <p className="text-white/30 text-xs">{totalBalance > 0 ? Math.round((member.balance / totalBalance) * 100) : 0}%</p>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
+              ))}
+            </div>
           </motion.div>
         )}
 
