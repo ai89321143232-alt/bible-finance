@@ -1,12 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 import NavigationMenu from '@/components/Navigation/NavigationMenu';
+import { base44 } from '@/api/base44Client';
 
 export default function Layout({ children, currentPageName }) {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [themePreference, setThemePreference] = useState(null);
+
+  useEffect(() => {
+    base44.auth.me().then(user => {
+      setThemePreference(user?.theme_preference || null);
+    }).catch(() => {});
+  }, [currentPageName]);
 
   return (
     <div className="min-h-screen bg-[#0f1117] text-white">
