@@ -1,172 +1,112 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { PieChart as PieIcon, BarChart2 } from 'lucide-react';
 
-const COLORS = [
-  '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', 
-  '#6366F1', '#EF4444', '#14B8A6', '#F97316', '#8B5CF6'
-];
+const COLORS = ['#a78bfa', '#60a5fa', '#34d399', '#fbbf24', '#f87171', '#e879f9', '#38bdf8', '#fb923c'];
 
 const CATEGORY_ICONS = {
-  'Еда': '🍔',
-  'Транспорт': '🚗',
-  'Жильё': '🏠',
-  'Развлечения': '🎮',
-  'Здоровье': '💊',
-  'Одежда': '👕',
-  'Подписки': '📱',
-  'Образование': '📚',
-  'Другое': '📦'
+  'Еда': '🍔', 'Транспорт': '🚗', 'Жильё': '🏠', 'Развлечения': '🎮',
+  'Здоровье': '💊', 'Одежда': '👕', 'Подписки': '📱', 'Образование': '📚', 'Другое': '📦'
 };
 
 export default function SpendingChart({ transactions, formatCurrency }) {
   const [chartType, setChartType] = useState('pie');
 
-  // Group expenses by category
   const expensesByCategory = transactions
     .filter(t => t.type === 'expense')
     .reduce((acc, t) => {
-      const category = t.category || 'Другое';
-      acc[category] = (acc[category] || 0) + t.amount;
+      const cat = t.category || 'Другое';
+      acc[cat] = (acc[cat] || 0) + t.amount;
       return acc;
     }, {});
 
   const chartData = Object.entries(expensesByCategory)
-    .map(([name, value], index) => ({
-      name,
-      value,
-      color: COLORS[index % COLORS.length],
-      icon: CATEGORY_ICONS[name] || '📦'
-    }))
+    .map(([name, value], i) => ({ name, value, color: COLORS[i % COLORS.length], icon: CATEGORY_ICONS[name] || '📦' }))
     .sort((a, b) => b.value - a.value);
 
-  const total = chartData.reduce((sum, item) => sum + item.value, 0);
+  const total = chartData.reduce((sum, i) => sum + i.value, 0);
 
   const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-white dark:bg-slate-800 shadow-xl rounded-xl p-3 border border-slate-200 dark:border-slate-700">
-          <p className="font-medium text-slate-900 dark:text-white flex items-center gap-2">
-            <span>{data.icon}</span>
-            {data.name}
-          </p>
-          <p className="text-slate-600 dark:text-slate-300 text-sm">
-            {formatCurrency(data.value)}
-          </p>
-          <p className="text-slate-400 text-xs">
-            {((data.value / total) * 100).toFixed(1)}% от расходов
-          </p>
-        </div>
-      );
-    }
-    return null;
+    if (!active || !payload?.length) return null;
+    const d = payload[0].payload;
+    return (
+      <div className="bg-[#1a1f2e] border border-white/10 rounded-lg p-3 text-sm">
+        <p className="text-white/80 font-medium">{d.icon} {d.name}</p>
+        <p className="text-white/50 text-xs">{formatCurrency(d.value)} · {((d.value / total) * 100).toFixed(1)}%</p>
+      </div>
+    );
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
-    >
-      <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">
-              Расходы по категориям
-            </CardTitle>
-            <Tabs value={chartType} onValueChange={setChartType}>
-              <TabsList className="bg-slate-100 dark:bg-slate-700 h-9">
-                <TabsTrigger value="pie" className="h-7 px-3">
-                  <PieIcon className="w-4 h-4" />
-                </TabsTrigger>
-                <TabsTrigger value="bar" className="h-7 px-3">
-                  <BarChart2 className="w-4 h-4" />
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+      <div className="rounded-xl border border-white/8 bg-[#141820] overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+          <span className="text-white/40 text-xs uppercase tracking-widest font-medium">Расходы по категориям</span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setChartType('pie')}
+              className={`p-1.5 rounded-md transition-colors ${chartType === 'pie' ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}`}
+            >
+              <PieIcon className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setChartType('bar')}
+              className={`p-1.5 rounded-md transition-colors ${chartType === 'bar' ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}`}
+            >
+              <BarChart2 className="w-3.5 h-3.5" />
+            </button>
           </div>
-        </CardHeader>
-        <CardContent>
-          {chartData.length > 0 ? (
-            <div className="flex flex-col lg:flex-row items-center gap-6">
-              {/* Chart */}
-              <div className="w-full lg:w-1/2 h-64">
+        </div>
+
+        {chartData.length > 0 ? (
+          <div className="p-4">
+            <div className="flex flex-col lg:flex-row items-center gap-4">
+              <div className="w-full lg:w-1/2 h-52">
                 <ResponsiveContainer width="100%" height="100%">
                   {chartType === 'pie' ? (
                     <PieChart>
-                      <Pie
-                        data={chartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {chartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
+                      <Pie data={chartData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={2} dataKey="value">
+                        {chartData.map((_, i) => <Cell key={i} fill={chartData[i].color} />)}
                       </Pie>
                       <Tooltip content={<CustomTooltip />} />
                     </PieChart>
                   ) : (
                     <BarChart data={chartData} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255,255,255,0.05)" />
                       <XAxis type="number" hide />
-                      <YAxis 
-                        type="category" 
-                        dataKey="name" 
-                        width={100}
-                        tick={{ fill: '#64748b', fontSize: 12 }}
-                      />
+                      <YAxis type="category" dataKey="name" width={90} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="value" radius={[0, 8, 8, 0]}>
-                        {chartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
+                      <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                        {chartData.map((_, i) => <Cell key={i} fill={chartData[i].color} />)}
                       </Bar>
                     </BarChart>
                   )}
                 </ResponsiveContainer>
               </div>
 
-              {/* Legend */}
               <div className="w-full lg:w-1/2 grid grid-cols-2 gap-2">
-                {chartData.slice(0, 6).map((item, index) => (
-                  <div 
-                    key={item.name}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                  >
-                    <div 
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: item.color }}
-                    />
+                {chartData.slice(0, 6).map((item) => (
+                  <div key={item.name} className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/3 transition-colors">
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">
-                        {item.icon} {item.name}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {formatCurrency(item.value)}
-                      </p>
+                      <p className="text-white/65 text-xs truncate">{item.name}</p>
+                      <p className="text-white/35 text-xs">{formatCurrency(item.value)}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-          ) : (
-            <div className="h-64 flex items-center justify-center text-slate-400">
-              <div className="text-center">
-                <PieIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>Нет данных о расходах</p>
-              </div>
+          </div>
+        ) : (
+          <div className="h-52 flex items-center justify-center text-white/20">
+            <div className="text-center">
+              <PieIcon className="w-10 h-10 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">Нет данных о расходах</p>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }
