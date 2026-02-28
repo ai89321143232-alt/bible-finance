@@ -366,50 +366,68 @@ export default function Dashboard() {
         {/* Quick Stats */}
         {visibleBlocks.quickStats && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            <div
-              className="rounded-xl border border-white/8 bg-[#141820] p-4 cursor-pointer hover:bg-white/5 transition-colors"
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
+              className="rounded-2xl border border-emerald-500/15 bg-emerald-500/5 p-4 cursor-pointer hover:bg-emerald-500/10 transition-all"
               onClick={() => { setQuickAddType('income'); setShowQuickAdd(true); }}
             >
-              <div className="flex items-center gap-2 mb-2">
-                <ArrowUpRight className="w-4 h-4 text-emerald-400" />
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+                  <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" />
+                </div>
                 <span className="text-white/40 text-xs">Доходы</span>
               </div>
-              <p className="text-white font-semibold text-lg">{formatCurrency(monthIncome)}</p>
-            </div>
+              <p className="text-emerald-400 font-bold text-lg">{formatCurrency(monthIncome)}</p>
+            </motion.div>
 
-            <div
-              className="rounded-xl border border-white/8 bg-[#141820] p-4 cursor-pointer hover:bg-white/5 transition-colors"
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}
+              className="rounded-2xl border border-rose-500/15 bg-rose-500/5 p-4 cursor-pointer hover:bg-rose-500/10 transition-all"
               onClick={() => { setQuickAddType('expense'); setShowQuickAdd(true); }}
             >
-              <div className="flex items-center gap-2 mb-2">
-                <ArrowDownRight className="w-4 h-4 text-rose-400" />
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center">
+                  <ArrowDownRight className="w-3.5 h-3.5 text-rose-400" />
+                </div>
                 <span className="text-white/40 text-xs">Расходы</span>
               </div>
-              <p className="text-white font-semibold text-lg">{formatCurrency(monthExpenses)}</p>
-            </div>
+              <p className="text-rose-400 font-bold text-lg">{formatCurrency(monthExpenses)}</p>
+            </motion.div>
 
-            <Link to={createPageUrl('Investments')}>
-              <div className="rounded-xl border border-white/8 bg-[#141820] p-4 hover:bg-white/5 transition-colors h-full">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="w-4 h-4 text-white/50" />
-                  <span className="text-white/40 text-xs">Инвестиции</span>
-                </div>
-                <p className="text-white font-semibold text-lg">{formatCurrency(investmentValue)}</p>
-              </div>
-            </Link>
-
-            <Link to={createPageUrl('AIAssistant')}>
-              <div className="rounded-xl border border-white/8 bg-[#141820] p-4 hover:bg-white/5 transition-colors h-full flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="w-4 h-4 text-white/50" />
-                    <span className="text-white/40 text-xs">AI Ассистент</span>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+            >
+              <Link to={createPageUrl('Investments')}>
+                <div className="rounded-2xl border border-cyan-500/15 bg-cyan-500/5 p-4 hover:bg-cyan-500/10 transition-all h-full">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-7 h-7 rounded-lg bg-cyan-500/15 flex items-center justify-center">
+                      <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
+                    </div>
+                    <span className="text-white/40 text-xs">Инвестиции</span>
                   </div>
-                  <p className="text-white font-semibold">Спросить</p>
+                  <p className="text-cyan-400 font-bold text-lg">{formatCurrency(investmentValue)}</p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-white/25" />
-              </div>
-            </Link>
+              </Link>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24 }}
+            >
+              <Link to={createPageUrl('AIAssistant')}>
+                <div className="rounded-2xl border border-violet-500/15 bg-violet-500/5 p-4 hover:bg-violet-500/10 transition-all h-full flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-7 h-7 rounded-lg bg-violet-500/15 flex items-center justify-center">
+                        <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+                      </div>
+                      <span className="text-white/40 text-xs">AI</span>
+                    </div>
+                    <p className="text-violet-300 font-bold">Спросить</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-white/20" />
+                </div>
+              </Link>
+            </motion.div>
           </div>
         )}
 
