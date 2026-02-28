@@ -91,12 +91,25 @@ export default function Family() {
 
   const inviteMemberMutation = useMutation({
     mutationFn: async ({ email, role }) => {
+      // Invite user to the platform
       await base44.users.inviteUser(email, role === 'admin' ? 'admin' : 'user');
+      // Also send family invite link via email using SendEmail integration
+      if (myFamily?.invite_code) {
+        const inviteUrl = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '/Family')}?invite=${myFamily.invite_code}`;
+        await base44.integrations.Core.SendEmail({
+          to: email,
+          subject: `Приглашение в семью "${myFamily.name}"`,
+          body: `Вас пригласили присоединиться к семье "${myFamily.name}" в FinanceApp.\n\nДля вступления:\n1. Зарегистрируйтесь на сайте (если ещё не зарегистрированы)\n2. Перейдите по ссылке: ${inviteUrl}\n\nИли введите код приглашения вручную: ${myFamily.invite_code}\n\nПосле входа перейдите в раздел "Семья" и введите код.`
+        });
+      }
     },
     onSuccess: () => {
       setShowInviteModal(false);
       setInviteEmail('');
-      toast.success('Приглашение отправлено!');
+      toast.success('Приглашение отправлено на email!');
+    },
+    onError: (err) => {
+      toast.error(err.message || 'Ошибка при отправке приглашения');
     }
   });
 
