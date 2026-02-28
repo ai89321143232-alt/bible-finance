@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import CoinCounter from './CoinCounter';
 import CoinAnimation from './CoinAnimation';
 import QuickAddTransaction from '@/components/transactions/QuickAddTransaction';
+import DailyQuests from './DailyQuests';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const DAILY_LOGIN_COINS = 20;
