@@ -379,6 +379,21 @@ export default function Family() {
               </Card>
             </motion.div>
 
+            {/* Leave Family Button (non-owners) */}
+            {!isOwner && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => leaveFamilyMutation.mutate()}
+                  disabled={leaveFamilyMutation.isPending}
+                  className="w-full rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Покинуть семью
+                </Button>
+              </motion.div>
+            )}
+
             {/* Info Cards */}
             <div className="grid sm:grid-cols-2 gap-4 mt-6">
               <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
