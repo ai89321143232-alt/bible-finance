@@ -143,101 +143,67 @@ ${topExpenseCategory ? `- Самая большая категория расх�
 
   if (error) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
-        <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-          <CardContent className="p-6 text-center text-red-600">
-            {error}
-          </CardContent>
-        </Card>
-      </motion.div>
+      <div className="rounded-xl border border-white/8 bg-[#141820] p-4 text-white/40 text-sm text-center">
+        {error}
+      </div>
     );
   }
 
+  const insightBlocks = [
+    insights?.forecast && { icon: <TrendingUp className="w-3.5 h-3.5" />, label: 'Прогноз', text: insights.forecast },
+    insights?.recommendation && { icon: <Sparkles className="w-3.5 h-3.5" />, label: 'Рекомендация', text: insights.recommendation },
+    insights?.savings && { icon: <AlertCircle className="w-3.5 h-3.5" />, label: 'Сбережения', text: insights.savings },
+  ].filter(Boolean);
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
-      className="space-y-4"
+      transition={{ delay: 0.2 }}
+      className="space-y-3"
     >
-      {/* Forecast Card */}
-      {insights?.forecast && (
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-blue-600" />
-              Прогноз
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-              {insights.forecast}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Recommendation Card */}
-      {insights?.recommendation && (
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-violet-600" />
-              Рекомендация
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-              {insights.recommendation}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Savings Card */}
-      {insights?.savings && (
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-emerald-600" />
-              Возможности сбережений
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-              {insights.savings}
-            </p>
+      {insightBlocks.length > 0 && (
+        <div className="rounded-xl border border-white/8 bg-[#141820] divide-y divide-white/5">
+          <div className="px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-white/50 text-xs uppercase tracking-widest font-medium">
+              <Sparkles className="w-3.5 h-3.5" />
+              AI Инсайты
+            </div>
             <Button
               onClick={() => generateInsights()}
               disabled={loading}
               variant="ghost"
               size="sm"
-              className="text-xs h-7"
+              className="text-white/30 hover:text-white/70 hover:bg-white/5 h-7 px-2 text-xs"
             >
               <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
               {loading ? 'Загрузка...' : 'Обновить'}
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+          {insightBlocks.map((block, i) => (
+            <div key={i} className="px-4 py-3.5">
+              <div className="flex items-center gap-1.5 text-white/40 text-xs mb-1.5">
+                {block.icon}
+                <span className="uppercase tracking-wide font-medium">{block.label}</span>
+              </div>
+              <p className="text-white/75 text-sm leading-relaxed">{block.text}</p>
+            </div>
+          ))}
+        </div>
       )}
 
       {!insights && !loading && (
-        <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-          <CardContent className="p-6 text-center">
-            <Button
-              onClick={() => generateInsights()}
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-violet-600 to-indigo-600"
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              {loading ? 'Генерация insights...' : 'Получить финансовые рекомендации'}
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="rounded-xl border border-white/8 bg-[#141820] p-4 text-center">
+          <Button
+            onClick={() => generateInsights()}
+            disabled={loading}
+            variant="ghost"
+            className="text-white/50 hover:text-white hover:bg-white/5 text-sm"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            {loading ? 'Генерация...' : 'Получить AI-рекомендации'}
+          </Button>
+        </div>
       )}
     </motion.div>
   );
