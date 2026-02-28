@@ -41,6 +41,7 @@ export default function Dashboard() {
     end: endOfMonth(new Date())
   });
   const [user, setUser] = useState(null);
+  const [themePreference, setThemePreference] = useState(null);
   const [balanceMode, setBalanceMode] = useState('personal'); // 'personal' or 'family'
   const [visibleBlocks, setVisibleBlocks] = useState({
     balance: true,
