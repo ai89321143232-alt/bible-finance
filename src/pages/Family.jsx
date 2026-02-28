@@ -334,7 +334,8 @@ export default function Family() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {myFamily.members?.map((member, index) => {
-                    const isOwner = member.user_id === myFamily.owner_id;
+                    const isMemberOwner = member.user_id === myFamily.owner_id;
+                    const isMe = member.user_id === currentUser?.id;
                     
                     return (
                       <div 
@@ -342,24 +343,34 @@ export default function Family() {
                         className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                       >
                         <div 
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0"
                           style={{ backgroundColor: member.avatar_color || '#8B5CF6' }}
                         >
-                          {member.name?.[0] || '?'}
+                          {(member.display_name || member.name)?.[0]?.toUpperCase() || '?'}
                         </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-slate-900 dark:text-white">
-                            {member.name}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-slate-900 dark:text-white truncate">
+                            {member.display_name || member.name} {isMe && <span className="text-violet-500 text-xs">(вы)</span>}
                           </p>
                           <p className="text-sm text-slate-500 dark:text-slate-400">
-                            {member.role === 'admin' ? 'Администратор' : member.role === 'editor' ? 'Редактор' : 'Просмотр'}
+                            {isMemberOwner ? 'Владелец' : member.role === 'admin' ? 'Администратор' : member.role === 'editor' ? 'Редактор' : 'Просмотр'}
                           </p>
                         </div>
-                        {isOwner && (
-                          <Badge variant="secondary" className="bg-amber-100 text-amber-700">
+                        {isMemberOwner && (
+                          <Badge variant="secondary" className="bg-amber-100 text-amber-700 flex-shrink-0">
                             <Crown className="w-3 h-3 mr-1" />
                             Владелец
                           </Badge>
+                        )}
+                        {isOwner && !isMemberOwner && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeMemberMutation.mutate(member.user_id)}
+                            className="text-rose-400 hover:text-rose-600 hover:bg-rose-50 flex-shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         )}
                       </div>
                     );
