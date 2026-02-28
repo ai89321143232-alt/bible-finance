@@ -14,19 +14,23 @@ const MENU_ITEMS = [
   { name: 'Categories',        label: 'Категории',        icon: BarChart2 },
   { name: 'Analytics',         label: 'Аналитика',        icon: TrendingUp },
   { name: 'Goals',             label: 'Цели',             icon: Target },
-  { name: 'Investments',       label: 'Инвестиции',       icon: TrendingUp },
+  { name: 'Investments',       label: 'Инвестиции',       icon: TrendingUp,  hideInChildMode: true },
   { name: 'FinancialPlanning', label: 'Финплан',          icon: Lightbulb },
   { name: 'Tasks',             label: 'Задачи',           icon: ListTodo },
   { name: 'Notes',             label: 'Заметки',          icon: FileText },
   { name: 'FamilyFinances',    label: 'Финансы семьи',    icon: Users },
-  { name: 'ChildExpenses',     label: 'Расходы на детей', icon: Baby },
+  { name: 'ChildExpenses',     label: 'Расходы на детей', icon: Baby,        hideInChildMode: true },
   { name: 'Settings',          label: 'Настройки',        icon: Settings },
 ];
 
-export default function NavigationMenu({ currentPageName, onNavigate }) {
+export default function NavigationMenu({ currentPageName, onNavigate, isChildMode }) {
+  const visibleItems = isChildMode
+    ? MENU_ITEMS.filter(item => !item.hideInChildMode)
+    : MENU_ITEMS;
+
   return (
     <nav className="p-3 space-y-0.5">
-      {MENU_ITEMS.map((item) => {
+      {visibleItems.map((item) => {
         const Icon = item.icon;
         const isActive = currentPageName === item.name;
 
