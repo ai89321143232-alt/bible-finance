@@ -471,7 +471,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                 <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Сумма</Label>
                 <div className="relative">
                   <Input type="number" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)}
-                    className="text-3xl font-bold h-16 pl-4 pr-12 rounded-xl border-2 focus:border-violet-500" />
+                    className="text-3xl font-bold h-16 pl-4 pr-12 rounded-xl border-2 focus:border-violet-500 text-slate-900 dark:text-white bg-white dark:bg-slate-800" />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">₽</span>
                 </div>
               </div>
