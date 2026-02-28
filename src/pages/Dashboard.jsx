@@ -76,6 +76,7 @@ export default function Dashboard() {
   const loadUser = async () => {
     const userData = await base44.auth.me();
     setUser(userData);
+    setThemePreference(userData.theme_preference || null);
     if (userData.data?.visible_dashboard_blocks) {
       setVisibleBlocks(userData.data.visible_dashboard_blocks);
     }
