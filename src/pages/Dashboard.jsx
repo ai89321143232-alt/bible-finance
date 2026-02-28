@@ -28,6 +28,8 @@ import AllGoalsProgress from '@/components/dashboard/AllGoalsProgress';
 import BudgetOverview from '@/components/dashboard/BudgetOverview';
 import AIInsights from '@/components/dashboard/AIInsights';
 import BibleVerse from '@/components/dashboard/BibleVerse';
+import ThemeSelector from '@/components/onboarding/ThemeSelector';
+import ChildDashboard from '@/components/child/ChildDashboard';
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
