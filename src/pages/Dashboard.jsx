@@ -229,23 +229,23 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="min-h-screen bg-[#0f1117]">
       <BibleVerse />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 sm:pb-6">
         {/* Header */}
         <motion.div 
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-8"
+          className="flex items-center justify-between mb-6 pt-2 lg:pt-0"
         >
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-              Привет! 👋
+            <h1 className="text-xl sm:text-2xl font-semibold text-white">
+              Главная
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-white/35 text-sm mt-0.5">
               {format(new Date(), "EEEE, d MMMM", { locale: ru })}
               {family && (
-                <span className="ml-2 text-violet-600">• {family.name}</span>
+                <span className="ml-2 text-white/50">· {family.name}</span>
               )}
             </p>
           </div>
@@ -254,9 +254,9 @@ export default function Dashboard() {
               setQuickAddType('expense');
               setShowQuickAdd(true);
             }}
-            className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl h-11 px-5"
+            className="bg-white text-black hover:bg-white/90 rounded-lg h-9 px-4 text-sm font-semibold"
           >
-            <Plus className="w-5 h-5 mr-2" />
+            <Plus className="w-4 h-4 mr-1.5" />
             <span className="hidden sm:inline">Добавить</span>
           </Button>
         </motion.div>
