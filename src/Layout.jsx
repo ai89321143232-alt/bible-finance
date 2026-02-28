@@ -53,6 +53,7 @@ export default function Layout({ children, currentPageName }) {
           currentPageName={currentPageName}
           onNavigate={() => {}}
           isMobile={false}
+          isChildMode={themePreference === 'child'}
         />
 
         {/* Footer */}
