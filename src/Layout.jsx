@@ -120,6 +120,7 @@ export default function Layout({ children, currentPageName }) {
                 currentPageName={currentPageName}
                 onNavigate={() => setShowMobileMenu(false)}
                 isMobile={true}
+                isChildMode={themePreference === 'child'}
               />
 
               <div className="p-4 mt-auto border-t border-white/5">
