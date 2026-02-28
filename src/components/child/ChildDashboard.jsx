@@ -206,23 +206,35 @@ export default function ChildDashboard({ user, accounts, onTransactionAdded }) {
           )}
         </div>
 
-        {/* Tips for kids */}
-        <div className="bg-gradient-to-br from-violet-100 to-pink-100 rounded-3xl p-4">
-          <h3 className="font-black text-violet-800 mb-3">💡 Как заработать монетки?</h3>
-          <div className="space-y-2">
-            {[
-              { icon: '🌅', text: 'Заходи каждый день — +20 монеток', done: gameProfile?.last_daily_login === format(new Date(), 'yyyy-MM-dd') },
-              { icon: '📝', text: 'Записывай траты — +10 монеток (до 5 раз в день)', done: false },
-              { icon: '🔥', text: '7 дней подряд — бонус x2!', done: (gameProfile?.streak_days || 0) >= 7 }
-            ].map((tip, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <span className="text-xl">{tip.icon}</span>
-                <span className={`text-sm ${tip.done ? 'line-through text-slate-400' : 'text-violet-700'}`}>{tip.text}</span>
-                {tip.done && <span className="text-green-500 text-xs font-bold">✓</span>}
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* Penalty warning */}
+        {gameProfile && gameProfile.last_daily_login && (
+          (() => {
+            const lastLogin = new Date(gameProfile.last_daily_login);
+            lastLogin.setHours(0,0,0,0);
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const diff = Math.floor((today - lastLogin) / (1000*60*60*24));
+            if (diff > 1) {
+              return (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-gradient-to-r from-red-400 to-rose-500 rounded-2xl p-4 flex items-center gap-3 shadow-md"
+                >
+                  <div className="text-4xl">😬</div>
+                  <div>
+                    <p className="font-black text-white text-lg">Штраф -{(diff-1)*10} монеток!</p>
+                    <p className="text-white/80 text-xs">Пропустил {diff-1} {diff-1 === 1 ? 'день' : 'дня'}. Не пропускай!</p>
+                  </div>
+                </motion.div>
+              );
+            }
+            return null;
+          })()
+        )}
+
+        {/* Daily Quests */}
+        <DailyQuests gameProfile={gameProfile} />
       </div>
 
       {/* Coin animation overlay */}
