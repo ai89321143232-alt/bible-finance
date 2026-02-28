@@ -264,31 +264,31 @@ export default function Dashboard() {
         {/* Balance Mode Selector */}
         {family && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
             className="mb-4"
           >
-            <div className="flex gap-2 p-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+            <div className="flex gap-1 p-1 bg-white/5 border border-white/8 rounded-lg w-fit">
              <button
                onClick={() => setBalanceMode('personal')}
-               className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-all pointer-events-auto cursor-pointer ${
+               className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
                  balanceMode === 'personal'
-                   ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
-                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                   ? 'bg-white text-black'
+                   : 'text-white/40 hover:text-white/70'
                }`}
              >
-               Личный баланс
+               Личный
              </button>
              <button
                onClick={() => setBalanceMode('family')}
-               className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-all pointer-events-auto cursor-pointer ${
+               className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
                  balanceMode === 'family'
-                   ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
-                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                   ? 'bg-white text-black'
+                   : 'text-white/40 hover:text-white/70'
                }`}
              >
-               Семейный баланс
+               Семейный
              </button>
             </div>
           </motion.div>
