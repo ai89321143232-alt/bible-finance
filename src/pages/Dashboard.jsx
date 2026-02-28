@@ -30,6 +30,7 @@ import AIInsights from '@/components/dashboard/AIInsights';
 import BibleVerse from '@/components/dashboard/BibleVerse';
 import ThemeSelector from '@/components/onboarding/ThemeSelector';
 import ChildDashboard from '@/components/child/ChildDashboard';
+import PremiumAIAnalytics from '@/components/dashboard/PremiumAIAnalytics';
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
