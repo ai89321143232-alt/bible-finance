@@ -344,32 +344,23 @@ export default function Dashboard() {
 
         {/* Period Selector */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-6"
+          className="mb-5 flex items-center gap-3"
         >
-          <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-            <CardContent className="p-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-violet-600" />
-                  <span className="font-medium text-slate-900 dark:text-white">Период статистики</span>
-                </div>
-                <Select value={periodType} onValueChange={updatePeriod}>
-                  <SelectTrigger className="w-full sm:w-40 rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="week">Неделя</SelectItem>
-                    <SelectItem value="month">Месяц</SelectItem>
-                    <SelectItem value="year">Год</SelectItem>
-                    <SelectItem value="all">Всё время</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
+          <Calendar className="w-4 h-4 text-white/30" />
+          <Select value={periodType} onValueChange={updatePeriod}>
+            <SelectTrigger className="w-36 h-8 text-sm rounded-lg border-white/8 bg-white/5 text-white/70">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="week">Неделя</SelectItem>
+              <SelectItem value="month">Месяц</SelectItem>
+              <SelectItem value="year">Год</SelectItem>
+              <SelectItem value="all">Всё время</SelectItem>
+            </SelectContent>
+          </Select>
         </motion.div>
 
         {/* Quick Stats */}
