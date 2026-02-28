@@ -111,8 +111,9 @@ export default function Goals() {
   const { data: myGoals = [] } = useQuery({
     queryKey: ['my-goals', user?.id],
     queryFn: async () => {
+      if (!user) return [];
       const goals = await base44.entities.Goal.list();
-      return goals.filter(g => g.created_by_id === user?.id);
+      return goals.filter(g => g.created_by === user?.email);
     },
     enabled: !!user
   });
@@ -120,9 +121,11 @@ export default function Goals() {
   const { data: sharedGoals = [] } = useQuery({
     queryKey: ['shared-goals', user?.id],
     queryFn: async () => {
+      if (!user) return [];
       const goals = await base44.entities.Goal.list();
       return goals.filter(g => 
-        g.share_with?.includes(user?.id) && g.created_by_id !== user?.id
+        (g.share_with?.includes(user?.id) || (g.is_family_goal && g.family_id && g.family_id === user?.family_id))
+        && g.created_by !== user?.email
       );
     },
     enabled: !!user

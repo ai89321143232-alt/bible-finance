@@ -96,7 +96,7 @@ export default function Budgets() {
     queryFn: async () => {
       if (!user) return [];
       const budgets = await base44.entities.Budget.list();
-      return budgets.filter(b => b.created_by_id === user?.id);
+      return budgets.filter(b => b.created_by === user?.email);
     },
     enabled: !!user
   });
@@ -107,7 +107,8 @@ export default function Budgets() {
       if (!user) return [];
       const budgets = await base44.entities.Budget.list();
       return budgets.filter(b => 
-        b.share_with?.includes(user?.id) && b.created_by_id !== user?.id
+        (b.share_with?.includes(user?.id) || (b.is_family_budget && b.family_id && b.family_id === user?.family_id))
+        && b.created_by !== user?.email
       );
     },
     enabled: !!user
