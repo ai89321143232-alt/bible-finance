@@ -208,6 +208,26 @@ export default function Dashboard() {
     }).format(amount);
   };
 
+  // Show theme selector for new users
+  if (user && themePreference === null) {
+    return (
+      <ThemeSelector
+        onComplete={(theme) => setThemePreference(theme)}
+      />
+    );
+  }
+
+  // Show child dashboard
+  if (themePreference === 'child') {
+    return (
+      <ChildDashboard
+        user={user}
+        accounts={allAccounts}
+        onTransactionAdded={() => queryClient.invalidateQueries({ queryKey: ['transactions'] })}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <BibleVerse />
