@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
-import { Sparkles, TrendingUp, AlertCircle, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Sparkles, TrendingUp, AlertCircle, RefreshCw, Target } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function AIInsights({ transactions, accounts, budgets, investments, formatCurrency }) {
@@ -15,167 +15,133 @@ export default function AIInsights({ transactions, accounts, budgets, investment
     }
   }, []);
 
-  const getCacheKey = () => {
-    // Cache key includes budget overages so it refreshes when budgets change
-    const overBudgets = (budgets || []).filter(b => b.spent_amount > b.limit_amount).length;
-    return `ai_insights_${new Date().toDateString()}_over${overBudgets}`;
-  };
-
   const getFromCache = () => {
     try {
-      const key = getCacheKey();
-      const cached = localStorage.getItem(key);
+      const cached = localStorage.getItem('ai_insights_cache');
       if (!cached) return null;
-      return JSON.parse(cached);
-    } catch {
+      const { data, date } = JSON.parse(cached);
+      const today = new Date().toDateString();
+      if (today === new Date(date).toDateString()) return data;
       return null;
-    }
+    } catch { return null; }
   };
 
   const saveToCache = (data) => {
     try {
-      // Clear old cache keys
-      Object.keys(localStorage).filter(k => k.startsWith('ai_insights_')).forEach(k => localStorage.removeItem(k));
-      localStorage.setItem(getCacheKey(), JSON.stringify(data));
+      localStorage.setItem('ai_insights_cache', JSON.stringify({ data, date: new Date().toISOString() }));
     } catch {}
   };
 
   const loadInsights = async () => {
     const cached = getFromCache();
-    if (cached) {
-      setInsights(cached);
-      return;
-    }
+    if (cached) { setInsights(cached); return; }
     await generateInsights();
   };
 
   const generateInsights = async () => {
     setLoading(true);
     setError(null);
-
     try {
       const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
       const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
       const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
-      const totalInvested = investments.reduce((sum, inv) => sum + (inv.quantity * inv.purchase_price), 0);
 
+      // Analyze budget deviations
+      const budgetDeviations = budgets
+        .filter(b => b.limit_amount > 0)
+        .map(b => {
+          const progress = (b.spent_amount / b.limit_amount) * 100;
+          return { name: b.name, progress: Math.round(progress), spent: b.spent_amount, limit: b.limit_amount, isOver: progress > 100 };
+        })
+        .filter(b => b.progress >= 70);
+
+      // Analyze expense categories
       const expensesByCategory = {};
       transactions.filter(t => t.type === 'expense').forEach(t => {
         expensesByCategory[t.category] = (expensesByCategory[t.category] || 0) + t.amount;
       });
+      const topCategories = Object.entries(expensesByCategory).sort(([,a],[,b]) => b - a).slice(0, 3);
 
-      const topExpenseCategory = Object.entries(expensesByCategory).sort(([,a], [,b]) => b - a)[0];
-
-      // Find overbudget budgets for targeted advice
-      const overBudgets = (budgets || []).filter(b => b.spent_amount > b.limit_amount);
-      const nearLimitBudgets = (budgets || []).filter(b => {
-        const pct = b.limit_amount > 0 ? (b.spent_amount / b.limit_amount) * 100 : 0;
-        return pct >= (b.notify_at_percent || 80) && pct < 100;
-      });
-
-      const budgetWarnings = overBudgets.map(b =>
-        `ПРЕВЫШЕН бюджет "${b.name}": потрачено ${formatCurrency(b.spent_amount)} из лимита ${formatCurrency(b.limit_amount)}`
+      const budgetAlerts = budgetDeviations.map(b =>
+        `- Бюджет "${b.name}": потрачено ${b.progress}% (${formatCurrency(b.spent || 0)} из ${formatCurrency(b.limit || 0)})${b.isOver ? ' — ПРЕВЫШЕН!' : ''}`
       ).join('\n');
 
-      const budgetAlerts = nearLimitBudgets.map(b =>
-        `Близко к лимиту "${b.name}": потрачено ${Math.round((b.spent_amount / b.limit_amount) * 100)}% из лимита ${formatCurrency(b.limit_amount)}`
-      ).join('\n');
+      const prompt = `Ты финансовый советник. Проанализируй данные и дай конкретные краткие советы на русском языке.
 
-      const prompt = `Ты финансовый советник. Проанализируй данные и дай КОНКРЕТНЫЕ практичные советы на русском языке.
+Финансовое состояние:
+- Баланс: ${formatCurrency(totalBalance)}
+- Доходы (этот период): ${formatCurrency(totalIncome)}
+- Расходы (этот период): ${formatCurrency(totalExpenses)}
+- Сохранение: ${totalIncome > 0 ? Math.round(((totalIncome - totalExpenses) / totalIncome) * 100) : 0}% дохода
 
-Финансовые данные:
-- Общий баланс: ${formatCurrency(totalBalance)}
-- Доходы за период: ${formatCurrency(totalIncome)}
-- Расходы за период: ${formatCurrency(totalExpenses)}
-- Сбережения: ${formatCurrency(totalIncome - totalExpenses)}
-- Инвестиции: ${formatCurrency(totalInvested)}
-${topExpenseCategory ? `- Топ категория расходов: ${topExpenseCategory[0]} (${formatCurrency(topExpenseCategory[1])})` : ''}
-- Всего бюджетов: ${(budgets || []).length}
-${budgetWarnings ? `\nПРЕВЫШЕНИЯ БЮДЖЕТОВ:\n${budgetWarnings}` : ''}
-${budgetAlerts ? `\nПРЕДУПРЕЖДЕНИЯ ПО БЮДЖЕТАМ:\n${budgetAlerts}` : ''}
+Топ категории расходов:
+${topCategories.map(([cat, amt]) => `- ${cat}: ${formatCurrency(amt)}`).join('\n') || '- нет данных'}
+
+Состояние бюджетов (отклонения):
+${budgetAlerts || '- Все бюджеты в норме'}
+
+Инвестиции: ${investments?.length || 0} позиций
 
 Дай ответ строго в формате:
-ПРОГНОЗ: [1-2 предложения о финансовой ситуации и прогнозе на конец месяца]
-РЕКОМЕНДАЦИЯ: [1-2 конкретных совета по улучшению финансов, учитывая превышения бюджетов если есть]
-СБЕРЕЖЕНИЯ: [1-2 предложения где можно сэкономить или что оптимизировать]`;
+ПРОГНОЗ: [1-2 предложения о том, хватит ли денег до конца месяца]
+РЕКОМЕНДАЦИЯ: [конкретный совет по самой большой проблеме]
+ОТКЛОНЕНИЯ: [что делать с превышенными или рискованными бюджетами, если есть — иначе похвали за дисциплину]`;
 
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt,
-        add_context_from_internet: false
-      });
-
+      const result = await base44.integrations.Core.InvokeLLM({ prompt, add_context_from_internet: false });
       const parsed = parseInsights(result);
-      // Add budget alerts to parsed insights
-      parsed.budgetAlerts = overBudgets.length > 0 ? overBudgets : null;
       setInsights(parsed);
       saveToCache(parsed);
     } catch (err) {
-      setError('Не удалось загрузить AI советы');
+      setError('Не удалось загрузить инсайты');
     } finally {
       setLoading(false);
     }
   };
 
   const parseInsights = (text) => {
-    const sections = { forecast: '', recommendation: '', savings: '' };
+    const sections = { forecast: '', recommendation: '', deviations: '' };
+    const lines = text.split('\n').filter(l => l.trim());
     let currentSection = null;
-    text.split('\n').filter(l => l.trim()).forEach(line => {
-      if (line.includes('ПРОГНОЗ')) currentSection = 'forecast';
-      else if (line.includes('РЕКОМЕНДАЦИЯ')) currentSection = 'recommendation';
-      else if (line.includes('СБЕРЕЖЕНИЯ')) currentSection = 'savings';
+    lines.forEach(line => {
+      if (line.includes('ПРОГНОЗ')) { currentSection = 'forecast'; sections.forecast = line.replace(/^ПРОГНОЗ:\s*/i, '').trim(); }
+      else if (line.includes('РЕКОМЕНДАЦИЯ')) { currentSection = 'recommendation'; sections.recommendation = line.replace(/^РЕКОМЕНДАЦИЯ:\s*/i, '').trim(); }
+      else if (line.includes('ОТКЛОНЕНИЯ')) { currentSection = 'deviations'; sections.deviations = line.replace(/^ОТКЛОНЕНИЯ:\s*/i, '').trim(); }
       else if (currentSection && line.trim()) {
-        const clean = line.replace(/^[\d\.\-\*]+\s*/, '').trim();
-        sections[currentSection] += (sections[currentSection] ? ' ' : '') + clean;
+        sections[currentSection] += (sections[currentSection] ? ' ' : '') + line.trim();
       }
     });
     return sections;
   };
 
-  const overBudgets = (budgets || []).filter(b => b.limit_amount > 0 && b.spent_amount > b.limit_amount);
+  const insightBlocks = [
+    insights?.forecast && { icon: <TrendingUp className="w-3.5 h-3.5" />, label: 'Прогноз', text: insights.forecast, color: 'text-cyan-400' },
+    insights?.recommendation && { icon: <Sparkles className="w-3.5 h-3.5" />, label: 'Рекомендация', text: insights.recommendation, color: 'text-violet-400' },
+    insights?.deviations && { icon: <AlertCircle className="w-3.5 h-3.5" />, label: 'Отклонения', text: insights.deviations, color: 'text-amber-400' },
+  ].filter(Boolean);
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-white/8 bg-[#141820] p-4 text-white/40 text-sm text-center">{error}</div>
+    );
+  }
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="space-y-3">
-      
-      {/* Budget Overrun Alerts */}
-      {overBudgets.length > 0 && (
-        <div className="rounded-xl border border-rose-500/25 bg-rose-500/8 divide-y divide-rose-500/15">
-          <div className="px-4 py-2.5 flex items-center gap-2 text-rose-400 text-xs uppercase tracking-widest font-semibold">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            Превышения бюджетов
-          </div>
-          {overBudgets.map(b => {
-            const pct = Math.round((b.spent_amount / b.limit_amount) * 100);
-            return (
-              <div key={b.id} className="px-4 py-2.5 flex items-center justify-between">
-                <span className="text-white/70 text-sm">{b.name}</span>
-                <span className="text-rose-400 text-sm font-semibold">{pct}% от лимита</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* AI Insights block */}
-      {insights && (
+      {insightBlocks.length > 0 && (
         <div className="rounded-xl border border-white/8 bg-[#141820] divide-y divide-white/5">
           <div className="px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2 text-white/50 text-xs uppercase tracking-widest font-medium">
-              <Sparkles className="w-3.5 h-3.5" />
-              AI Советы
+              <Sparkles className="w-3.5 h-3.5" /> AI Инсайты
             </div>
-            <Button onClick={() => generateInsights()} disabled={loading} variant="ghost" size="sm"
-              className="text-white/30 hover:text-white/70 hover:bg-white/5 h-7 px-2 text-xs">
+            <Button onClick={() => { localStorage.removeItem('ai_insights_cache'); generateInsights(); }} disabled={loading}
+              variant="ghost" size="sm" className="text-white/30 hover:text-white/70 hover:bg-white/5 h-7 px-2 text-xs">
               <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
               {loading ? 'Загрузка...' : 'Обновить'}
             </Button>
           </div>
-          {[
-            insights?.forecast && { icon: <TrendingUp className="w-3.5 h-3.5" />, label: 'Прогноз', text: insights.forecast },
-            insights?.recommendation && { icon: <Sparkles className="w-3.5 h-3.5" />, label: 'Рекомендация', text: insights.recommendation },
-            insights?.savings && { icon: <AlertCircle className="w-3.5 h-3.5" />, label: 'Оптимизация', text: insights.savings },
-          ].filter(Boolean).map((block, i) => (
+          {insightBlocks.map((block, i) => (
             <div key={i} className="px-4 py-3.5">
-              <div className="flex items-center gap-1.5 text-white/40 text-xs mb-1.5">
+              <div className={`flex items-center gap-1.5 text-xs mb-1.5 ${block.color}`}>
                 {block.icon}
                 <span className="uppercase tracking-wide font-medium">{block.label}</span>
               </div>
@@ -185,23 +151,18 @@ ${budgetAlerts ? `\nПРЕДУПРЕЖДЕНИЯ ПО БЮДЖЕТАМ:\n${budge
         </div>
       )}
 
-      {!insights && !loading && !error && (
+      {!insights && !loading && (
         <div className="rounded-xl border border-white/8 bg-[#141820] p-4 text-center">
-          <Button onClick={() => generateInsights()} variant="ghost" className="text-white/50 hover:text-white hover:bg-white/5 text-sm">
-            <Sparkles className="w-4 h-4 mr-2" /> Получить AI-советы
+          <Button onClick={() => generateInsights()} variant="ghost"
+            className="text-white/50 hover:text-white hover:bg-white/5 text-sm">
+            <Sparkles className="w-4 h-4 mr-2" /> Получить AI-рекомендации
           </Button>
         </div>
       )}
 
-      {loading && (
+      {loading && !insights && (
         <div className="rounded-xl border border-white/8 bg-[#141820] p-4 text-center text-white/40 text-sm">
-          <Sparkles className="w-4 h-4 inline mr-2 animate-pulse" /> Анализирую данные...
-        </div>
-      )}
-
-      {error && (
-        <div className="rounded-xl border border-white/8 bg-[#141820] p-4 text-white/40 text-sm text-center">
-          {error} <Button onClick={() => generateInsights()} variant="ghost" size="sm" className="ml-2 text-xs text-white/50 h-6">Повторить</Button>
+          <RefreshCw className="w-4 h-4 animate-spin inline mr-2" /> Анализирую данные...
         </div>
       )}
     </motion.div>

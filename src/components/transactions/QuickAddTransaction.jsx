@@ -96,6 +96,24 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     }
   });
 
+  // Update budget spent_amount when an expense is added
+  const updateBudgetSpent = async (categoryName, amountNum) => {
+    if (!categoryName || amountNum <= 0) return;
+    const today = format(new Date(), 'yyyy-MM-dd');
+
+    for (const budget of budgets) {
+      const budgetCategories = budget.categories?.length > 0
+        ? budget.categories
+        : budget.category ? [budget.category] : [];
+
+      if (budgetCategories.includes(categoryName)) {
+        const newSpent = (budget.spent_amount || 0) + amountNum;
+        await base44.entities.Budget.update(budget.id, { spent_amount: newSpent });
+      }
+    }
+    queryClient.invalidateQueries({ queryKey: ['budgets'] });
+  };
+
   const handleSubmit = async () => {
     if (!amount) return;
     if (type !== 'transfer' && !category) return;
@@ -103,32 +121,10 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     if (isSubmitting) return;
 
     setIsSubmitting(true);
-    
     try {
       await handleSubmitInternal();
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  // Update budget spent_amount for expense transactions
-  const updateBudgetSpent = async (expenseCategory, amountNum) => {
-    if (!budgets || budgets.length === 0) return;
-    
-    const matchingBudgets = budgets.filter(b => {
-      if (b.categories && b.categories.length > 0) {
-        return b.categories.includes(expenseCategory);
-      }
-      return b.category === expenseCategory;
-    });
-
-    for (const budget of matchingBudgets) {
-      const newSpent = (budget.spent_amount || 0) + amountNum;
-      await base44.entities.Budget.update(budget.id, { spent_amount: newSpent });
-    }
-
-    if (matchingBudgets.length > 0) {
-      queryClient.invalidateQueries({ queryKey: ['budgets'] });
     }
   };
 
@@ -146,7 +142,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           return;
         }
         if (sourceAccount.balance - amountNum < 0) {
-          toast.error('Недостаточно средств на счёте');
+          toast.error('Недостаточно средств на счёте для выполнения операции');
           return;
         }
         await base44.entities.Account.update(accountId, {
@@ -186,13 +182,14 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         account_id: accountId
       };
       await createMutation.mutateAsync(transferData);
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       toast.success('Перенос выполнен');
       onClose();
       return;
     }
 
-    // For expense/income — verify account ownership
+    // Validate account ownership for expense/income
     if (accountId) {
       const selectedAccount = accounts.find(a => a.id === accountId);
       if (selectedAccount && selectedAccount.created_by !== user.email && !selectedAccount.created_by?.includes(user.id)) {
@@ -202,24 +199,21 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
 
       if (type === 'expense' && selectedAccount) {
         if (selectedAccount.balance - amountNum < 0) {
-          toast.error('Недостаточно средств на счёте');
+          toast.error('Недостаточно средств на счёте для выполнения операции');
           return;
         }
         // Deduct from account balance
         await base44.entities.Account.update(accountId, {
           balance: selectedAccount.balance - amountNum
         });
-        // Update matching budget spent_amount
+        // Update matching budget spent
         await updateBudgetSpent(category, amountNum);
-      }
-
-      if (type === 'income' && selectedAccount) {
+      } else if (type === 'income' && selectedAccount) {
         // Add to account balance
         await base44.entities.Account.update(accountId, {
           balance: selectedAccount.balance + amountNum
         });
       }
-
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
     }
 
@@ -234,15 +228,16 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
 
     if (transaction) {
       await updateMutation.mutateAsync({ id: transaction.id, data });
-      toast.success('Операция обновлена');
     } else {
       await createMutation.mutateAsync(data);
-      toast.success('Операция добавлена');
     }
+
+    queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    toast.success(type === 'expense' ? 'Расход добавлен' : 'Доход добавлен');
     onClose();
   };
 
-  // Scan receipt
+  // Scan receipt using camera or file
   const handleReceiptScan = async (file) => {
     if (!file) return;
     setIsScanning(true);
@@ -277,9 +272,15 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           if (result.status === 'success' && result.output) {
             const items = result.output.items || [];
             if (items.length > 1) {
-              setScannedItems(items.map(item => ({ name: item.name || 'Товар', price: item.price || 0, category: '' })));
+              setScannedItems(items.map(item => ({
+                name: item.name || 'Товар',
+                price: item.price || 0,
+                category: ''
+              })));
               setDescription(result.output.merchant || '');
-              if (result.output.date) { try { setDate(new Date(result.output.date)); } catch (e) {} }
+              if (result.output.date) {
+                try { setDate(new Date(result.output.date)); } catch (e) {}
+              }
               setShowReviewModal(true);
             } else if (items.length === 1) {
               await categorizeAndAddSingleItem(items[0], result.output);
@@ -293,6 +294,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
             toast.error('Не удалось распознать чек');
           }
         } catch (error) {
+          console.error('Receipt scan error:', error);
           toast.error('Ошибка при сканировании чека');
         } finally {
           setIsScanning(false);
@@ -300,6 +302,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
       };
       reader.readAsDataURL(file);
     } catch (error) {
+      console.error('Receipt scan error:', error);
       toast.error('Ошибка при загрузке файла');
       setIsScanning(false);
     }
@@ -309,13 +312,15 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     try {
       const categoryNames = categories.map(c => c.name).join(', ');
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Определи наиболее подходящую категорию для товара "${item.name}" стоимостью ${item.price}₽. Доступные категории: ${categoryNames}. Ответь только с названием категории.`,
+        prompt: `Определи наиболее подходящую категорию для товара "${item.name}" стоимостью ${item.price}₽.\n\nДоступные категории: ${categoryNames}\n\nОтвечай только с названием категории.`,
         add_context_from_internet: false
       });
       setAmount(item.price?.toString() || '');
       setDescription(`${receiptData.merchant || ''} - ${item.name}`);
       setCategory(response.trim());
-      if (receiptData.date) { try { setDate(new Date(receiptData.date)); } catch (e) {} }
+      if (receiptData.date) {
+        try { setDate(new Date(receiptData.date)); } catch (e) {}
+      }
       setActiveTab('manual');
       toast.success('Товар добавлен!');
     } catch (error) {
@@ -327,6 +332,9 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
 
   const handleReviewConfirm = async (itemsWithCategories) => {
     setShowReviewModal(false);
+    const user = await base44.auth.me();
+    const selectedAccount = accountId ? accounts.find(a => a.id === accountId) : null;
+
     for (const item of itemsWithCategories) {
       const data = {
         type: 'expense',
@@ -337,19 +345,17 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         account_id: accountId || undefined
       };
       await createMutation.mutateAsync(data);
-      // Update budget for each item
       await updateBudgetSpent(item.category, item.price);
     }
-    // Deduct total from account if selected
-    if (accountId) {
-      const totalAmount = itemsWithCategories.reduce((s, i) => s + i.price, 0);
-      const selectedAccount = accounts.find(a => a.id === accountId);
-      if (selectedAccount) {
-        await base44.entities.Account.update(accountId, {
-          balance: selectedAccount.balance - totalAmount
-        });
-      }
+
+    // Deduct total from account
+    if (selectedAccount) {
+      const totalAmount = itemsWithCategories.reduce((sum, i) => sum + i.price, 0);
+      await base44.entities.Account.update(accountId, {
+        balance: selectedAccount.balance - totalAmount
+      });
     }
+
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
     queryClient.invalidateQueries({ queryKey: ['accounts'] });
     toast.success(`Добавлено ${itemsWithCategories.length} операций`);
@@ -362,7 +368,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     <>
       <AnimatePresence>
         {showReviewModal && (
-          <ReceiptReviewModal 
+          <ReceiptReviewModal
             items={scannedItems}
             categories={categories}
             onConfirm={handleReviewConfirm}
@@ -379,200 +385,220 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
         onClick={onClose}
       >
-      <motion.div
-        initial={{ y: 100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 100, opacity: 0 }}
-        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-            {transaction ? 'Редактировать операцию' : 'Новая операция'}
-          </h2>
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
+        <motion.div
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 100, opacity: 0 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+              {transaction ? 'Редактировать операцию' : 'Новая операция'}
+            </h2>
+            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-          <TabsList className="grid grid-cols-2 w-full">
-            <TabsTrigger value="manual">Вручную</TabsTrigger>
-            <TabsTrigger value="scan">Сканировать</TabsTrigger>
-          </TabsList>
-        </Tabs>
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+            <TabsList className="grid grid-cols-2 w-full">
+              <TabsTrigger value="manual">Вручную</TabsTrigger>
+              <TabsTrigger value="scan">Сканировать</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
-        {activeTab === 'scan' && (
-          <div className="space-y-4 mb-6">
-            <div className="text-center py-8">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
-                {isScanning ? <Loader2 className="w-10 h-10 text-violet-600 animate-spin" /> : <Camera className="w-10 h-10 text-violet-600" />}
-              </div>
-              <h3 className="font-semibold text-slate-900 dark:text-white mb-2">
-                {isScanning ? 'Распознавание чека...' : 'Сканирование чека'}
-              </h3>
-              <p className="text-sm text-slate-500 mb-6">Загрузите фото или скан чека для автоматического распознавания</p>
-              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment"
-                onChange={(e) => { if (e.target.files?.[0]) { handleReceiptScan(e.target.files[0]); e.target.value = ''; } }}
-                className="hidden"
-              />
-              <input ref={galleryInputRef} type="file" accept="image/*,.pdf"
-                onChange={(e) => { if (e.target.files?.[0]) { handleReceiptScan(e.target.files[0]); e.target.value = ''; } }}
-                className="hidden"
-              />
-              <div className="flex flex-col gap-3">
-                <Button onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }} disabled={isScanning} className="bg-gradient-to-r from-violet-600 to-indigo-600">
-                  <Camera className="w-5 h-5 mr-2" /> Сфотографировать чек
-                </Button>
-                <Button onClick={(e) => { e.stopPropagation(); galleryInputRef.current?.click(); }} variant="outline" disabled={isScanning}>
-                  <Upload className="w-5 h-5 mr-2" /> Загрузить из галереи
-                </Button>
+          {/* Scan Receipt Tab */}
+          {activeTab === 'scan' && (
+            <div className="space-y-4 mb-6">
+              <div className="text-center py-8">
+                <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                  {isScanning ? (
+                    <Loader2 className="w-10 h-10 text-violet-600 animate-spin" />
+                  ) : (
+                    <Camera className="w-10 h-10 text-violet-600" />
+                  )}
+                </div>
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-2">
+                  {isScanning ? 'Распознавание чека...' : 'Сканирование чека'}
+                </h3>
+                <p className="text-sm text-slate-500 mb-6">
+                  Загрузите фото или скан чека для автоматического распознавания
+                </p>
+                <input ref={cameraInputRef} type="file" accept="image/*" capture="environment"
+                  onChange={(e) => { if (e.target.files?.[0]) { handleReceiptScan(e.target.files[0]); e.target.value = ''; } }}
+                  className="hidden" />
+                <input ref={galleryInputRef} type="file" accept="image/*,.pdf"
+                  onChange={(e) => { if (e.target.files?.[0]) { handleReceiptScan(e.target.files[0]); e.target.value = ''; } }}
+                  className="hidden" />
+                <div className="flex flex-col gap-3">
+                  <Button onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }} disabled={isScanning}
+                    className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
+                    <Camera className="w-5 h-5 mr-2" /> Сфотографировать чек
+                  </Button>
+                  <Button onClick={(e) => { e.stopPropagation(); galleryInputRef.current?.click(); }} variant="outline" disabled={isScanning}>
+                    <Upload className="w-5 h-5 mr-2" /> Загрузить из галереи
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === 'manual' && (
-          <>
-          <div className="flex gap-2 mb-6">
-            <Button variant={type === 'expense' ? 'default' : 'outline'} onClick={() => setType('expense')}
-              className={cn('flex-1 h-12 rounded-xl', type === 'expense' && 'bg-rose-500 hover:bg-rose-600 border-0')}>
-              <ArrowDownRight className="w-4 h-4 mr-2" /> Расход
-            </Button>
-            <Button variant={type === 'income' ? 'default' : 'outline'} onClick={() => setType('income')}
-              className={cn('flex-1 h-12 rounded-xl', type === 'income' && 'bg-emerald-500 hover:bg-emerald-600 border-0')}>
-              <ArrowUpRight className="w-4 h-4 mr-2" /> Доход
-            </Button>
-            <Button variant={type === 'transfer' ? 'default' : 'outline'} onClick={() => setType('transfer')}
-              className={cn('flex-1 h-12 rounded-xl', type === 'transfer' && 'bg-blue-500 hover:bg-blue-600 border-0')}>
-              <ArrowUpRight className="w-4 h-4 mr-2 transform rotate-90" /> Перенос
-            </Button>
-          </div>
-
-          <div className="mb-6">
-            <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Сумма</Label>
-            <div className="relative">
-              <Input type="number" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)}
-                className="text-3xl font-bold h-16 pl-4 pr-12 rounded-xl border-2 focus:border-violet-500" />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">₽</span>
-            </div>
-          </div>
-
-          {type === 'transfer' ? (
+          {/* Manual Entry Form */}
+          {activeTab === 'manual' && (
             <>
-              <div className="mb-4">
-                <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Откуда</Label>
-                <Select value={accountId} onValueChange={setAccountId}>
-                  <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Выберите ваш счёт" /></SelectTrigger>
-                  <SelectContent>
-                    {myAccounts.map((acc) => (
-                      <SelectItem key={acc.id} value={acc.id}>
-                        {acc.icon} {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="mb-4">
-                <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Куда</Label>
-                <Select value={toAccountId} onValueChange={setToAccountId}>
-                  <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Выберите счёт или цель" /></SelectTrigger>
-                  <SelectContent>
-                    {myAccounts.filter(a => a.id !== accountId).map((acc) => (
-                      <SelectItem key={acc.id} value={acc.id}>
-                        {acc.icon} {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
-                      </SelectItem>
-                    ))}
-                    {goals?.length > 0 && (
-                      <>
-                        <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 border-t mt-1 pt-2">Цели</div>
-                        {goals.map((goal) => {
-                          const progress = goal.target_amount > 0 ? Math.min((goal.current_amount / goal.target_amount) * 100, 100) : 0;
-                          return (
-                            <SelectItem key={`goal_${goal.id}`} value={`goal_${goal.id}`}>
-                              🎯 {goal.title} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(goal.current_amount || 0)} / {progress.toFixed(0)}%)
-                            </SelectItem>
-                          );
-                        })}
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-            </>
-          ) : (
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <Label className="text-slate-500 dark:text-slate-400 text-sm">Категория</Label>
-                <Link to={createPageUrl('Categories')}>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs text-violet-600">
-                    <Plus className="w-3 h-3 mr-1" /> Добавить категорию
-                  </Button>
-                </Link>
-              </div>
-              <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-                {filteredCategories.map((cat) => (
-                  <Button key={cat.id} variant={category === cat.name ? 'default' : 'outline'} onClick={() => setCategory(cat.name)}
-                    className={cn('h-auto py-3 flex-col gap-1 rounded-xl', category === cat.name && 'bg-violet-500 hover:bg-violet-600 border-0')}>
-                    <span className="text-xl">{cat.icon === 'Utensils' ? '🍔' : cat.icon === 'Car' ? '🚗' : cat.icon === 'Home' ? '🏠' : cat.icon === 'Gamepad2' ? '🎮' : cat.icon === 'Heart' ? '💊' : cat.icon === 'Shirt' ? '👕' : cat.icon === 'CreditCard' ? '💳' : cat.icon === 'BookOpen' ? '📚' : cat.icon === 'Wallet' ? '💰' : cat.icon === 'Laptop' ? '💻' : cat.icon === 'TrendingUp' ? '📈' : cat.icon === 'Gift' ? '🎁' : '📦'}</span>
-                    <span className="text-xs">{cat.name}</span>
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="mb-4">
-            <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Дата</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start text-left font-normal h-12 rounded-xl">
-                  <Calendar className="mr-2 h-4 w-4" /> {format(date, 'dd.MM.yyyy')}
+              {/* Type Selector */}
+              <div className="flex gap-2 mb-6">
+                <Button variant={type === 'expense' ? 'default' : 'outline'} onClick={() => setType('expense')}
+                  className={cn('flex-1 h-12 rounded-xl transition-all', type === 'expense' && 'bg-rose-500 hover:bg-rose-600 border-0')}>
+                  <ArrowDownRight className="w-4 h-4 mr-2" /> Расход
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent mode="single" selected={date} onSelect={(d) => d && setDate(d)} initialFocus />
-              </PopoverContent>
-            </Popover>
-          </div>
+                <Button variant={type === 'income' ? 'default' : 'outline'} onClick={() => setType('income')}
+                  className={cn('flex-1 h-12 rounded-xl transition-all', type === 'income' && 'bg-emerald-500 hover:bg-emerald-600 border-0')}>
+                  <ArrowUpRight className="w-4 h-4 mr-2" /> Доход
+                </Button>
+                <Button variant={type === 'transfer' ? 'default' : 'outline'} onClick={() => setType('transfer')}
+                  className={cn('flex-1 h-12 rounded-xl transition-all', type === 'transfer' && 'bg-blue-500 hover:bg-blue-600 border-0')}>
+                  <ArrowUpRight className="w-4 h-4 mr-2 transform rotate-90" /> Перенос
+                </Button>
+              </div>
 
-          {myAccounts && myAccounts.length > 0 && type !== 'transfer' && (
-            <div className="mb-4">
-              <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Счёт</Label>
-              <Select value={accountId} onValueChange={setAccountId}>
-                <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Выберите ваш счёт" /></SelectTrigger>
-                <SelectContent>
-                  {myAccounts.map((acc) => (
-                    <SelectItem key={acc.id} value={acc.id}>
-                      {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              {/* Amount */}
+              <div className="mb-6">
+                <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Сумма</Label>
+                <div className="relative">
+                  <Input type="number" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)}
+                    className="text-3xl font-bold h-16 pl-4 pr-12 rounded-xl border-2 focus:border-violet-500" />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">₽</span>
+                </div>
+              </div>
+
+              {/* Category or Transfer Accounts */}
+              {type === 'transfer' ? (
+                <>
+                  <div className="mb-4">
+                    <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Откуда</Label>
+                    <Select value={accountId} onValueChange={setAccountId}>
+                      <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Выберите ваш счёт" /></SelectTrigger>
+                      <SelectContent>
+                        {myAccounts.map((acc) => (
+                          <SelectItem key={acc.id} value={acc.id}>
+                            {acc.icon} {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="mb-4">
+                    <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Куда</Label>
+                    <Select value={toAccountId} onValueChange={setToAccountId}>
+                      <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Выберите счёт или цель" /></SelectTrigger>
+                      <SelectContent>
+                        {myAccounts.filter(a => a.id !== accountId).map((acc) => (
+                          <SelectItem key={acc.id} value={acc.id}>
+                            {acc.icon} {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
+                          </SelectItem>
+                        ))}
+                        {goals?.length > 0 && (
+                          <>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 border-t mt-1 pt-2">Цели</div>
+                            {goals.map((goal) => {
+                              const progress = goal.target_amount > 0 ? Math.min((goal.current_amount / goal.target_amount) * 100, 100) : 0;
+                              return (
+                                <SelectItem key={`goal_${goal.id}`} value={`goal_${goal.id}`}>
+                                  🎯 {goal.title} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(goal.current_amount || 0)} / {progress.toFixed(0)}%)
+                                </SelectItem>
+                              );
+                            })}
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              ) : (
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-slate-500 dark:text-slate-400 text-sm">Категория</Label>
+                    <Link to={createPageUrl('Categories')}>
+                      <Button type="button" variant="ghost" size="sm" className="h-7 text-xs text-violet-600">
+                        <Plus className="w-3 h-3 mr-1" /> Добавить категорию
+                      </Button>
+                    </Link>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                    {filteredCategories.map((cat) => (
+                      <Button key={cat.id} variant={category === cat.name ? 'default' : 'outline'} onClick={() => setCategory(cat.name)}
+                        className={cn('h-auto py-3 flex-col gap-1 rounded-xl transition-all', category === cat.name && 'bg-violet-500 hover:bg-violet-600 border-0')}>
+                        <span className="text-xl drop-shadow-sm">
+                          {cat.icon === 'Utensils' ? '🍔' : cat.icon === 'Car' ? '🚗' : cat.icon === 'Home' ? '🏠' : cat.icon === 'Gamepad2' ? '🎮' : cat.icon === 'Heart' ? '💊' : cat.icon === 'Shirt' ? '👕' : cat.icon === 'CreditCard' ? '💳' : cat.icon === 'BookOpen' ? '📚' : cat.icon === 'Wallet' ? '💰' : cat.icon === 'Laptop' ? '💻' : cat.icon === 'TrendingUp' ? '📈' : cat.icon === 'Gift' ? '🎁' : '📦'}
+                        </span>
+                        <span className="text-xs">{cat.name}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Date */}
+              <div className="mb-4">
+                <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Дата</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal h-12 rounded-xl">
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {format(date, 'dd.MM.yyyy')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent mode="single" selected={date} onSelect={(d) => d && setDate(d)} initialFocus />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Account */}
+              {myAccounts && myAccounts.length > 0 && type !== 'transfer' && (
+                <div className="mb-4">
+                  <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Счёт</Label>
+                  <Select value={accountId} onValueChange={setAccountId}>
+                    <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Выберите ваш счёт" /></SelectTrigger>
+                    <SelectContent>
+                      {myAccounts.map((acc) => (
+                        <SelectItem key={acc.id} value={acc.id}>
+                          {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Description */}
+              <div className="mb-6">
+                <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Комментарий</Label>
+                <Textarea placeholder="Добавьте описание..." value={description} onChange={(e) => setDescription(e.target.value)}
+                  className="rounded-xl resize-none" rows={2} />
+              </div>
+
+              {/* Submit */}
+              <Button
+                onClick={handleSubmit}
+                disabled={!amount || (type !== 'transfer' && !category) || (type === 'transfer' && (!accountId || !toAccountId)) || createMutation.isPending || updateMutation.isPending || isSubmitting}
+                className="w-full h-14 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold text-lg shadow-lg shadow-violet-500/25"
+              >
+                {(createMutation.isPending || updateMutation.isPending || isSubmitting) ? (
+                  <span className="animate-pulse">Сохранение...</span>
+                ) : (
+                  <><Check className="w-5 h-5 mr-2" />{transaction ? 'Обновить' : type === 'transfer' ? 'Перенести' : 'Сохранить'}</>
+                )}
+              </Button>
+            </>
           )}
-
-          <div className="mb-6">
-            <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Комментарий</Label>
-            <Textarea placeholder="Добавьте описание..." value={description} onChange={(e) => setDescription(e.target.value)} className="rounded-xl resize-none" rows={2} />
-          </div>
-
-          <Button
-            onClick={handleSubmit}
-            disabled={!amount || (type !== 'transfer' && !category) || (type === 'transfer' && (!accountId || !toAccountId)) || isSubmitting}
-            className="w-full h-14 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold text-lg shadow-lg shadow-violet-500/25"
-          >
-            {isSubmitting ? (
-              <span className="animate-pulse">Сохранение...</span>
-            ) : (
-              <><Check className="w-5 h-5 mr-2" />{transaction ? 'Обновить' : type === 'transfer' ? 'Перенести' : 'Сохранить'}</>
-            )}
-          </Button>
-          </>
-        )}
+        </motion.div>
       </motion.div>
-    </motion.div>
     </>
   );
 }
