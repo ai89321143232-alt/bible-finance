@@ -548,7 +548,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                 <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Дата</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal h-12 rounded-xl">
+                    <Button variant="outline" className="w-full justify-start text-left font-normal h-12 rounded-xl text-slate-900 dark:text-white">
                       <Calendar className="mr-2 h-4 w-4" />
                       {format(date, 'dd.MM.yyyy')}
                     </Button>
