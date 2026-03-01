@@ -19,7 +19,7 @@ export default function Layout({ children, currentPageName }) {
   return (
     <div className="min-h-screen bg-[#0f1117] text-white">
       <style>{`
-        :root {
+        .dark {
           --background: 222 47% 7%;
           --foreground: 210 40% 98%;
           --card: 222 40% 10%;
