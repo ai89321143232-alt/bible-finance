@@ -580,7 +580,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
               <div className="mb-6">
                 <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Комментарий</Label>
                 <Textarea placeholder="Добавьте описание..." value={description} onChange={(e) => setDescription(e.target.value)}
-                  className="rounded-xl resize-none" rows={2} />
+                  className="rounded-xl resize-none text-slate-900 dark:text-white placeholder:text-slate-400" rows={2} />
               </div>
 
               {/* Submit */}
