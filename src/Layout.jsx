@@ -75,13 +75,21 @@ export default function Layout({ children, currentPageName }) {
         {children}
       </main>
 
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setShowMobileMenu(!showMobileMenu)}
-        className="lg:hidden fixed top-5 left-5 w-10 h-10 bg-[#1a1f2e] border border-white/10 text-white rounded-lg flex items-center justify-center z-50"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
+      {/* Mobile Top Bar */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#0a0d13] border-b border-white/5 z-40 flex items-center px-5 gap-4">
+        <button
+          onClick={() => setShowMobileMenu(!showMobileMenu)}
+          className="w-9 h-9 bg-white/5 border border-white/10 text-white rounded-lg flex items-center justify-center"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-md bg-white flex items-center justify-center">
+            <span className="text-black font-bold text-xs">F</span>
+          </div>
+          <span className="text-white font-semibold text-sm">FinanceApp</span>
+        </div>
+      </div>
 
       {/* Mobile Sidebar */}
       <AnimatePresence>
