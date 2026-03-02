@@ -78,7 +78,13 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       {/* Mobile Top Bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#0a0d13] border-b border-white/5 z-40 flex items-center px-5 gap-4">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#0a0d13] border-b border-white/5 z-40 flex items-center px-5 gap-3">
+        <button
+          onClick={() => navigate(-1)}
+          className="w-9 h-9 bg-white/5 border border-white/10 text-white rounded-lg flex items-center justify-center"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
         <button
           onClick={() => setShowMobileMenu(!showMobileMenu)}
           className="w-9 h-9 bg-white/5 border border-white/10 text-white rounded-lg flex items-center justify-center"
