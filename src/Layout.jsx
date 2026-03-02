@@ -109,6 +109,14 @@ export default function Layout({ children, currentPageName }) {
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: 'tween', duration: 0.2 }}
+              drag="x"
+              dragConstraints={{ right: 0 }}
+              dragElastic={0.1}
+              onDragEnd={(event, info) => {
+                if (info.offset.x < -80 || info.velocity.x < -300) {
+                  setShowMobileMenu(false);
+                }
+              }}
               className="lg:hidden fixed left-0 top-0 h-full w-72 bg-[#0a0d13] border-r border-white/5 shadow-2xl z-50 overflow-y-auto"
             >
               <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
