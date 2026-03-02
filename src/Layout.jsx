@@ -10,6 +10,7 @@ import { base44 } from '@/api/base44Client';
 export default function Layout({ children, currentPageName }) {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [themePreference, setThemePreference] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     base44.auth.me().then(user => {
