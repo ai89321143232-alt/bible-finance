@@ -413,7 +413,7 @@ export default function Accounts() {
             </div>
             <Button
               onClick={handleSubmit}
-              disabled={!formData.name}
+              disabled={!formData.name || createMutation.isPending || updateMutation.isPending}
               className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"
             >
               <Check className="w-4 h-4 mr-2" />

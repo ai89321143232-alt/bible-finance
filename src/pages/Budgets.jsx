@@ -503,7 +503,7 @@ export default function Budgets() {
 
             <Button
               onClick={handleSubmit}
-              disabled={!formData.name || formData.categories.length === 0 || !formData.limit_amount}
+              disabled={!formData.name || formData.categories.length === 0 || !formData.limit_amount || createMutation.isPending || updateMutation.isPending}
               className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"
             >
               <Check className="w-4 h-4 mr-2" />

@@ -666,7 +666,7 @@ export default function Goals() {
 
             <Button
               onClick={handleSubmit}
-              disabled={!formData.title || !formData.target_amount}
+              disabled={!formData.title || !formData.target_amount || createMutation.isPending || updateMutation.isPending}
               className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"
             >
               <Check className="w-4 h-4 mr-2" />

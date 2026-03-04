@@ -493,7 +493,7 @@ export default function Investments() {
             </div>
             <Button
               onClick={handleSubmit}
-              disabled={!formData.name || !formData.quantity || !formData.purchase_price}
+              disabled={!formData.name || !formData.quantity || !formData.purchase_price || createMutation.isPending || updateMutation.isPending}
               className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"
             >
               <Check className="w-4 h-4 mr-2" />
