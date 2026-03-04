@@ -733,7 +733,7 @@ export default function Goals() {
             </div>
             <Button
               onClick={handleAddFunds}
-              disabled={!addFundsAmount || !selectedAccount}
+              disabled={!addFundsAmount || !selectedAccount || updateMutation.isPending}
               className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600"
             >
               <Coins className="w-4 h-4 mr-2" />
@@ -801,7 +801,7 @@ export default function Goals() {
             </div>
             <Button
               onClick={handleSpendFromGoal}
-              disabled={!spendAmount || !spendCategory || parseFloat(spendAmount) > (showSpendModal?.current_amount || 0)}
+              disabled={!spendAmount || !spendCategory || parseFloat(spendAmount) > (showSpendModal?.current_amount || 0) || updateMutation.isPending}
               className="w-full rounded-xl bg-gradient-to-r from-rose-600 to-pink-600"
             >
               <MinusCircle className="w-4 h-4 mr-2" />
