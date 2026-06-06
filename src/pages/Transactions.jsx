@@ -89,7 +89,29 @@ export default function Transactions() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Transaction.delete(id),
+    mutationFn: async (id) => {
+      // Найти транзакцию перед удалением
+      const transaction = transactions.find(t => t.id === id);
+      
+      // Удалить транзакцию
+      await base44.entities.Transaction.delete(id);
+      
+      // Обновить баланс счёта если указан счёт
+      if (transaction?.account_id) {
+        const account = accounts.find(a => a.id === transaction.account_id);
+        if (account) {
+          let newBalance = account.balance ?? 0;
+          if (transaction.type === 'expense') {
+            // Возвращаем списанную сумму
+            newBalance += transaction.amount;
+          } else if (transaction.type === 'income') {
+            // Убираем зачисленную сумму
+            newBalance -= transaction.amount;
+          }
+          await base44.entities.Account.update(transaction.account_id, { balance: newBalance });
+        }
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
