@@ -153,8 +153,16 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
 
   const handleSubmit = async () => {
     if (!amount) return;
+    if (myAccounts.length === 0) {
+      toast.error('Сначала создайте хотя бы один счёт');
+      return;
+    }
+    if (!accountId) {
+      toast.error('Выберите счёт');
+      return;
+    }
     if (type !== 'transfer' && !category) return;
-    if (type === 'transfer' && (!accountId || !toAccountId)) return;
+    if (type === 'transfer' && !toAccountId) return;
     if (isSubmitting) return;
 
     setIsSubmitting(true);
@@ -597,19 +605,25 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
               </div>
 
               {/* Account */}
-              {myAccounts && myAccounts.length > 0 && type !== 'transfer' && (
+              {type !== 'transfer' && (
                 <div className="mb-4">
                   <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Счёт</Label>
-                  <Select value={accountId} onValueChange={setAccountId}>
-                    <SelectTrigger className="h-12 rounded-xl text-slate-900 dark:text-white"><SelectValue placeholder="Выберите ваш счёт" /></SelectTrigger>
-                    <SelectContent>
-                      {myAccounts.map((acc) => (
-                        <SelectItem key={acc.id} value={acc.id}>
-                          {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {myAccounts.length === 0 ? (
+                    <div className="flex items-center h-12 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 px-3 text-sm text-amber-700 dark:text-amber-400">
+                      Нет счетов — <Link to={createPageUrl('Accounts')} className="ml-1 underline font-medium" onClick={onClose}>создать счёт</Link>
+                    </div>
+                  ) : (
+                    <Select value={accountId} onValueChange={setAccountId}>
+                      <SelectTrigger className="h-12 rounded-xl text-slate-900 dark:text-white"><SelectValue placeholder="Выберите ваш счёт" /></SelectTrigger>
+                      <SelectContent>
+                        {myAccounts.map((acc) => (
+                          <SelectItem key={acc.id} value={acc.id}>
+                            {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               )}
 
@@ -623,7 +637,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
               {/* Submit */}
               <Button
                 onClick={handleSubmit}
-                disabled={!amount || (type !== 'transfer' && !category) || (type === 'transfer' && (!accountId || !toAccountId)) || createMutation.isPending || updateMutation.isPending || isSubmitting}
+                disabled={!amount || myAccounts.length === 0 || !accountId || (type !== 'transfer' && !category) || (type === 'transfer' && !toAccountId) || createMutation.isPending || updateMutation.isPending || isSubmitting}
                 className="w-full h-14 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold text-lg shadow-lg shadow-violet-500/25"
               >
                 {(createMutation.isPending || updateMutation.isPending || isSubmitting) ? (
