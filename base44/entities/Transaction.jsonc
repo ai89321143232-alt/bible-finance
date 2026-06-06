@@ -113,6 +113,11 @@
               "data.family_id": "{{user.family_id}}"
             }
           ]
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
         }
       ]
     },
@@ -122,21 +127,9 @@
           "data.user_id": "{{user.id}}"
         },
         {
-          "$and": [
-            {
-              "data.family_id": {
-                "$exists": true
-              }
-            },
-            {
-              "data.family_id": {
-                "$ne": null
-              }
-            },
-            {
-              "data.family_id": "{{user.family_id}}"
-            }
-          ]
+          "user_condition": {
+            "role": "admin"
+          }
         }
       ]
     },
@@ -146,24 +139,9 @@
           "data.user_id": "{{user.id}}"
         },
         {
-          "$and": [
-            {
-              "data.family_id": {
-                "$exists": true
-              }
-            },
-            {
-              "data.family_id": {
-                "$ne": null
-              }
-            },
-            {
-              "data.family_id": "{{user.family_id}}",
-              "user_condition": {
-                "role": "admin"
-              }
-            }
-          ]
+          "user_condition": {
+            "role": "admin"
+          }
         }
       ]
     }
