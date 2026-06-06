@@ -1,0 +1,172 @@
+{
+  "name": "Transaction",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "income",
+        "expense",
+        "transfer"
+      ],
+      "description": "\u0422\u0438\u043f \u0442\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0438\u0438"
+    },
+    "amount": {
+      "type": "number",
+      "description": "\u0421\u0443\u043c\u043c\u0430 \u0442\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0438\u0438"
+    },
+    "currency": {
+      "type": "string",
+      "default": "RUB",
+      "description": "\u0412\u0430\u043b\u044e\u0442\u0430"
+    },
+    "category": {
+      "type": "string",
+      "description": "\u041a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044f \u0442\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0438\u0438"
+    },
+    "subcategory": {
+      "type": "string",
+      "description": "\u041f\u043e\u0434\u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044f"
+    },
+    "description": {
+      "type": "string",
+      "description": "\u041e\u043f\u0438\u0441\u0430\u043d\u0438\u0435"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "\u0414\u0430\u0442\u0430 \u0442\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0438\u0438"
+    },
+    "account_id": {
+      "type": "string",
+      "description": "ID \u0441\u0447\u0451\u0442\u0430"
+    },
+    "family_member_id": {
+      "type": "string",
+      "description": "ID \u0447\u043b\u0435\u043d\u0430 \u0441\u0435\u043c\u044c\u0438"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "\u0422\u0435\u0433\u0438"
+    },
+    "is_recurring": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u0420\u0435\u0433\u0443\u043b\u044f\u0440\u043d\u0430\u044f \u0442\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0438\u044f"
+    },
+    "recurring_period": {
+      "type": "string",
+      "enum": [
+        "daily",
+        "weekly",
+        "monthly",
+        "yearly"
+      ],
+      "description": "\u041f\u0435\u0440\u0438\u043e\u0434 \u043f\u043e\u0432\u0442\u043e\u0440\u0435\u043d\u0438\u044f"
+    },
+    "attachment_url": {
+      "type": "string",
+      "description": "\u041f\u0440\u0438\u043a\u0440\u0435\u043f\u043b\u0451\u043d\u043d\u044b\u0439 \u0444\u0430\u0439\u043b (\u0447\u0435\u043a)"
+    },
+    "family_id": {
+      "type": "string",
+      "description": "ID \u0441\u0435\u043c\u044c\u0438"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f, \u0441\u043e\u0437\u0434\u0430\u0432\u0448\u0435\u0433\u043e \u0442\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0438\u044e"
+    }
+  },
+  "required": [
+    "type",
+    "amount",
+    "category",
+    "date"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "$and": [
+            {
+              "data.family_id": "{{user.family_id}}"
+            },
+            {
+              "user.family_id": {
+                "$ne": null
+              }
+            }
+          ]
+        },
+        {
+          "$and": [
+            {
+              "created_by": "{{user.email}}"
+            },
+            {
+              "user.family_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "$and": [
+            {
+              "data.family_id": "{{user.family_id}}"
+            },
+            {
+              "user.family_id": {
+                "$ne": null
+              }
+            }
+          ]
+        },
+        {
+          "$and": [
+            {
+              "created_by": "{{user.email}}"
+            },
+            {
+              "user.family_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "$and": [
+            {
+              "created_by": "{{user.email}}"
+            },
+            {
+              "data.family_id": "{{user.family_id}}"
+            },
+            {
+              "user.family_id": {
+                "$ne": null
+              }
+            }
+          ]
+        },
+        {
+          "$and": [
+            {
+              "created_by": "{{user.email}}"
+            },
+            {
+              "user.family_id": null
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

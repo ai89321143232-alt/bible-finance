@@ -1,3 +1,21 @@
+// ============================================================
+// App.jsx — КОРНЕВОЙ КОМПОНЕНТ ПРИЛОЖЕНИЯ
+// ============================================================
+// Стек провайдеров (снаружи → внутрь):
+//   AuthProvider       → авторизация (lib/AuthContext.jsx)
+//   QueryClientProvider → кэш запросов (lib/query-client.js)
+//   Router             → навигация (react-router-dom)
+//   NavigationTracker  → отслеживает текущую страницу (lib/NavigationTracker.jsx)
+//   AuthenticatedApp   → рендерит маршруты
+//
+// Маршруты берутся из pages.config.js (auto-generated).
+// Главная страница задаётся полем mainPage в pages.config.js → сейчас "Dashboard".
+// Каждая страница оборачивается в Layout (Layout.jsx) через LayoutWrapper.
+//
+// ⚠️ ВАЖНО: новые страницы нужно добавлять В pages.config.js И
+//    отдельным <Route> в этом файле (loop из pagesConfig не подхватит их автоматически).
+// ============================================================
+
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -8,10 +26,12 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
+// Достаём список страниц, компонент Layout и имя главной страницы
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 
+// Оборачивает страницу в Layout (передаёт currentPageName для подсветки меню)
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
@@ -19,7 +39,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
-  // Show loading spinner while checking app public settings or auth
+  // Пока грузятся публичные настройки приложения или токен — показываем спиннер
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
@@ -28,25 +48,28 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Handle authentication errors
+  // Обработка ошибок авторизации
   if (authError) {
     if (authError.type === 'user_not_registered') {
+      // Пользователь не зарегистрирован в приложении → экран ошибки
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
+      // Требуется логин → редирект на страницу входа
       navigateToLogin();
       return null;
     }
   }
 
-  // Render the main app
+  // Основные маршруты приложения
   return (
     <Routes>
+      {/* Главная страница "/" → компонент Dashboard */}
       <Route path="/" element={
         <LayoutWrapper currentPageName={mainPageKey}>
           <MainPage />
         </LayoutWrapper>
       } />
+      {/* Все остальные страницы из pages.config.js → "/<PageName>" */}
       {Object.entries(Pages).map(([path, Page]) => (
         <Route
           key={path}
@@ -58,6 +81,7 @@ const AuthenticatedApp = () => {
           }
         />
       ))}
+      {/* Страница 404 для неизвестных маршрутов */}
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
@@ -67,12 +91,16 @@ const AuthenticatedApp = () => {
 function App() {
 
   return (
+    // AuthProvider — хранит user, isAuthenticated, authError
     <AuthProvider>
+      {/* QueryClientProvider — глобальный кэш для useQuery/useMutation */}
       <QueryClientProvider client={queryClientInstance}>
         <Router>
+          {/* NavigationTracker — сохраняет имя текущей страницы в state */}
           <NavigationTracker />
           <AuthenticatedApp />
         </Router>
+        {/* Toaster — глобальные уведомления (shadcn/ui) */}
         <Toaster />
       </QueryClientProvider>
     </AuthProvider>

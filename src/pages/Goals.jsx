@@ -56,6 +56,35 @@ const GOAL_TYPES = [
   { value: 'other', label: 'Другое', icon: '🎯', color: '#64748B' },
 ];
 
+// ============================================================
+// pages/Goals.jsx — СТРАНИЦА ФИНАНСОВЫХ ЦЕЛЕЙ
+// ============================================================
+// Маршрут: "/Goals"
+//
+// ФУНКЦИИ:
+//   - Личные цели (created_by === user.email)
+//   - Семейные / общие цели (share_with содержит user.id)
+//   - Создание / редактирование / удаление цели
+//   - Пополнение цели из счёта → списывает с Account.balance + создаёт Transaction (transfer)
+//   - Трата из цели → уменьшает current_amount + создаёт Transaction (expense)
+//   - Автораспределение баланса между целями (AutoDistributeModal)
+//   - Подцели (SubgoalsManager)
+//   - Уведомление по email за 7/3/1 день до дедлайна
+//
+// ДАННЫЕ:
+//   ['my-goals']      → цели текущего пользователя
+//   ['shared-goals']  → цели, которыми поделились
+//   ['accounts']      → счета (для списания при пополнении)
+//   ['categories']    → категории расходов (для траты из цели)
+//
+// КОМПОНЕНТЫ:
+//   GoalCard           → карточка цели (components/goals/GoalCard)
+//   AutoDistributeModal → распределение суммы по целям (components/goals/AutoDistributeModal)
+//   SubgoalsManager    → управление подцелями (components/goals/SubgoalsManager)
+//
+// СТАТУСЫ ЦЕЛЕЙ: 'active' | 'completed' | 'paused'
+//   Автоматически меняется на 'completed' если current_amount >= target_amount
+// ============================================================
 export default function Goals() {
   const queryClient = useQueryClient();
   const [user, setUser] = useState(null);

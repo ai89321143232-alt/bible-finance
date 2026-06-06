@@ -1,3 +1,34 @@
+// ============================================================
+// lib/AuthContext.jsx — КОНТЕКСТ АВТОРИЗАЦИИ
+// ============================================================
+// Предоставляет глобальное состояние авторизации через React Context.
+// Используется в App.jsx через useAuth().
+//
+// ЭКСПОРТИРУЕТ:
+//   AuthProvider  → оборачивает приложение, инициализирует auth при загрузке
+//   useAuth()     → хук для доступа к контексту в любом компоненте
+//
+// СОСТОЯНИЕ (context value):
+//   user                  → объект пользователя (base44.auth.me()) или null
+//   isAuthenticated       → boolean
+//   isLoadingAuth         → boolean (идёт проверка токена)
+//   isLoadingPublicSettings → boolean (идут запросы настроек приложения)
+//   authError             → { type, message } или null
+//     type: 'auth_required'       → нужен логин → navigateToLogin()
+//     type: 'user_not_registered' → пользователь не в системе → UserNotRegisteredError
+//     type: 'unknown'             → общая ошибка
+//   appPublicSettings     → публичные настройки приложения
+//   logout(redirect?)     → выход + опциональный редирект
+//   navigateToLogin()     → редирект на страницу входа
+//   checkAppState()       → повторная проверка состояния (для retry)
+//
+// ПОТОК ИНИЦИАЛИЗАЦИИ:
+//   1. checkAppState() → GET /api/apps/public/prod/public-settings/by-id/{appId}
+//   2. Если OK и есть token → checkUserAuth() → base44.auth.me()
+//   3. Если 403 auth_required → setAuthError → App.jsx редиректит на логин
+//   4. Если 403 user_not_registered → показывает UserNotRegisteredError
+// ============================================================
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';

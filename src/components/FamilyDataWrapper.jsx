@@ -1,3 +1,25 @@
+// ============================================================
+// components/FamilyDataWrapper.jsx — ПОМОЩНИК ДЛЯ СЕМЕЙНЫХ ДАННЫХ
+// ============================================================
+// Предоставляет утилиты для работы с family_id / user_id:
+//
+//   useFamilyId()          → хук, возвращает { familyId, loading }
+//                            используется в компонентах, которым нужен family_id
+//
+//   addFamilyId(data)      → async функция, добавляет family_id и user_id к объекту данных
+//                            перед отправкой в БД. Используется ПЕРЕД каждым create/update
+//                            для Transaction, Account, Budget, Goal, Investment, ChildExpense
+//                            Пример: const dataWithFamily = await addFamilyId({ amount: 100 })
+//
+//   createFamilyAwareSDK() → возвращает обёртки над base44.entities с автоматическим
+//                            добавлением family_id. Используется редко (см. прямые вызовы)
+//
+// ЛОГИКА:
+//   Если у пользователя есть user.family_id → добавляет { family_id, user_id }
+//   Если нет → добавляет только { user_id }
+//   RLS (Row Level Security) в entities автоматически фильтрует данные по family_id
+// ============================================================
+
 import { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 

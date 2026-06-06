@@ -49,6 +49,28 @@ const ACCOUNT_COLORS = [
   '#6366F1', '#EF4444', '#14B8A6', '#84CC16', '#A855F7'
 ];
 
+// ============================================================
+// pages/Accounts.jsx — СТРАНИЦА СЧЕТОВ
+// ============================================================
+// Маршрут: "/Accounts"
+//
+// ФУНКЦИИ:
+//   - Просмотр счетов текущего пользователя (фильтр по created_by_id === user.id)
+//   - Добавление / редактирование счёта (Dialog модал)
+//   - Удаление: вместе со ВСЕМИ связанными транзакциями (account_id === id)
+//   - Статистика по счёту: доходы/расходы из транзакций
+//
+// ДАННЫЕ:
+//   ['accounts']     → все счета (RLS фильтрует по family_id/created_by)
+//   ['transactions'] → для расчёта статистики по счёту
+//
+// ТИПЫ СЧЕТОВ (ACCOUNT_TYPES):
+//   cash, card, bank_account, savings, credit
+//
+// ⚠️ ВАЖНО:
+//   Показываются только ЛИЧНЫЕ счета: accounts.filter(acc => acc.created_by_id === user.id)
+//   Семейные счета видны только в FamilyFinances и при переносах
+// ============================================================
 export default function Accounts() {
   const queryClient = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);

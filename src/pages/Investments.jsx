@@ -49,6 +49,31 @@ const INVESTMENT_TYPES = [
   { value: 'other', label: 'Другое', icon: '💼', color: '#64748B' },
 ];
 
+// ============================================================
+// pages/Investments.jsx — СТРАНИЦА ИНВЕСТИЦИЙ
+// ============================================================
+// Маршрут: "/Investments"
+//
+// ФУНКЦИИ:
+//   - Портфель инвестиций с расчётом прибыли/убытка
+//   - Добавление / редактирование / удаление актива
+//   - Pie-chart разбивки портфеля по типам активов
+//
+// ДАННЫЕ:
+//   ['investments'] → все инвестиции пользователя/семьи
+//
+// ТИПЫ АКТИВОВ (INVESTMENT_TYPES):
+//   stocks, crypto, etf, bonds, deposit, real_estate, precious_metals, other
+//
+// РАСЧЁТЫ:
+//   totalValue   = Σ (quantity × current_price)
+//   totalCost    = Σ (quantity × purchase_price)
+//   totalProfit  = totalValue - totalCost
+//   profitPercent = (totalProfit / totalCost) × 100
+//
+// ⚠️ Цены обновляются ВРУЧНУЮ (нет автоматического фида котировок)
+//    current_price хранится в сущности и меняется пользователем
+// ============================================================
 export default function Investments() {
   const queryClient = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);

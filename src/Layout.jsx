@@ -7,6 +7,30 @@ import { useNavigate } from 'react-router-dom';
 import NavigationMenu from '@/components/Navigation/NavigationMenu';
 import { base44 } from '@/api/base44Client';
 
+// ============================================================
+// Layout.jsx — ОСНОВНОЙ МАКЕТ ПРИЛОЖЕНИЯ
+// ============================================================
+// Оборачивает ВСЕ страницы (через LayoutWrapper в App.jsx).
+// Props:
+//   children        → содержимое текущей страницы
+//   currentPageName → имя текущей страницы для подсветки активного пункта меню
+//
+// СТРУКТУРА:
+//   Desktop (lg+):
+//     aside.sidebar  → NavigationMenu (components/Navigation/NavigationMenu)
+//     main           → children (страница)
+//
+//   Mobile:
+//     div.topbar     → кнопка "назад" (navigate(-1)), кнопка "меню", лого
+//     AnimatePresence → боковое меню (slide-in) с поддержкой свайпа для закрытия
+//
+// ДЕТСКИЙ РЕЖИМ:
+//   Если user.theme_preference === 'child' → скрывает пункты меню с hideInChildMode: true
+//   Список пунктов: components/Navigation/NavigationMenu.jsx
+//
+// СВАЙП НА МОБИЛЬНОМ:
+//   framer-motion drag на боковом меню → закрывается при offset.x < -80 или velocity.x < -300
+// ============================================================
 export default function Layout({ children, currentPageName }) {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [themePreference, setThemePreference] = useState(null);

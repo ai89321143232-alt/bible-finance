@@ -48,6 +48,26 @@ const CATEGORY_ICONS = {
   'Другое': '📦'
 };
 
+// ============================================================
+// pages/Transactions.jsx — СТРАНИЦА ОПЕРАЦИЙ
+// ============================================================
+// Маршрут: "/Transactions"
+//
+// ФУНКЦИИ:
+//   - Просмотр транзакций с разбивкой по дням
+//   - Фильтрация: по месяцу, типу (доход/расход), категории, поиск
+//   - Добавление / редактирование (QuickAddTransaction модал)
+//   - Удаление с подтверждением (AlertDialog)
+//   - Свайп на мобильном (SwipeableTransaction)
+//
+// ДАННЫЕ:
+//   ['transactions'] → последние 100 транзакций по дате
+//   ['accounts']     → счета (передаются в QuickAddTransaction)
+//
+// КОМПОНЕНТЫ:
+//   SwipeableTransaction → строка транзакции со свайп-действиями (components/transactions/)
+//   QuickAddTransaction  → модал создания/редактирования (components/transactions/)
+// ============================================================
 export default function Transactions() {
   const queryClient = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);

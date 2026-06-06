@@ -32,18 +32,60 @@ import ThemeSelector from '@/components/onboarding/ThemeSelector';
 import ChildDashboard from '@/components/child/ChildDashboard';
 import PremiumAIAnalytics from '@/components/dashboard/PremiumAIAnalytics';
 
+// ============================================================
+// pages/Dashboard.jsx — ГЛАВНАЯ СТРАНИЦА / ДАШБОРД
+// ============================================================
+// Маршрут: "/" и "/Dashboard"
+//
+// РЕЖИМЫ ОТОБРАЖЕНИЯ:
+//   1. Новый пользователь (themePreference === null) → ThemeSelector (onboarding)
+//   2. Детский режим (themePreference === 'child')   → ChildDashboard
+//   3. Обычный режим                                 → стандартный дашборд
+//
+// ДАННЫЕ (React Query, ключи кэша):
+//   ['transactions']   → последние 200 транзакций (Transaction entity)
+//   ['accounts']       → все счета пользователя/семьи (Account entity)
+//   ['budgets']        → активные бюджеты (Budget entity, is_active: true)
+//   ['goals']          → активные цели (Goal entity, status: active)
+//   ['investments']    → все инвестиции (Investment entity)
+//   ['my-family']      → семья пользователя (Family entity)
+//
+// КОМПОНЕНТЫ ДАШБОРДА:
+//   BalanceCard         → общий баланс + инвестиции (components/dashboard/BalanceCard)
+//   SpendingChart       → график расходов по категориям (components/dashboard/SpendingChart)
+//   RecentTransactions  → последние 5 транзакций (components/dashboard/RecentTransactions)
+//   BudgetOverview      → прогресс бюджетов (components/dashboard/BudgetOverview)
+//   AllGoalsProgress    → прогресс целей (components/dashboard/AllGoalsProgress)
+//   AIInsights          → AI-рекомендации (components/dashboard/AIInsights)
+//   PremiumAIAnalytics  → расширенная аналитика (только premium/family подписка)
+//   BibleVerse          → цитата дня (components/dashboard/BibleVerse)
+//
+// БЫСТРЫЕ ДЕЙСТВИЯ:
+//   Кнопка "Добавить" / клик на Доходы / Расходы → открывает QuickAddTransaction
+//
+// СЕМЕЙНЫЙ РЕЖИМ:
+//   balanceMode 'personal' → только счета текущего пользователя (user_id)
+//   balanceMode 'family'   → все счета семьи + разбивка по участникам
+// ============================================================
+
 export default function Dashboard() {
   const queryClient = useQueryClient();
+
+  // --- UI State ---
   const [showQuickAdd, setShowQuickAdd] = useState(false);
-  const [quickAddType, setQuickAddType] = useState('expense');
-  const [periodType, setPeriodType] = useState('month');
+  const [quickAddType, setQuickAddType] = useState('expense'); // 'income' | 'expense'
+  const [periodType, setPeriodType] = useState('month');       // 'week' | 'month' | 'year' | 'all'
   const [currentPeriod, setCurrentPeriod] = useState({
     start: startOfMonth(new Date()),
     end: endOfMonth(new Date())
   });
+
+  // --- User State ---
   const [user, setUser] = useState(null);
-  const [themePreference, setThemePreference] = useState(null);
-  const [balanceMode, setBalanceMode] = useState('personal'); // 'personal' or 'family'
+  const [themePreference, setThemePreference] = useState(null); // null=новый | 'default' | 'child'
+  const [balanceMode, setBalanceMode] = useState('personal');   // 'personal' | 'family'
+
+  // --- Dashboard blocks visibility (сохраняется в user.data.visible_dashboard_blocks) ---
   const [visibleBlocks, setVisibleBlocks] = useState({
     balance: true,
     quickStats: true,
@@ -58,13 +100,15 @@ export default function Dashboard() {
     migrateUserData();
   }, []);
 
+  // Миграция данных при входе в семью (backend function: migrateFamilyData)
+  // Проставляет family_id на старые записи пользователя
   const migrateUserData = async () => {
     try {
       const user = await base44.auth.me();
       if (user?.family_id) {
         const result = await base44.functions.invoke('migrateFamilyData', {});
         console.log('Migration result:', result.data);
-        // Refresh data after migration
+        // Обновляем кэш после миграции
         setTimeout(() => {
           queryClient.invalidateQueries();
         }, 1000);
@@ -74,16 +118,18 @@ export default function Dashboard() {
     }
   };
 
+  // Загружает текущего пользователя и его настройки
   const loadUser = async () => {
     const userData = await base44.auth.me();
     setUser(userData);
     setThemePreference(userData.theme_preference || null);
+    // Восстанавливаем видимость блоков из настроек пользователя
     if (userData.data?.visible_dashboard_blocks) {
       setVisibleBlocks(userData.data.visible_dashboard_blocks);
     }
   };
 
-  // Check if user is in a family
+  // Запрос семьи пользователя — ищет Family где owner_id или member.user_id === user.id
   const { data: family } = useQuery({
     queryKey: ['my-family', user?.id],
     queryFn: async () => {
@@ -97,6 +143,7 @@ export default function Dashboard() {
     enabled: !!user
   });
 
+  // Обновляет диапазон дат для фильтрации транзакций на дашборде
   const updatePeriod = (type) => {
     const now = new Date();
     let start, end;
@@ -127,7 +174,9 @@ export default function Dashboard() {
     setPeriodType(type);
   };
 
-  // Fetch all data - RLS will automatically filter based on family_id
+  // --- DATA QUERIES ---
+  // RLS автоматически фильтрует данные по family_id / created_by на стороне сервера
+
   const { data: transactions = [], isLoading: loadingTransactions } = useQuery({
     queryKey: ['transactions', user?.family_id],
     queryFn: () => base44.entities.Transaction.list('-date', 200),

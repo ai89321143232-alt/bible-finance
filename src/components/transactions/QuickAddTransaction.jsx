@@ -29,6 +29,43 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
+// ============================================================
+// components/transactions/QuickAddTransaction.jsx — МОДАЛЬНОЕ ОКНО ДОБАВЛЕНИЯ ТРАНЗАКЦИИ
+// ============================================================
+// Используется на страницах: Dashboard, Transactions
+// Props:
+//   transaction   → объект Transaction для редактирования (если null — режим создания)
+//   onClose       → коллбэк закрытия модала
+//   accounts      → массив Account (для выбора счёта)
+//   defaultType   → начальный тип ('expense' | 'income' | 'transfer'), по умолчанию 'expense'
+//
+// РЕЖИМЫ РАБОТЫ:
+//   1. Вручную (вкладка "Вручную") — стандартная форма
+//   2. Сканирование (вкладка "Сканировать") — AI-распознавание чека через камеру/файл
+//
+// ТИПЫ ТРАНЗАКЦИЙ:
+//   'expense'  → расход: списывает с баланса счёта, обновляет spent_amount в бюджете
+//   'income'   → доход: пополняет баланс счёта
+//   'transfer' → перенос: списывает с одного счёта, зачисляет на другой или на цель (Goal)
+//
+// ЛОГИКА TRANSFER → ЦЕЛЬ:
+//   toAccountId начинается с "goal_" → берёт goalId, обновляет Goal.current_amount
+//   если current_amount >= target_amount → меняет статус цели на 'completed'
+//
+// ЛОГИКА БЮДЖЕТА:
+//   При создании расхода → updateBudgetSpent() ищет бюджеты с matching категорией
+//   и увеличивает их Budget.spent_amount
+//
+// СКАНИРОВАНИЕ ЧЕКА:
+//   1. Загружает файл через UploadFile
+//   2. Извлекает данные через ExtractDataFromUploadedFile (amount, merchant, items)
+//   3. Если > 1 товара → ReceiptReviewModal для ручного назначения категорий
+//   4. Если 1 товар → categorizeAndAddSingleItem (InvokeLLM для автокатегории)
+//   5. Если только сумма → заполняет форму вручную
+//
+// ЗАЩИТА ОТ ДВОЙНОГО НАЖАТИЯ:
+//   isSubmitting state + disabled на кнопке + isPending мутаций
+// ============================================================
 export default function QuickAddTransaction({ transaction, onClose, accounts, defaultType = 'expense' }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('manual');

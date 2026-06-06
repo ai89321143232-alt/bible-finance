@@ -23,6 +23,21 @@ const MENU_ITEMS = [
   { name: 'Settings',          label: 'Настройки',        icon: Settings },
 ];
 
+// ============================================================
+// components/Navigation/NavigationMenu.jsx — НАВИГАЦИОННОЕ МЕНЮ
+// ============================================================
+// Используется в Layout.jsx (desktop sidebar + mobile sidebar)
+// Props:
+//   currentPageName → имя активной страницы (для подсветки)
+//   onNavigate      → коллбэк после клика (закрывает мобильное меню)
+//   isChildMode     → если true — скрывает пункты с hideInChildMode: true
+//
+// ДОБАВИТЬ НОВЫЙ ПУНКТ МЕНЮ:
+//   1. Добавить объект в массив MENU_ITEMS:
+//      { name: 'PageName', label: 'Отображаемое', icon: IconComponent }
+//   2. При необходимости скрыть в детском режиме: hideInChildMode: true
+//   3. Убедиться, что страница зарегистрирована в pages.config.js
+// ============================================================
 export default function NavigationMenu({ currentPageName, onNavigate, isChildMode }) {
   const visibleItems = isChildMode
     ? MENU_ITEMS.filter(item => !item.hideInChildMode)
