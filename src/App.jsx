@@ -22,12 +22,17 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import Onboarding from './pages/Onboarding';
 import HelpCenter from './pages/HelpCenter';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 // Достаём список страниц, компонент Layout и имя главной страницы
 const { Pages, Layout, mainPage } = pagesConfig;
@@ -40,7 +45,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   : <>{children}</>;
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, user } = useAuth();
   const navigate = useNavigate();
 
   React.useEffect(() => {
@@ -49,7 +54,6 @@ const AuthenticatedApp = () => {
     }
   }, [user]);
 
-  // Пока грузятся публичные настройки приложения или токен — показываем спиннер
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
@@ -58,44 +62,41 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Обработка ошибок авторизации
-  if (authError) {
-    if (authError.type === 'user_not_registered') {
-      // Пользователь не зарегистрирован в приложении → экран ошибки
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      // Требуется логин → редирект на страницу входа
-      navigateToLogin();
-      return null;
-    }
-  }
-
-  // Основные маршруты приложения
   return (
     <Routes>
-      {/* Главная страница "/" → компонент Dashboard */}
-      <Route path="/" element={
-        <LayoutWrapper currentPageName={mainPageKey}>
-          <MainPage />
-        </LayoutWrapper>
-      } />
-      {/* Все остальные страницы из pages.config.js → "/<PageName>" */}
-      {Object.entries(Pages).map(([path, Page]) => (
-        <Route
-          key={path}
-          path={`/${path}`}
-          element={
-            <LayoutWrapper currentPageName={path}>
-              <Page />
-            </LayoutWrapper>
-          }
-        />
-      ))}
-      {/* Онбординг — без Layout */}
-      <Route path="/Onboarding" element={<Onboarding />} />
-      {/* База знаний */}
-      <Route path="/HelpCenter" element={<LayoutWrapper currentPageName="HelpCenter"><HelpCenter /></LayoutWrapper>} />
-      {/* Страница 404 для неизвестных маршрутов */}
+      {/* Auth routes — public */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+
+      {/* All app routes — protected */}
+      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+        {/* Главная страница "/" → компонент Dashboard */}
+        <Route path="/" element={
+          <LayoutWrapper currentPageName={mainPageKey}>
+            <MainPage />
+          </LayoutWrapper>
+        } />
+        {/* Все остальные страницы из pages.config.js → "/<PageName>" */}
+        {Object.entries(Pages).map(([path, Page]) => (
+          <Route
+            key={path}
+            path={`/${path}`}
+            element={
+              <LayoutWrapper currentPageName={path}>
+                <Page />
+              </LayoutWrapper>
+            }
+          />
+        ))}
+        {/* Онбординг — без Layout */}
+        <Route path="/Onboarding" element={<Onboarding />} />
+        {/* База знаний */}
+        <Route path="/HelpCenter" element={<LayoutWrapper currentPageName="HelpCenter"><HelpCenter /></LayoutWrapper>} />
+      </Route>
+
+      {/* 404 */}
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
