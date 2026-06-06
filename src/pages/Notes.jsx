@@ -132,7 +132,7 @@ export default function Notes() {
           className="mb-6"
         >
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-48 text-slate-900 dark:text-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -233,7 +233,7 @@ export default function Notes() {
             <div>
               <label className="text-sm font-medium text-slate-900 dark:text-white">Категория</label>
               <Select value={formData.category} onValueChange={(val) => setFormData({ ...formData, category: val })}>
-                <SelectTrigger className="mt-1">
+                <SelectTrigger className="mt-1 text-slate-900 dark:text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
