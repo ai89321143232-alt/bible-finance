@@ -25,6 +25,20 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+
+// Нативный select для мобильных
+function NativeSelect({ value, onChange, placeholder, children, className }) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={`w-full h-12 rounded-xl border border-input bg-white dark:bg-slate-800 px-3 text-slate-900 dark:text-white text-sm appearance-none ${className || ''}`}
+    >
+      {placeholder && <option value="" disabled>{placeholder}</option>}
+      {children}
+    </select>
+  );
+}
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -526,42 +540,31 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                 <>
                   <div className="mb-4">
                     <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Откуда</Label>
-                    <Select value={accountId} onValueChange={setAccountId}>
-                      <SelectTrigger className="h-12 rounded-xl text-slate-900 dark:text-white"><SelectValue placeholder="Выберите ваш счёт" /></SelectTrigger>
-                      <SelectContent>
-                        {myAccounts.map((acc) => (
-                          <SelectItem key={acc.id} value={acc.id}>
-                            {acc.icon} {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <NativeSelect value={accountId} onChange={setAccountId} placeholder="Выберите ваш счёт">
+                      {myAccounts.map((acc) => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
+                        </option>
+                      ))}
+                    </NativeSelect>
                   </div>
                   <div className="mb-4">
                     <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Куда</Label>
-                    <Select value={toAccountId} onValueChange={setToAccountId}>
-                      <SelectTrigger className="h-12 rounded-xl text-slate-900 dark:text-white"><SelectValue placeholder="Выберите счёт или цель" /></SelectTrigger>
-                      <SelectContent>
-                        {myAccounts.filter(a => a.id !== accountId).map((acc) => (
-                          <SelectItem key={acc.id} value={acc.id}>
-                            {acc.icon} {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
-                          </SelectItem>
-                        ))}
-                        {goals?.length > 0 && (
-                          <>
-                            <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 border-t mt-1 pt-2">Цели</div>
-                            {goals.map((goal) => {
-                              const progress = goal.target_amount > 0 ? Math.min((goal.current_amount / goal.target_amount) * 100, 100) : 0;
-                              return (
-                                <SelectItem key={`goal_${goal.id}`} value={`goal_${goal.id}`}>
-                                  🎯 {goal.title} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(goal.current_amount || 0)} / {progress.toFixed(0)}%)
-                                </SelectItem>
-                              );
-                            })}
-                          </>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <NativeSelect value={toAccountId} onChange={setToAccountId} placeholder="Выберите счёт или цель">
+                      {myAccounts.filter(a => a.id !== accountId).map((acc) => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
+                        </option>
+                      ))}
+                      {goals?.length > 0 && goals.map((goal) => {
+                        const progress = goal.target_amount > 0 ? Math.min((goal.current_amount / goal.target_amount) * 100, 100) : 0;
+                        return (
+                          <option key={`goal_${goal.id}`} value={`goal_${goal.id}`}>
+                            🎯 {goal.title} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(goal.current_amount || 0)} / {progress.toFixed(0)}%)
+                          </option>
+                        );
+                      })}
+                    </NativeSelect>
                   </div>
                 </>
               ) : (
@@ -591,17 +594,12 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
               {/* Date */}
               <div className="mb-4">
                 <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Дата</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal h-12 rounded-xl text-slate-900 dark:text-white">
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {format(date, 'dd.MM.yyyy')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent mode="single" selected={date} onSelect={(d) => d && setDate(d)} initialFocus />
-                  </PopoverContent>
-                </Popover>
+                <input
+                  type="date"
+                  value={format(date, 'yyyy-MM-dd')}
+                  onChange={(e) => e.target.value && setDate(new Date(e.target.value))}
+                  className="w-full h-12 rounded-xl border border-input bg-white dark:bg-slate-800 px-3 text-slate-900 dark:text-white text-sm"
+                />
               </div>
 
               {/* Account */}
@@ -613,16 +611,13 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                       Нет счетов — <Link to={createPageUrl('Accounts')} className="ml-1 underline font-medium" onClick={onClose}>создать счёт</Link>
                     </div>
                   ) : (
-                    <Select value={accountId} onValueChange={setAccountId}>
-                      <SelectTrigger className="h-12 rounded-xl text-slate-900 dark:text-white"><SelectValue placeholder="Выберите ваш счёт" /></SelectTrigger>
-                      <SelectContent>
-                        {myAccounts.map((acc) => (
-                          <SelectItem key={acc.id} value={acc.id}>
-                            {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <NativeSelect value={accountId} onChange={setAccountId} placeholder="Выберите ваш счёт">
+                      {myAccounts.map((acc) => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
+                        </option>
+                      ))}
+                    </NativeSelect>
                   )}
                 </div>
               )}
