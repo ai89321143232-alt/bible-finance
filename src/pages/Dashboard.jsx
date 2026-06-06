@@ -267,8 +267,8 @@ export default function Dashboard() {
     );
   }
 
-  // Show child dashboard
-  if (themePreference === 'child') {
+  // Show child dashboard (не для админов)
+  if (themePreference === 'child' && user?.role !== 'admin') {
     return (
       <ChildDashboard
         user={user}
