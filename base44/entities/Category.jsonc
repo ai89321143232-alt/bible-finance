@@ -53,7 +53,25 @@
         }
       ]
     },
-    "update": {},
-    "delete": {}
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "data.is_system": true
+        }
+      ]
+    },
+    "delete": {
+      "$and": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "data.is_system": false
+        }
+      ]
+    }
   }
 }

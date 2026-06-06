@@ -44,7 +44,7 @@ const AuthenticatedApp = () => {
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    if (user && !user.onboarding_complete && !window.location.pathname.includes('/Onboarding')) {
+    if (user && user.onboarding_complete !== true && !window.location.pathname.includes('/Onboarding')) {
       navigate('/Onboarding');
     }
   }, [user]);

@@ -90,6 +90,9 @@
     "read": {
       "$or": [
         {
+          "created_by": "{{user.email}}"
+        },
+        {
           "$and": [
             {
               "data.family_id": "{{user.family_id}}"
@@ -98,16 +101,11 @@
               "user.family_id": {
                 "$ne": null
               }
-            }
-          ]
-        },
-        {
-          "$and": [
-            {
-              "created_by": "{{user.email}}"
             },
             {
-              "user.family_id": null
+              "data.family_id": {
+                "$ne": null
+              }
             }
           ]
         }
@@ -116,6 +114,9 @@
     "update": {
       "$or": [
         {
+          "created_by": "{{user.email}}"
+        },
+        {
           "$and": [
             {
               "data.family_id": "{{user.family_id}}"
@@ -124,49 +125,18 @@
               "user.family_id": {
                 "$ne": null
               }
-            }
-          ]
-        },
-        {
-          "$and": [
-            {
-              "created_by": "{{user.email}}"
             },
             {
-              "user.family_id": null
+              "data.family_id": {
+                "$ne": null
+              }
             }
           ]
         }
       ]
     },
     "delete": {
-      "$or": [
-        {
-          "$and": [
-            {
-              "created_by": "{{user.email}}"
-            },
-            {
-              "data.family_id": "{{user.family_id}}"
-            },
-            {
-              "user.family_id": {
-                "$ne": null
-              }
-            }
-          ]
-        },
-        {
-          "$and": [
-            {
-              "created_by": "{{user.email}}"
-            },
-            {
-              "user.family_id": null
-            }
-          ]
-        }
-      ]
+      "created_by": "{{user.email}}"
     }
   }
 }
