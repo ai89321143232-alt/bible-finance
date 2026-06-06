@@ -98,6 +98,10 @@ export default function Dashboard() {
   useEffect(() => {
     loadUser();
     migrateUserData();
+    // Обновляем блоки при сохранении персонализации
+    const handler = () => loadUser();
+    window.addEventListener('personalization-saved', handler);
+    return () => window.removeEventListener('personalization-saved', handler);
   }, []);
 
   // Миграция данных при входе в семью (backend function: migrateFamilyData)
@@ -124,8 +128,9 @@ export default function Dashboard() {
     setUser(userData);
     setThemePreference(userData.theme_preference || null);
     // Восстанавливаем видимость блоков из настроек пользователя
-    if (userData.data?.visible_dashboard_blocks) {
-      setVisibleBlocks(userData.data.visible_dashboard_blocks);
+    const blocks = userData.visible_dashboard_blocks || userData.data?.visible_dashboard_blocks;
+    if (blocks) {
+      setVisibleBlocks(prev => ({ ...prev, ...blocks }));
     }
   };
 

@@ -78,10 +78,10 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
 
   const loadSettings = async () => {
     const user = await base44.auth.me();
-    setHiddenMenuItems(user.data?.hidden_menu_items || []);
+    setHiddenMenuItems(user.hidden_menu_items || user.data?.hidden_menu_items || []);
     setDashboardBlocks({
       ...DEFAULT_DASHBOARD_BLOCKS,
-      ...(user.data?.visible_dashboard_blocks || {})
+      ...(user.visible_dashboard_blocks || user.data?.visible_dashboard_blocks || {})
     });
   };
 
@@ -97,10 +97,7 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
 
   const handleSave = async () => {
     setSaving(true);
-    // Читаем текущие данные пользователя и мержим, чтобы не затереть другие поля
-    const user = await base44.auth.me();
     await base44.auth.updateMe({
-      ...(user.data || {}),
       hidden_menu_items: hiddenMenuItems,
       visible_dashboard_blocks: dashboardBlocks,
     });

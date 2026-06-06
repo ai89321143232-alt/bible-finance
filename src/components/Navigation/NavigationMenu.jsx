@@ -42,7 +42,7 @@ export default function NavigationMenu({ currentPageName, onNavigate, isChildMod
 
   useEffect(() => {
     base44.auth.me().then(user => {
-      setHiddenItems(user?.data?.hidden_menu_items || []);
+      setHiddenItems(user?.hidden_menu_items || user?.data?.hidden_menu_items || []);
     }).catch(() => {});
   }, []); // начальная загрузка
 
@@ -50,7 +50,7 @@ export default function NavigationMenu({ currentPageName, onNavigate, isChildMod
   useEffect(() => {
     const handler = () => {
       base44.auth.me().then(user => {
-        setHiddenItems(user?.data?.hidden_menu_items || []);
+        setHiddenItems(user?.hidden_menu_items || user?.data?.hidden_menu_items || []);
       }).catch(() => {});
     };
     window.addEventListener('personalization-saved', handler);
