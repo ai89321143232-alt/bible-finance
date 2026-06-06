@@ -108,9 +108,14 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   };
 
   // Filter accounts to show only current user's accounts
-  const myAccounts = accounts?.filter(acc => 
-    currentUser && (acc.created_by === currentUser.email || acc.created_by?.includes(currentUser.id))
-  ) || [];
+  // Show all accounts while user is loading, filter after
+  const myAccounts = !currentUser 
+    ? (accounts || [])
+    : (accounts?.filter(acc => 
+        acc.created_by === currentUser.email || 
+        acc.user_id === currentUser.id ||
+        acc.created_by_id === currentUser.id
+      ) || []);
 
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
@@ -238,7 +243,8 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         category: isDestGoal ? 'Перенос на цель' : 'Перенос между счетами',
         description: `${sourceAccount?.name} → ${destName}${description ? ': ' + description : ''}`,
         date: format(date, 'yyyy-MM-dd'),
-        account_id: accountId
+        account_id: accountId,
+        user_id: user.id
       };
       await createMutation.mutateAsync(transferData);
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -282,7 +288,8 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
       category,
       description,
       date: format(date, 'yyyy-MM-dd'),
-      account_id: accountId || undefined
+      account_id: accountId || undefined,
+      user_id: user.id
     };
 
     if (transaction) {
