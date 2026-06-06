@@ -58,56 +58,59 @@
     "currency"
   ],
   "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
     "read": {
       "$or": [
         {
-          "created_by": "{{user.email}}"
+          "created_by_id": "{{user.id}}"
         },
         {
-          "$and": [
-            {
-              "data.family_id": "{{user.family_id}}"
-            },
-            {
-              "user.family_id": {
-                "$ne": null
-              }
-            },
-            {
-              "data.family_id": {
-                "$ne": null
-              }
-            }
-          ]
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "data.family_id": "{{user.family_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
         }
       ]
     },
     "update": {
       "$or": [
         {
-          "created_by": "{{user.email}}"
+          "created_by_id": "{{user.id}}"
         },
         {
-          "$and": [
-            {
-              "data.family_id": "{{user.family_id}}"
-            },
-            {
-              "user.family_id": {
-                "$ne": null
-              }
-            },
-            {
-              "data.family_id": {
-                "$ne": null
-              }
-            }
-          ]
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "data.family_id": "{{user.family_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
         }
       ]
     },
     "delete": {
-      "created_by": "{{user.email}}"
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     }
   }
 }
