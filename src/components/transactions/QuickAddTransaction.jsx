@@ -490,15 +490,15 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
               {/* Type Selector */}
               <div className="flex gap-2 mb-6">
                 <Button variant={type === 'expense' ? 'default' : 'outline'} onClick={() => setType('expense')}
-                  className={cn('flex-1 h-12 rounded-xl transition-all', type === 'expense' && 'bg-rose-500 hover:bg-rose-600 border-0')}>
+                  className={cn('flex-1 h-12 rounded-xl transition-all', type === 'expense' ? 'bg-rose-500 hover:bg-rose-600 border-0 text-white' : 'text-slate-900 dark:text-white')}>
                   <ArrowDownRight className="w-4 h-4 mr-2" /> Расход
                 </Button>
                 <Button variant={type === 'income' ? 'default' : 'outline'} onClick={() => setType('income')}
-                  className={cn('flex-1 h-12 rounded-xl transition-all', type === 'income' && 'bg-emerald-500 hover:bg-emerald-600 border-0')}>
+                  className={cn('flex-1 h-12 rounded-xl transition-all', type === 'income' ? 'bg-emerald-500 hover:bg-emerald-600 border-0 text-white' : 'text-slate-900 dark:text-white')}>
                   <ArrowUpRight className="w-4 h-4 mr-2" /> Доход
                 </Button>
                 <Button variant={type === 'transfer' ? 'default' : 'outline'} onClick={() => setType('transfer')}
-                  className={cn('flex-1 h-12 rounded-xl transition-all', type === 'transfer' && 'bg-blue-500 hover:bg-blue-600 border-0')}>
+                  className={cn('flex-1 h-12 rounded-xl transition-all', type === 'transfer' ? 'bg-blue-500 hover:bg-blue-600 border-0 text-white' : 'text-slate-900 dark:text-white')}>
                   <ArrowUpRight className="w-4 h-4 mr-2 transform rotate-90" /> Перенос
                 </Button>
               </div>
