@@ -519,7 +519,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                   <div className="mb-4">
                     <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Откуда</Label>
                     <Select value={accountId} onValueChange={setAccountId}>
-                      <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Выберите ваш счёт" /></SelectTrigger>
+                      <SelectTrigger className="h-12 rounded-xl text-slate-900 dark:text-white"><SelectValue placeholder="Выберите ваш счёт" /></SelectTrigger>
                       <SelectContent>
                         {myAccounts.map((acc) => (
                           <SelectItem key={acc.id} value={acc.id}>
@@ -532,7 +532,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                   <div className="mb-4">
                     <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Куда</Label>
                     <Select value={toAccountId} onValueChange={setToAccountId}>
-                      <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Выберите счёт или цель" /></SelectTrigger>
+                      <SelectTrigger className="h-12 rounded-xl text-slate-900 dark:text-white"><SelectValue placeholder="Выберите счёт или цель" /></SelectTrigger>
                       <SelectContent>
                         {myAccounts.filter(a => a.id !== accountId).map((acc) => (
                           <SelectItem key={acc.id} value={acc.id}>
@@ -569,7 +569,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                   <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
                     {filteredCategories.map((cat) => (
                       <Button key={cat.id} variant={category === cat.name ? 'default' : 'outline'} onClick={() => setCategory(cat.name)}
-                        className={cn('h-auto py-3 flex-col gap-1 rounded-xl transition-all', category === cat.name && 'bg-violet-500 hover:bg-violet-600 border-0')}>
+                        className={cn('h-auto py-3 flex-col gap-1 rounded-xl transition-all', category === cat.name ? 'bg-violet-500 hover:bg-violet-600 border-0 text-white' : 'text-slate-800 dark:text-slate-200')}>
                         <span className="text-xl drop-shadow-sm">
                           {cat.icon === 'Utensils' ? '🍔' : cat.icon === 'Car' ? '🚗' : cat.icon === 'Home' ? '🏠' : cat.icon === 'Gamepad2' ? '🎮' : cat.icon === 'Heart' ? '💊' : cat.icon === 'Shirt' ? '👕' : cat.icon === 'CreditCard' ? '💳' : cat.icon === 'BookOpen' ? '📚' : cat.icon === 'Wallet' ? '💰' : cat.icon === 'Laptop' ? '💻' : cat.icon === 'TrendingUp' ? '📈' : cat.icon === 'Gift' ? '🎁' : '📦'}
                         </span>
@@ -601,7 +601,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                 <div className="mb-4">
                   <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Счёт</Label>
                   <Select value={accountId} onValueChange={setAccountId}>
-                    <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Выберите ваш счёт" /></SelectTrigger>
+                    <SelectTrigger className="h-12 rounded-xl text-slate-900 dark:text-white"><SelectValue placeholder="Выберите ваш счёт" /></SelectTrigger>
                     <SelectContent>
                       {myAccounts.map((acc) => (
                         <SelectItem key={acc.id} value={acc.id}>
