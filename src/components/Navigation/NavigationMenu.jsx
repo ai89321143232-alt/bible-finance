@@ -44,7 +44,18 @@ export default function NavigationMenu({ currentPageName, onNavigate, isChildMod
     base44.auth.me().then(user => {
       setHiddenItems(user?.data?.hidden_menu_items || []);
     }).catch(() => {});
-  }, [currentPageName]); // перечитываем при смене страницы (после сохранения настроек)
+  }, []); // начальная загрузка
+
+  // Слушаем кастомное событие для обновления меню после сохранения настроек
+  useEffect(() => {
+    const handler = () => {
+      base44.auth.me().then(user => {
+        setHiddenItems(user?.data?.hidden_menu_items || []);
+      }).catch(() => {});
+    };
+    window.addEventListener('personalization-saved', handler);
+    return () => window.removeEventListener('personalization-saved', handler);
+  }, []);
 
   const visibleItems = MENU_ITEMS.filter(item => {
     if (isChildMode && item.hideInChildMode) return false;

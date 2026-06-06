@@ -97,13 +97,18 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
 
   const handleSave = async () => {
     setSaving(true);
+    // Читаем текущие данные пользователя и мержим, чтобы не затереть другие поля
+    const user = await base44.auth.me();
     await base44.auth.updateMe({
+      ...(user.data || {}),
       hidden_menu_items: hiddenMenuItems,
       visible_dashboard_blocks: dashboardBlocks,
     });
     setSaving(false);
     toast.success('Настройки сохранены');
     onOpenChange(false);
+    // Уведомляем меню об обновлении
+    window.dispatchEvent(new Event('personalization-saved'));
     onSaved?.();
   };
 
