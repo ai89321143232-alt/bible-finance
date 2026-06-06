@@ -29,6 +29,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useTrialActivation, getSubscriptionStatus } from '@/components/SubscriptionManager';
+import PersonalizationSettings from '@/components/settings/PersonalizationSettings';
+import { Layout } from 'lucide-react';
 
 const SUBSCRIPTION_PLANS = [
   {
@@ -88,6 +90,7 @@ export default function Settings() {
     weeklyReport: false,
     tips: true
   });
+  const [showPersonalization, setShowPersonalization] = useState(false);
 
   // Автоматическая активация демо-периода при первом входе
   useTrialActivation();
@@ -320,6 +323,33 @@ export default function Settings() {
             </Card>
           </motion.div>
 
+          {/* Personalization */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.22 }}
+          >
+            <Card
+              className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => setShowPersonalization(true)}
+            >
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                      <Layout className="w-5 h-5 text-violet-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900 dark:text-white">Персонализация</p>
+                      <p className="text-sm text-slate-500">Настройка меню и блоков дашборда</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-400" />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
           {/* Appearance */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -459,6 +489,13 @@ export default function Settings() {
           </div>
         </div>
       </div>
+
+      {/* Personalization Modal */}
+      <PersonalizationSettings
+        open={showPersonalization}
+        onOpenChange={setShowPersonalization}
+        onSaved={loadUser}
+      />
 
       {/* Edit Profile Modal */}
       <Dialog open={showEditProfile} onOpenChange={setShowEditProfile}>

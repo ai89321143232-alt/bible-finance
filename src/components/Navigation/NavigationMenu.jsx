@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { base44 } from '@/api/base44Client';
 import {
   LayoutDashboard, ArrowLeftRight, CreditCard, Target, TrendingUp,
   ListTodo, PieChart, Settings, Users, FileText, Lightbulb, Baby, BarChart2
@@ -32,16 +33,23 @@ const MENU_ITEMS = [
 //   onNavigate      → коллбэк после клика (закрывает мобильное меню)
 //   isChildMode     → если true — скрывает пункты с hideInChildMode: true
 //
-// ДОБАВИТЬ НОВЫЙ ПУНКТ МЕНЮ:
-//   1. Добавить объект в массив MENU_ITEMS:
-//      { name: 'PageName', label: 'Отображаемое', icon: IconComponent }
-//   2. При необходимости скрыть в детском режиме: hideInChildMode: true
-//   3. Убедиться, что страница зарегистрирована в pages.config.js
+// Фильтрация видимости: читает user.data.hidden_menu_items из base44
+// Обязательные пункты (Dashboard, Transactions, Settings) всегда видны
 // ============================================================
 export default function NavigationMenu({ currentPageName, onNavigate, isChildMode }) {
-  const visibleItems = isChildMode
-    ? MENU_ITEMS.filter(item => !item.hideInChildMode)
-    : MENU_ITEMS;
+  const [hiddenItems, setHiddenItems] = useState([]);
+
+  useEffect(() => {
+    base44.auth.me().then(user => {
+      setHiddenItems(user?.data?.hidden_menu_items || []);
+    }).catch(() => {});
+  }, [currentPageName]); // перечитываем при смене страницы (после сохранения настроек)
+
+  const visibleItems = MENU_ITEMS.filter(item => {
+    if (isChildMode && item.hideInChildMode) return false;
+    if (hiddenItems.includes(item.name)) return false;
+    return true;
+  });
 
   return (
     <nav className="p-3 space-y-0.5">
