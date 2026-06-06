@@ -30,7 +30,8 @@ import {
 } from "@/components/ui/dialog";
 import { useTrialActivation, getSubscriptionStatus } from '@/components/SubscriptionManager';
 import PersonalizationSettings from '@/components/settings/PersonalizationSettings';
-import { Layout } from 'lucide-react';
+import AIModelSettings from '@/components/settings/AIModelSettings';
+import { Layout, Bot } from 'lucide-react';
 
 const SUBSCRIPTION_PLANS = [
   {
@@ -91,6 +92,7 @@ export default function Settings() {
     tips: true
   });
   const [showPersonalization, setShowPersonalization] = useState(false);
+  const [showAISettings, setShowAISettings] = useState(false);
 
   // Автоматическая активация демо-периода при первом входе
   useTrialActivation();
@@ -323,6 +325,33 @@ export default function Settings() {
             </Card>
           </motion.div>
 
+          {/* AI Models */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.21 }}
+          >
+            <Card
+              className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => setShowAISettings(true)}
+            >
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                      <Bot className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900 dark:text-white">AI-модели</p>
+                      <p className="text-sm text-slate-500">DeepSeek и ChatGPT для аналитики</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-400" />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
           {/* Personalization */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -489,6 +518,12 @@ export default function Settings() {
           </div>
         </div>
       </div>
+
+      {/* AI Model Settings Modal */}
+      <AIModelSettings
+        open={showAISettings}
+        onOpenChange={setShowAISettings}
+      />
 
       {/* Personalization Modal */}
       <PersonalizationSettings
