@@ -92,6 +92,7 @@ export default function Transactions() {
     mutationFn: (id) => base44.entities.Transaction.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
       setDeleteId(null);
     }
   });
