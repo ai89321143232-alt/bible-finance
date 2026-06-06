@@ -163,7 +163,7 @@ export default function Transactions() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-                className="rounded-xl"
+                className="rounded-xl text-slate-700 dark:text-white"
               >
                 <ChevronLeft className="w-5 h-5" />
               </Button>
@@ -180,7 +180,7 @@ export default function Transactions() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-                className="rounded-xl"
+                className="rounded-xl text-slate-700 dark:text-white"
               >
                 <ChevronRight className="w-5 h-5" />
               </Button>
@@ -200,7 +200,7 @@ export default function Transactions() {
             />
           </div>
           <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-32 rounded-xl">
+            <SelectTrigger className="w-32 rounded-xl text-slate-900 dark:text-white">
               <SelectValue placeholder="Тип" />
             </SelectTrigger>
             <SelectContent>
@@ -210,7 +210,7 @@ export default function Transactions() {
             </SelectContent>
           </Select>
           <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-40 rounded-xl">
+            <SelectTrigger className="w-40 rounded-xl text-slate-900 dark:text-white">
               <SelectValue placeholder="Категория" />
             </SelectTrigger>
             <SelectContent>
