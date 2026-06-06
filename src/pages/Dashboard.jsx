@@ -138,7 +138,7 @@ export default function Dashboard() {
       return families.find(f => 
         f.owner_id === user?.id || 
         f.members?.some(m => m.user_id === user?.id)
-      );
+      ) ?? null;
     },
     enabled: !!user
   });
@@ -178,31 +178,31 @@ export default function Dashboard() {
   // RLS автоматически фильтрует данные по family_id / created_by на стороне сервера
 
   const { data: transactions = [], isLoading: loadingTransactions } = useQuery({
-    queryKey: ['transactions', user?.family_id],
+    queryKey: ['transactions'],
     queryFn: () => base44.entities.Transaction.list('-date', 200),
     enabled: !!user
   });
 
   const { data: allAccounts = [], isLoading: loadingAccounts } = useQuery({
-    queryKey: ['accounts', user?.family_id],
+    queryKey: ['accounts'],
     queryFn: () => base44.entities.Account.list(),
     enabled: !!user
   });
 
   const { data: budgets = [] } = useQuery({
-    queryKey: ['budgets', user?.family_id],
+    queryKey: ['budgets'],
     queryFn: () => base44.entities.Budget.filter({ is_active: true }),
     enabled: !!user
   });
 
   const { data: goals = [] } = useQuery({
-    queryKey: ['goals', user?.family_id],
+    queryKey: ['goals'],
     queryFn: () => base44.entities.Goal.filter({ status: 'active' }),
     enabled: !!user
   });
 
   const { data: investments = [] } = useQuery({
-    queryKey: ['investments', user?.family_id],
+    queryKey: ['investments'],
     queryFn: () => base44.entities.Investment.list(),
     enabled: !!user
   });
