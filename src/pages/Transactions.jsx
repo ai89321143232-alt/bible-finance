@@ -93,24 +93,24 @@ export default function Transactions() {
       // Найти транзакцию перед удалением
       const transaction = transactions.find(t => t.id === id);
       
-      // Удалить транзакцию
-      await base44.entities.Transaction.delete(id);
-      
-      // Обновить баланс счёта если указан счёт
-      if (transaction?.account_id) {
-        const account = accounts.find(a => a.id === transaction.account_id);
+      // Обновить баланс счёта ДО удаления транзакции
+      if (transaction?.account_id && transaction.type !== 'transfer') {
+        // Получаем свежие данные счёта напрямую из БД
+        const allAccounts = await base44.entities.Account.list();
+        const account = allAccounts.find(a => a.id === transaction.account_id);
         if (account) {
           let newBalance = account.balance ?? 0;
           if (transaction.type === 'expense') {
-            // Возвращаем списанную сумму
-            newBalance += transaction.amount;
+            newBalance += transaction.amount; // возвращаем списанную сумму
           } else if (transaction.type === 'income') {
-            // Убираем зачисленную сумму
-            newBalance -= transaction.amount;
+            newBalance -= transaction.amount; // убираем зачисленную сумму
           }
           await base44.entities.Account.update(transaction.account_id, { balance: newBalance });
         }
       }
+
+      // Удалить транзакцию
+      await base44.entities.Transaction.delete(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
