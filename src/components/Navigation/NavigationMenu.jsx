@@ -4,7 +4,7 @@ import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import {
   LayoutDashboard, ArrowLeftRight, CreditCard, Target, TrendingUp,
-  ListTodo, PieChart, Settings, Users, FileText, Lightbulb, Baby, BarChart2
+  ListTodo, PieChart, Settings, Users, FileText, Lightbulb, Baby, BarChart2, HelpCircle
 } from 'lucide-react';
 
 const MENU_ITEMS = [
@@ -21,6 +21,7 @@ const MENU_ITEMS = [
   { name: 'Notes',             label: 'Заметки',          icon: FileText },
   { name: 'FamilyFinances',    label: 'Финансы семьи',    icon: Users },
   { name: 'ChildExpenses',     label: 'Расходы на детей', icon: Baby,        hideInChildMode: true },
+  { name: 'HelpCenter',        label: 'База знаний',      icon: HelpCircle },
   { name: 'Settings',          label: 'Настройки',        icon: Settings },
 ];
 

@@ -26,6 +26,7 @@ import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-route
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import Onboarding from './pages/Onboarding';
+import HelpCenter from './pages/HelpCenter';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
 // Достаём список страниц, компонент Layout и имя главной страницы
@@ -43,7 +44,7 @@ const AuthenticatedApp = () => {
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    if (user && user.onboarding_complete === false && !window.location.pathname.includes('/Onboarding')) {
+    if (user && !user.onboarding_complete && !window.location.pathname.includes('/Onboarding')) {
       navigate('/Onboarding');
     }
   }, [user]);
@@ -92,6 +93,8 @@ const AuthenticatedApp = () => {
       ))}
       {/* Онбординг — без Layout */}
       <Route path="/Onboarding" element={<Onboarding />} />
+      {/* База знаний */}
+      <Route path="/HelpCenter" element={<LayoutWrapper currentPageName="HelpCenter"><HelpCenter /></LayoutWrapper>} />
       {/* Страница 404 для неизвестных маршрутов */}
       <Route path="*" element={<PageNotFound />} />
     </Routes>
