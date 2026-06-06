@@ -81,6 +81,7 @@ import { toast } from "sonner";
 //   isSubmitting state + disabled на кнопке + isPending мутаций
 // ============================================================
 export default function QuickAddTransaction({ transaction, onClose, accounts, defaultType = 'expense' }) {
+  const isMobile = window.innerWidth < 640;
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('manual');
   const [type, setType] = useState(transaction?.type || defaultType);
@@ -430,44 +431,19 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
 
   const filteredCategories = categories.filter(c => c.type === type);
 
-  return (
+  const formContent = (
     <>
-      <AnimatePresence>
-        {showReviewModal && (
-          <ReceiptReviewModal
-            items={scannedItems}
-            categories={categories}
-            onConfirm={handleReviewConfirm}
-            onClose={() => setShowReviewModal(false)}
-            isLoading={isScanning}
-          />
-        )}
-      </AnimatePresence>
-
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
-        onClick={onClose}
-      >
-        <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 100, opacity: 0 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-              {transaction ? 'Редактировать операцию' : 'Новая операция'}
-            </h2>
-            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
+          {/* Header — only for desktop */}
+          {!isMobile && (
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                {transaction ? 'Редактировать операцию' : 'Новая операция'}
+              </h2>
+              <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+          )}
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
@@ -650,8 +626,63 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
               </Button>
             </>
           )}
+    </>
+  );
+
+  return (
+    <>
+      <AnimatePresence>
+        {showReviewModal && (
+          <ReceiptReviewModal
+            items={scannedItems}
+            categories={categories}
+            onConfirm={handleReviewConfirm}
+            onClose={() => setShowReviewModal(false)}
+            isLoading={isScanning}
+          />
+        )}
+      </AnimatePresence>
+
+      {isMobile ? (
+        <motion.div
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '100%' }}
+          transition={{ type: 'tween', duration: 0.25 }}
+          className="fixed inset-0 bg-[#0f1117] z-50 overflow-y-auto"
+        >
+          <div className="sticky top-0 bg-[#0a0d13] border-b border-white/5 px-4 py-4 flex items-center gap-3 z-10">
+            <button onClick={onClose} className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white">
+              <X className="w-4 h-4" />
+            </button>
+            <h2 className="text-base font-semibold text-white">
+              {transaction ? 'Редактировать операцию' : 'Новая операция'}
+            </h2>
+          </div>
+          <div className="p-4">
+            {formContent}
+          </div>
         </motion.div>
-      </motion.div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {formContent}
+          </motion.div>
+        </motion.div>
+      )}
     </>
   );
 }
