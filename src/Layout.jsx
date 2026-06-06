@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import NavigationMenu from '@/components/Navigation/NavigationMenu';
+import NotificationBell from '@/components/NotificationBell';
 import { base44 } from '@/api/base44Client';
 
 // ============================================================
@@ -82,6 +83,11 @@ export default function Layout({ children, currentPageName }) {
           isChildMode={themePreference === 'child'}
         />
 
+        {/* Notification Bell (desktop) */}
+        <div className="px-4 pb-2 flex justify-end">
+          <NotificationBell />
+        </div>
+
         {/* Footer */}
         <div className="p-4 mt-auto border-t border-white/5">
           <Link to={createPageUrl('Settings')}>
@@ -115,11 +121,14 @@ export default function Layout({ children, currentPageName }) {
         >
           <Menu className="w-5 h-5" />
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1">
           <div className="w-7 h-7 rounded-md bg-white flex items-center justify-center">
             <span className="text-black font-bold text-xs">F</span>
           </div>
           <span className="text-white font-semibold text-sm">FinanceApp</span>
+        </div>
+        <div className="ml-auto">
+          <NotificationBell />
         </div>
       </div>
 
