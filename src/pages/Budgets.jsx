@@ -254,18 +254,37 @@ export default function Budgets() {
     return () => clearInterval(interval);
   }, [myBudgets, viewMode, user]);
 
-  // Calculate spent for each budget
+  // Calculate spent for each budget based on its period
   const getBudgetSpent = (budget) => {
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    
+    let periodStart;
+
+    switch (budget.period) {
+      case 'weekly': {
+        const day = now.getDay(); // 0=Sun
+        periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day);
+        break;
+      }
+      case 'quarterly': {
+        const quarter = Math.floor(now.getMonth() / 3);
+        periodStart = new Date(now.getFullYear(), quarter * 3, 1);
+        break;
+      }
+      case 'yearly':
+        periodStart = new Date(now.getFullYear(), 0, 1);
+        break;
+      case 'monthly':
+      default:
+        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
     const budgetCategories = budget.categories || (budget.category ? [budget.category] : []);
     
     return transactions
       .filter(t => 
         t.type === 'expense' && 
-        budgetCategories.includes(t.category) &&
-        new Date(t.date) >= monthStart
+        (budgetCategories.length === 0 || budgetCategories.includes(t.category)) &&
+        new Date(t.date) >= periodStart
       )
       .reduce((sum, t) => sum + t.amount, 0);
   };

@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
             if (!b.is_active) return false;
 
             // Проверяем принадлежность бюджета пользователю или семье
-            const belongsToUser = b.user_id === data.user_id || b.created_by_id === data.created_by_id;
+            const belongsToUser = b.user_id === data.user_id || b.created_by_id === data.user_id;
             const belongsToFamily = data.family_id && b.family_id === data.family_id;
             if (!belongsToUser && !belongsToFamily) return false;
 
