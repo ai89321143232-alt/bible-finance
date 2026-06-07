@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
   Users, Wallet, Target, TrendingUp, ArrowUpRight, ArrowDownRight,
-  ChevronRight, X, Edit2, Check
+  ChevronRight, X, Edit2, Check, UserPlus, Link as LinkIcon, PiggyBank, BarChart2, Shield
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,10 @@ export default function FamilyFinances() {
   const [selectedMember, setSelectedMember] = useState(null);
   const [editingMemberId, setEditingMemberId] = useState(null);
   const [editingName, setEditingName] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [familyName, setFamilyName] = useState('');
+  const [joinCode, setJoinCode] = useState('');
 
   React.useEffect(() => {
     loadCurrentUser();
@@ -202,20 +206,170 @@ export default function FamilyFinances() {
     sum + (inv.quantity * (inv.current_price || inv.purchase_price)), 0
   );
 
+  const createFamilyMutation = useMutation({
+    mutationFn: async () => {
+      if (!familyName || !currentUser) return;
+      const inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+      const family = await base44.entities.Family.create({
+        name: familyName,
+        owner_id: currentUser.id,
+        currency: 'RUB',
+        members: [{ user_id: currentUser.id, name: currentUser.full_name || currentUser.email, role: 'admin', avatar_color: '#8B5CF6' }],
+        invite_code: inviteCode,
+        subscription_tier: 'free'
+      });
+      await base44.auth.updateMe({ family_id: family.id });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-family'] });
+      setShowCreateModal(false);
+      setFamilyName('');
+    }
+  });
+
+  const joinFamilyMutation = useMutation({
+    mutationFn: async () => {
+      const allFamilies = await base44.entities.Family.list();
+      const target = allFamilies.find(f => f.invite_code === joinCode.trim().toUpperCase());
+      if (!target) throw new Error('Семья с таким кодом не найдена');
+      const colors = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444'];
+      const updatedMembers = [...(target.members || []), {
+        user_id: currentUser.id,
+        name: currentUser.full_name || currentUser.email,
+        display_name: currentUser.full_name || currentUser.email,
+        role: 'editor',
+        avatar_color: colors[Math.floor(Math.random() * colors.length)]
+      }];
+      await base44.entities.Family.update(target.id, { members: updatedMembers });
+      await base44.auth.updateMe({ family_id: target.id });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-family'] });
+      setShowJoinModal(false);
+      setJoinCode('');
+    }
+  });
+
   if (!family && currentUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center p-6">
-        <div className="text-center">
-          <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/30 dark:to-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Users className="w-10 h-10 text-violet-600" />
+      <div className="min-h-screen bg-[#0f1117] flex items-center justify-center p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-lg w-full"
+        >
+          {/* Icon + Title */}
+          <div className="text-center mb-8">
+            <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
+              <Users className="w-10 h-10 text-violet-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Семейный бюджет</h2>
+            <p className="text-white/50 text-sm max-w-sm mx-auto">
+              Управляйте финансами вместе с близкими — прозрачно, удобно и синхронно.
+            </p>
           </div>
-          <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
-            Вы не состоите в семье
-          </h3>
-          <p className="text-slate-500 dark:text-slate-400">
-            Создайте или присоединитесь к семье во вкладке "Семья"
-          </p>
-        </div>
+
+          {/* Benefits */}
+          <div className="grid grid-cols-2 gap-3 mb-8">
+            {[
+              { icon: <Wallet className="w-5 h-5 text-emerald-400" />, bg: 'bg-emerald-500/10 border-emerald-500/20', title: 'Общий баланс', desc: 'Видите счета всех членов семьи в одном месте' },
+              { icon: <BarChart2 className="w-5 h-5 text-cyan-400" />, bg: 'bg-cyan-500/10 border-cyan-500/20', title: 'Аналитика семьи', desc: 'Расходы и доходы каждого участника' },
+              { icon: <Target className="w-5 h-5 text-violet-400" />, bg: 'bg-violet-500/10 border-violet-500/20', title: 'Общие цели', desc: 'Копите на отпуск или покупки вместе' },
+              { icon: <Shield className="w-5 h-5 text-amber-400" />, bg: 'bg-amber-500/10 border-amber-500/20', title: 'Роли и доступ', desc: 'Гибкие права: просмотр, редактирование' },
+            ].map((item, i) => (
+              <div key={i} className={`rounded-xl border p-4 ${item.bg}`}>
+                <div className="mb-2">{item.icon}</div>
+                <p className="text-white font-medium text-sm mb-1">{item.title}</p>
+                <p className="text-white/40 text-xs">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Buttons */}
+          <div className="flex flex-col gap-3">
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              className="w-full h-12 bg-white text-black hover:bg-white/90 font-semibold rounded-xl text-sm"
+            >
+              <Users className="w-4 h-4 mr-2" />
+              Создать семью
+            </Button>
+            <Button
+              onClick={() => setShowJoinModal(true)}
+              variant="outline"
+              className="w-full h-12 border-white/10 bg-white/5 text-white hover:bg-white/10 font-medium rounded-xl text-sm"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Присоединиться по коду
+            </Button>
+          </div>
+        </motion.div>
+
+        {/* Create Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setShowCreateModal(false)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-[#1a1f2e] border border-white/10 rounded-2xl p-6 w-full max-w-sm"
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 className="text-white font-semibold text-lg mb-4">Создать семью</h3>
+              <input
+                value={familyName}
+                onChange={e => setFamilyName(e.target.value)}
+                placeholder="Например: Семья Ивановых"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/30 text-sm outline-none mb-4"
+              />
+              <p className="text-white/30 text-xs mb-4">После создания сможете пригласить близких по коду</p>
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => setShowCreateModal(false)} className="flex-1 text-white/60 hover:text-white">Отмена</Button>
+                <Button
+                  onClick={() => createFamilyMutation.mutate()}
+                  disabled={!familyName || createFamilyMutation.isPending}
+                  className="flex-1 bg-white text-black hover:bg-white/90 rounded-xl"
+                >
+                  {createFamilyMutation.isPending ? 'Создаём...' : 'Создать'}
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Join Modal */}
+        {showJoinModal && (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setShowJoinModal(false)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-[#1a1f2e] border border-white/10 rounded-2xl p-6 w-full max-w-sm"
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 className="text-white font-semibold text-lg mb-4">Присоединиться к семье</h3>
+              <input
+                value={joinCode}
+                onChange={e => setJoinCode(e.target.value.toUpperCase())}
+                placeholder="Введите код приглашения"
+                maxLength={8}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/30 text-sm outline-none font-mono uppercase mb-4"
+              />
+              <p className="text-white/30 text-xs mb-4">Код можно найти в разделе "Семья" у того, кто вас приглашает</p>
+              {joinFamilyMutation.isError && (
+                <p className="text-red-400 text-xs mb-3">{joinFamilyMutation.error?.message}</p>
+              )}
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => setShowJoinModal(false)} className="flex-1 text-white/60 hover:text-white">Отмена</Button>
+                <Button
+                  onClick={() => joinFamilyMutation.mutate()}
+                  disabled={!joinCode || joinFamilyMutation.isPending}
+                  className="flex-1 bg-white text-black hover:bg-white/90 rounded-xl"
+                >
+                  {joinFamilyMutation.isPending ? 'Вступаем...' : 'Вступить'}
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
     );
   }
