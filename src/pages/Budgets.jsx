@@ -136,17 +136,18 @@ export default function Budgets() {
       if (!user) return [];
       const budgets = await base44.entities.Budget.list();
       const familyId = family?.id;
+      // Show ALL family budgets (own + shared): is_family_budget with matching family_id, or explicitly shared with user
       return budgets.filter(b => 
-        (b.share_with?.includes(user?.id) || (b.is_family_budget && b.family_id && familyId && b.family_id === familyId))
-        && b.created_by !== user?.email
+        (b.is_family_budget && b.family_id && familyId && b.family_id === familyId) ||
+        b.share_with?.includes(user?.id)
       );
     },
-    enabled: !!user
+    enabled: !!user && !!family
   });
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions'],
-    queryFn: () => base44.entities.Transaction.list('-date', 500)
+    queryKey: ['transactions', family?.id],
+    queryFn: () => base44.entities.Transaction.list('-date', 1000)
   });
 
   const invalidateBudgets = () => {
