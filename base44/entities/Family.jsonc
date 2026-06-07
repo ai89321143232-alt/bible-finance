@@ -68,12 +68,26 @@
   ],
   "rls": {
     "create": {
-      "owner_id": "{{user.id}}"
+      "$or": [
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     },
     "read": {
       "$or": [
         {
-          "owner_id": "{{user.id}}"
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.owner_id": "{{user.id}}"
         },
         {
           "data.members.user_id": "{{user.id}}"
@@ -88,7 +102,10 @@
     "update": {
       "$or": [
         {
-          "owner_id": "{{user.id}}"
+          "data.owner_id": "{{user.id}}"
+        },
+        {
+          "created_by_id": "{{user.id}}"
         },
         {
           "user_condition": {
@@ -100,7 +117,10 @@
     "delete": {
       "$or": [
         {
-          "owner_id": "{{user.id}}"
+          "data.owner_id": "{{user.id}}"
+        },
+        {
+          "created_by_id": "{{user.id}}"
         },
         {
           "user_condition": {
