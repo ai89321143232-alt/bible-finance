@@ -148,10 +148,15 @@ export default function Budgets() {
     queryFn: () => base44.entities.Transaction.list('-date', 500)
   });
 
+  const invalidateBudgets = () => {
+    queryClient.invalidateQueries({ queryKey: ['my-budgets'] });
+    queryClient.invalidateQueries({ queryKey: ['shared-budgets'] });
+  };
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Budget.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      invalidateBudgets();
       resetForm();
     }
   });
@@ -159,7 +164,7 @@ export default function Budgets() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Budget.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      invalidateBudgets();
       resetForm();
     }
   });
@@ -167,7 +172,7 @@ export default function Budgets() {
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Budget.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      invalidateBudgets();
       setDeleteId(null);
     }
   });
@@ -532,7 +537,7 @@ export default function Budgets() {
 
             <Button
               onClick={handleSubmit}
-              disabled={!formData.name || formData.categories.length === 0 || !formData.limit_amount || createMutation.isPending || updateMutation.isPending}
+              disabled={!formData.name || !formData.limit_amount || createMutation.isPending || updateMutation.isPending}
               className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"
             >
               <Check className="w-4 h-4 mr-2" />
