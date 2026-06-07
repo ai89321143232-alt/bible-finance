@@ -224,8 +224,13 @@ export default function FamilyFinances() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-family'] });
+      // Перезагружаем страницу чтобы user.family_id обновился
+      setTimeout(() => window.location.reload(), 300);
       setShowCreateModal(false);
       setFamilyName('');
+    },
+    onError: (error) => {
+      alert('Ошибка создания семьи: ' + error.message);
     }
   });
 
@@ -247,8 +252,13 @@ export default function FamilyFinances() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-family'] });
+      // Перезагружаем страницу чтобы user.family_id обновился
+      setTimeout(() => window.location.reload(), 300);
       setShowJoinModal(false);
       setJoinCode('');
+    },
+    onError: (error) => {
+      alert('Ошибка: ' + error.message);
     }
   });
 
