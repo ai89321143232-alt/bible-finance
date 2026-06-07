@@ -38,7 +38,7 @@ export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    base44.auth.me().then(user => {
+    base44.auth.me().then((user) => {
       setThemePreference(user?.theme_preference || null);
     }).catch(() => {});
   }, [currentPageName]);
@@ -71,7 +71,7 @@ export default function Layout({ children, currentPageName }) {
             <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
               <span className="text-black font-bold text-sm">F</span>
             </div>
-            <span className="text-white font-semibold tracking-tight text-base">FinanceApp</span>
+            <span className="text-white font-semibold tracking-tight text-base">Библия Финансов</span>
           </Link>
         </div>
 
@@ -80,8 +80,8 @@ export default function Layout({ children, currentPageName }) {
           currentPageName={currentPageName}
           onNavigate={() => {}}
           isMobile={false}
-          isChildMode={themePreference === 'child'}
-        />
+          isChildMode={themePreference === 'child'} />
+        
 
         {/* Notification Bell (desktop) */}
         <div className="px-4 pb-2 flex justify-end">
@@ -111,14 +111,14 @@ export default function Layout({ children, currentPageName }) {
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#0a0d13] border-b border-white/5 z-40 flex items-center px-5 gap-3">
         <button
           onClick={() => navigate(-1)}
-          className="w-9 h-9 bg-white/5 border border-white/10 text-white rounded-lg flex items-center justify-center"
-        >
+          className="w-9 h-9 bg-white/5 border border-white/10 text-white rounded-lg flex items-center justify-center">
+          
           <ArrowLeft className="w-4 h-4" />
         </button>
         <button
           onClick={() => setShowMobileMenu(!showMobileMenu)}
-          className="w-9 h-9 bg-white/5 border border-white/10 text-white rounded-lg flex items-center justify-center"
-        >
+          className="w-9 h-9 bg-white/5 border border-white/10 text-white rounded-lg flex items-center justify-center">
+          
           <Menu className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-2 flex-1">
@@ -134,30 +134,30 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Mobile Sidebar */}
       <AnimatePresence>
-        {showMobileMenu && (
-          <>
+        {showMobileMenu &&
+        <>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowMobileMenu(false)}
-              className="lg:hidden fixed inset-0 bg-black/70 z-40"
-            />
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowMobileMenu(false)}
+            className="lg:hidden fixed inset-0 bg-black/70 z-40" />
+          
             <motion.div
-              initial={{ x: -280 }}
-              animate={{ x: 0 }}
-              exit={{ x: -280 }}
-              transition={{ type: 'tween', duration: 0.2 }}
-              drag="x"
-              dragConstraints={{ right: 0 }}
-              dragElastic={0.1}
-              onDragEnd={(event, info) => {
-                if (info.offset.x < -80 || info.velocity.x < -300) {
-                  setShowMobileMenu(false);
-                }
-              }}
-              className="lg:hidden fixed left-0 top-0 h-full w-72 bg-[#0a0d13] border-r border-white/5 shadow-2xl z-50 overflow-y-auto"
-            >
+            initial={{ x: -280 }}
+            animate={{ x: 0 }}
+            exit={{ x: -280 }}
+            transition={{ type: 'tween', duration: 0.2 }}
+            drag="x"
+            dragConstraints={{ right: 0 }}
+            dragElastic={0.1}
+            onDragEnd={(event, info) => {
+              if (info.offset.x < -80 || info.velocity.x < -300) {
+                setShowMobileMenu(false);
+              }
+            }}
+            className="lg:hidden fixed left-0 top-0 h-full w-72 bg-[#0a0d13] border-r border-white/5 shadow-2xl z-50 overflow-y-auto">
+            
               <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="w-7 h-7 rounded-md bg-white flex items-center justify-center">
@@ -166,19 +166,19 @@ export default function Layout({ children, currentPageName }) {
                   <span className="text-white font-semibold text-sm">FinanceApp</span>
                 </div>
                 <button
-                  onClick={() => setShowMobileMenu(false)}
-                  className="w-7 h-7 rounded-md bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
-                >
+                onClick={() => setShowMobileMenu(false)}
+                className="w-7 h-7 rounded-md bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
+                
                   <X className="w-4 h-4 text-white/60" />
                 </button>
               </div>
 
               <NavigationMenu
-                currentPageName={currentPageName}
-                onNavigate={() => setShowMobileMenu(false)}
-                isMobile={true}
-                isChildMode={themePreference === 'child'}
-              />
+              currentPageName={currentPageName}
+              onNavigate={() => setShowMobileMenu(false)}
+              isMobile={true}
+              isChildMode={themePreference === 'child'} />
+            
 
               <div className="p-4 mt-auto border-t border-white/5">
                 <Link to={createPageUrl('Settings')} onClick={() => setShowMobileMenu(false)}>
@@ -193,8 +193,8 @@ export default function Layout({ children, currentPageName }) {
               </div>
             </motion.div>
           </>
-        )}
+        }
       </AnimatePresence>
-    </div>
-  );
+    </div>);
+
 }

@@ -104,7 +104,16 @@
     "read": {
       "$or": [
         {
-          "data.user_id": "{{user.id}}"
+          "$and": [
+            {
+              "data.user_id": "{{user.id}}"
+            },
+            {
+              "data.user_id": {
+                "$ne": null
+              }
+            }
+          ]
         },
         {
           "$and": [
@@ -120,13 +129,16 @@
             },
             {
               "data.family_id": "{{user.family_id}}"
+            },
+            {
+              "user.family_id": {
+                "$ne": null
+              }
             }
           ]
         },
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "created_by_id": "{{user.id}}"
         }
       ]
     },
@@ -136,9 +148,7 @@
           "data.user_id": "{{user.id}}"
         },
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "created_by_id": "{{user.id}}"
         }
       ]
     },
@@ -148,9 +158,7 @@
           "data.user_id": "{{user.id}}"
         },
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "created_by_id": "{{user.id}}"
         }
       ]
     }
