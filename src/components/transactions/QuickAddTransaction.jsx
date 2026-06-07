@@ -409,7 +409,8 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         category: item.category,
         description: `${description} - ${item.name}`,
         date: format(date, 'yyyy-MM-dd'),
-        account_id: accountId || undefined
+        account_id: accountId || undefined,
+        user_id: user.id
       };
       await createMutation.mutateAsync(data);
       await updateBudgetSpent(item.category, item.price);
