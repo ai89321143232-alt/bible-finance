@@ -148,16 +148,18 @@ export default function Goals() {
   });
 
   const { data: sharedGoals = [] } = useQuery({
-    queryKey: ['shared-goals', user?.id],
+    queryKey: ['shared-goals', user?.id, family?.id],
     queryFn: async () => {
       if (!user) return [];
       const goals = await base44.entities.Goal.list();
+      const familyId = family?.id;
+      // Show ALL family goals (own + shared): is_family_goal with matching family_id, or explicitly shared with user
       return goals.filter(g => 
-        (g.share_with?.includes(user?.id) || (g.is_family_goal && g.family_id && g.family_id === user?.family_id))
-        && g.created_by !== user?.email
+        (g.is_family_goal && g.family_id && familyId && g.family_id === familyId) ||
+        g.share_with?.includes(user?.id)
       );
     },
-    enabled: !!user
+    enabled: !!user && !!family
   });
 
   const { data: accounts = [] } = useQuery({
