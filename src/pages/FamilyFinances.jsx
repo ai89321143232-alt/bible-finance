@@ -208,15 +208,16 @@ export default function FamilyFinances() {
 
   const createFamilyMutation = useMutation({
     mutationFn: async () => {
-      // Guard: требуем название и пользователя
-      if (!familyName.trim() || !currentUser) throw new Error('Введите название семьи');
+      // Всегда получаем свежего пользователя прямо внутри мутации
+      const me = await base44.auth.me();
+      if (!me) throw new Error('Не авторизован');
+      if (!familyName.trim()) throw new Error('Введите название семьи');
       const inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-      // Используем newFamily, чтобы не конфликтовать с переменной family из useQuery
       const newFamily = await base44.entities.Family.create({
         name: familyName.trim(),
-        owner_id: currentUser.id,
+        owner_id: me.id,
         currency: 'RUB',
-        members: [{ user_id: currentUser.id, name: currentUser.full_name || currentUser.email, role: 'admin', avatar_color: '#8B5CF6' }],
+        members: [{ user_id: me.id, name: me.full_name || me.email, role: 'admin', avatar_color: '#8B5CF6' }],
         invite_code: inviteCode,
         subscription_tier: 'free'
       });
@@ -236,14 +237,16 @@ export default function FamilyFinances() {
 
   const joinFamilyMutation = useMutation({
     mutationFn: async () => {
+      const me = await base44.auth.me();
+      if (!me) throw new Error('Не авторизован');
       const allFamilies = await base44.entities.Family.list();
       const target = allFamilies.find(f => f.invite_code === joinCode.trim().toUpperCase());
       if (!target) throw new Error('Семья с таким кодом не найдена');
       const colors = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444'];
       const updatedMembers = [...(target.members || []), {
-        user_id: currentUser.id,
-        name: currentUser.full_name || currentUser.email,
-        display_name: currentUser.full_name || currentUser.email,
+        user_id: me.id,
+        name: me.full_name || me.email,
+        display_name: me.full_name || me.email,
         role: 'editor',
         avatar_color: colors[Math.floor(Math.random() * colors.length)]
       }];
