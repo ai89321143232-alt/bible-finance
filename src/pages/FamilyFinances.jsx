@@ -208,17 +208,19 @@ export default function FamilyFinances() {
 
   const createFamilyMutation = useMutation({
     mutationFn: async () => {
-      if (!familyName || !currentUser) return;
+      // Guard: требуем название и пользователя
+      if (!familyName.trim() || !currentUser) throw new Error('Введите название семьи');
       const inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-      const family = await base44.entities.Family.create({
-        name: familyName,
+      // Используем newFamily, чтобы не конфликтовать с переменной family из useQuery
+      const newFamily = await base44.entities.Family.create({
+        name: familyName.trim(),
         owner_id: currentUser.id,
         currency: 'RUB',
         members: [{ user_id: currentUser.id, name: currentUser.full_name || currentUser.email, role: 'admin', avatar_color: '#8B5CF6' }],
         invite_code: inviteCode,
         subscription_tier: 'free'
       });
-      await base44.auth.updateMe({ family_id: family.id });
+      await base44.auth.updateMe({ family_id: newFamily.id });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-family'] });
