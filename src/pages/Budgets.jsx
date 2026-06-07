@@ -131,12 +131,13 @@ export default function Budgets() {
   });
 
   const { data: sharedBudgets = [] } = useQuery({
-    queryKey: ['shared-budgets', user?.id],
+    queryKey: ['shared-budgets', user?.id, family?.id],
     queryFn: async () => {
       if (!user) return [];
       const budgets = await base44.entities.Budget.list();
+      const familyId = family?.id;
       return budgets.filter(b => 
-        (b.share_with?.includes(user?.id) || (b.is_family_budget && b.family_id && b.family_id === user?.family_id))
+        (b.share_with?.includes(user?.id) || (b.is_family_budget && b.family_id && familyId && b.family_id === familyId))
         && b.created_by !== user?.email
       );
     },
