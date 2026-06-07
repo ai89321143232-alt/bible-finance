@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import QuickAddTransaction from '@/components/transactions/QuickAddTransaction';
+import VoiceTransactionButton from '@/components/VoiceTransactionButton';
 import BalanceCard from '@/components/dashboard/BalanceCard';
 import SpendingChart from '@/components/dashboard/SpendingChart';
 import RecentTransactions from '@/components/dashboard/RecentTransactions';
@@ -304,16 +305,19 @@ export default function Dashboard() {
               )}
             </p>
           </div>
-          <Button
-            onClick={() => {
-              setQuickAddType('expense');
-              setShowQuickAdd(true);
-            }}
-            className="bg-white text-black hover:bg-white/90 rounded-lg h-9 px-4 text-sm font-semibold"
-          >
-            <Plus className="w-4 h-4 mr-1.5" />
-            <span className="hidden sm:inline">Добавить</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <VoiceTransactionButton onTransactionCreated={() => queryClient.invalidateQueries()} />
+            <Button
+              onClick={() => {
+                setQuickAddType('expense');
+                setShowQuickAdd(true);
+              }}
+              className="bg-white text-black hover:bg-white/90 rounded-lg h-9 px-4 text-sm font-semibold"
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              <span className="hidden sm:inline">Добавить</span>
+            </Button>
+          </div>
         </motion.div>
 
         {/* Balance Mode Selector */}
