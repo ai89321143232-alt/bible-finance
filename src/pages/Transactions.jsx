@@ -131,6 +131,7 @@ export default function Transactions() {
   const filteredTransactions = transactions.filter(t => {
     const date = new Date(t.date);
     const inMonth = date >= startOfMonth(currentMonth) && date <= endOfMonth(currentMonth);
+    // endOfMonth включает конец дня
     const matchesSearch = !searchQuery || 
       t.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.description?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -142,7 +143,8 @@ export default function Transactions() {
 
   // Group by date
   const groupedTransactions = filteredTransactions.reduce((groups, t) => {
-    const dateKey = format(new Date(t.date), 'yyyy-MM-dd');
+    const d = new Date(t.date);
+    const dateKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     if (!groups[dateKey]) groups[dateKey] = [];
     groups[dateKey].push(t);
     return groups;
@@ -257,7 +259,7 @@ export default function Transactions() {
                 animate={{ opacity: 1, y: 0 }}
               >
                 <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3 px-1">
-                  {format(new Date(dateKey), 'd MMMM, EEEE', { locale: ru })}
+                  {format(new Date(dateKey + 'T00:00:00'), 'd MMMM, EEEE', { locale: ru })}
                 </h3>
                 <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden">
                   <CardContent className="p-0">

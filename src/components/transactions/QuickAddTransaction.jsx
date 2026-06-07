@@ -88,6 +88,10 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   const [amount, setAmount] = useState(transaction?.amount?.toString() || '');
   const [category, setCategory] = useState(transaction?.category || '');
   const [description, setDescription] = useState(transaction?.description || '');
+  const toLocalDatetimeString = (d) => {
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
   const [date, setDate] = useState(transaction?.date ? new Date(transaction.date) : new Date());
   const [accountId, setAccountId] = useState(transaction?.account_id || '');
   const [toAccountId, setToAccountId] = useState('');
@@ -243,7 +247,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         amount: amountNum,
         category: isDestGoal ? 'Перенос на цель' : 'Перенос между счетами',
         description: `${sourceAccount?.name} → ${destName}${description ? ': ' + description : ''}`,
-        date: format(date, 'yyyy-MM-dd'),
+        date: date.toISOString(),
         account_id: accountId,
         user_id: user.id
       };
@@ -288,7 +292,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
       amount: amountNum,
       category,
       description,
-      date: format(date, 'yyyy-MM-dd'),
+      date: date.toISOString(),
       account_id: accountId || undefined,
       user_id: user.id
     };
@@ -575,12 +579,12 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                 </div>
               )}
 
-              {/* Date */}
+              {/* Date & Time */}
               <div className="mb-4">
-                <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Дата</Label>
+                <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Дата и время</Label>
                 <input
-                  type="date"
-                  value={format(date, 'yyyy-MM-dd')}
+                  type="datetime-local"
+                  value={toLocalDatetimeString(date)}
                   onChange={(e) => e.target.value && setDate(new Date(e.target.value))}
                   className="w-full h-12 rounded-xl border border-input bg-white dark:bg-slate-800 px-3 text-slate-900 dark:text-white text-sm"
                 />
