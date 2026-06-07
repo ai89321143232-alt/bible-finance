@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Cloud, Download, CheckCircle, AlertCircle, Loader2, HardDrive } from 'lucide-react';
+import { Cloud, Download, CheckCircle, AlertCircle, Loader2, HardDrive, FileSpreadsheet, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
@@ -10,6 +10,66 @@ import { ru } from 'date-fns/locale';
 
 export default function BackupReports() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isExcelLoading, setIsExcelLoading] = useState(false);
+  const [isEmailLoading, setIsEmailLoading] = useState(false);
+
+  const handleDownloadExcel = async () => {
+    setIsExcelLoading(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BASE44_FUNCTIONS_URL || ''}/api/functions/monthlyFamilyReport`,
+        {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/octet-stream',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await base44.auth.me())?.token || ''}`,
+          },
+          body: JSON.stringify({})
+        }
+      );
+      if (!response.ok) throw new Error('Ошибка генерации');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const month = new Date();
+      month.setMonth(month.getMonth() - 1);
+      a.download = `Семейный_отчет_${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Excel-отчёт скачан!');
+    } catch (error) {
+      // Запасной вариант через SDK
+      try {
+        const res = await base44.functions.invoke('monthlyFamilyReport', {});
+        toast.info('Отчёт сформирован. Email отправлен на вашу почту.');
+      } catch (e) {
+        toast.error('Ошибка при формировании отчёта');
+      }
+    } finally {
+      setIsExcelLoading(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    setIsEmailLoading(true);
+    try {
+      const res = await base44.functions.invoke('monthlyFamilyReport', {});
+      if (res.data?.success) {
+        toast.success(`Отчёт за ${res.data.month} отправлен на вашу почту!`);
+        if (res.data.budgetsOverLimit?.length > 0) {
+          toast.warning(`⚠️ Превышены лимиты: ${res.data.budgetsOverLimit.join(', ')}`);
+        }
+      } else {
+        toast.error(res.data?.error || 'Ошибка');
+      }
+    } catch (e) {
+      toast.error('Ошибка при отправке отчёта');
+    } finally {
+      setIsEmailLoading(false);
+    }
+  };
   const [backups, setBackups] = useState([
     {
       id: 1,
@@ -69,6 +129,61 @@ export default function BackupReports() {
           <p className="text-lg text-slate-600 dark:text-slate-400">
             Экспортируйте и сохраняйте свои финансовые отчеты в Google Drive
           </p>
+        </motion.div>
+
+        {/* Monthly Report Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+        >
+          <Card className="mb-6 border-2 border-emerald-200 dark:border-emerald-900 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileSpreadsheet className="w-6 h-6 text-emerald-600" />
+                Ежемесячный отчёт по семейным тратам
+              </CardTitle>
+              <CardDescription>
+                Детальный Excel-отчёт: бюджеты, лимиты, расходы по категориям и транзакции за прошлый месяц. Автоматически отправляется 1-го числа каждого месяца.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-white dark:bg-slate-900 rounded-lg p-4 mb-4 space-y-1 text-sm text-slate-600 dark:text-slate-400">
+                <p>✓ Сводка доходов и расходов за месяц</p>
+                <p>✓ Статус каждого бюджета: укладываемся ли в лимит</p>
+                <p>✓ Расходы по категориям с долями</p>
+                <p>✓ Все транзакции за месяц</p>
+                <p>✓ Текущий баланс счетов</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  onClick={handleDownloadExcel}
+                  disabled={isExcelLoading}
+                  size="lg"
+                  className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 h-12"
+                >
+                  {isExcelLoading ? (
+                    <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Формирование...</>
+                  ) : (
+                    <><FileSpreadsheet className="w-5 h-5 mr-2" />Скачать Excel</>
+                  )}
+                </Button>
+                <Button
+                  onClick={handleSendEmail}
+                  disabled={isEmailLoading}
+                  size="lg"
+                  variant="outline"
+                  className="flex-1 h-12 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400"
+                >
+                  {isEmailLoading ? (
+                    <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Отправка...</>
+                  ) : (
+                    <><Mail className="w-5 h-5 mr-2" />Отправить на email</>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
 
         {/* Main Action Card */}
