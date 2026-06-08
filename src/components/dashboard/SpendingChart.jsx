@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { PieChart as PieIcon, BarChart2 } from 'lucide-react';
 
@@ -12,6 +13,11 @@ const CATEGORY_ICONS = {
 
 export default function SpendingChart({ transactions, formatCurrency }) {
   const [chartType, setChartType] = useState('pie');
+  const navigate = useNavigate();
+
+  const handleCategoryClick = (category) => {
+    navigate(`/Transactions?category=${encodeURIComponent(category)}`);
+  };
 
   const expensesByCategory = transactions
     .filter(t => t.type === 'expense')
@@ -66,13 +72,16 @@ export default function SpendingChart({ transactions, formatCurrency }) {
                 <ResponsiveContainer width="100%" height="100%">
                   {chartType === 'pie' ? (
                     <PieChart>
-                      <Pie data={chartData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={2} dataKey="value">
+                      <Pie data={chartData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={2} dataKey="value"
+                        onClick={(d) => handleCategoryClick(d.name)}
+                        style={{ cursor: 'pointer' }}
+                      >
                         {chartData.map((_, i) => <Cell key={i} fill={chartData[i].color} />)}
                       </Pie>
                       <Tooltip content={<CustomTooltip />} />
                     </PieChart>
                   ) : (
-                    <BarChart data={chartData} layout="vertical">
+                    <BarChart data={chartData} layout="vertical" onClick={(d) => d?.activePayload && handleCategoryClick(d.activePayload[0].payload.name)} style={{ cursor: 'pointer' }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255,255,255,0.05)" />
                       <XAxis type="number" hide />
                       <YAxis type="category" dataKey="name" width={90} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} />
@@ -87,7 +96,11 @@ export default function SpendingChart({ transactions, formatCurrency }) {
 
               <div className="w-full lg:w-1/2 grid grid-cols-2 gap-2">
                 {chartData.slice(0, 6).map((item) => (
-                  <div key={item.name} className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/3 transition-colors">
+                  <div
+                    key={item.name}
+                    onClick={() => handleCategoryClick(item.name)}
+                    className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/8 transition-colors cursor-pointer"
+                  >
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
                     <div className="min-w-0">
                       <p className="text-white/65 text-xs truncate">{item.name}</p>
