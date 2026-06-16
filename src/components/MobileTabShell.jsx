@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { LayoutDashboard, ArrowLeftRight, Target, Settings as SettingsIcon } from 'lucide-react';
 import Dashboard from '@/pages/Dashboard';
 import Transactions from '@/pages/Transactions';
@@ -24,6 +24,25 @@ const TABS = [
 
 export default function MobileTabShell({ initialTab = 0 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
+
+  const switchTab = useCallback((index) => {
+    setActiveTab(index);
+    window.history.pushState({ tabIndex: index }, '', `#${TABS[index].label}`);
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = (e) => {
+      if (e.state?.tabIndex !== undefined) {
+        setActiveTab(e.state.tabIndex);
+      } else {
+        const hash = window.location.hash?.replace('#', '');
+        const tabIndex = TABS.findIndex(t => t.label === hash);
+        if (tabIndex >= 0) setActiveTab(tabIndex);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -57,7 +76,7 @@ export default function MobileTabShell({ initialTab = 0 }) {
             return (
               <button
                 key={tab.label}
-                onClick={() => setActiveTab(index)}
+                onClick={() => switchTab(index)}
                 className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${
                   isActive ? 'text-white' : 'text-white/40 hover:text-white/70'
                 }`}

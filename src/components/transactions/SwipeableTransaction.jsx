@@ -66,7 +66,7 @@ export default function SwipeableTransaction({
             variant="ghost"
             size="icon"
             onClick={() => onEdit(transaction)}
-            className="h-8 w-8 text-slate-400 hover:text-violet-600"
+            className="min-h-[44px] min-w-[44px] h-11 w-11 p-0 text-slate-400 hover:text-violet-600"
           >
             <Edit2 className="w-4 h-4" />
           </Button>
@@ -74,7 +74,7 @@ export default function SwipeableTransaction({
             variant="ghost"
             size="icon"
             onClick={() => onDelete(transaction.id)}
-            className="h-8 w-8 text-slate-400 hover:text-rose-600"
+            className="min-h-[44px] min-w-[44px] h-11 w-11 p-0 text-slate-400 hover:text-rose-600"
           >
             <Trash2 className="w-4 h-4" />
           </Button>

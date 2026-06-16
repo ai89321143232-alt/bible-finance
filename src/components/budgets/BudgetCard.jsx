@@ -81,7 +81,7 @@ export default function BudgetCard({
                   variant="ghost"
                   size="icon"
                   onClick={() => onEdit(budget)}
-                  className="h-8 w-8"
+                  className="min-h-[44px] min-w-[44px] h-11 w-11 p-0"
                 >
                   <Edit2 className="w-4 h-4" />
                 </Button>
@@ -89,7 +89,7 @@ export default function BudgetCard({
                   variant="ghost"
                   size="icon"
                   onClick={() => onDelete(budget.id)}
-                  className="h-8 w-8 text-rose-600"
+                  className="min-h-[44px] min-w-[44px] h-11 w-11 p-0 text-rose-600"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
