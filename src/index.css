@@ -82,7 +82,18 @@
     @apply border-border outline-ring/50;
   }
 
+  html {
+    overscroll-behavior: none;
+  }
+
   body {
     @apply bg-background text-foreground;
+    overscroll-behavior: none;
+  }
+
+  /* Prevent text selection on UI elements, not on financial data */
+  button, nav, .no-select, [role="button"], [role="tab"] {
+    user-select: none;
+    -webkit-user-select: none;
   }
 }

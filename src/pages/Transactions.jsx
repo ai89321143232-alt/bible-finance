@@ -95,19 +95,19 @@ export default function Transactions() {
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
       // Найти транзакцию перед удалением
-      const transaction = transactions.find(t => t.id === id);
+      const allTransactions = await base44.entities.Transaction.list('-date', 100);
+      const transaction = allTransactions.find(t => t.id === id);
       
       // Обновить баланс счёта ДО удаления транзакции
       if (transaction?.account_id && transaction.type !== 'transfer') {
-        // Получаем свежие данные счёта напрямую из БД
         const allAccounts = await base44.entities.Account.list();
         const account = allAccounts.find(a => a.id === transaction.account_id);
         if (account) {
           let newBalance = account.balance ?? 0;
           if (transaction.type === 'expense') {
-            newBalance += transaction.amount; // возвращаем списанную сумму
+            newBalance += transaction.amount;
           } else if (transaction.type === 'income') {
-            newBalance -= transaction.amount; // убираем зачисленную сумму
+            newBalance -= transaction.amount;
           }
           await base44.entities.Account.update(transaction.account_id, { balance: newBalance });
         }
@@ -116,10 +116,23 @@ export default function Transactions() {
       // Удалить транзакцию
       await base44.entities.Transaction.delete(id);
     },
-    onSuccess: () => {
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['transactions'] });
+      const prevTransactions = queryClient.getQueryData(['transactions']);
+      queryClient.setQueryData(['transactions'], (old) => 
+        old ? old.filter(t => t.id !== id) : []
+      );
+      setDeleteId(null);
+      return { prevTransactions };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.prevTransactions) {
+        queryClient.setQueryData(['transactions'], context.prevTransactions);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      setDeleteId(null);
     }
   });
 

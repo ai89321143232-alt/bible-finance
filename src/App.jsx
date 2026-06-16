@@ -22,7 +22,8 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import Onboarding from './pages/Onboarding';
@@ -47,6 +48,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   React.useEffect(() => {
     if (user && user.onboarding_complete !== true && !window.location.pathname.includes('/Onboarding')) {
@@ -63,7 +65,15 @@ const AuthenticatedApp = () => {
   }
 
   return (
-    <Routes>
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        transition={{ duration: 0.2, ease: 'easeInOut' }}
+      >
+    <Routes location={location}>
       {/* Auth routes — public */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -99,6 +109,8 @@ const AuthenticatedApp = () => {
       {/* 404 */}
       <Route path="*" element={<PageNotFound />} />
     </Routes>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 

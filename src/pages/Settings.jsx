@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import {
   User, Bell, Moon, Globe, Shield, CreditCard, 
-  HelpCircle, LogOut, ChevronRight, Crown, Check, Tag, Users, Database, Settings as SettingsIcon, Clock, Copy
+  HelpCircle, LogOut, ChevronRight, Crown, Check, Tag, Users, Database, Settings as SettingsIcon, Clock, Copy, Trash2
 } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -93,6 +103,8 @@ export default function Settings() {
   });
   const [showPersonalization, setShowPersonalization] = useState(false);
   const [showAISettings, setShowAISettings] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Автоматическая активация демо-периода при первом входе
   useTrialActivation();
@@ -131,6 +143,41 @@ export default function Settings() {
 
   const handleLogout = () => {
     base44.auth.logout();
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      // Delete all user's transactions
+      const userTransactions = await base44.entities.Transaction.filter({});
+      for (const tx of userTransactions) {
+        try { await base44.entities.Transaction.delete(tx.id); } catch(e) {}
+      }
+      // Delete all user's accounts
+      const allAccts = await base44.entities.Account.list();
+      for (const acc of allAccts) {
+        try { await base44.entities.Account.delete(acc.id); } catch(e) {}
+      }
+      // Delete all user's budgets
+      const allBudgets = await base44.entities.Budget.filter({});
+      for (const b of allBudgets) {
+        try { await base44.entities.Budget.delete(b.id); } catch(e) {}
+      }
+      // Delete all user's goals
+      const allGoals = await base44.entities.Goal.filter({});
+      for (const g of allGoals) {
+        try { await base44.entities.Goal.delete(g.id); } catch(e) {}
+      }
+      // Delete all user's investments
+      const allInvs = await base44.entities.Investment.list();
+      for (const inv of allInvs) {
+        try { await base44.entities.Investment.delete(inv.id); } catch(e) {}
+      }
+      base44.auth.logout();
+    } catch (error) {
+      console.error('Delete account error:', error);
+      setIsDeleting(false);
+    }
   };
 
   const copyToClipboard = (text) => {
@@ -497,18 +544,35 @@ export default function Settings() {
 
           {/* Logout */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ delay: 0.4 }}
           >
-            <Button
-              variant="outline"
-              onClick={handleLogout}
-              className="w-full h-12 rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Выйти из аккаунта
-            </Button>
+           <Button
+             variant="outline"
+             onClick={handleLogout}
+             className="w-full h-12 rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50"
+           >
+             <LogOut className="w-4 h-4 mr-2" />
+             Выйти из аккаунта
+           </Button>
+          </motion.div>
+
+          {/* Delete Account */}
+          <motion.div
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ delay: 0.45 }}
+           className="mt-3"
+          >
+           <Button
+             variant="ghost"
+             onClick={() => setShowDeleteAccount(true)}
+             className="w-full h-12 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+           >
+             <Trash2 className="w-4 h-4 mr-2" />
+             Удалить аккаунт
+           </Button>
           </motion.div>
 
           {/* App Info */}
@@ -576,6 +640,36 @@ export default function Settings() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Account Confirmation */}
+      <AlertDialog open={showDeleteAccount} onOpenChange={setShowDeleteAccount}>
+        <AlertDialogContent className="rounded-2xl max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-rose-600">Удалить аккаунт?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>Это действие <strong>нельзя отменить</strong>. Будут безвозвратно удалены:</p>
+              <ul className="list-disc pl-5 space-y-1 text-sm">
+                <li>Все ваши транзакции</li>
+                <li>Все счета и их балансы</li>
+                <li>Все бюджеты</li>
+                <li>Все финансовые цели</li>
+                <li>Все инвестиции</li>
+              </ul>
+              <p className="font-medium">После удаления вы выйдете из системы.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl" disabled={isDeleting}>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAccount}
+              disabled={isDeleting}
+              className="bg-rose-600 hover:bg-rose-700 rounded-xl"
+            >
+              {isDeleting ? 'Удаление...' : 'Удалить навсегда'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Subscription Plans Modal */}
       <Dialog open={showPlanModal} onOpenChange={setShowPlanModal}>

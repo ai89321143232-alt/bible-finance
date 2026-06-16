@@ -115,9 +115,28 @@ export default function Accounts() {
       const dataWithFamily = await addFamilyId(data);
       return base44.entities.Account.create(dataWithFamily);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    onMutate: async (newAccount) => {
+      await queryClient.cancelQueries({ queryKey: ['accounts'] });
+      const prevAccounts = queryClient.getQueryData(['accounts']);
+      const optimisticAccount = {
+        id: 'temp-' + Date.now(),
+        ...newAccount,
+        balance: parseFloat(newAccount.balance) || 0,
+        created_date: new Date().toISOString(),
+        created_by_id: currentUser?.id,
+        created_by: currentUser?.email || ''
+      };
+      queryClient.setQueryData(['accounts'], (old) => [...(old || []), optimisticAccount]);
       resetForm();
+      return { prevAccounts };
+    },
+    onError: (_err, _data, context) => {
+      if (context?.prevAccounts) {
+        queryClient.setQueryData(['accounts'], context.prevAccounts);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
     }
   });
 
@@ -126,9 +145,22 @@ export default function Accounts() {
       const dataWithFamily = await addFamilyId(data);
       return base44.entities.Account.update(id, dataWithFamily);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['accounts'] });
+      const prevAccounts = queryClient.getQueryData(['accounts']);
+      queryClient.setQueryData(['accounts'], (old) =>
+        old ? old.map(a => a.id === id ? { ...a, ...data } : a) : []
+      );
       resetForm();
+      return { prevAccounts };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prevAccounts) {
+        queryClient.setQueryData(['accounts'], context.prevAccounts);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
     }
   });
 
@@ -148,15 +180,26 @@ export default function Accounts() {
 
       return base44.entities.Account.delete(id);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['accounts'] });
+      const prevAccounts = queryClient.getQueryData(['accounts']);
+      queryClient.setQueryData(['accounts'], (old) =>
+        old ? old.filter(a => a.id !== id) : []
+      );
       setDeleteId(null);
       toast.success('Счет и связанные транзакции удалены');
+      return { prevAccounts };
     },
-    onError: (error) => {
+    onError: (error, _id, context) => {
+      if (context?.prevAccounts) {
+        queryClient.setQueryData(['accounts'], context.prevAccounts);
+      }
       toast.error(error.message);
       setDeleteId(null);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
     }
   });
 

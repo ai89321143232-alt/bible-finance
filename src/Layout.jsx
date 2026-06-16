@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ArrowLeft } from 'lucide-react';
+import { Menu, X, ArrowLeft, LayoutDashboard, ArrowLeftRight, Target, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import NavigationMenu from '@/components/Navigation/NavigationMenu';
 import NotificationBell from '@/components/NotificationBell';
@@ -108,13 +108,15 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       {/* Mobile Top Bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#0a0d13] border-b border-white/5 z-40 flex items-center px-5 gap-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="w-9 h-9 bg-white/5 border border-white/10 text-white rounded-lg flex items-center justify-center">
-          
-          <ArrowLeft className="w-4 h-4" />
-        </button>
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#0a0d13] border-b border-white/5 z-40 flex items-center px-5 gap-3"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        {currentPageName !== 'Dashboard' && (
+          <button
+            onClick={() => navigate(-1)}
+            className="w-9 h-9 bg-white/5 border border-white/10 text-white rounded-lg flex items-center justify-center">
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+        )}
         <button
           onClick={() => setShowMobileMenu(!showMobileMenu)}
           className="w-9 h-9 bg-white/5 border border-white/10 text-white rounded-lg flex items-center justify-center">
@@ -195,6 +197,29 @@ export default function Layout({ children, currentPageName }) {
           </>
         }
       </AnimatePresence>
+
+      {/* Mobile Bottom Tab Bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#0a0d13] border-t border-white/8 z-40"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="flex items-center justify-around py-2">
+          <Link to={createPageUrl('Dashboard')} className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${currentPageName === 'Dashboard' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>
+            <LayoutDashboard className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Главная</span>
+          </Link>
+          <Link to={createPageUrl('Transactions')} className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${currentPageName === 'Transactions' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>
+            <ArrowLeftRight className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Операции</span>
+          </Link>
+          <Link to={createPageUrl('Goals')} className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${currentPageName === 'Goals' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>
+            <Target className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Цели</span>
+          </Link>
+          <Link to={createPageUrl('Settings')} className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${currentPageName === 'Settings' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>
+            <Settings className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Ещё</span>
+          </Link>
+        </div>
+      </div>
     </div>);
 
 }
