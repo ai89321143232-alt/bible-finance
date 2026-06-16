@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { addFamilyId } from '@/components/FamilyDataWrapper';
@@ -100,12 +100,57 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scannedItems, setScannedItems] = useState([]);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [suggestedCategory, setSuggestedCategory] = useState(null);
+  const [isSuggesting, setIsSuggesting] = useState(false);
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
+  const debounceRef = useRef(null);
 
   React.useEffect(() => {
     loadUser();
   }, []);
+
+  // Auto-categorization: debounced AI suggestion on description change
+  const suggestCategory = useCallback(async (text) => {
+    if (!text || text.length < 3 || type === 'transfer') {
+      setSuggestedCategory(null);
+      return;
+    }
+    const categoryNames = categories.map(c => c.name).join(', ');
+    if (!categoryNames) return;
+
+    setIsSuggesting(true);
+    try {
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `Определи категорию расхода по описанию. Отвечай ТОЛЬКО названием из списка, ничего больше.
+
+Описание: "${text}"
+
+Категории: ${categoryNames}
+
+Категория:`,
+        add_context_from_internet: false
+      });
+      const suggested = response.trim();
+      if (categoryNames.includes(suggested)) {
+        setSuggestedCategory(suggested);
+      }
+    } catch (e) {
+      // silently ignore
+    } finally {
+      setIsSuggesting(false);
+    }
+  }, [categories, type]);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (description && description.length >= 3 && type !== 'transfer') {
+      debounceRef.current = setTimeout(() => suggestCategory(description), 800);
+    } else {
+      setSuggestedCategory(null);
+    }
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [description, suggestCategory, type]);
 
   const loadUser = async () => {
     const user = await base44.auth.me();
@@ -565,6 +610,25 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                       </Button>
                     </Link>
                   </div>
+                  {/* AI Category Suggestion */}
+                  {suggestedCategory && !category && (
+                    <div className="mb-3 flex items-center gap-2">
+                      <span className="text-xs text-violet-400">
+                        {isSuggesting ? '✨ Анализирую...' : '✨ Предлагаю:'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCategory(suggestedCategory);
+                          setSuggestedCategory(null);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-violet-500/15 border border-violet-500/25 text-violet-300 text-sm font-medium hover:bg-violet-500/25 transition-colors"
+                      >
+                        {suggestedCategory}
+                      </button>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
                     {filteredCategories.map((cat) => (
                       <Button key={cat.id} variant={category === cat.name ? 'default' : 'outline'} onClick={() => setCategory(cat.name)}

@@ -32,6 +32,8 @@ import BibleVerse from '@/components/dashboard/BibleVerse';
 import ThemeSelector from '@/components/onboarding/ThemeSelector';
 import ChildDashboard from '@/components/child/ChildDashboard';
 import PremiumAIAnalytics from '@/components/dashboard/PremiumAIAnalytics';
+import SafeDailyLimit from '@/components/dashboard/SafeDailyLimit';
+import EmergencyFund from '@/components/dashboard/EmergencyFund';
 
 // ============================================================
 // pages/Dashboard.jsx — ГЛАВНАЯ СТРАНИЦА / ДАШБОРД
@@ -424,7 +426,7 @@ export default function Dashboard() {
 
         {/* Quick Stats */}
         {visibleBlocks.quickStats && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
             <motion.div
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
               className="rounded-2xl border border-emerald-500/15 bg-emerald-500/5 p-4 cursor-pointer hover:bg-emerald-500/10 transition-all"
@@ -487,6 +489,14 @@ export default function Dashboard() {
                 </div>
               </Link>
             </motion.div>
+
+            <SafeDailyLimit budgets={budgets} formatCurrency={formatCurrency} />
+
+            <EmergencyFund
+              totalBalance={totalBalance}
+              transactions={transactions}
+              formatCurrency={formatCurrency}
+            />
           </div>
         )}
 
