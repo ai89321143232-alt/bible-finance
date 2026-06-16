@@ -111,12 +111,12 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   }, []);
 
   // Auto-categorization: debounced AI suggestion on description change
-  const suggestCategory = useCallback(async (text) => {
+  const suggestCategory = useCallback(async (text, cats) => {
     if (!text || text.length < 3 || type === 'transfer') {
       setSuggestedCategory(null);
       return;
     }
-    const categoryNames = categories.map(c => c.name).join(', ');
+    const categoryNames = cats.map(c => c.name).join(', ');
     if (!categoryNames) return;
 
     setIsSuggesting(true);
@@ -140,12 +140,12 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     } finally {
       setIsSuggesting(false);
     }
-  }, [categories, type]);
+  }, [type]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (description && description.length >= 3 && type !== 'transfer') {
-      debounceRef.current = setTimeout(() => suggestCategory(description), 800);
+      debounceRef.current = setTimeout(() => suggestCategory(description, categories), 800);
     } else {
       setSuggestedCategory(null);
     }

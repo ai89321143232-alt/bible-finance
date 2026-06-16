@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw } from 'lucide-react';
 
@@ -15,14 +15,11 @@ import { RefreshCw } from 'lucide-react';
 export default function PullToRefresh({ children, onRefresh, offsetTop = 64 }) {
   const [refreshing, setRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
-  const containerRef = useRef(null);
   const startY = useRef(0);
   const tracking = useRef(false);
 
   const handleTouchStart = useCallback((e) => {
-    const scrollEl = containerRef.current;
-    if (!scrollEl) return;
-    if (scrollEl.scrollTop <= 2 && !refreshing) {
+    if (window.scrollY <= 2 && !refreshing) {
       startY.current = e.touches[0].clientY;
       tracking.current = true;
     }
@@ -44,35 +41,18 @@ export default function PullToRefresh({ children, onRefresh, offsetTop = 64 }) {
       setRefreshing(true);
       try {
         await onRefresh();
-      } catch (_) {
-        // silently ignore errors
-      }
+      } catch (_) {}
       setRefreshing(false);
     }
     setPullDistance(0);
   }, [pullDistance, refreshing, onRefresh]);
 
-  // Reset pull distance if scroll happens
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const onScroll = () => {
-      if (tracking.current) {
-        tracking.current = false;
-        setPullDistance(0);
-      }
-    };
-    el.addEventListener('scroll', onScroll, { passive: true });
-    return () => el.removeEventListener('scroll', onScroll);
-  }, []);
-
   return (
     <div
-      ref={containerRef}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className="h-full overflow-y-auto overscroll-behavior-y-contain"
+      className="min-h-screen overscroll-behavior-y-contain"
       style={{ WebkitOverflowScrolling: 'touch' }}
     >
       {/* Pull indicator */}
