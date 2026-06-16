@@ -13,13 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import MobileSelect from '@/components/mobile/MobileSelect';
 import QuickAddTransaction from '@/components/transactions/QuickAddTransaction';
 import VoiceTransactionButton from '@/components/VoiceTransactionButton';
 import BalanceCard from '@/components/dashboard/BalanceCard';
@@ -34,61 +28,23 @@ import ChildDashboard from '@/components/child/ChildDashboard';
 import PremiumAIAnalytics from '@/components/dashboard/PremiumAIAnalytics';
 import SafeDailyLimit from '@/components/dashboard/SafeDailyLimit';
 import EmergencyFund from '@/components/dashboard/EmergencyFund';
-
-// ============================================================
-// pages/Dashboard.jsx — ГЛАВНАЯ СТРАНИЦА / ДАШБОРД
-// ============================================================
-// Маршрут: "/" и "/Dashboard"
-//
-// РЕЖИМЫ ОТОБРАЖЕНИЯ:
-//   1. Новый пользователь (themePreference === null) → ThemeSelector (onboarding)
-//   2. Детский режим (themePreference === 'child')   → ChildDashboard
-//   3. Обычный режим                                 → стандартный дашборд
-//
-// ДАННЫЕ (React Query, ключи кэша):
-//   ['transactions']   → последние 200 транзакций (Transaction entity)
-//   ['accounts']       → все счета пользователя/семьи (Account entity)
-//   ['budgets']        → активные бюджеты (Budget entity, is_active: true)
-//   ['goals']          → активные цели (Goal entity, status: active)
-//   ['investments']    → все инвестиции (Investment entity)
-//   ['my-family']      → семья пользователя (Family entity)
-//
-// КОМПОНЕНТЫ ДАШБОРДА:
-//   BalanceCard         → общий баланс + инвестиции (components/dashboard/BalanceCard)
-//   SpendingChart       → график расходов по категориям (components/dashboard/SpendingChart)
-//   RecentTransactions  → последние 5 транзакций (components/dashboard/RecentTransactions)
-//   BudgetOverview      → прогресс бюджетов (components/dashboard/BudgetOverview)
-//   AllGoalsProgress    → прогресс целей (components/dashboard/AllGoalsProgress)
-//   AIInsights          → AI-рекомендации (components/dashboard/AIInsights)
-//   PremiumAIAnalytics  → расширенная аналитика (только premium/family подписка)
-//   BibleVerse          → цитата дня (components/dashboard/BibleVerse)
-//
-// БЫСТРЫЕ ДЕЙСТВИЯ:
-//   Кнопка "Добавить" / клик на Доходы / Расходы → открывает QuickAddTransaction
-//
-// СЕМЕЙНЫЙ РЕЖИМ:
-//   balanceMode 'personal' → только счета текущего пользователя (user_id)
-//   balanceMode 'family'   → все счета семьи + разбивка по участникам
-// ============================================================
+import PullToRefresh from '@/components/PullToRefresh';
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
 
-  // --- UI State ---
   const [showQuickAdd, setShowQuickAdd] = useState(false);
-  const [quickAddType, setQuickAddType] = useState('expense'); // 'income' | 'expense'
-  const [periodType, setPeriodType] = useState('month');       // 'week' | 'month' | 'year' | 'all'
+  const [quickAddType, setQuickAddType] = useState('expense');
+  const [periodType, setPeriodType] = useState('month');
   const [currentPeriod, setCurrentPeriod] = useState({
     start: startOfMonth(new Date()),
     end: endOfMonth(new Date())
   });
 
-  // --- User State ---
   const [user, setUser] = useState(null);
-  const [themePreference, setThemePreference] = useState(null); // null=новый | 'default' | 'child'
-  const [balanceMode, setBalanceMode] = useState('personal');   // 'personal' | 'family'
+  const [themePreference, setThemePreference] = useState(null);
+  const [balanceMode, setBalanceMode] = useState('personal');
 
-  // --- Dashboard blocks visibility (сохраняется в user.data.visible_dashboard_blocks) ---
   const [visibleBlocks, setVisibleBlocks] = useState({
     balance: true,
     quickStats: true,
@@ -101,21 +57,16 @@ export default function Dashboard() {
   useEffect(() => {
     loadUser();
     migrateUserData();
-    // Обновляем блоки при сохранении персонализации
     const handler = () => loadUser();
     window.addEventListener('personalization-saved', handler);
     return () => window.removeEventListener('personalization-saved', handler);
   }, []);
 
-  // Миграция данных при входе в семью (backend function: migrateFamilyData)
-  // Проставляет family_id на старые записи пользователя
   const migrateUserData = async () => {
     try {
       const user = await base44.auth.me();
       if (user?.family_id) {
-        const result = await base44.functions.invoke('migrateFamilyData', {});
-        console.log('Migration result:', result.data);
-        // Обновляем кэш после миграции
+        await base44.functions.invoke('migrateFamilyData', {});
         setTimeout(() => {
           queryClient.invalidateQueries();
         }, 1000);
@@ -125,19 +76,16 @@ export default function Dashboard() {
     }
   };
 
-  // Загружает текущего пользователя и его настройки
   const loadUser = async () => {
     const userData = await base44.auth.me();
     setUser(userData);
     setThemePreference(userData.theme_preference || null);
-    // Восстанавливаем видимость блоков из настроек пользователя
     const blocks = userData.visible_dashboard_blocks || userData.data?.visible_dashboard_blocks;
     if (blocks) {
       setVisibleBlocks(prev => ({ ...prev, ...blocks }));
     }
   };
 
-  // Запрос семьи пользователя — ищет Family где owner_id или member.user_id === user.id
   const { data: family } = useQuery({
     queryKey: ['my-family', user?.id],
     queryFn: async () => {
@@ -151,11 +99,9 @@ export default function Dashboard() {
     enabled: !!user
   });
 
-  // Обновляет диапазон дат для фильтрации транзакций на дашборде
   const updatePeriod = (type) => {
     const now = new Date();
     let start, end;
-    
     switch(type) {
       case 'week':
         start = new Date(now.setDate(now.getDate() - now.getDay()));
@@ -177,21 +123,17 @@ export default function Dashboard() {
         start = startOfMonth(now);
         end = endOfMonth(now);
     }
-    
     setCurrentPeriod({ start, end });
     setPeriodType(type);
   };
 
-  // --- DATA QUERIES ---
-  // RLS автоматически фильтрует данные по family_id / created_by на стороне сервера
-
-  const { data: transactions = [], isLoading: loadingTransactions } = useQuery({
+  const { data: transactions = [] } = useQuery({
     queryKey: ['transactions'],
     queryFn: () => base44.entities.Transaction.list('-date', 200),
     enabled: !!user
   });
 
-  const { data: allAccounts = [], isLoading: loadingAccounts } = useQuery({
+  const { data: allAccounts = [] } = useQuery({
     queryKey: ['accounts'],
     queryFn: () => base44.entities.Account.list(),
     enabled: !!user
@@ -215,26 +157,16 @@ export default function Dashboard() {
     enabled: !!user
   });
 
-  // Get family members for display
   const familyMembers = family?.members || [];
-  
-  // Filter accounts based on mode - используем user_id
   const personalAccounts = allAccounts.filter(acc => acc.user_id === user?.id);
-  const familyAccounts = allAccounts; // RLS automatically filters by family_id
-
-  // Calculate totals based on mode
+  const familyAccounts = allAccounts;
   const displayAccounts = balanceMode === 'family' ? familyAccounts : personalAccounts;
   const totalBalance = displayAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
   
-  // Calculate balance per family member - используем user_id напрямую
   const memberBalances = familyMembers.map(member => {
     const memberAccounts = allAccounts.filter(acc => acc.user_id === member.user_id);
     const balance = memberAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
-    return {
-      ...member,
-      balance,
-      accountsCount: memberAccounts.length
-    };
+    return { ...member, balance, accountsCount: memberAccounts.length };
   });
   
   const monthTransactions = transactions.filter(t => {
@@ -266,16 +198,22 @@ export default function Dashboard() {
     }).format(amount);
   };
 
-  // Show theme selector for new users
+  const handleRefresh = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+      queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+      queryClient.invalidateQueries({ queryKey: ['budgets'] }),
+      queryClient.invalidateQueries({ queryKey: ['goals'] }),
+      queryClient.invalidateQueries({ queryKey: ['investments'] }),
+    ]);
+  };
+
   if (user && themePreference === null) {
     return (
-      <ThemeSelector
-        onComplete={(theme) => setThemePreference(theme)}
-      />
+      <ThemeSelector onComplete={(theme) => setThemePreference(theme)} />
     );
   }
 
-  // Show child dashboard (не для админов)
   if (themePreference === 'child' && user?.role !== 'admin') {
     return (
       <ChildDashboard
@@ -287,33 +225,26 @@ export default function Dashboard() {
   }
 
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="min-h-screen bg-[#0f1117]">
       <BibleVerse />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 sm:pb-6">
-        {/* Header */}
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-between mb-6 pt-2 lg:pt-0"
         >
           <div>
-            <h1 className="text-xl sm:text-2xl font-semibold text-white">
-              Главная
-            </h1>
+            <h1 className="text-xl sm:text-2xl font-semibold text-white">Главная</h1>
             <p className="text-white/35 text-sm mt-0.5">
               {format(new Date(), "EEEE, d MMMM", { locale: ru })}
-              {family && (
-                <span className="ml-2 text-white/50">· {family.name}</span>
-              )}
+              {family && (<span className="ml-2 text-white/50">· {family.name}</span>)}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <VoiceTransactionButton onTransactionCreated={() => queryClient.invalidateQueries()} />
             <Button
-              onClick={() => {
-                setQuickAddType('expense');
-                setShowQuickAdd(true);
-              }}
+              onClick={() => { setQuickAddType('expense'); setShowQuickAdd(true); }}
               className="bg-white text-black hover:bg-white/90 rounded-lg h-9 px-4 text-sm font-semibold"
             >
               <Plus className="w-4 h-4 mr-1.5" />
@@ -322,70 +253,35 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        {/* Balance Mode Selector */}
         {family && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="mb-4"
-          >
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-4">
             <div className="flex gap-1 p-1 bg-white/5 border border-white/8 rounded-lg w-fit">
-             <button
-               onClick={() => setBalanceMode('personal')}
-               className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                 balanceMode === 'personal'
-                   ? 'bg-white text-black'
-                   : 'text-white/40 hover:text-white/70'
-               }`}
-             >
-               Личный
-             </button>
-             <button
-               onClick={() => setBalanceMode('family')}
-               className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                 balanceMode === 'family'
-                   ? 'bg-white text-black'
-                   : 'text-white/40 hover:text-white/70'
-               }`}
-             >
-               Семейный
-             </button>
+             <button onClick={() => setBalanceMode('personal')} className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${balanceMode === 'personal' ? 'bg-white text-black' : 'text-white/40 hover:text-white/70'}`}>
+                Личный
+              </button>
+              <button onClick={() => setBalanceMode('family')} className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${balanceMode === 'family' ? 'bg-white text-black' : 'text-white/40 hover:text-white/70'}`}>
+                Семейный
+              </button>
             </div>
           </motion.div>
         )}
 
-        {/* Main Balance Card */}
         {visibleBlocks.balance && (
           <BalanceCard 
-            totalBalance={totalBalance}
-            monthIncome={monthIncome}
-            monthExpenses={monthExpenses}
-            investmentValue={investmentValue}
-            investmentProfit={investmentProfit}
+            totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses}
+            investmentValue={investmentValue} investmentProfit={investmentProfit}
             formatCurrency={formatCurrency}
           />
         )}
 
-        {/* Family Members Balance Breakdown */}
         {balanceMode === 'family' && family && memberBalances.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="mb-4"
-          >
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-4">
             <div className="rounded-xl border border-white/8 bg-[#141820] divide-y divide-white/5">
-              <div className="px-4 py-3 text-white/40 text-xs uppercase tracking-widest font-medium">
-                Баланс по членам семьи
-              </div>
+              <div className="px-4 py-3 text-white/40 text-xs uppercase tracking-widest font-medium">Баланс по членам семьи</div>
               {memberBalances.map((member) => (
                 <div key={member.user_id} className="flex items-center justify-between px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold"
-                      style={{ backgroundColor: member.avatar_color || '#555' }}
-                    >
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold" style={{ backgroundColor: member.avatar_color || '#555' }}>
                       {member.display_name?.[0] || member.name?.[0] || '?'}
                     </div>
                     <div>
@@ -403,84 +299,53 @@ export default function Dashboard() {
           </motion.div>
         )}
 
-        {/* Period Selector */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-5 flex items-center gap-3"
-        >
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-5 flex items-center gap-3">
           <Calendar className="w-4 h-4 text-white/30" />
-          <Select value={periodType} onValueChange={updatePeriod}>
-            <SelectTrigger className="w-36 h-8 text-sm rounded-lg border-white/8 bg-white/5 text-white/70">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="week">Неделя</SelectItem>
-              <SelectItem value="month">Месяц</SelectItem>
-              <SelectItem value="year">Год</SelectItem>
-              <SelectItem value="all">Всё время</SelectItem>
-            </SelectContent>
-          </Select>
+          <MobileSelect value={periodType} onValueChange={updatePeriod} placeholder="Период" title="Выберите период" triggerClassName="w-36 h-8 text-sm rounded-lg border-white/8 bg-white/5 text-white/70">
+            <option value="week">Неделя</option>
+            <option value="month">Месяц</option>
+            <option value="year">Год</option>
+            <option value="all">Всё время</option>
+          </MobileSelect>
         </motion.div>
 
-        {/* Quick Stats */}
         {visibleBlocks.quickStats && (
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
               className="rounded-2xl border border-emerald-500/15 bg-emerald-500/5 p-4 cursor-pointer hover:bg-emerald-500/10 transition-all"
-              onClick={() => { setQuickAddType('income'); setShowQuickAdd(true); }}
-            >
+              onClick={() => { setQuickAddType('income'); setShowQuickAdd(true); }}>
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center">
-                  <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" />
-                </div>
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center"><ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" /></div>
                 <span className="text-white/40 text-xs">Доходы</span>
               </div>
               <p className="text-emerald-400 font-bold text-lg">{formatCurrency(monthIncome)}</p>
             </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}
               className="rounded-2xl border border-rose-500/15 bg-rose-500/5 p-4 cursor-pointer hover:bg-rose-500/10 transition-all"
-              onClick={() => { setQuickAddType('expense'); setShowQuickAdd(true); }}
-            >
+              onClick={() => { setQuickAddType('expense'); setShowQuickAdd(true); }}>
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center">
-                  <ArrowDownRight className="w-3.5 h-3.5 text-rose-400" />
-                </div>
+                <div className="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center"><ArrowDownRight className="w-3.5 h-3.5 text-rose-400" /></div>
                 <span className="text-white/40 text-xs">Расходы</span>
               </div>
               <p className="text-rose-400 font-bold text-lg">{formatCurrency(monthExpenses)}</p>
             </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            >
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
               <Link to={createPageUrl('Investments')}>
                 <div className="rounded-2xl border border-cyan-500/15 bg-cyan-500/5 p-4 hover:bg-cyan-500/10 transition-all h-full">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="w-7 h-7 rounded-lg bg-cyan-500/15 flex items-center justify-center">
-                      <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
-                    </div>
+                    <div className="w-7 h-7 rounded-lg bg-cyan-500/15 flex items-center justify-center"><TrendingUp className="w-3.5 h-3.5 text-cyan-400" /></div>
                     <span className="text-white/40 text-xs">Инвестиции</span>
                   </div>
                   <p className="text-cyan-400 font-bold text-lg">{formatCurrency(investmentValue)}</p>
                 </div>
               </Link>
             </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24 }}
-            >
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24 }}>
               <Link to={createPageUrl('AIAssistant')}>
                 <div className="rounded-2xl border border-violet-500/15 bg-violet-500/5 p-4 hover:bg-violet-500/10 transition-all h-full flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="w-7 h-7 rounded-lg bg-violet-500/15 flex items-center justify-center">
-                        <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-                      </div>
+                      <div className="w-7 h-7 rounded-lg bg-violet-500/15 flex items-center justify-center"><Sparkles className="w-3.5 h-3.5 text-violet-400" /></div>
                       <span className="text-white/40 text-xs">AI</span>
                     </div>
                     <p className="text-violet-300 font-bold">Спросить</p>
@@ -489,48 +354,22 @@ export default function Dashboard() {
                 </div>
               </Link>
             </motion.div>
-
             <SafeDailyLimit budgets={budgets} formatCurrency={formatCurrency} />
-
-            <EmergencyFund
-              totalBalance={totalBalance}
-              transactions={transactions}
-              formatCurrency={formatCurrency}
-            />
+            <EmergencyFund totalBalance={totalBalance} transactions={transactions} formatCurrency={formatCurrency} />
           </div>
         )}
 
-        {/* AI Insights */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mb-8"
-        >
-          <AIInsights 
-            transactions={transactions}
-            accounts={displayAccounts}
-            budgets={budgets}
-            investments={investments}
-            formatCurrency={formatCurrency}
-          />
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mb-8">
+          <AIInsights transactions={transactions} accounts={displayAccounts} budgets={budgets} investments={investments} formatCurrency={formatCurrency} />
         </motion.div>
 
-        {/* Premium AI Analytics */}
         {user?.subscription_tier === 'premium' || user?.subscription_tier === 'family' ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
-            className="mb-8"
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="mb-8">
             <PremiumAIAnalytics />
           </motion.div>
         ) : null}
 
-        {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Left Column - Chart & Transactions */}
           <div className="lg:col-span-2 space-y-6">
             {visibleBlocks.spendingChart && (
               <SpendingChart transactions={monthTransactions} formatCurrency={formatCurrency} />
@@ -539,8 +378,6 @@ export default function Dashboard() {
               <RecentTransactions transactions={transactions.slice(0, 5)} formatCurrency={formatCurrency} />
             )}
           </div>
-
-          {/* Right Column - Budgets & Goals */}
           <div className="space-y-6">
             {visibleBlocks.budgets && (
               <BudgetOverview budgets={budgets} formatCurrency={formatCurrency} />
@@ -552,16 +389,12 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Quick Add Modal */}
       <AnimatePresence>
         {showQuickAdd && (
-          <QuickAddTransaction 
-            onClose={() => setShowQuickAdd(false)}
-            accounts={allAccounts}
-            defaultType={quickAddType}
-          />
+          <QuickAddTransaction onClose={() => setShowQuickAdd(false)} accounts={allAccounts} defaultType={quickAddType} />
         )}
       </AnimatePresence>
     </div>
+    </PullToRefresh>
   );
 }
