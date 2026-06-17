@@ -30,8 +30,18 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
         chunksRef.current = [];
 
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        // iOS Safari doesn't support audio/webm — pick whatever the browser supports
+        let mimeType = '';
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/webm';
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        }
+        const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
         mediaRecorderRef.current = mediaRecorder;
+        const actualMimeType = mediaRecorder.mimeType || mimeType;
 
         mediaRecorder.ondataavailable = (e) => {
             if (e.data.size > 0) chunksRef.current.push(e.data);
@@ -39,7 +49,7 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
 
         mediaRecorder.onstop = async () => {
             stream.getTracks().forEach(t => t.stop());
-            const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+            const blob = new Blob(chunksRef.current, { type: actualMimeType });
             await processAudio(blob);
         };
 

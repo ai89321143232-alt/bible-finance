@@ -358,68 +358,57 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     if (!file) return;
     setIsScanning(true);
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const base64String = reader.result;
-          const { file_url } = await base44.integrations.Core.UploadFile({ file: base64String });
-          const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
-            file_url,
-            json_schema: {
-              type: 'object',
-              properties: {
-                amount: { type: 'number' },
-                date: { type: 'string' },
-                merchant: { type: 'string' },
-                items: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      name: { type: 'string' },
-                      price: { type: 'number' }
-                    }
-                  }
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+        file_url,
+        json_schema: {
+          type: 'object',
+          properties: {
+            amount: { type: 'number' },
+            date: { type: 'string' },
+            merchant: { type: 'string' },
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  price: { type: 'number' }
                 }
               }
             }
-          });
-
-          if (result.status === 'success' && result.output) {
-            const items = result.output.items || [];
-            if (items.length > 1) {
-              setScannedItems(items.map(item => ({
-                name: item.name || 'Товар',
-                price: item.price || 0,
-                category: ''
-              })));
-              setDescription(result.output.merchant || '');
-              if (result.output.date) {
-                try { setDate(new Date(result.output.date)); } catch (e) {}
-              }
-              setShowReviewModal(true);
-            } else if (items.length === 1) {
-              await categorizeAndAddSingleItem(items[0], result.output);
-            } else {
-              setAmount(result.output.amount?.toString() || '');
-              setDescription(result.output.merchant || '');
-              setActiveTab('manual');
-              toast.success('Чек распознан успешно!');
-            }
-          } else {
-            toast.error('Не удалось распознать чек');
           }
-        } catch (error) {
-          console.error('Receipt scan error:', error);
-          toast.error('Ошибка при сканировании чека');
-        } finally {
-          setIsScanning(false);
         }
-      };
-      reader.readAsDataURL(file);
+      });
+
+      if (result.status === 'success' && result.output) {
+        const items = result.output.items || [];
+        if (items.length > 1) {
+          setScannedItems(items.map(item => ({
+            name: item.name || 'Товар',
+            price: item.price || 0,
+            category: ''
+          })));
+          setDescription(result.output.merchant || '');
+          if (result.output.date) {
+            try { setDate(new Date(result.output.date)); } catch (e) {}
+          }
+          setShowReviewModal(true);
+        } else if (items.length === 1) {
+          await categorizeAndAddSingleItem(items[0], result.output);
+        } else {
+          setAmount(result.output.amount?.toString() || '');
+          setDescription(result.output.merchant || '');
+          setActiveTab('manual');
+          toast.success('Чек распознан успешно!');
+        }
+      } else {
+        toast.error('Не удалось распознать чек');
+      }
     } catch (error) {
       console.error('Receipt scan error:', error);
-      toast.error('Ошибка при загрузке файла');
+      toast.error('Ошибка при сканировании чека');
+    } finally {
       setIsScanning(false);
     }
   };
