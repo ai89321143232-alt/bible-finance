@@ -65,8 +65,14 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
 
     const processAudio = async (blob) => {
         try {
-            // Загружаем аудио
-            const { file_url } = await base44.integrations.Core.UploadFile({ file: blob });
+            // Convert blob to data URL (UploadFile requires string, not raw Blob)
+            const dataUrl = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+            const { file_url } = await base44.integrations.Core.UploadFile({ file: dataUrl });
 
             // Отправляем на обработку
             const response = await base44.functions.invoke('voiceTransaction', { audio_url: file_url });

@@ -23,8 +23,14 @@ export default function ReceiptScanner({ onDataExtracted }) {
     setIsScanning(true);
 
     try {
-      // Upload file
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      // Convert to data URL first (UploadFile requires string, not raw File)
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: dataUrl });
       
       // Extract data from receipt using AI
       const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
