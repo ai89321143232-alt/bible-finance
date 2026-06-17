@@ -353,21 +353,12 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     onClose();
   };
 
-  // Convert File to base64 data URL (UploadFile requires string, not raw File)
-  const fileToDataUrl = (file) => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-
   // Scan receipt using camera or file
   const handleReceiptScan = async (file) => {
     if (!file) return;
     setIsScanning(true);
     try {
-      const dataUrl = await fileToDataUrl(file);
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: dataUrl });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
       const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
         file_url,
         json_schema: {

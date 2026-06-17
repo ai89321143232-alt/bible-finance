@@ -29,31 +29,45 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
         setErrorMsg('');
         chunksRef.current = [];
 
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        // iOS Safari doesn't support audio/webm — pick whatever the browser supports
-        let mimeType = '';
-        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-          mimeType = 'audio/webm;codecs=opus';
-        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-          mimeType = 'audio/webm';
-        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-          mimeType = 'audio/mp4';
-        }
-        const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
-        mediaRecorderRef.current = mediaRecorder;
-        const actualMimeType = mediaRecorder.mimeType || mimeType;
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          // iOS Safari doesn't support audio/webm — pick whatever the browser supports
+          let mimeType = '';
+          if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+            mimeType = 'audio/webm;codecs=opus';
+          } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+            mimeType = 'audio/webm';
+          } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+            mimeType = 'audio/mp4';
+          }
+          const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+          mediaRecorderRef.current = mediaRecorder;
+          // Store MIME info for later use (Safari reports empty string for mimeType)
+          const detectedMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
+          const fileExt = detectedMime.includes('mp4') ? 'm4a' : 'webm';
 
-        mediaRecorder.ondataavailable = (e) => {
+          mediaRecorder.ondataavailable = (e) => {
             if (e.data.size > 0) chunksRef.current.push(e.data);
-        };
+          };
 
-        mediaRecorder.onstop = async () => {
+          mediaRecorder.onstop = async () => {
             stream.getTracks().forEach(t => t.stop());
-            const blob = new Blob(chunksRef.current, { type: actualMimeType });
-            await processAudio(blob);
-        };
+            if (chunksRef.current.length === 0) {
+              setErrorMsg('Не удалось записать аудио');
+              setStatus('error');
+              setTimeout(() => setStatus('idle'), 3000);
+              return;
+            }
+            const blob = new Blob(chunksRef.current, { type: detectedMime });
+            await processAudio(blob, fileExt);
+          };
 
-        mediaRecorder.start();
+          mediaRecorder.start();
+        } catch (err) {
+          setErrorMsg(err.name === 'NotAllowedError' ? 'Доступ к микрофону запрещён' : 'Микрофон недоступен');
+          setStatus('error');
+          setTimeout(() => setStatus('idle'), 3000);
+        }
     };
 
     const stopRecording = () => {
@@ -63,16 +77,13 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
         }
     };
 
-    const processAudio = async (blob) => {
+    const processAudio = async (blob, ext) => {
         try {
-            // Convert blob to data URL (UploadFile requires string, not raw Blob)
-            const dataUrl = await new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result);
-              reader.onerror = reject;
-              reader.readAsDataURL(blob);
-            });
-            const { file_url } = await base44.integrations.Core.UploadFile({ file: dataUrl });
+            // Convert Blob to File so the SDK detects it as binary and uses multipart
+            const fileName = 'recording.' + (ext || 'webm');
+            const fileType = blob.type || 'audio/webm';
+            const file = new File([blob], fileName, { type: fileType });
+            const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
             // Отправляем на обработку
             const response = await base44.functions.invoke('voiceTransaction', { audio_url: file_url });
