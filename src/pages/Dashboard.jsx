@@ -30,6 +30,7 @@ import SafeDailyLimit from '@/components/dashboard/SafeDailyLimit';
 import EmergencyFund from '@/components/dashboard/EmergencyFund';
 import NetWorthCard from '@/components/dashboard/NetWorthCard';
 import QuickTemplates from '@/components/dashboard/QuickTemplates';
+import QuickFilters from '@/components/dashboard/QuickFilters';
 import TemplatesManager from '@/components/transactions/TemplatesManager';
 import PullToRefresh from '@/components/PullToRefresh';
 
@@ -39,6 +40,8 @@ export default function Dashboard() {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickAddType, setQuickAddType] = useState('expense');
   const [showTemplatesManager, setShowTemplatesManager] = useState(false);
+  const [filterAccount, setFilterAccount] = useState(null);
+  const [filterCategory, setFilterCategory] = useState(null);
   const [periodType, setPeriodType] = useState('month');
   const [currentPeriod, setCurrentPeriod] = useState({
     start: startOfMonth(new Date()),
@@ -184,6 +187,20 @@ export default function Dashboard() {
     return date >= currentPeriod.start && date <= currentPeriod.end;
   });
 
+  // Quick filters
+  const uniqueCategories = [...new Set(monthTransactions.map(t => t.category).filter(Boolean))].sort();
+
+  const filteredTransactions = monthTransactions.filter(t => {
+    if (filterAccount && t.account_id !== filterAccount) return false;
+    if (filterCategory && t.category !== filterCategory) return false;
+    return true;
+  });
+
+  const clearFilters = () => {
+    setFilterAccount(null);
+    setFilterCategory(null);
+  };
+
   const monthIncome = monthTransactions
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
@@ -324,6 +341,17 @@ export default function Dashboard() {
           formatCurrency={formatCurrency}
         />
 
+        {/* Quick Filters — instant account/category filtering */}
+        <QuickFilters
+          accounts={allAccounts.filter(a => (a.balance || 0) !== 0 || a.type === 'credit')}
+          categories={uniqueCategories}
+          selectedAccount={filterAccount}
+          selectedCategory={filterCategory}
+          onSelectAccount={setFilterAccount}
+          onSelectCategory={setFilterCategory}
+          onClear={clearFilters}
+        />
+
         {/* Quick Templates — one-click transaction creation */}
         <QuickTemplates
           templates={templates}
@@ -430,10 +458,10 @@ export default function Dashboard() {
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {visibleBlocks.spendingChart && (
-              <SpendingChart transactions={monthTransactions} formatCurrency={formatCurrency} />
+              <SpendingChart transactions={filteredTransactions} formatCurrency={formatCurrency} />
             )}
             {visibleBlocks.transactions && (
-              <RecentTransactions transactions={transactions.slice(0, 5)} formatCurrency={formatCurrency} />
+              <RecentTransactions transactions={(filterAccount || filterCategory ? filteredTransactions : transactions).slice(0, 5)} formatCurrency={formatCurrency} />
             )}
           </div>
           <div className="space-y-6">

@@ -96,4 +96,13 @@
     user-select: none;
     -webkit-user-select: none;
   }
+
+  /* Hide scrollbar for filter chips */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }
