@@ -28,6 +28,7 @@ import ChildDashboard from '@/components/child/ChildDashboard';
 import PremiumAIAnalytics from '@/components/dashboard/PremiumAIAnalytics';
 import SafeDailyLimit from '@/components/dashboard/SafeDailyLimit';
 import EmergencyFund from '@/components/dashboard/EmergencyFund';
+import NetWorthCard from '@/components/dashboard/NetWorthCard';
 import PullToRefresh from '@/components/PullToRefresh';
 
 export default function Dashboard() {
@@ -271,8 +272,16 @@ export default function Dashboard() {
             totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses}
             investmentValue={investmentValue} investmentProfit={investmentProfit}
             formatCurrency={formatCurrency}
+            accounts={allAccounts} investments={investments}
           />
         )}
+
+        {/* Net Worth Card — shows assets vs debts breakdown */}
+        <NetWorthCard
+          accounts={allAccounts}
+          investments={investments}
+          formatCurrency={formatCurrency}
+        />
 
         {balanceMode === 'family' && family && memberBalances.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-4">

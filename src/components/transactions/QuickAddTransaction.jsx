@@ -255,7 +255,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           toast.error('Действия с данными других пользователей запрещены!');
           return;
         }
-        if (sourceAccount.balance - amountNum < 0) {
+        if (sourceAccount.type !== 'credit' && sourceAccount.balance - amountNum < 0) {
           toast.error('Недостаточно средств на счёте для выполнения операции');
           return;
         }
@@ -313,7 +313,8 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
       }
 
       if (type === 'expense' && selectedAccount) {
-        if (selectedAccount.balance - amountNum < 0) {
+        // For credit cards, allow spending below zero (debt increases)
+        if (selectedAccount.type !== 'credit' && selectedAccount.balance - amountNum < 0) {
           toast.error('Недостаточно средств на счёте для выполнения операции');
           return;
         }

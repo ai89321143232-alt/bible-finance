@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Eye, EyeOff, TrendingUp, TrendingDown, Wallet, BarChart2, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Eye, EyeOff, TrendingUp, TrendingDown, Wallet, BarChart2, ArrowUpRight, ArrowDownRight, CreditCard } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
 export default function BalanceCard({ 
@@ -11,11 +11,19 @@ export default function BalanceCard({
   monthExpenses,
   investmentValue,
   investmentProfit,
-  formatCurrency 
+  formatCurrency,
+  accounts = [],
+  investments = []
 }) {
   const [showBalance, setShowBalance] = React.useState(true);
   const netFlow = monthIncome - monthExpenses;
   const isPositive = netFlow >= 0;
+
+  // Calculate debt breakdown
+  const totalDebt = accounts
+    .filter(a => (a.balance || 0) < 0 || a.type === 'credit')
+    .reduce((sum, a) => sum + Math.abs(Math.min(a.balance || 0, 0)), 0);
+  const hasDebt = totalDebt > 0;
 
   return (
     <motion.div
@@ -62,7 +70,7 @@ export default function BalanceCard({
             <h2 className="text-4xl sm:text-5xl font-bold text-white tracking-tight">
               {showBalance ? formatCurrency(totalBalance + investmentValue) : '••••••'}
             </h2>
-            <div className="flex items-center gap-2 mt-2">
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
                 isPositive 
                   ? 'bg-emerald-500/15 text-emerald-400' 
@@ -72,6 +80,12 @@ export default function BalanceCard({
                 {isPositive ? '+' : ''}{formatCurrency(netFlow)}
               </span>
               <span className="text-white/25 text-xs">в этом месяце</span>
+              {hasDebt && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-400">
+                  <CreditCard className="w-3 h-3" />
+                  Долг: {formatCurrency(-totalDebt)}
+                </span>
+              )}
             </div>
           </motion.div>
 

@@ -133,7 +133,10 @@ export default function GoalCard({
                   {formatCurrency(goal.current_amount || 0)}
                 </p>
                 <p className="text-sm text-slate-500">
-                  из {formatCurrency(goal.target_amount)}
+                  {goal.type === 'debt_payoff' 
+                    ? `осталось ${formatCurrency(goal.target_amount - (goal.current_amount || 0))}`
+                    : `из ${formatCurrency(goal.target_amount)}`
+                  }
                 </p>
               </div>
               <div className="text-right">
@@ -179,24 +182,26 @@ export default function GoalCard({
             )}
 
             {isEditable && (
-              <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className={`grid ${goal.type === 'debt_payoff' ? 'grid-cols-1' : 'grid-cols-2'} gap-2 mt-2`}>
                 <Button
                   variant="outline"
                   onClick={() => onAddFunds(goal)}
                   className="rounded-xl"
                 >
                   <Coins className="w-4 h-4 mr-2" />
-                  Пополнить
+                  {goal.type === 'debt_payoff' ? 'Погасить' : 'Пополнить'}
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => onSpend(goal)}
-                  className="rounded-xl text-rose-600 border-rose-200 hover:bg-rose-50"
-                  disabled={(goal.current_amount || 0) === 0}
-                >
-                  <MinusCircle className="w-4 h-4 mr-2" />
-                  Потратить
-                </Button>
+                {goal.type !== 'debt_payoff' && (
+                  <Button
+                    variant="outline"
+                    onClick={() => onSpend(goal)}
+                    className="rounded-xl text-rose-600 border-rose-200 hover:bg-rose-50"
+                    disabled={(goal.current_amount || 0) === 0}
+                  >
+                    <MinusCircle className="w-4 h-4 mr-2" />
+                    Потратить
+                  </Button>
+                )}
               </div>
             )}
           </div>

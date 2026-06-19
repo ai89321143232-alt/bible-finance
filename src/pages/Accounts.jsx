@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
   Plus, Wallet, CreditCard, Building2, PiggyBank, 
-  Edit2, Trash2, Check, ArrowUpRight, ArrowDownRight
+  Edit2, Trash2, Check, ArrowUpRight, ArrowDownRight, AlertCircle
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,7 +83,8 @@ export default function Accounts() {
     type: 'card',
     balance: '',
     currency: 'RUB',
-    color: ACCOUNT_COLORS[0]
+    color: ACCOUNT_COLORS[0],
+    credit_limit: ''
   });
 
   const { data: allAccounts = [], isLoading } = useQuery({
@@ -209,7 +210,8 @@ export default function Accounts() {
       type: 'card',
       balance: '',
       currency: 'RUB',
-      color: ACCOUNT_COLORS[0]
+      color: ACCOUNT_COLORS[0],
+      credit_limit: ''
     });
     setShowAddModal(false);
     setEditAccount(null);
@@ -227,7 +229,8 @@ export default function Accounts() {
       type: account.type,
       balance: account.balance?.toString() || '0',
       currency: account.currency || 'RUB',
-      color: account.color || ACCOUNT_COLORS[0]
+      color: account.color || ACCOUNT_COLORS[0],
+      credit_limit: account.credit_limit?.toString() || ''
     });
     setShowAddModal(true);
   };
@@ -236,6 +239,7 @@ export default function Accounts() {
     const data = {
       ...formData,
       balance: parseFloat(formData.balance) || 0,
+      credit_limit: formData.type === 'credit' ? (parseFloat(formData.credit_limit) || null) : null,
       is_active: true
     };
 
@@ -263,6 +267,18 @@ export default function Accounts() {
   };
 
   const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+  
+  // Net worth breakdown
+  const positiveBalance = accounts
+    .filter(a => (a.balance || 0) >= 0 && a.type !== 'credit')
+    .reduce((sum, a) => sum + (a.balance || 0), 0);
+  const debtBalance = accounts
+    .filter(a => (a.balance || 0) < 0 || a.type === 'credit')
+    .reduce((sum, a) => sum + Math.abs(Math.min(a.balance || 0, 0)), 0);
+  const creditPositive = accounts
+    .filter(a => a.type === 'credit' && (a.balance || 0) > 0)
+    .reduce((sum, a) => sum + (a.balance || 0), 0);
+  const netWorth = positiveBalance + creditPositive - debtBalance;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -285,7 +301,7 @@ export default function Accounts() {
           </Button>
         </motion.div>
 
-        {/* Total Balance Card */}
+        {/* Net Worth Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -295,9 +311,23 @@ export default function Accounts() {
             <CardContent className="p-6">
               <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-violet-500/20 to-transparent rounded-full blur-3xl pointer-events-none" />
               <div className="relative">
-                <p className="text-slate-400 text-sm mb-1">Общий баланс</p>
-                <p className="text-4xl font-bold text-white">{formatCurrency(totalBalance)}</p>
-                <p className="text-slate-400 text-sm mt-2">{accounts.length} счетов</p>
+                <p className="text-slate-400 text-sm mb-1">Чистый капитал</p>
+                <p className={`text-4xl font-bold ${netWorth >= 0 ? 'text-white' : 'text-rose-400'}`}>
+                  {formatCurrency(netWorth)}
+                </p>
+                <div className="flex items-center gap-4 mt-3 text-sm">
+                  <div>
+                    <span className="text-slate-500">Активы: </span>
+                    <span className="text-emerald-400 font-semibold">{formatCurrency(positiveBalance + creditPositive)}</span>
+                  </div>
+                  {debtBalance > 0 && (
+                    <div>
+                      <span className="text-slate-500">Долги: </span>
+                      <span className="text-rose-400 font-semibold">{formatCurrency(-debtBalance)}</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-slate-400 text-xs mt-2">{accounts.length} счетов</p>
               </div>
             </CardContent>
           </Card>
@@ -370,9 +400,16 @@ export default function Accounts() {
                         </div>
                       </div>
 
-                      <p className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
+                      <p className={`text-2xl font-bold mb-1 ${(account.balance || 0) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
                         {formatCurrency(account.balance || 0)}
                       </p>
+                      {account.type === 'credit' && account.credit_limit > 0 && (
+                        <p className="text-xs text-slate-400 mb-2">
+                          Лимит: {formatCurrency(account.credit_limit)} • 
+                          Доступно: {formatCurrency(account.credit_limit + (account.balance || 0))}
+                        </p>
+                      )}
+                      {!account.credit_limit && <div className="mb-3" />}
 
                       <div className="flex gap-4 text-sm">
                         <div className="flex items-center gap-1 text-emerald-600">
@@ -460,7 +497,28 @@ export default function Accounts() {
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
               </div>
+              {formData.type === 'credit' && (
+                <p className="text-xs text-rose-500/80 mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  Для кредитного счёта укажите отрицательный баланс (сумму долга)
+                </p>
+              )}
             </div>
+            {formData.type === 'credit' && (
+              <div>
+                <Label>Кредитный лимит</Label>
+                <div className="relative mt-1">
+                  <Input
+                    type="number"
+                    value={formData.credit_limit}
+                    onChange={(e) => setFormData({ ...formData, credit_limit: e.target.value })}
+                    placeholder="Например: 100000"
+                    className="rounded-xl pr-8"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
+                </div>
+              </div>
+            )}
             <div>
               <Label>Цвет</Label>
               <div className="flex gap-2 mt-2 flex-wrap">
