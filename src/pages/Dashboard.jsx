@@ -172,7 +172,7 @@ export default function Dashboard() {
 
   const familyMembers = family?.members || [];
   const personalAccounts = allAccounts.filter(acc => acc.user_id === user?.id);
-  const familyAccounts = allAccounts;
+  const familyAccounts = allAccounts.filter(acc => acc.family_id === family?.id);
   const displayAccounts = balanceMode === 'family' ? familyAccounts : personalAccounts;
   const totalBalance = displayAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
   
@@ -330,7 +330,7 @@ export default function Dashboard() {
             totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses}
             investmentValue={investmentValue} investmentProfit={investmentProfit}
             formatCurrency={formatCurrency}
-            accounts={allAccounts} investments={investments}
+            accounts={displayAccounts} investments={investments}
           />
         )}
 
