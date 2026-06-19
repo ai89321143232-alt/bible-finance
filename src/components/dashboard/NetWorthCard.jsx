@@ -13,7 +13,7 @@ export default function NetWorthCard({
   const assetAccounts = accounts.filter(a => (a.balance || 0) >= 0 && a.type !== 'credit');
   const debtAccounts = accounts.filter(a => (a.balance || 0) < 0 || a.type === 'credit');
   
-  const totalAssets = assetAccounts.reduce((sum, a) => sum + Math.max(a.balance || 0, 0), 0);
+  let totalAssets = assetAccounts.reduce((sum, a) => sum + Math.max(a.balance || 0, 0), 0);
   const totalDebts = debtAccounts.reduce((sum, a) => sum + Math.abs(Math.min(a.balance || 0, 0)), 0);
   // For credit accounts with positive balance (overpaid), treat as asset
   const creditPositive = debtAccounts.reduce((sum, a) => sum + Math.max(a.balance || 0, 0), 0);
