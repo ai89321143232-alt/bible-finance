@@ -29,6 +29,8 @@ import PremiumAIAnalytics from '@/components/dashboard/PremiumAIAnalytics';
 import SafeDailyLimit from '@/components/dashboard/SafeDailyLimit';
 import EmergencyFund from '@/components/dashboard/EmergencyFund';
 import NetWorthCard from '@/components/dashboard/NetWorthCard';
+import QuickTemplates from '@/components/dashboard/QuickTemplates';
+import TemplatesManager from '@/components/transactions/TemplatesManager';
 import PullToRefresh from '@/components/PullToRefresh';
 
 export default function Dashboard() {
@@ -36,6 +38,7 @@ export default function Dashboard() {
 
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickAddType, setQuickAddType] = useState('expense');
+  const [showTemplatesManager, setShowTemplatesManager] = useState(false);
   const [periodType, setPeriodType] = useState('month');
   const [currentPeriod, setCurrentPeriod] = useState({
     start: startOfMonth(new Date()),
@@ -158,6 +161,12 @@ export default function Dashboard() {
     enabled: !!user
   });
 
+  const { data: templates = [] } = useQuery({
+    queryKey: ['transaction-templates'],
+    queryFn: () => base44.entities.TransactionTemplate.list('sort_order', 50),
+    enabled: !!user
+  });
+
   const familyMembers = family?.members || [];
   const personalAccounts = allAccounts.filter(acc => acc.user_id === user?.id);
   const familyAccounts = allAccounts;
@@ -207,6 +216,38 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ['goals'] }),
       queryClient.invalidateQueries({ queryKey: ['investments'] }),
     ]);
+  };
+
+  const handleUseTemplate = async (template) => {
+    const accountId = template.account_id || (allAccounts[0]?.id);
+    if (!accountId) return;
+    const account = allAccounts.find(a => a.id === accountId);
+    if (!account) return;
+
+    // For expense, check non-credit account balance
+    if (template.type === 'expense' && account.type !== 'credit' && (account.balance || 0) - template.amount < 0) {
+      // Don't block, but could show a warning — for now just proceed
+    }
+
+    await base44.entities.Transaction.create({
+      type: template.type,
+      amount: template.amount,
+      category: template.category,
+      subcategory: template.subcategory || undefined,
+      description: template.description || template.name,
+      account_id: accountId,
+      date: new Date().toISOString(),
+      user_id: user?.id,
+      family_id: family?.id || undefined
+    });
+
+    // Update account balance
+    const delta = template.type === 'income' ? template.amount : -template.amount;
+    await base44.entities.Account.update(accountId, {
+      balance: (account.balance || 0) + delta
+    });
+
+    queryClient.invalidateQueries();
   };
 
   if (user && themePreference === null) {
@@ -281,6 +322,14 @@ export default function Dashboard() {
           accounts={allAccounts}
           investments={investments}
           formatCurrency={formatCurrency}
+        />
+
+        {/* Quick Templates — one-click transaction creation */}
+        <QuickTemplates
+          templates={templates}
+          accounts={allAccounts}
+          onUseTemplate={handleUseTemplate}
+          onOpenManager={() => setShowTemplatesManager(true)}
         />
 
         {balanceMode === 'family' && family && memberBalances.length > 0 && (
@@ -403,6 +452,16 @@ export default function Dashboard() {
           <QuickAddTransaction onClose={() => setShowQuickAdd(false)} accounts={allAccounts} defaultType={quickAddType} />
         )}
       </AnimatePresence>
+
+      <TemplatesManager
+        open={showTemplatesManager}
+        onClose={() => {
+          setShowTemplatesManager(false);
+          queryClient.invalidateQueries({ queryKey: ['transaction-templates'] });
+        }}
+        onUseTemplate={handleUseTemplate}
+        accounts={allAccounts}
+      />
     </div>
     </PullToRefresh>
   );
