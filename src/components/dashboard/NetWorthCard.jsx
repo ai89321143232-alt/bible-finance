@@ -9,17 +9,13 @@ export default function NetWorthCard({
   investments = [],
   formatCurrency
 }) {
-  // Split accounts into assets (positive/zero) and debts (negative)
-  const assetAccounts = accounts.filter(a => (a.balance || 0) >= 0 && a.type !== 'credit');
-  const debtAccounts = accounts.filter(a => (a.balance || 0) < 0 || a.type === 'credit');
+  // Simple: balance > 0 = asset, balance < 0 = debt
+  const totalAssets = accounts.reduce((sum, a) => sum + Math.max(a.balance || 0, 0), 0);
+  const totalDebts = accounts.reduce((sum, a) => sum + Math.abs(Math.min(a.balance || 0, 0)), 0);
   
-  let totalAssets = assetAccounts.reduce((sum, a) => sum + Math.max(a.balance || 0, 0), 0);
-  const totalDebts = debtAccounts.reduce((sum, a) => sum + Math.abs(Math.min(a.balance || 0, 0)), 0);
-  // For credit accounts with positive balance (overpaid), treat as asset
-  const creditPositive = debtAccounts.reduce((sum, a) => sum + Math.max(a.balance || 0, 0), 0);
-  const creditNegative = debtAccounts.reduce((sum, a) => sum + Math.abs(Math.min(a.balance || 0, 0)), 0);
-  
-  totalAssets += creditPositive;
+  // Count for display
+  const assetAccounts = accounts.filter(a => (a.balance || 0) > 0);
+  const debtAccounts = accounts.filter(a => (a.balance || 0) < 0);
   
   const investmentValue = investments.reduce((sum, inv) => 
     sum + (inv.quantity * (inv.current_price || inv.purchase_price || 0)), 0
