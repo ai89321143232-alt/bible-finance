@@ -319,7 +319,7 @@ export default function Dashboard() {
 
         {/* Net Worth Card — shows assets vs debts breakdown */}
         <NetWorthCard
-          accounts={allAccounts}
+          accounts={displayAccounts}
           investments={investments}
           formatCurrency={formatCurrency}
         />
