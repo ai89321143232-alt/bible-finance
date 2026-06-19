@@ -92,7 +92,7 @@ export default function NetWorthCard({
             </Link>
 
             {totalDebts > 0 ? (
-              <Link to={createPageUrl('Accounts')}>
+              <Link to={createPageUrl('DebtAnalytics')}>
                 <div className="rounded-xl border border-rose-500/10 bg-rose-500/5 p-3.5 hover:bg-rose-500/10 transition-all cursor-pointer">
                   <div className="flex items-center gap-2 mb-1.5">
                     <CreditCard className="w-3.5 h-3.5 text-rose-400" />

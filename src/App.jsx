@@ -28,6 +28,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import Onboarding from './pages/Onboarding';
 import HelpCenter from './pages/HelpCenter';
+import DebtAnalytics from './pages/DebtAnalytics';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Login from './pages/Login';
@@ -104,6 +105,8 @@ const AuthenticatedApp = () => {
         <Route path="/Onboarding" element={<Onboarding />} />
         {/* База знаний */}
         <Route path="/HelpCenter" element={<LayoutWrapper currentPageName="HelpCenter"><HelpCenter /></LayoutWrapper>} />
+        {/* Анализ долгов */}
+        <Route path="/DebtAnalytics" element={<LayoutWrapper currentPageName="DebtAnalytics"><DebtAnalytics /></LayoutWrapper>} />
       </Route>
 
       {/* 404 */}

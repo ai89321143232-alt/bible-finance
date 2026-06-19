@@ -14,6 +14,7 @@ const MENU_ITEMS = [
   { name: 'Budgets',           label: 'Бюджеты',          icon: PieChart },
   { name: 'Categories',        label: 'Категории',        icon: BarChart2 },
   { name: 'Analytics',         label: 'Аналитика',        icon: TrendingUp },
+  { name: 'DebtAnalytics',     label: 'Долги',            icon: CreditCard },
   { name: 'Goals',             label: 'Цели',             icon: Target },
   { name: 'Investments',       label: 'Инвестиции',       icon: TrendingUp,  hideInChildMode: true },
   { name: 'FinancialPlanning', label: 'Финплан',          icon: Lightbulb },
