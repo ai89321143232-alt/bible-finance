@@ -172,7 +172,7 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
     };
 
     return (
-        <div className="flex flex-col items-center gap-3">
+        <div className="relative inline-flex items-center">
             {/* Кнопка записи */}
             {!needsAccount && (
                 <motion.button
@@ -203,14 +203,14 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
                 </motion.button>
             )}
 
-            {/* Выбор счёта */}
+            {/* Выбор счёта (попап) */}
             <AnimatePresence>
                 {needsAccount && result?.parsed && (
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
-                        className="bg-white/5 border border-white/10 rounded-2xl p-4 w-64"
+                        className="absolute top-full mt-2 left-0 z-50 bg-[#1a1f2b] border border-white/10 rounded-2xl p-4 w-64 shadow-xl"
                     >
                         <div className="flex items-center gap-2 mb-3">
                             <Wallet className="w-4 h-4 text-white/50" />
@@ -219,7 +219,6 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
                             </span>
                         </div>
 
-                        {/* Распознанные данные */}
                         <div className="flex items-center gap-3 mb-3 bg-white/3 rounded-xl px-3 py-2">
                             <span className="text-xl">
                                 {CATEGORY_EMOJIS[result.parsed.category] || '📦'}
@@ -232,7 +231,6 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
                             </div>
                         </div>
 
-                        {/* Список счетов */}
                         {accounts.length === 0 ? (
                             <p className="text-xs text-white/30 text-center py-2">Нет доступных счетов</p>
                         ) : (
@@ -254,7 +252,6 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
                             </div>
                         )}
 
-                        {/* Кнопка подтверждения */}
                         <button
                             onClick={finalizeWithAccount}
                             disabled={!selectedAccountId || isFinalizing}
@@ -269,7 +266,6 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
                             )}
                         </button>
 
-                        {/* Отмена */}
                         <button
                             onClick={() => { setNeedsAccount(false); setResult(null); }}
                             className="w-full mt-2 py-2 text-xs text-white/30 hover:text-white/50 transition-colors"
@@ -280,25 +276,14 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
                 )}
             </AnimatePresence>
 
-            {/* Подсказка */}
-            {!needsAccount && (
-                <p className="text-xs text-white/40">
-                    {status === 'idle' && 'Нажмите и говорите'}
-                    {status === 'recording' && 'Запись... нажмите чтобы остановить'}
-                    {status === 'processing' && 'Обрабатываю...'}
-                    {status === 'success' && 'Транзакция добавлена!'}
-                    {status === 'error' && 'Ошибка'}
-                </p>
-            )}
-
-            {/* Результат */}
+            {/* Результат (абсолютно позиционирован) */}
             <AnimatePresence>
                 {status === 'success' && result?.parsed && !needsAccount && (
                     <motion.div
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
-                        className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center min-w-[180px]"
+                        className="absolute top-full mt-2 left-0 z-50 bg-[#1a1f2b] border border-white/10 rounded-xl px-4 py-3 text-center min-w-[180px] shadow-xl"
                     >
                         <div className="text-2xl mb-1">
                             {CATEGORY_EMOJIS[result.parsed.category] || '📦'}
@@ -314,7 +299,7 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="text-xs text-red-400 text-center max-w-[200px]"
+                        className="absolute top-full mt-2 left-0 z-50 bg-[#1a1f2b] border border-red-500/20 rounded-xl px-3 py-2 text-xs text-red-400 max-w-[200px] shadow-xl"
                     >
                         {errorMsg}
                     </motion.div>
