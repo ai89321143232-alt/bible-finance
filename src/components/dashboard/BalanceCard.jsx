@@ -19,10 +19,10 @@ export default function BalanceCard({
   const netFlow = monthIncome - monthExpenses;
   const isPositive = netFlow >= 0;
 
-  // Calculate debt breakdown
+  // Calculate debt breakdown — only accounts with negative balance (regardless of type)
   const totalDebt = accounts
-    .filter(a => (a.balance || 0) < 0 || a.type === 'credit')
-    .reduce((sum, a) => sum + Math.abs(Math.min(a.balance || 0, 0)), 0);
+    .filter(a => (a.balance || 0) < 0)
+    .reduce((sum, a) => sum + Math.abs(a.balance || 0), 0);
   const hasDebt = totalDebt > 0;
 
   return (

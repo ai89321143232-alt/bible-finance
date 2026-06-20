@@ -268,17 +268,15 @@ export default function Accounts() {
 
   const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
   
-  // Net worth breakdown
+  // Net worth breakdown — all balances summed directly: positive = assets, negative = debts
   const positiveBalance = accounts
-    .filter(a => (a.balance || 0) >= 0 && a.type !== 'credit')
+    .filter(a => (a.balance || 0) > 0)
     .reduce((sum, a) => sum + (a.balance || 0), 0);
-  const debtBalance = accounts
-    .filter(a => (a.balance || 0) < 0 || a.type === 'credit')
-    .reduce((sum, a) => sum + Math.abs(Math.min(a.balance || 0, 0)), 0);
-  const creditPositive = accounts
-    .filter(a => a.type === 'credit' && (a.balance || 0) > 0)
+  const negativeBalance = accounts
+    .filter(a => (a.balance || 0) < 0)
     .reduce((sum, a) => sum + (a.balance || 0), 0);
-  const netWorth = positiveBalance + creditPositive - debtBalance;
+  // netWorth is simply the sum of all balances (already equals positiveBalance + negativeBalance)
+  const netWorth = totalBalance;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -318,12 +316,12 @@ export default function Accounts() {
                 <div className="flex items-center gap-4 mt-3 text-sm">
                   <div>
                     <span className="text-slate-500">Активы: </span>
-                    <span className="text-emerald-400 font-semibold">{formatCurrency(positiveBalance + creditPositive)}</span>
+                    <span className="text-emerald-400 font-semibold">{formatCurrency(positiveBalance)}</span>
                   </div>
-                  {debtBalance > 0 && (
+                  {negativeBalance < 0 && (
                     <div>
                       <span className="text-slate-500">Долги: </span>
-                      <span className="text-rose-400 font-semibold">{formatCurrency(-debtBalance)}</span>
+                      <span className="text-rose-400 font-semibold">{formatCurrency(negativeBalance)}</span>
                     </div>
                   )}
                 </div>

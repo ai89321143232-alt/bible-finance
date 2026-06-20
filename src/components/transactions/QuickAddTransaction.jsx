@@ -202,22 +202,9 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     }
   });
 
-  // Update budget spent_amount when an expense is added
+  // Budget spent_amount обновляется автоматически через automation updateBudgetOnTransaction
   const updateBudgetSpent = async (categoryName, amountNum) => {
-    if (!categoryName || amountNum <= 0) return;
-    const today = format(new Date(), 'yyyy-MM-dd');
-
-    for (const budget of budgets) {
-      const budgetCategories = budget.categories?.length > 0
-        ? budget.categories
-        : budget.category ? [budget.category] : [];
-
-      if (budgetCategories.includes(categoryName)) {
-        const newSpent = (budget.spent_amount || 0) + amountNum;
-        await base44.entities.Budget.update(budget.id, { spent_amount: newSpent });
-      }
-    }
-    queryClient.invalidateQueries({ queryKey: ['budgets'] });
+    // No-op: handled by entity automation
   };
 
   const handleSubmit = async () => {
