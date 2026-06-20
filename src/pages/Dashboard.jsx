@@ -31,6 +31,7 @@ import EmergencyFund from '@/components/dashboard/EmergencyFund';
 import NetWorthCard from '@/components/dashboard/NetWorthCard';
 import QuickTemplates from '@/components/dashboard/QuickTemplates';
 import QuickFilters from '@/components/dashboard/QuickFilters';
+import { useIsMobile } from '@/hooks/use-mobile';
 import TemplatesManager from '@/components/transactions/TemplatesManager';
 import PullToRefresh from '@/components/PullToRefresh';
 
@@ -51,6 +52,8 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [themePreference, setThemePreference] = useState(null);
   const [balanceMode, setBalanceMode] = useState('personal');
+
+  const isMobile = useIsMobile();
 
   const [visibleBlocks, setVisibleBlocks] = useState({
     balance: true,
@@ -342,23 +345,27 @@ export default function Dashboard() {
         />
 
         {/* Quick Filters — instant account/category filtering */}
-        <QuickFilters
-          accounts={allAccounts.filter(a => (a.balance || 0) !== 0 || a.type === 'credit')}
-          categories={uniqueCategories}
-          selectedAccount={filterAccount}
-          selectedCategory={filterCategory}
-          onSelectAccount={setFilterAccount}
-          onSelectCategory={setFilterCategory}
-          onClear={clearFilters}
-        />
+        {!isMobile && (
+          <QuickFilters
+            accounts={allAccounts.filter(a => (a.balance || 0) !== 0 || a.type === 'credit')}
+            categories={uniqueCategories}
+            selectedAccount={filterAccount}
+            selectedCategory={filterCategory}
+            onSelectAccount={setFilterAccount}
+            onSelectCategory={setFilterCategory}
+            onClear={clearFilters}
+          />
+        )}
 
         {/* Quick Templates — one-click transaction creation */}
-        <QuickTemplates
-          templates={templates}
-          accounts={allAccounts}
-          onUseTemplate={handleUseTemplate}
-          onOpenManager={() => setShowTemplatesManager(true)}
-        />
+        {!isMobile && (
+          <QuickTemplates
+            templates={templates}
+            accounts={allAccounts}
+            onUseTemplate={handleUseTemplate}
+            onOpenManager={() => setShowTemplatesManager(true)}
+          />
+        )}
 
         {balanceMode === 'family' && family && memberBalances.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-4">
