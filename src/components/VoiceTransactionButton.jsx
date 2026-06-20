@@ -180,26 +180,26 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
                     disabled={status === 'processing' || isFinalizing}
                     whileTap={{ scale: 0.92 }}
                     className={`
-                        relative w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all duration-200
-                        ${status === 'recording' ? 'bg-red-500 shadow-red-500/40 shadow-xl' : ''}
+                        relative w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200
+                        ${status === 'recording' ? 'bg-red-500 shadow-red-500/40' : ''}
                         ${status === 'processing' ? 'bg-white/10 cursor-not-allowed' : ''}
                         ${status === 'success' ? 'bg-green-500' : ''}
                         ${status === 'error' ? 'bg-red-400' : ''}
-                        ${status === 'idle' ? 'bg-white hover:bg-white/90' : ''}
+                        ${status === 'idle' ? 'bg-violet-500/15 border border-violet-500/20 hover:bg-violet-500/25' : ''}
                     `}
                 >
                     {status === 'recording' && (
                         <motion.div
-                            className="absolute inset-0 rounded-full bg-red-500 opacity-30"
-                            animate={{ scale: [1, 1.5, 1] }}
+                            className="absolute inset-0 rounded-lg bg-red-500 opacity-30"
+                            animate={{ scale: [1, 1.3, 1] }}
                             transition={{ repeat: Infinity, duration: 1.2 }}
                         />
                     )}
-                    {status === 'idle' && <Mic className="w-7 h-7 text-black" />}
-                    {status === 'recording' && <MicOff className="w-7 h-7 text-white" />}
-                    {status === 'processing' && <Loader2 className="w-7 h-7 text-white animate-spin" />}
-                    {status === 'success' && <CheckCircle className="w-7 h-7 text-white" />}
-                    {status === 'error' && <AlertCircle className="w-7 h-7 text-white" />}
+                    {status === 'idle' && <Mic className="w-4 h-4 text-violet-400" />}
+                    {status === 'recording' && <MicOff className="w-4 h-4 text-white" />}
+                    {status === 'processing' && <Loader2 className="w-4 h-4 text-white animate-spin" />}
+                    {status === 'success' && <CheckCircle className="w-4 h-4 text-white" />}
+                    {status === 'error' && <AlertCircle className="w-4 h-4 text-white" />}
                 </motion.button>
             )}
 
