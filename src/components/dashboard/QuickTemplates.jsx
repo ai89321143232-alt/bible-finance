@@ -29,7 +29,7 @@ export default function QuickTemplates({ templates = [], onUseTemplate, onOpenMa
         <span className="text-white/40 text-xs uppercase tracking-widest font-medium">Быстрые шаблоны</span>
         <span className="text-white/20 text-xs ml-auto">{templates.length}</span>
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
         {templates.map(t => {
           const isExpense = t.type === 'expense';
           const account = t.account_id ? accounts.find(a => a.id === t.account_id) : null;
