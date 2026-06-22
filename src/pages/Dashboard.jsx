@@ -31,6 +31,7 @@ import EmergencyFund from '@/components/dashboard/EmergencyFund';
 import NetWorthCard from '@/components/dashboard/NetWorthCard';
 import QuickTemplates from '@/components/dashboard/QuickTemplates';
 import QuickFilters from '@/components/dashboard/QuickFilters';
+import MonthForecast from '@/components/dashboard/MonthForecast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import TemplatesManager from '@/components/transactions/TemplatesManager';
 import PullToRefresh from '@/components/PullToRefresh';
@@ -451,6 +452,8 @@ export default function Dashboard() {
             <EmergencyFund totalBalance={totalBalance} transactions={transactions} formatCurrency={formatCurrency} />
           </div>
         )}
+
+        <MonthForecast transactions={transactions} totalBalance={totalBalance} formatCurrency={formatCurrency} />
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mb-8">
           <AIInsights transactions={transactions} accounts={displayAccounts} budgets={budgets} investments={investments} formatCurrency={formatCurrency} />
