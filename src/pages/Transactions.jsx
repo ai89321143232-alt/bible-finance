@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, startOfMonth, endOfMonth, subMonths, addMonths } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
-  Plus, Search, ChevronLeft, ChevronRight, Calendar
+  Plus, Search, ChevronLeft, ChevronRight, Calendar, Download
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -112,6 +112,35 @@ export default function Transactions() {
   const totalIncome = filteredTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const totalExpense = filteredTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
+  const exportToCSV = () => {
+    const monthLabel = format(currentMonth, 'yyyy-MM', { locale: ru });
+    const headers = ['Дата', 'Тип', 'Категория', 'Подкатегория', 'Описание', 'Сумма', 'Валюта'];
+    const rows = filteredTransactions
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .map(t => [
+        format(new Date(t.date), 'dd.MM.yyyy'),
+        t.type === 'income' ? 'Доход' : t.type === 'expense' ? 'Расход' : 'Перевод',
+        t.category || '',
+        t.subcategory || '',
+        t.description || '',
+        t.type === 'expense' ? -t.amount : t.amount,
+        t.currency || 'RUB'
+      ]);
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const BOM = '\uFEFF'; // UTF-8 BOM for correct Cyrillic in Excel/Sheets
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `transactions-${monthLabel}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleRefresh = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['transactions'] }),
@@ -125,9 +154,14 @@ export default function Transactions() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Операции</h1>
-          <Button onClick={() => setShowAddModal(true)} className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl">
-            <Plus className="w-5 h-5 mr-2" />Добавить
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={exportToCSV} variant="outline" className="rounded-xl hidden sm:flex" disabled={filteredTransactions.length === 0}>
+              <Download className="w-4 h-4 mr-2" />CSV
+            </Button>
+            <Button onClick={() => setShowAddModal(true)} className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl">
+              <Plus className="w-5 h-5 mr-2" />Добавить
+            </Button>
+          </div>
         </motion.div>
 
         <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm mb-6">
