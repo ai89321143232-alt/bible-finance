@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import {
-  format, startOfMonth, endOfMonth, subMonths, isAfter, isBefore, parseISO
+  format, startOfMonth, endOfMonth, subMonths
 } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
@@ -57,7 +57,8 @@ export default function DebtAnalytics() {
       
       // Transactions in this month
       const monthTxns = transactions.filter(t => {
-        const d = parseISO(t.date);
+        if (!t.date) return false;
+        const d = new Date(t.date);
         return d >= monthStart && d <= monthEnd;
       });
 
