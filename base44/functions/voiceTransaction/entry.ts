@@ -40,9 +40,9 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // Update matching budget for expenses
+            // Update matching budget for expenses (only user's own budgets)
             if (parsed.type === 'expense' && parsed.category) {
-                const budgets = await base44.asServiceRole.entities.Budget.filter({ is_active: true });
+                const budgets = await base44.asServiceRole.entities.Budget.filter({ is_active: true, user_id: user.id });
                 for (const budget of budgets) {
                     const cats = budget.categories?.length > 0
                         ? budget.categories
@@ -164,9 +164,9 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // Update budget for expenses
+            // Update budget for expenses (only user's own budgets)
             if (result.type === 'expense' && result.category) {
-                const budgets = await base44.asServiceRole.entities.Budget.filter({ is_active: true });
+                const budgets = await base44.asServiceRole.entities.Budget.filter({ is_active: true, user_id: user.id });
                 for (const budget of budgets) {
                     const cats = budget.categories?.length > 0
                         ? budget.categories

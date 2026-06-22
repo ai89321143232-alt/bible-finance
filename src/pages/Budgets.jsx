@@ -147,8 +147,12 @@ export default function Budgets() {
   });
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions', family?.id],
-    queryFn: () => base44.entities.Transaction.list('-date', 1000)
+    queryKey: ['transactions', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      return base44.entities.Transaction.filter({ user_id: user.id }, '-date', 1000);
+    },
+    enabled: !!user
   });
 
   const invalidateBudgets = () => {

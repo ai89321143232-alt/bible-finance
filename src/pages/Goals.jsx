@@ -112,7 +112,12 @@ export default function Goals() {
   });
 
   const { data: accounts = [] } = useQuery({
-    queryKey: ['accounts'], queryFn: () => base44.entities.Account.list()
+    queryKey: ['accounts', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      return base44.entities.Account.filter({ user_id: user.id });
+    },
+    enabled: !!user
   });
 
   const { data: categories = [] } = useQuery({
