@@ -178,7 +178,8 @@ export default function Dashboard() {
   const personalAccounts = allAccounts.filter(acc => acc.user_id === user?.id);
   const familyAccounts = allAccounts.filter(acc => acc.family_id === family?.id);
   const displayAccounts = balanceMode === 'family' ? familyAccounts : personalAccounts;
-  const totalBalance = displayAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+  // Общий баланс = только положительные балансы (активы без долгов)
+  const totalBalance = displayAccounts.reduce((sum, acc) => sum + Math.max(acc.balance || 0, 0), 0);
   
   const memberBalances = familyMembers.map(member => {
     const memberAccounts = allAccounts.filter(acc => acc.user_id === member.user_id);
