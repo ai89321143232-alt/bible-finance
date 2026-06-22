@@ -51,14 +51,14 @@ export default function FinancialPlanning() {
   const monthlyNeeded = remainingAmount > 0 ? Math.ceil(remainingAmount / monthsLeft) : 0;
 
   // Правило 25/25/40/10
-  const needs = income * 0.25; // Необходимое
+  const needs = income * 0.40; // Необходимое
   const wants = income * 0.25; // Желаемое
-  const savings = income * 0.40; // Сбережения
+  const savings = income * 0.25; // Сбережения
   const tithe = income * 0.10; // Десятина
   const budgetData = [
-    { name: 'Нужды (25%)', value: Math.round(needs), fill: '#3B82F6' },
+    { name: 'Нужды (40%)', value: Math.round(needs), fill: '#3B82F6' },
     { name: 'Желания (25%)', value: Math.round(wants), fill: '#8B5CF6' },
-    { name: 'Сбережения (40%)', value: Math.round(savings), fill: '#10B981' },
+    { name: 'Сбережения (25%)', value: Math.round(savings), fill: '#10B981' },
     { name: 'Десятина (10%)', value: Math.round(tithe), fill: '#F59E0B' }
   ];
 
@@ -150,7 +150,7 @@ export default function FinancialPlanning() {
             transition={{ delay: 0.15 }}
           >
             <TabsList className="grid w-full grid-cols-3 h-auto">
-              <TabsTrigger value="budget" className="text-xs sm:text-sm py-2">25/25/40/10</TabsTrigger>
+              <TabsTrigger value="budget" className="text-xs sm:text-sm py-2">40/25/25/10</TabsTrigger>
               <TabsTrigger value="goals" className="text-xs sm:text-sm py-2">Цели</TabsTrigger>
               <TabsTrigger value="projection" className="text-xs sm:text-sm py-2">Прогноз</TabsTrigger>
             </TabsList>
@@ -167,7 +167,7 @@ export default function FinancialPlanning() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <PieIcon className="w-5 h-5 text-violet-600" />
-                    Распределение дохода (правило 25/25/40/10)
+                    Распределение дохода (правило 40/25/25/10)
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6">
@@ -196,7 +196,7 @@ export default function FinancialPlanning() {
 
                     <div className="space-y-4">
                       <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Нужды (25%)</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Нужды (40%)</p>
                         <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{formatCurrency(needs)}</p>
                         <p className="text-xs text-slate-500 mt-2">Еда, жилье, транспорт, коммунальные</p>
                       </div>
@@ -208,7 +208,7 @@ export default function FinancialPlanning() {
                       </div>
 
                       <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
-                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Сбережения (40%)</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Сбережения (25%)</p>
                         <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(savings)}</p>
                         <p className="text-xs text-slate-500 mt-2">Инвестиции, резервный фонд, накопления</p>
                       </div>
@@ -230,7 +230,7 @@ export default function FinancialPlanning() {
                     <div>
                       <p className="font-semibold text-slate-900 dark:text-white">Совет</p>
                       <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">
-                      Следуйте правилу 25/25/40/10: четверть на нужды, четверть на желания, 40% откладывайте и инвестируйте, 10% — на десятину и пожертвования.
+                      Следуйте правилу 40/25/25/10: 40% на нужды, четверть на желания, четверть откладывайте и инвестируйте, 10% — на десятину и пожертвования.
                       </p>
                     </div>
                   </div>
