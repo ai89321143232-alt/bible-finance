@@ -55,15 +55,13 @@
     "category"
   ],
   "rls": {
-    "read": {
-      "created_by": "{{user.email}}"
-    },
     "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
       "$or": [
         {
-          "user_condition": {
-            "role": "user"
-          }
+          "created_by_id": "{{user.id}}"
         },
         {
           "user_condition": {
@@ -73,10 +71,28 @@
       ]
     },
     "update": {
-      "created_by": "{{user.email}}"
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     },
     "delete": {
-      "created_by": "{{user.email}}"
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     }
   }
 }

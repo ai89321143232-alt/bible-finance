@@ -106,6 +106,9 @@
     "period"
   ],
   "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
     "read": {
       "$or": [
         {
@@ -115,15 +118,13 @@
           "data.user_id": "{{user.id}}"
         },
         {
-          "data.share_with": "{{user.id}}"
-        }
-      ]
-    },
-    "create": {
-      "$or": [
+          "data.family_id": "{{user.family_id}}"
+        },
         {
-          "user_condition": {
-            "role": "user"
+          "data.share_with": {
+            "$in": [
+              "{{user.id}}"
+            ]
           }
         },
         {
@@ -142,7 +143,19 @@
           "data.user_id": "{{user.id}}"
         },
         {
-          "data.share_with": "{{user.id}}"
+          "data.family_id": "{{user.family_id}}"
+        },
+        {
+          "data.share_with": {
+            "$in": [
+              "{{user.id}}"
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
         }
       ]
     },
@@ -153,6 +166,11 @@
         },
         {
           "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
         }
       ]
     }

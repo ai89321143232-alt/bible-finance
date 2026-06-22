@@ -88,11 +88,24 @@
   ],
   "rls": {
     "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
       "$or": [
         {
-          "user_condition": {
-            "role": "user"
-          }
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "$and": [
+            {
+              "data.family_id": {
+                "$ne": null
+              }
+            },
+            {
+              "data.family_id": "{{user.family_id}}"
+            }
+          ]
         },
         {
           "user_condition": {
@@ -101,27 +114,13 @@
         }
       ]
     },
-    "read": {
+    "update": {
       "$or": [
         {
-          "$and": [
-            {
-              "data.user_id": "{{user.id}}"
-            },
-            {
-              "data.user_id": {
-                "$ne": null
-              }
-            }
-          ]
+          "created_by_id": "{{user.id}}"
         },
         {
           "$and": [
-            {
-              "data.family_id": {
-                "$exists": true
-              }
-            },
             {
               "data.family_id": {
                 "$ne": null
@@ -129,36 +128,25 @@
             },
             {
               "data.family_id": "{{user.family_id}}"
-            },
-            {
-              "user.family_id": {
-                "$ne": null
-              }
             }
           ]
         },
         {
-          "created_by_id": "{{user.id}}"
-        }
-      ]
-    },
-    "update": {
-      "$or": [
-        {
-          "data.user_id": "{{user.id}}"
-        },
-        {
-          "created_by_id": "{{user.id}}"
+          "user_condition": {
+            "role": "admin"
+          }
         }
       ]
     },
     "delete": {
       "$or": [
         {
-          "data.user_id": "{{user.id}}"
+          "created_by_id": "{{user.id}}"
         },
         {
-          "created_by_id": "{{user.id}}"
+          "user_condition": {
+            "role": "admin"
+          }
         }
       ]
     }
