@@ -9,6 +9,7 @@ import {
   Plus, Target, Edit2, Trash2, Check, Calendar, TrendingUp, Coins, MinusCircle,
   Users, Zap
 } from 'lucide-react';
+import CalendarExport from '@/components/CalendarExport';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -267,9 +268,12 @@ export default function Goals() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Цели</h1>
-          <Button onClick={() => setShowAddModal(true)} className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl">
-            <Plus className="w-5 h-5 mr-2" />Создать
-          </Button>
+          <div className="flex items-center gap-2">
+            <CalendarExport budgets={[]} goals={myGoals} accounts={accounts} />
+            <Button onClick={() => setShowAddModal(true)} className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl">
+              <Plus className="w-5 h-5 mr-2" />Создать
+            </Button>
+          </div>
         </motion.div>
 
         {family && (
