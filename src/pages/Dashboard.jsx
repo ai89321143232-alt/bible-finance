@@ -97,7 +97,7 @@ export default function Dashboard() {
     }
   };
 
-  const { data: family } = useQuery({
+  const { data: family, isSuccess: familyLoaded } = useQuery({
     queryKey: ['my-family', user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -109,6 +109,9 @@ export default function Dashboard() {
     },
     enabled: !!user
   });
+
+  // familyReady: true после того как запрос семьи завершился (null = нет семьи, объект = есть)
+  const familyReady = familyLoaded;
 
   const updatePeriod = (type) => {
     const now = new Date();
@@ -139,33 +142,70 @@ export default function Dashboard() {
   };
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions'],
-    queryFn: () => base44.entities.Transaction.list('-date', 200),
-    enabled: !!user
+    queryKey: ['transactions', user?.id, family?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const all = await base44.entities.Transaction.list('-date', 200);
+      return all.filter(t =>
+        t.created_by === user.email ||
+        (family?.id && t.family_id === family.id)
+      );
+    },
+    enabled: !!user && familyReady
   });
 
   const { data: allAccounts = [] } = useQuery({
-    queryKey: ['accounts'],
-    queryFn: () => base44.entities.Account.list(),
-    enabled: !!user
+    queryKey: ['accounts', user?.id, family?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const all = await base44.entities.Account.list();
+      return all.filter(a =>
+        a.created_by === user.email ||
+        (family?.id && a.family_id === family.id)
+      );
+    },
+    enabled: !!user && familyReady
   });
 
   const { data: budgets = [] } = useQuery({
-    queryKey: ['budgets'],
-    queryFn: () => base44.entities.Budget.filter({ is_active: true }),
-    enabled: !!user
+    queryKey: ['budgets', user?.id, family?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const all = await base44.entities.Budget.filter({ is_active: true });
+      return all.filter(b =>
+        b.created_by === user.email ||
+        (family?.id && b.is_family_budget && b.family_id === family.id) ||
+        (family?.id && b.share_with?.includes(user.id))
+      );
+    },
+    enabled: !!user && familyReady
   });
 
   const { data: goals = [] } = useQuery({
-    queryKey: ['goals'],
-    queryFn: () => base44.entities.Goal.filter({ status: 'active' }),
-    enabled: !!user
+    queryKey: ['goals', user?.id, family?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const all = await base44.entities.Goal.filter({ status: 'active' });
+      return all.filter(g =>
+        g.created_by === user.email ||
+        (family?.id && g.is_family_goal && g.family_id === family.id) ||
+        (family?.id && g.share_with?.includes(user.id))
+      );
+    },
+    enabled: !!user && familyReady
   });
 
   const { data: investments = [] } = useQuery({
-    queryKey: ['investments'],
-    queryFn: () => base44.entities.Investment.list(),
-    enabled: !!user
+    queryKey: ['investments', user?.id, family?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const all = await base44.entities.Investment.list();
+      return all.filter(inv =>
+        inv.created_by === user.email ||
+        (family?.id && inv.family_id === family.id)
+      );
+    },
+    enabled: !!user && familyReady
   });
 
   const { data: templates = [] } = useQuery({
