@@ -36,6 +36,7 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import SplashScreen from './components/SplashScreen';
 
 // Достаём список страниц, компонент Layout и имя главной страницы
 const { Pages, Layout, mainPage } = pagesConfig;
@@ -122,18 +123,18 @@ const AuthenticatedApp = () => {
 
 
 function App() {
+  const [splashDone, setSplashDone] = React.useState(false);
 
   return (
-    // AuthProvider — хранит user, isAuthenticated, authError
     <AuthProvider>
-      {/* QueryClientProvider — глобальный кэш для useQuery/useMutation */}
       <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          {/* NavigationTracker — сохраняет имя текущей страницы в state */}
-          <NavigationTracker />
-          <AuthenticatedApp />
-        </Router>
-        {/* Toaster — глобальные уведомления (shadcn/ui) */}
+        <SplashScreen onFinish={() => setSplashDone(true)} />
+        {splashDone && (
+          <Router>
+            <NavigationTracker />
+            <AuthenticatedApp />
+          </Router>
+        )}
         <Toaster />
       </QueryClientProvider>
     </AuthProvider>
