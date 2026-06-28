@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { PieChart as PieIcon, BarChart2 } from 'lucide-react';
+import { PieChart as PieIcon, BarChart2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, addWeeks, subWeeks, addMonths, subMonths, addYears, subYears } from 'date-fns';
+import { ru } from 'date-fns/locale';
 
 const COLORS = ['#a78bfa', '#60a5fa', '#34d399', '#fbbf24', '#f87171', '#e879f9', '#38bdf8', '#fb923c'];
 
@@ -11,15 +13,74 @@ const CATEGORY_ICONS = {
   'Здоровье': '💊', 'Одежда': '👕', 'Подписки': '📱', 'Образование': '📚', 'Другое': '📦'
 };
 
-export default function SpendingChart({ transactions, formatCurrency }) {
+function getPeriodRange(periodType, anchor) {
+  const d = anchor || new Date();
+  switch (periodType) {
+    case 'week':   return { start: startOfWeek(d, { weekStartsOn: 1 }), end: endOfWeek(d, { weekStartsOn: 1 }) };
+    case 'month':  return { start: startOfMonth(d), end: endOfMonth(d) };
+    case 'year':   return { start: startOfYear(d), end: endOfYear(d) };
+    default:       return { start: startOfMonth(d), end: endOfMonth(d) };
+  }
+}
+
+function shiftAnchor(periodType, anchor, direction) {
+  // direction: +1 = вперёд, -1 = назад
+  switch (periodType) {
+    case 'week':  return direction > 0 ? addWeeks(anchor, 1) : subWeeks(anchor, 1);
+    case 'month': return direction > 0 ? addMonths(anchor, 1) : subMonths(anchor, 1);
+    case 'year':  return direction > 0 ? addYears(anchor, 1) : subYears(anchor, 1);
+    default:      return direction > 0 ? addMonths(anchor, 1) : subMonths(anchor, 1);
+  }
+}
+
+function formatPeriodLabel(periodType, start, end) {
+  switch (periodType) {
+    case 'week':
+      return `${format(start, 'd MMM', { locale: ru })} – ${format(end, 'd MMM yyyy', { locale: ru })}`;
+    case 'month':
+      return format(start, 'LLLL yyyy', { locale: ru });
+    case 'year':
+      return format(start, 'yyyy', { locale: ru }) + ' год';
+    default:
+      return format(start, 'LLLL yyyy', { locale: ru });
+  }
+}
+
+export default function SpendingChart({ transactions, formatCurrency, periodType = 'month' }) {
   const [chartType, setChartType] = useState('pie');
+  const [anchor, setAnchor] = useState(new Date());
   const navigate = useNavigate();
+
+  // Свайп
+  const touchStartX = useRef(null);
+
+  const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      setAnchor(prev => shiftAnchor(periodType, prev, diff > 0 ? 1 : -1));
+    }
+    touchStartX.current = null;
+  };
+
+  // Если период "all" — не показываем навигацию, используем все переданные транзакции
+  const isAllTime = periodType === 'all';
+
+  const { start, end } = isAllTime ? { start: null, end: null } : getPeriodRange(periodType, anchor);
+
+  const periodTransactions = isAllTime
+    ? transactions
+    : transactions.filter(t => {
+        const d = new Date(t.date);
+        return d >= start && d <= end;
+      });
 
   const handleCategoryClick = (category) => {
     navigate(`/Transactions?category=${encodeURIComponent(category)}`);
   };
 
-  const expensesByCategory = transactions
+  const expensesByCategory = periodTransactions
     .filter(t => t.type === 'expense')
     .reduce((acc, t) => {
       const cat = t.category || 'Другое';
@@ -44,9 +105,21 @@ export default function SpendingChart({ transactions, formatCurrency }) {
     );
   };
 
+  const periodLabel = isAllTime ? 'Всё время' : formatPeriodLabel(periodType, start, end);
+  const isCurrentPeriod = isAllTime || (() => {
+    const now = new Date();
+    const cur = getPeriodRange(periodType, now);
+    return start.getTime() === cur.start.getTime();
+  })();
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-      <div className="rounded-xl border border-white/8 bg-[#141820] overflow-hidden">
+      <div
+        className="rounded-xl border border-white/8 bg-[#141820] overflow-hidden"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
           <span className="text-white/40 text-xs uppercase tracking-widest font-medium">Расходы по категориям</span>
           <div className="flex gap-1">
@@ -64,6 +137,33 @@ export default function SpendingChart({ transactions, formatCurrency }) {
             </button>
           </div>
         </div>
+
+        {/* Period Navigation */}
+        {!isAllTime && (
+          <div className="flex items-center justify-between px-3 py-2 border-b border-white/5">
+            <button
+              onClick={() => setAnchor(prev => shiftAnchor(periodType, prev, -1))}
+              className="w-7 h-7 flex items-center justify-center rounded-md text-white/40 hover:text-white/80 hover:bg-white/8 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => setAnchor(new Date())}
+              className={`text-sm font-medium transition-colors ${isCurrentPeriod ? 'text-white/70' : 'text-violet-400 hover:text-violet-300'}`}
+            >
+              {periodLabel}
+            </button>
+
+            <button
+              onClick={() => setAnchor(prev => shiftAnchor(periodType, prev, 1))}
+              disabled={isCurrentPeriod}
+              className="w-7 h-7 flex items-center justify-center rounded-md text-white/40 hover:text-white/80 hover:bg-white/8 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {chartData.length > 0 ? (
           <div className="p-4">
@@ -115,7 +215,7 @@ export default function SpendingChart({ transactions, formatCurrency }) {
           <div className="h-52 flex items-center justify-center text-white/20">
             <div className="text-center">
               <PieIcon className="w-10 h-10 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Нет данных о расходах</p>
+              <p className="text-sm">Нет данных за этот период</p>
             </div>
           </div>
         )}

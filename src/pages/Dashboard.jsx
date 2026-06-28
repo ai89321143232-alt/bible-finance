@@ -469,7 +469,7 @@ export default function Dashboard() {
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {visibleBlocks.spendingChart && (
-              <SpendingChart transactions={filteredTransactions} formatCurrency={formatCurrency} />
+              <SpendingChart transactions={transactions} formatCurrency={formatCurrency} periodType={periodType} />
             )}
             {visibleBlocks.transactions && (
               <RecentTransactions transactions={(filterAccount || filterCategory ? filteredTransactions : transactions).slice(0, 5)} formatCurrency={formatCurrency} />
