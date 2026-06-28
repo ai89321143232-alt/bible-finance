@@ -172,7 +172,7 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
     };
 
     return (
-        <div className="relative inline-flex items-center">
+        <div className="relative inline-flex items-center justify-end">
             {/* Кнопка записи */}
             {!needsAccount && (
                 <motion.button
@@ -207,10 +207,10 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
             <AnimatePresence>
                 {needsAccount && result?.parsed && (
                     <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        className="absolute top-full mt-2 left-0 z-50 bg-[#1a1f2b] border border-white/10 rounded-2xl p-4 w-64 shadow-xl"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="fixed inset-x-4 bottom-24 z-50 bg-[#1a1f2b] border border-white/10 rounded-2xl p-4 shadow-2xl sm:absolute sm:inset-auto sm:top-full sm:mt-2 sm:right-0 sm:w-64 sm:bottom-auto"
                     >
                         <div className="flex items-center gap-2 mb-3">
                             <Wallet className="w-4 h-4 text-white/50" />
