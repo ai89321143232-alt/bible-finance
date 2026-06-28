@@ -9,6 +9,7 @@ import NotificationBell from '@/components/NotificationBell';
 import MobileTabShell from '@/components/MobileTabShell';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { base44 } from '@/api/base44Client';
+import OfflineBanner from '@/components/OfflineBanner';
 
 // ============================================================
 // Layout.jsx — ОСНОВНОЙ МАКЕТ ПРИЛОЖЕНИЯ
@@ -49,6 +50,7 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <div className="min-h-screen bg-[#0f1117] text-white">
+      <OfflineBanner />
       <style>{`
         .dark {
           --background: 222 47% 7%;

@@ -575,10 +575,15 @@ export default function Settings() {
            </Button>
           </motion.div>
 
-          {/* App Info */}
-          <div className="text-center text-sm text-slate-400 py-4">
-            <p>FinanceApp v1.0.0</p>
-            <p className="mt-1">© 2024 Все права защищены</p>
+          {/* Privacy Policy + App Info */}
+          <div className="text-center text-sm text-slate-400 py-4 space-y-2">
+            <div>
+              <Link to="/PrivacyPolicy" className="text-violet-500 hover:text-violet-600 underline underline-offset-2">
+                Политика конфиденциальности
+              </Link>
+            </div>
+            <p>Библия Финансов v1.0.0</p>
+            <p>© 2025 Все права защищены</p>
           </div>
         </div>
       </div>

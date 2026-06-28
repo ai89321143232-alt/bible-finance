@@ -35,6 +35,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 // Достаём список страниц, компонент Layout и имя главной страницы
 const { Pages, Layout, mainPage } = pagesConfig;
@@ -107,6 +108,8 @@ const AuthenticatedApp = () => {
         <Route path="/HelpCenter" element={<LayoutWrapper currentPageName="HelpCenter"><HelpCenter /></LayoutWrapper>} />
         {/* Анализ долгов */}
         <Route path="/DebtAnalytics" element={<LayoutWrapper currentPageName="DebtAnalytics"><DebtAnalytics /></LayoutWrapper>} />
+        {/* Политика конфиденциальности */}
+        <Route path="/PrivacyPolicy" element={<LayoutWrapper currentPageName="PrivacyPolicy"><PrivacyPolicy /></LayoutWrapper>} />
       </Route>
 
       {/* 404 */}
