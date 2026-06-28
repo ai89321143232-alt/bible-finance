@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SplashScreen({ onFinish }) {
-  const [phase, setPhase] = useState('in'); // 'in' | 'hold' | 'out'
+  const [phase, setPhase] = useState('in'); // 'in' | 'hold' | 'out' | 'done'
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('hold'), 600);
     const t2 = setTimeout(() => setPhase('out'), 2400);
-    const t3 = setTimeout(() => onFinish(), 3000);
+    const t3 = setTimeout(() => { setPhase('done'); onFinish(); }, 3000);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, []);
 
