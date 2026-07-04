@@ -156,10 +156,11 @@ export default function Investments() {
     });
 
     if (editInvestment) {
-      updateMutation.mutate({ id: editInvestment.id, data });
+      await updateMutation.mutateAsync({ id: editInvestment.id, data });
     } else {
-      createMutation.mutate(data);
+      await createMutation.mutateAsync(data);
     }
+    resetForm();
   };
 
   const formatCurrency = (amount) => {
