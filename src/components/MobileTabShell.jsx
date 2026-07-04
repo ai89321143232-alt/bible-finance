@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { LayoutDashboard, ArrowLeftRight, Target, Settings as SettingsIcon } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Target, Settings as SettingsIcon, Wallet } from 'lucide-react';
 import Dashboard from '@/pages/Dashboard';
 import Transactions from '@/pages/Transactions';
 import Goals from '@/pages/Goals';
+import Budgets from '@/pages/Budgets';
 import Settings from '@/pages/Settings';
 
 // ============================================================
@@ -19,6 +20,7 @@ const TABS = [
   { label: 'Главная', icon: LayoutDashboard, component: Dashboard },
   { label: 'Операции', icon: ArrowLeftRight, component: Transactions },
   { label: 'Цели', icon: Target, component: Goals },
+  { label: 'Бюджеты', icon: Wallet, component: Budgets },
   { label: 'Ещё', icon: SettingsIcon, component: Settings },
 ];
 

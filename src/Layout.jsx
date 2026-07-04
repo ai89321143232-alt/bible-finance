@@ -39,7 +39,7 @@ export default function Layout({ children, currentPageName }) {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [themePreference, setThemePreference] = useState(null);
   const isMobile = useIsMobile();
-  const isTabPage = ['Dashboard', 'Transactions', 'Goals', 'Settings'].includes(currentPageName);
+  const isTabPage = ['Dashboard', 'Transactions', 'Goals', 'Budgets', 'Settings'].includes(currentPageName);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -114,7 +114,8 @@ export default function Layout({ children, currentPageName }) {
           <MobileTabShell initialTab={
             currentPageName === 'Dashboard' ? 0 :
             currentPageName === 'Transactions' ? 1 :
-            currentPageName === 'Goals' ? 2 : 3
+            currentPageName === 'Goals' ? 2 :
+            currentPageName === 'Budgets' ? 3 : 4
           } />
         ) : (
           children
