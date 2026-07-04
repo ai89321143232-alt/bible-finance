@@ -271,13 +271,15 @@ export default function Goals() {
     <PullToRefresh onRefresh={handleRefresh}>
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-32 sm:pb-6">
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6 gap-2">
-          <h1 className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-white shrink-0">Цели</h1>
-          <div className="flex items-center gap-2 shrink-0">
-            <CalendarExport budgets={[]} goals={myGoals} accounts={accounts} />
-            <Button onClick={() => setShowAddModal(true)} className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl text-sm px-3">
-              <Plus className="w-4 h-4 mr-1" />Создать
-            </Button>
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+          <div className="flex items-center justify-between gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Цели</h1>
+            <div className="flex items-center gap-2">
+              <span className="hidden sm:block"><CalendarExport budgets={[]} goals={myGoals} accounts={accounts} /></span>
+              <Button onClick={() => setShowAddModal(true)} size="sm" className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl">
+                <Plus className="w-4 h-4" /><span className="ml-1">Создать</span>
+              </Button>
+            </div>
           </div>
         </motion.div>
 
