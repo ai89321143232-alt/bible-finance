@@ -160,12 +160,27 @@ export default function Analytics() {
     });
 
     const prevExpenses = prevTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-    const change = prevExpenses > 0 ? ((totalExpenses - prevExpenses) / prevExpenses * 100).toFixed(1) : 0;
-    
-    return { prevExpenses, change };
+    const prevIncome = prevTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const expenseChange = prevExpenses > 0 ? ((totalExpenses - prevExpenses) / prevExpenses * 100).toFixed(1) : null;
+    const incomeChange = prevIncome > 0 ? ((totalIncome - prevIncome) / prevIncome * 100).toFixed(1) : null;
+
+    // Build comparison bar chart data (by day of month)
+    const daysInMonth = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0).getDate();
+    const comparisonData = Array.from({ length: daysInMonth }, (_, i) => {
+      const day = i + 1;
+      const curDayExp = filteredTransactions
+        .filter(t => t.type === 'expense' && new Date(t.date).getDate() === day)
+        .reduce((s, t) => s + t.amount, 0);
+      const prevDayExp = prevTransactions
+        .filter(t => t.type === 'expense' && new Date(t.date).getDate() === day)
+        .reduce((s, t) => s + t.amount, 0);
+      return { day: String(day), current: curDayExp, previous: prevDayExp };
+    });
+
+    return { prevExpenses, prevIncome, expenseChange, incomeChange, comparisonData };
   };
 
-  const { prevExpenses, change } = getPreviousPeriodData();
+  const { prevExpenses, prevIncome, expenseChange, incomeChange, comparisonData } = getPreviousPeriodData();
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -253,6 +268,12 @@ export default function Analytics() {
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">
                   {formatCurrency(totalIncome)}
                 </p>
+                {period === 'month' && incomeChange !== null && (
+                  <p className={`text-sm mt-1 flex items-center gap-1 ${parseFloat(incomeChange) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {parseFloat(incomeChange) >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                    {parseFloat(incomeChange) > 0 ? '+' : ''}{incomeChange}% к прошлому месяцу
+                  </p>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -273,9 +294,10 @@ export default function Analytics() {
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">
                   {formatCurrency(totalExpenses)}
                 </p>
-                {period === 'month' && (
-                  <p className={`text-sm mt-1 ${parseFloat(change) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                    {parseFloat(change) > 0 ? '+' : ''}{change}% к прошлому месяцу
+                {period === 'month' && expenseChange !== null && (
+                  <p className={`text-sm mt-1 flex items-center gap-1 ${parseFloat(expenseChange) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                    {parseFloat(expenseChange) > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                    {parseFloat(expenseChange) > 0 ? '+' : ''}{expenseChange}% к прошлому месяцу
                   </p>
                 )}
               </CardContent>
@@ -305,6 +327,78 @@ export default function Analytics() {
             </Card>
           </motion.div>
         </div>
+
+        {/* Month-over-Month Comparison */}
+        {period === 'month' && (expenseChange !== null || incomeChange !== null) && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.22 }}
+            className="mb-6"
+          >
+            <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <CardTitle className="text-lg">Сравнение с прошлым месяцем</CardTitle>
+                  <div className="flex flex-wrap gap-3 text-sm">
+                    {incomeChange !== null && (
+                      <span className={`flex items-center gap-1 font-semibold ${parseFloat(incomeChange) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        <ArrowUpRight className="w-4 h-4" />
+                        Доходы: {parseFloat(incomeChange) > 0 ? '+' : ''}{incomeChange}%
+                      </span>
+                    )}
+                    {expenseChange !== null && (
+                      <span className={`flex items-center gap-1 font-semibold ${parseFloat(expenseChange) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                        <ArrowDownRight className="w-4 h-4" />
+                        Расходы: {parseFloat(expenseChange) > 0 ? '+' : ''}{expenseChange}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-slate-500 mb-0.5">Расходы — этот месяц</p>
+                      <p className="text-lg font-bold text-rose-600">{formatCurrency(totalExpenses)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-slate-500 mb-0.5">Прошлый месяц</p>
+                      <p className="text-lg font-bold text-slate-400">{formatCurrency(prevExpenses)}</p>
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-slate-500 mb-0.5">Доходы — этот месяц</p>
+                      <p className="text-lg font-bold text-emerald-600">{formatCurrency(totalIncome)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-slate-500 mb-0.5">Прошлый месяц</p>
+                      <p className="text-lg font-bold text-slate-400">{formatCurrency(prevIncome)}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={comparisonData} barCategoryGap="30%">
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                      <XAxis dataKey="day" tick={{ fill: '#94a3b8', fontSize: 10 }} interval={3} />
+                      <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} tickFormatter={(v) => `${Math.round(v/1000)}k`} />
+                      <Tooltip
+                        formatter={(value, name) => [formatCurrency(value), name === 'current' ? 'Этот месяц' : 'Прошлый месяц']}
+                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#f1f5f9' }}
+                      />
+                      <Legend formatter={(value) => value === 'current' ? 'Этот месяц' : 'Прошлый месяц'} />
+                      <Bar dataKey="previous" name="previous" fill="#94a3b8" radius={[3, 3, 0, 0]} opacity={0.6} />
+                      <Bar dataKey="current" name="current" fill="#EF4444" radius={[3, 3, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Charts Grid */}
         <div className="grid lg:grid-cols-2 gap-6 mb-6">
