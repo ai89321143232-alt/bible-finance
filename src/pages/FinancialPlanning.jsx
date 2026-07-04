@@ -172,7 +172,7 @@ export default function FinancialPlanning() {
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-                    <div className="flex items-center justify-center h-64 sm:h-80 lg:h-auto">
+                    <div className="flex items-center justify-center">
                       <ResponsiveContainer width="100%" height={280}>
                         <PieChart>
                           <Pie
@@ -180,9 +180,7 @@ export default function FinancialPlanning() {
                             cx="50%"
                             cy="50%"
                             labelLine={false}
-                            label={({ name, value }) => `${name}: ${formatCurrency(value)}`}
-                            outerRadius={80}
-                            fill="#8884d8"
+                            outerRadius={90}
                             dataKey="value"
                           >
                             {budgetData.map((entry, index) => (
@@ -190,6 +188,11 @@ export default function FinancialPlanning() {
                             ))}
                           </Pie>
                           <Tooltip formatter={(value) => formatCurrency(value)} />
+                          <Legend
+                            formatter={(value, entry) => (
+                              <span style={{ color: entry.color, fontSize: '12px' }}>{entry.payload.name}</span>
+                            )}
+                          />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
