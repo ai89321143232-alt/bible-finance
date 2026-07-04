@@ -47,7 +47,7 @@ export default function MobileTabShell({ initialTab = 0 }) {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Tab Content — all pages mounted, only active is visible */}
-      <div className="flex-1">
+      <div className="flex-1 pb-24">
         {TABS.map((tab, index) => {
           const PageComponent = tab.component;
           return (
@@ -64,12 +64,21 @@ export default function MobileTabShell({ initialTab = 0 }) {
         })}
       </div>
 
-      {/* Bottom Tab Bar */}
+      {/* Bottom Tab Bar — floating */}
       <div
-        className="fixed bottom-0 left-0 right-0 bg-[#0a0d13] border-t border-white/8 z-40"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        className="fixed left-4 right-4 z-40"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
       >
-        <div className="flex items-center justify-around py-2">
+        <div
+          className="flex items-center justify-around py-3 px-2 rounded-2xl"
+          style={{
+            background: 'rgba(10, 13, 19, 0.85)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
+          }}
+        >
           {TABS.map((tab, index) => {
             const Icon = tab.icon;
             const isActive = activeTab === index;
@@ -77,12 +86,15 @@ export default function MobileTabShell({ initialTab = 0 }) {
               <button
                 key={tab.label}
                 onClick={() => switchTab(index)}
-                className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${
-                  isActive ? 'text-white' : 'text-white/40 hover:text-white/70'
-                }`}
+                className="flex flex-col items-center gap-1 px-4 py-1 rounded-xl transition-all duration-200"
+                style={isActive ? {
+                  background: 'rgba(255,255,255,0.1)',
+                } : {}}
               >
-                <Icon className="w-5 h-5" />
-                <span className="text-[10px] font-medium">{tab.label}</span>
+                <Icon className={`w-5 h-5 transition-all duration-200 ${isActive ? 'text-white scale-110' : 'text-white/40'}`} />
+                <span className={`text-[10px] font-medium transition-all duration-200 ${isActive ? 'text-white' : 'text-white/40'}`}>
+                  {tab.label}
+                </span>
               </button>
             );
           })}
