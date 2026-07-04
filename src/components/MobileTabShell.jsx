@@ -72,7 +72,7 @@ export default function MobileTabShell({ initialTab = 0 }) {
         style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
       >
         <div
-          className="flex items-center justify-around py-3 px-2 rounded-2xl"
+          className="flex items-center justify-around py-2 px-1 rounded-2xl"
           style={{
             background: 'rgba(10, 13, 19, 0.85)',
             backdropFilter: 'blur(20px)',
@@ -88,7 +88,7 @@ export default function MobileTabShell({ initialTab = 0 }) {
               <button
                 key={tab.label}
                 onClick={() => switchTab(index)}
-                className="flex flex-col items-center gap-1 px-4 py-1 rounded-xl transition-all duration-200"
+                className="flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition-all duration-200 flex-1"
                 style={isActive ? {
                   background: 'rgba(255,255,255,0.1)',
                 } : {}}
