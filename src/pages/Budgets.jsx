@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { addFamilyId } from '@/components/FamilyDataWrapper';
+import { BudgetService } from '@/services';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -161,7 +161,7 @@ export default function Budgets() {
   };
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Budget.create(data),
+    mutationFn: (data) => BudgetService.create(data),
     onSuccess: () => {
       invalidateBudgets();
       resetForm();
@@ -169,7 +169,7 @@ export default function Budgets() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Budget.update(id, data),
+    mutationFn: ({ id, data, enrich }) => BudgetService.update(id, data, { enrich: enrich !== false }),
     onSuccess: () => {
       invalidateBudgets();
       resetForm();
@@ -177,7 +177,7 @@ export default function Budgets() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Budget.delete(id),
+    mutationFn: (id) => BudgetService.remove(id),
     onSuccess: () => {
       invalidateBudgets();
       setDeleteId(null);
@@ -214,13 +214,13 @@ export default function Budgets() {
     setShowAddModal(true);
   };
 
-  const handleSubmit = async () => {
-    const data = await addFamilyId({
+  const handleSubmit = () => {
+    const data = {
       ...formData,
       limit_amount: parseFloat(formData.limit_amount),
       is_active: true,
       share_with: shareWithUsers
-    });
+    };
 
     if (editBudget) {
       updateMutation.mutate({ id: editBudget.id, data });
@@ -247,7 +247,8 @@ export default function Budgets() {
             
             updateMutation.mutate({
               id: budget.id,
-              data: { notification_sent: true }
+              data: { notification_sent: true },
+              enrich: false
             });
           }
         }

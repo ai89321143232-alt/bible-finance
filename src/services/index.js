@@ -7,4 +7,7 @@
 
 export { TransactionService } from './TransactionService';
 export { AccountService } from './AccountService';
+export { BudgetService } from './BudgetService';
+export { GoalService } from './GoalService';
+export { InvestmentService } from './InvestmentService';
 export * from './context';

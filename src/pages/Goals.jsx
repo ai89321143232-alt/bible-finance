@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { addFamilyId } from '@/components/FamilyDataWrapper';
+import { GoalService } from '@/services';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -125,7 +125,7 @@ export default function Goals() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Goal.create(data),
+    mutationFn: (data) => GoalService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-goals'] });
       queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
@@ -134,7 +134,7 @@ export default function Goals() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Goal.update(id, data),
+    mutationFn: ({ id, data, enrich }) => GoalService.update(id, data, { enrich: enrich !== false }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-goals'] });
       queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
@@ -145,7 +145,7 @@ export default function Goals() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Goal.delete(id),
+    mutationFn: (id) => GoalService.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-goals'] });
       queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
@@ -172,30 +172,23 @@ export default function Goals() {
     setShowAddModal(true);
   };
 
-  const handleSubmit = async () => {
-    const data = await addFamilyId({
+  const handleSubmit = () => {
+    const data = {
       ...formData, target_amount: parseFloat(formData.target_amount),
       current_amount: parseFloat(formData.current_amount) || 0,
       deadline: formData.deadline ? format(formData.deadline, 'yyyy-MM-dd') : null,
       status: 'active', share_with: shareWithUsers
-    });
+    };
     if (editGoal) updateMutation.mutate({ id: editGoal.id, data });
     else createMutation.mutate(data);
   };
 
   const handleAddFunds = async () => {
     if (!showAddFundsModal || !addFundsAmount || !selectedAccount) return;
-    const amount = parseFloat(addFundsAmount);
-    const newAmount = (showAddFundsModal.current_amount || 0) + amount;
-    const isCompleted = newAmount >= showAddFundsModal.target_amount;
     const account = accounts.find(a => a.id === selectedAccount);
-    if (account) await base44.entities.Account.update(selectedAccount, { balance: account.balance - amount });
-    updateMutation.mutate({ id: showAddFundsModal.id, data: { current_amount: newAmount, status: isCompleted ? 'completed' : 'active' } });
-    await base44.entities.Transaction.create({
-      type: 'transfer', amount, category: 'Перенос на цель',
-      description: `${account?.name} → Цель: ${showAddFundsModal.title}`,
-      date: format(new Date(), 'yyyy-MM-dd'), account_id: selectedAccount
-    });
+    await GoalService.addFunds(showAddFundsModal, account, addFundsAmount);
+    queryClient.invalidateQueries({ queryKey: ['my-goals'] });
+    queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
     queryClient.invalidateQueries({ queryKey: ['accounts'] });
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
     setShowAddFundsModal(null);
@@ -208,23 +201,20 @@ export default function Goals() {
         const goal = (viewMode === 'personal' ? myGoals : sharedGoals).find(g => g.id === goalId);
         if (goal) {
           const newAmount = (goal.current_amount || 0) + amount;
-          await updateMutation.mutateAsync({ id: goalId, data: { current_amount: newAmount, status: newAmount >= goal.target_amount ? 'completed' : 'active' } });
+          await GoalService.update(goalId, { current_amount: newAmount, status: newAmount >= goal.target_amount ? 'completed' : 'active' }, { enrich: false });
         }
       }
     }
+    queryClient.invalidateQueries({ queryKey: ['my-goals'] });
+    queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
     setShowAutoDistribute(false);
   };
 
   const handleSpendFromGoal = async () => {
     if (!showSpendModal || !spendAmount || !spendCategory) return;
-    const amount = parseFloat(spendAmount);
-    const newAmount = Math.max((showSpendModal.current_amount || 0) - amount, 0);
-    updateMutation.mutate({ id: showSpendModal.id, data: { current_amount: newAmount } });
-    await base44.entities.Transaction.create({
-      type: 'expense', amount, category: spendCategory,
-      description: `${spendDescription || ''} (из цели: ${showSpendModal.title})`,
-      date: format(new Date(), 'yyyy-MM-dd')
-    });
+    await GoalService.spend(showSpendModal, { amount: spendAmount, category: spendCategory, description: spendDescription });
+    queryClient.invalidateQueries({ queryKey: ['my-goals'] });
+    queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
     setShowSpendModal(null); setSpendAmount(''); setSpendCategory(''); setSpendDescription('');
   };
@@ -240,7 +230,7 @@ export default function Goals() {
               to: user?.email, subject: `Приближается дедлайн цели: ${goal.title}`,
               body: `У вас осталось ${daysLeft} дней до дедлайна цели "${goal.title}". Текущий прогресс: ${((goal.current_amount / goal.target_amount) * 100).toFixed(0)}%`
             });
-            updateMutation.mutate({ id: goal.id, data: { notification_sent: true } });
+            updateMutation.mutate({ id: goal.id, data: { notification_sent: true }, enrich: false });
           }
         }
       });

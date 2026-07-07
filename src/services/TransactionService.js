@@ -166,6 +166,29 @@ export const TransactionService = {
     return { ok: true, count: items.length };
   },
 
+  /**
+   * Низкоуровневое создание записи операции без побочных эффектов на баланс.
+   * Используется, когда изменение баланса уже выполнено вызывающим кодом
+   * (напр. GoalService при пополнении/трате цели).
+   */
+  async createRaw({ type, amount, category, description, date, account_id }) {
+    const user = await getCurrentUser();
+    const data = await enrichWithOwnership(
+      {
+        type,
+        amount: parseFloat(amount),
+        category,
+        description,
+        date: date instanceof Date ? date.toISOString() : date,
+        account_id: account_id || undefined,
+      },
+      user
+    );
+    const created = await repo().create(data);
+    notifyChanged();
+    return created;
+  },
+
   /** Удалить операцию с откатом баланса счёта. */
   async remove(id) {
     const all = await repo().list('-date', 500);

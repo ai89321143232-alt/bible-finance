@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { addFamilyId } from '@/components/FamilyDataWrapper';
+import { InvestmentService } from '@/services';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -92,11 +91,11 @@ export default function Investments() {
 
   const { data: investments = [], isLoading } = useQuery({
     queryKey: ['investments'],
-    queryFn: () => base44.entities.Investment.list()
+    queryFn: () => InvestmentService.list()
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Investment.create(data),
+    mutationFn: (data) => InvestmentService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['investments'] });
       resetForm();
@@ -104,7 +103,7 @@ export default function Investments() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Investment.update(id, data),
+    mutationFn: ({ id, data }) => InvestmentService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['investments'] });
       resetForm();
@@ -112,7 +111,7 @@ export default function Investments() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Investment.delete(id),
+    mutationFn: (id) => InvestmentService.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['investments'] });
       setDeleteId(null);
@@ -148,17 +147,10 @@ export default function Investments() {
   };
 
   const handleSubmit = async () => {
-    const data = await addFamilyId({
-      ...formData,
-      quantity: parseFloat(formData.quantity),
-      purchase_price: parseFloat(formData.purchase_price),
-      current_price: parseFloat(formData.current_price) || parseFloat(formData.purchase_price)
-    });
-
     if (editInvestment) {
-      await updateMutation.mutateAsync({ id: editInvestment.id, data });
+      await updateMutation.mutateAsync({ id: editInvestment.id, data: { ...formData } });
     } else {
-      await createMutation.mutateAsync(data);
+      await createMutation.mutateAsync({ ...formData });
     }
     resetForm();
   };

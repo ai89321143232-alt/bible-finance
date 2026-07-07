@@ -79,6 +79,40 @@ export const validateAccountInput = ({ name, type }) => {
   return { ok: true };
 };
 
+/** Валидация бюджета перед сохранением. */
+export const validateBudgetInput = ({ name, limit_amount }) => {
+  if (!name || !name.trim()) return { ok: false, error: 'Укажите название бюджета' };
+  const limit = parseFloat(limit_amount);
+  if (!limit_amount || Number.isNaN(limit) || limit <= 0) {
+    return { ok: false, error: 'Введите корректный лимит бюджета' };
+  }
+  return { ok: true };
+};
+
+/** Валидация цели перед сохранением. */
+export const validateGoalInput = ({ title, target_amount }) => {
+  if (!title || !title.trim()) return { ok: false, error: 'Укажите название цели' };
+  const target = parseFloat(target_amount);
+  if (!target_amount || Number.isNaN(target) || target <= 0) {
+    return { ok: false, error: 'Введите корректную целевую сумму' };
+  }
+  return { ok: true };
+};
+
+/** Валидация инвестиции перед сохранением. */
+export const validateInvestmentInput = ({ name, quantity, purchase_price }) => {
+  if (!name || !name.trim()) return { ok: false, error: 'Укажите название актива' };
+  const qty = parseFloat(quantity);
+  if (!quantity || Number.isNaN(qty) || qty <= 0) {
+    return { ok: false, error: 'Введите корректное количество' };
+  }
+  const price = parseFloat(purchase_price);
+  if (!purchase_price || Number.isNaN(price) || price <= 0) {
+    return { ok: false, error: 'Введите корректную цену покупки' };
+  }
+  return { ok: true };
+};
+
 export default {
   isOwner,
   validateAccountOwnership,
@@ -86,4 +120,7 @@ export default {
   validateTransactionInput,
   isDuplicateTransaction,
   validateAccountInput,
+  validateBudgetInput,
+  validateGoalInput,
+  validateInvestmentInput,
 };
