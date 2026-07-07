@@ -238,7 +238,8 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
       const sourceAccount = accounts.find(a => a.id === accountId);
 
       if (sourceAccount) {
-        if (sourceAccount.created_by !== user.email && !sourceAccount.created_by?.includes(user.id)) {
+        const isOwner = sourceAccount.created_by_id === user.id || sourceAccount.user_id === user.id || sourceAccount.created_by === user.email;
+        if (!isOwner) {
           toast.error('Действия с данными других пользователей запрещены!');
           return;
         }
@@ -294,7 +295,8 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     // Validate account ownership for expense/income
     if (accountId) {
       const selectedAccount = accounts.find(a => a.id === accountId);
-      if (selectedAccount && selectedAccount.created_by !== user.email && !selectedAccount.created_by?.includes(user.id)) {
+      const isOwner = selectedAccount && (selectedAccount.created_by_id === user.id || selectedAccount.user_id === user.id || selectedAccount.created_by === user.email);
+      if (selectedAccount && !isOwner) {
         toast.error('Действия с данными других пользователей запрещены!');
         return;
       }
