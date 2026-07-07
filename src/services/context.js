@@ -31,19 +31,47 @@ export const getActiveWorkspaceId = (userId) => {
 export const getCurrentUser = () => base44.auth.me();
 
 /**
+ * Определяет активное пространство пользователя (id + type).
+ * Приоритет: сохранённое активное → личное по умолчанию.
+ * Важно: scope НЕ должен зависеть только от наличия family_id —
+ * иначе запись из личного пространства ошибочно уходит в семейное.
+ */
+const resolveActiveWorkspace = async (user) => {
+  const savedId = getActiveWorkspaceId(user?.id);
+  try {
+    const memberships = await base44.entities.WorkspaceMember.filter({ user_id: user.id });
+    const wsIds = memberships.map((m) => m.workspace_id);
+    if (wsIds.length === 0) return { id: savedId || null, type: 'personal' };
+
+    const allWs = await base44.entities.Workspace.list();
+    const myWs = allWs.filter((w) => wsIds.includes(w.id));
+
+    const active =
+      myWs.find((w) => w.id === savedId) ||
+      myWs.find((w) => w.type === 'personal') ||
+      myWs[0];
+
+    return active ? { id: active.id, type: active.type } : { id: savedId || null, type: 'personal' };
+  } catch {
+    return { id: savedId || null, type: 'personal' };
+  }
+};
+
+/**
  * Резолвит рабочее пространство на сервере для текущего пользователя,
  * с учётом активного выбора. Возвращает { workspace_id, visibility, type, family_id } | null.
  */
 export const resolveWorkspaceContext = async (user) => {
-  const activeWsId = getActiveWorkspaceId(user?.id);
-  const scope = user?.family_id ? 'family' : 'personal';
-  const key = activeWsId || scope;
+  const active = await resolveActiveWorkspace(user);
+  // scope определяется по АКТИВНОМУ пространству, а не по наличию семьи
+  const scope = active.type === 'family' ? 'family' : 'personal';
+  const key = active.id || scope;
   if (_wsCache[key]) return _wsCache[key];
 
   try {
     const res = await base44.functions.invoke('resolveWorkspace', {
       scope,
-      workspace_id: activeWsId || undefined,
+      workspace_id: active.id || undefined,
     });
     const data = res?.data || {};
     if (data.workspace_id) {
@@ -69,10 +97,12 @@ export const resolveWorkspaceContext = async (user) => {
 export const enrichWithOwnership = async (data, user) => {
   const ws = await resolveWorkspaceContext(user);
   if (!ws) {
-    // Фолбэк на legacy-логику, если сервер недоступен
-    return user?.family_id
+    // Фолбэк, если сервер недоступен: family_id проставляем только
+    // когда активно именно семейное пространство, а не по факту наличия семьи.
+    const active = await resolveActiveWorkspace(user);
+    return active.type === 'family' && user?.family_id
       ? { ...data, family_id: user.family_id, user_id: user.id }
-      : { ...data, user_id: user?.id };
+      : { ...data, family_id: undefined, user_id: user?.id };
   }
   const familyFields =
     ws.type === 'family'
