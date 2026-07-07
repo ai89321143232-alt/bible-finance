@@ -84,7 +84,11 @@ export const useWorkspaces = () => {
     const user = await base44.auth.me();
     localStorage.setItem(`active_ws_${user.id}`, workspaceId);
     const next = workspaces.find((w) => w.id === workspaceId);
-    if (next) setActiveWorkspace(next);
+    if (next) {
+      setActiveWorkspace(next);
+      // Уведомляем приложение о смене активного пространства (для будущих этапов)
+      window.dispatchEvent(new CustomEvent('workspace-changed', { detail: next }));
+    }
   };
 
   return { workspaces, activeWorkspace, loading, switchWorkspace };

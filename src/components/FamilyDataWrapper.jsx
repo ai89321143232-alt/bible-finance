@@ -23,6 +23,34 @@
 import { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 
+// ------------------------------------------------------------
+// Workspace-резолвер (Этап 2). Кэширует пространства пользователя,
+// чтобы каждый create/update получал корректный workspace_id + visibility.
+// personal-запись → personal workspace + private
+// family-запись   → family workspace + shared
+// ------------------------------------------------------------
+let _wsCache = { userId: null, personal: null, family: null };
+
+const resolveWorkspaces = async (user) => {
+  if (!user?.id) return { personal: null, family: null };
+  if (_wsCache.userId === user.id) return _wsCache;
+  try {
+    const memberships = await base44.entities.WorkspaceMember.filter({ user_id: user.id });
+    const wsIds = memberships.map((m) => m.workspace_id);
+    const allWs = wsIds.length ? await base44.entities.Workspace.list() : [];
+    const myWs = allWs.filter((w) => wsIds.includes(w.id));
+    _wsCache = {
+      userId: user.id,
+      personal: myWs.find((w) => w.type === 'personal')?.id || null,
+      family: myWs.find((w) => w.type === 'family')?.id || null
+    };
+  } catch (error) {
+    console.error('resolveWorkspaces failed:', error);
+    _wsCache = { userId: user.id, personal: null, family: null };
+  }
+  return _wsCache;
+};
+
 // Хук для получения family_id текущего пользователя
 export const useFamilyId = () => {
   const [familyId, setFamilyId] = useState(null);
@@ -49,16 +77,19 @@ export const useFamilyId = () => {
 export const addFamilyId = async (data) => {
   try {
     const user = await base44.auth.me();
+    const ws = await resolveWorkspaces(user);
     if (user?.family_id) {
       return {
         ...data,
         family_id: user.family_id,
-        user_id: user.id
+        user_id: user.id,
+        ...(ws.family ? { workspace_id: ws.family, visibility: 'shared' } : {})
       };
     }
     return {
       ...data,
-      user_id: user?.id
+      user_id: user?.id,
+      ...(ws.personal ? { workspace_id: ws.personal, visibility: 'private' } : {})
     };
   } catch (error) {
     console.error('Error adding family_id:', error);
@@ -75,9 +106,10 @@ export const createFamilyAwareSDK = () => {
 
   const wrapBulkCreate = (entityName) => async (dataArray) => {
     const user = await base44.auth.me();
-    const dataWithFamily = user?.family_id 
-      ? dataArray.map(item => ({ ...item, family_id: user.family_id, user_id: user.id }))
-      : dataArray.map(item => ({ ...item, user_id: user?.id }));
+    const ws = await resolveWorkspaces(user);
+    const dataWithFamily = user?.family_id
+      ? dataArray.map(item => ({ ...item, family_id: user.family_id, user_id: user.id, ...(ws.family ? { workspace_id: ws.family, visibility: 'shared' } : {}) }))
+      : dataArray.map(item => ({ ...item, user_id: user?.id, ...(ws.personal ? { workspace_id: ws.personal, visibility: 'private' } : {}) }));
     return base44.entities[entityName].bulkCreate(dataWithFamily);
   };
 
