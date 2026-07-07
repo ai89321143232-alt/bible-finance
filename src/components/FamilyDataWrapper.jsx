@@ -30,16 +30,42 @@ import { base44 } from '@/api/base44Client';
 //   scope='family' → family workspace + shared
 //   scope='personal' → personal workspace + private
 // ------------------------------------------------------------
-const _wsCache = {}; // { [scope]: { workspace_id, visibility } }
+const _wsCache = {}; // { [key]: { workspace_id, visibility, type, family_id } }
 
-const resolveWorkspaceFromServer = async (scope) => {
-  if (_wsCache[scope]) return _wsCache[scope];
+// При смене активного пространства сбрасываем кэш, чтобы новые записи
+// уходили в актуально выбранное пространство.
+if (typeof window !== 'undefined') {
+  window.addEventListener('workspace-changed', () => {
+    Object.keys(_wsCache).forEach((k) => delete _wsCache[k]);
+  });
+}
+
+// Читает ID активного пространства, выбранного пользователем (WorkspaceSwitcher)
+const getActiveWorkspaceId = (userId) => {
   try {
-    const res = await base44.functions.invoke('resolveWorkspace', { scope });
+    return localStorage.getItem(`active_ws_${userId}`) || null;
+  } catch {
+    return null;
+  }
+};
+
+const resolveWorkspaceFromServer = async (scope, activeWorkspaceId) => {
+  const key = activeWorkspaceId || scope;
+  if (_wsCache[key]) return _wsCache[key];
+  try {
+    const res = await base44.functions.invoke('resolveWorkspace', {
+      scope,
+      workspace_id: activeWorkspaceId || undefined
+    });
     const data = res?.data || {};
     if (data.workspace_id) {
-      _wsCache[scope] = { workspace_id: data.workspace_id, visibility: data.visibility };
-      return _wsCache[scope];
+      _wsCache[key] = {
+        workspace_id: data.workspace_id,
+        visibility: data.visibility,
+        type: data.type,
+        family_id: data.family_id || null
+      };
+      return _wsCache[key];
     }
   } catch (error) {
     console.error('resolveWorkspace failed:', error);
@@ -73,14 +99,23 @@ export const useFamilyId = () => {
 export const addFamilyId = async (data) => {
   try {
     const user = await base44.auth.me();
+    const activeWsId = getActiveWorkspaceId(user?.id);
     const scope = user?.family_id ? 'family' : 'personal';
-    const ws = await resolveWorkspaceFromServer(scope);
-    const base = user?.family_id
-      ? { ...data, family_id: user.family_id, user_id: user.id }
-      : { ...data, user_id: user?.id };
-    return ws
-      ? { ...base, workspace_id: ws.workspace_id, visibility: ws.visibility }
-      : base;
+    const ws = await resolveWorkspaceFromServer(scope, activeWsId);
+
+    if (!ws) {
+      // Фолбэк на старую логику, если сервер не ответил
+      return user?.family_id
+        ? { ...data, family_id: user.family_id, user_id: user.id }
+        : { ...data, user_id: user?.id };
+    }
+
+    // family_id проставляется ТОЛЬКО когда запись создаётся в семейном пространстве
+    const base = ws.type === 'family'
+      ? { ...data, family_id: ws.family_id || user.family_id, user_id: user.id }
+      : { ...data, family_id: undefined, user_id: user?.id };
+
+    return { ...base, workspace_id: ws.workspace_id, visibility: ws.visibility };
   } catch (error) {
     console.error('Error adding family_id:', error);
     return data;
@@ -96,12 +131,27 @@ export const createFamilyAwareSDK = () => {
 
   const wrapBulkCreate = (entityName) => async (dataArray) => {
     const user = await base44.auth.me();
+    const activeWsId = getActiveWorkspaceId(user?.id);
     const scope = user?.family_id ? 'family' : 'personal';
-    const ws = await resolveWorkspaceFromServer(scope);
-    const wsFields = ws ? { workspace_id: ws.workspace_id, visibility: ws.visibility } : {};
-    const dataWithFamily = user?.family_id
-      ? dataArray.map(item => ({ ...item, family_id: user.family_id, user_id: user.id, ...wsFields }))
-      : dataArray.map(item => ({ ...item, user_id: user?.id, ...wsFields }));
+    const ws = await resolveWorkspaceFromServer(scope, activeWsId);
+
+    const dataWithFamily = dataArray.map((item) => {
+      if (!ws) {
+        return user?.family_id
+          ? { ...item, family_id: user.family_id, user_id: user.id }
+          : { ...item, user_id: user?.id };
+      }
+      const familyFields = ws.type === 'family'
+        ? { family_id: ws.family_id || user.family_id }
+        : { family_id: undefined };
+      return {
+        ...item,
+        ...familyFields,
+        user_id: user.id,
+        workspace_id: ws.workspace_id,
+        visibility: ws.visibility
+      };
+    });
     return base44.entities[entityName].bulkCreate(dataWithFamily);
   };
 

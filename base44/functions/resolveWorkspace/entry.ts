@@ -30,6 +30,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const scope = body.scope === 'family' ? 'family' : 'personal';
+    const requestedWorkspaceId = body.workspace_id || null;
 
     const svc = base44.asServiceRole;
 
@@ -51,6 +52,19 @@ Deno.serve(async (req) => {
 
     const personal = myWs.find((w) => w.type === 'personal');
     const family = myWs.find((w) => w.type === 'family');
+
+    // Приоритет: явно выбранное активное пространство (если пользователь его член)
+    if (requestedWorkspaceId) {
+      const chosen = myWs.find((w) => w.id === requestedWorkspaceId);
+      if (chosen) {
+        return Response.json({
+          workspace_id: chosen.id,
+          visibility: chosen.type === 'family' ? 'shared' : 'private',
+          type: chosen.type,
+          family_id: chosen.type === 'family' ? (chosen.family_id || user.family_id || null) : null
+        });
+      }
+    }
 
     if (scope === 'family' && user.family_id && family) {
       return Response.json({

@@ -24,6 +24,7 @@ import QuickAddTransaction from '@/components/transactions/QuickAddTransaction';
 import SwipeableTransaction from '@/components/transactions/SwipeableTransaction';
 import PullToRefresh from '@/components/PullToRefresh';
 import MobileSelect from '@/components/mobile/MobileSelect';
+import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/WorkspaceContext';
 
 const CATEGORY_ICONS = {
   'Еда': '🍔', 'Транспорт': '🚗', 'Жильё': '🏠', 'Развлечения': '🎮',
@@ -44,33 +45,36 @@ export default function Transactions() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [deleteId, setDeleteId] = useState(null);
   const [user, setUser] = useState(null);
+  const activeWorkspaceId = useActiveWorkspaceId();
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
   }, []);
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions', user?.id],
+    queryKey: ['transactions', user?.id, activeWorkspaceId],
     queryFn: async () => {
       if (!user) return [];
       const all = await base44.entities.Transaction.list('-date', 100);
-      return all.filter(t =>
+      const mine = all.filter(t =>
         t.created_by_id === user.id ||
         (user.family_id && t.family_id === user.family_id)
       );
+      return filterByWorkspace(mine, activeWorkspaceId);
     },
     enabled: !!user
   });
 
   const { data: accounts = [] } = useQuery({
-    queryKey: ['accounts', user?.id],
+    queryKey: ['accounts', user?.id, activeWorkspaceId],
     queryFn: async () => {
       if (!user) return [];
       const all = await base44.entities.Account.list();
-      return all.filter(a =>
+      const mine = all.filter(a =>
         a.created_by_id === user.id ||
         (user.family_id && a.family_id === user.family_id)
       );
+      return filterByWorkspace(mine, activeWorkspaceId);
     },
     enabled: !!user
   });

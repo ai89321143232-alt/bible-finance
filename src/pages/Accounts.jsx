@@ -35,6 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/WorkspaceContext';
 
 const ACCOUNT_TYPES = [
   { value: 'cash', label: 'Наличные', icon: '💵', color: '#10B981' },
@@ -87,6 +88,8 @@ export default function Accounts() {
     credit_limit: ''
   });
 
+  const activeWorkspaceId = useActiveWorkspaceId();
+
   const { data: allAccounts = [], isLoading } = useQuery({
     queryKey: ['accounts'],
     queryFn: () => base44.entities.Account.list()
@@ -103,8 +106,12 @@ export default function Accounts() {
     setCurrentUser(user);
   };
 
-  // Show only personal accounts
-  const accounts = allAccounts.filter(acc => acc.created_by_id === currentUser?.id);
+  // Доступные пользователю счета (личные + семейные), затем фильтр по активному пространству
+  const myAccounts = allAccounts.filter(acc =>
+    acc.created_by_id === currentUser?.id ||
+    (currentUser?.family_id && acc.family_id === currentUser.family_id)
+  );
+  const accounts = filterByWorkspace(myAccounts, activeWorkspaceId);
 
   const { data: transactions = [] } = useQuery({
     queryKey: ['transactions'],
