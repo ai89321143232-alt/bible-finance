@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import BudgetCard from '@/components/budgets/BudgetCard';
+import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/WorkspaceContext';
 import {
   Select,
   SelectContent,
@@ -88,6 +89,7 @@ export default function Budgets() {
   const [deleteId, setDeleteId] = useState(null);
   const [viewMode, setViewMode] = useState('personal');
   const [shareWithUsers, setShareWithUsers] = useState([]);
+  const activeWorkspaceId = useActiveWorkspaceId();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -125,7 +127,8 @@ export default function Budgets() {
     queryKey: ['my-budgets', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const budgets = await base44.entities.Budget.list();
+      // Синхронно с дашбордом: только активные бюджеты, созданные пользователем
+      const budgets = await base44.entities.Budget.filter({ is_active: true });
       return budgets.filter(b => b.created_by_id === user?.id);
     },
     enabled: !!user
@@ -135,7 +138,7 @@ export default function Budgets() {
     queryKey: ['shared-budgets', user?.id, family?.id],
     queryFn: async () => {
       if (!user) return [];
-      const budgets = await base44.entities.Budget.list();
+      const budgets = await base44.entities.Budget.filter({ is_active: true });
       const familyId = family?.id;
       // Show ALL family budgets (own + shared): is_family_budget with matching family_id, or explicitly shared with user
       return budgets.filter(b => 
@@ -146,14 +149,22 @@ export default function Budgets() {
     enabled: !!user && !!family
   });
 
-  const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions', user?.id],
+  const { data: rawTransactions = [] } = useQuery({
+    queryKey: ['transactions', user?.id, family?.id],
     queryFn: async () => {
       if (!user) return [];
-      return base44.entities.Transaction.filter({ user_id: user.id }, '-date', 1000);
+      // Синхронно с дашбордом: транзакции пользователя + семьи, а не только user_id
+      const all = await base44.entities.Transaction.list('-date', 1000);
+      return all.filter(t =>
+        t.created_by_id === user.id ||
+        (family?.id && t.family_id === family.id)
+      );
     },
     enabled: !!user
   });
+
+  // Фильтрация по активному пространству — как на дашборде
+  const transactions = filterByWorkspace(rawTransactions, activeWorkspaceId);
 
   const invalidateBudgets = () => {
     queryClient.invalidateQueries({ queryKey: ['my-budgets'] });
@@ -303,7 +314,10 @@ export default function Budgets() {
     }).format(amount);
   };
 
-  const displayBudgets = viewMode === 'personal' ? myBudgets : sharedBudgets;
+  const displayBudgets = filterByWorkspace(
+    viewMode === 'personal' ? myBudgets : sharedBudgets,
+    activeWorkspaceId
+  );
   const totalBudget = displayBudgets.reduce((sum, b) => sum + (b.limit_amount || 0), 0);
   const totalSpent = displayBudgets.reduce((sum, b) => sum + getBudgetSpent(b), 0);
 
