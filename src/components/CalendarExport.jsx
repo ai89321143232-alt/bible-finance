@@ -161,12 +161,13 @@ export default function CalendarExport({ budgets = [], goals = [], accounts = []
     <Button
       onClick={handleExport}
       variant="outline"
-      className="rounded-xl flex items-center gap-2 border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 bg-transparent"
+      size="icon"
+      className="rounded-xl flex items-center gap-2 border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 bg-transparent shrink-0 w-9 sm:w-auto sm:px-4"
     >
       {done ? (
-        <><Check className="w-4 h-4" /> Скачано!</>
+        <><Check className="w-4 h-4" /> <span className="hidden sm:inline">Скачано!</span></>
       ) : (
-        <><CalendarDays className="w-4 h-4" /> Экспорт в календарь</>
+        <><CalendarDays className="w-4 h-4" /> <span className="hidden sm:inline">Экспорт в календарь</span></>
       )}
     </Button>
   );
