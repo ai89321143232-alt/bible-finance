@@ -169,7 +169,7 @@ export default function Accounts() {
     mutationFn: async (id) => {
       const user = await base44.auth.me();
       const account = accounts.find(a => a.id === id);
-      if (account && account.created_by !== user.email && !account.created_by.includes(user.id)) {
+      if (account && account.created_by_id !== user.id) {
         throw new Error('Действия с данными других пользователей запрещены!');
       }
 
@@ -219,7 +219,7 @@ export default function Accounts() {
 
   const handleEdit = async (account) => {
     const user = await base44.auth.me();
-    if (account.created_by !== user.email && !account.created_by.includes(user.id)) {
+    if (account.created_by_id !== user.id) {
       toast.error('Действия с данными других пользователей запрещены!');
       return;
     }
@@ -366,7 +366,7 @@ export default function Accounts() {
                               {account.name}
                             </h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400">
-                              {typeInfo.label} • {account.created_by.split('@')[0]}
+                              {typeInfo.label} • {(account.created_by || '').split('@')[0]}
                             </p>
                           </div>
                         </div>

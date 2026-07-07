@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -43,15 +43,36 @@ export default function Transactions() {
   });
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [deleteId, setDeleteId] = useState(null);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    base44.auth.me().then(setUser).catch(() => {});
+  }, []);
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions'],
-    queryFn: () => base44.entities.Transaction.list('-date', 100)
+    queryKey: ['transactions', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const all = await base44.entities.Transaction.list('-date', 100);
+      return all.filter(t =>
+        t.created_by_id === user.id ||
+        (user.family_id && t.family_id === user.family_id)
+      );
+    },
+    enabled: !!user
   });
 
   const { data: accounts = [] } = useQuery({
-    queryKey: ['accounts'],
-    queryFn: () => base44.entities.Account.list()
+    queryKey: ['accounts', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const all = await base44.entities.Account.list();
+      return all.filter(a =>
+        a.created_by_id === user.id ||
+        (user.family_id && a.family_id === user.family_id)
+      );
+    },
+    enabled: !!user
   });
 
   const deleteMutation = useMutation({

@@ -148,7 +148,7 @@ export default function Dashboard() {
       if (!user) return [];
       const all = await base44.entities.Transaction.list('-date', 200);
       return all.filter(t =>
-        t.created_by === user.email ||
+        t.created_by_id === user.id ||
         (family?.id && t.family_id === family.id)
       );
     },
@@ -161,7 +161,7 @@ export default function Dashboard() {
       if (!user) return [];
       const all = await base44.entities.Account.list();
       return all.filter(a =>
-        a.created_by === user.email ||
+        a.created_by_id === user.id ||
         (family?.id && a.family_id === family.id)
       );
     },
@@ -174,7 +174,7 @@ export default function Dashboard() {
       if (!user) return [];
       const all = await base44.entities.Budget.filter({ is_active: true });
       return all.filter(b =>
-        b.created_by === user.email ||
+        b.created_by_id === user.id ||
         (family?.id && b.is_family_budget && b.family_id === family.id) ||
         (family?.id && b.share_with?.includes(user.id))
       );
@@ -188,7 +188,7 @@ export default function Dashboard() {
       if (!user) return [];
       const all = await base44.entities.Goal.filter({ status: 'active' });
       return all.filter(g =>
-        g.created_by === user.email ||
+        g.created_by_id === user.id ||
         (family?.id && g.is_family_goal && g.family_id === family.id) ||
         (family?.id && g.share_with?.includes(user.id))
       );
@@ -202,7 +202,7 @@ export default function Dashboard() {
       if (!user) return [];
       const all = await base44.entities.Investment.list();
       return all.filter(inv =>
-        inv.created_by === user.email ||
+        inv.created_by_id === user.id ||
         (family?.id && inv.family_id === family.id)
       );
     },

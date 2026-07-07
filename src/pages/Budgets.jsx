@@ -126,7 +126,7 @@ export default function Budgets() {
     queryFn: async () => {
       if (!user) return [];
       const budgets = await base44.entities.Budget.list();
-      return budgets.filter(b => b.created_by === user?.email);
+      return budgets.filter(b => b.created_by_id === user?.id);
     },
     enabled: !!user
   });
@@ -400,7 +400,7 @@ export default function Budgets() {
                 budget={budget}
                 index={index}
                 spent={getBudgetSpent(budget)}
-                isEditable={viewMode === 'personal' || budget.created_by === user?.email}
+                isEditable={viewMode === 'personal' || budget.created_by_id === user?.id}
                 onEdit={handleEdit}
                 onDelete={(id) => setDeleteId(id)}
                 formatCurrency={formatCurrency}
