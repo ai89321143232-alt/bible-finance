@@ -4,7 +4,21 @@ import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { ChevronRight, Plus, AlertCircle, Layers } from 'lucide-react';
 
-export default function BudgetOverview({ budgets, formatCurrency }) {
+// Вычисляет расходы по бюджету из транзакций текущего месяца (динамически)
+function calcBudgetSpent(budget, transactions) {
+  const now = new Date();
+  const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const categories = budget.categories || (budget.category ? [budget.category] : []);
+  return transactions
+    .filter(t =>
+      t.type === 'expense' &&
+      (categories.length === 0 || categories.includes(t.category)) &&
+      new Date(t.date) >= periodStart
+    )
+    .reduce((sum, t) => sum + t.amount, 0);
+}
+
+export default function BudgetOverview({ budgets, transactions = [], formatCurrency }) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
       <div className="rounded-2xl border border-white/8 bg-[#141820] overflow-hidden">
@@ -20,7 +34,8 @@ export default function BudgetOverview({ budgets, formatCurrency }) {
         {budgets.length > 0 ? (
           <div className="p-4 space-y-4">
             {budgets.slice(0, 4).map((budget, idx) => {
-              const progress = budget.limit_amount > 0 ? (budget.spent_amount / budget.limit_amount) * 100 : 0;
+              const spent = calcBudgetSpent(budget, transactions);
+              const progress = budget.limit_amount > 0 ? (spent / budget.limit_amount) * 100 : 0;
               const isOver = progress > 100;
               const isWarn = progress >= (budget.notify_at_percent || 80) && !isOver;
               
@@ -57,7 +72,7 @@ export default function BudgetOverview({ budgets, formatCurrency }) {
                     />
                   </div>
                   <div className="flex justify-between mt-1.5">
-                    <span className="text-white/25 text-xs">{formatCurrency(budget.spent_amount)}</span>
+                    <span className="text-white/25 text-xs">{formatCurrency(spent)}</span>
                     <span className="text-white/25 text-xs">{formatCurrency(budget.limit_amount)}</span>
                   </div>
                 </motion.div>

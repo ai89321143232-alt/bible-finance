@@ -32,6 +32,7 @@ import NetWorthCard from '@/components/dashboard/NetWorthCard';
 import QuickTemplates from '@/components/dashboard/QuickTemplates';
 import QuickFilters from '@/components/dashboard/QuickFilters';
 import MonthForecast from '@/components/dashboard/MonthForecast';
+import BudgetMonthEndBanner from '@/components/dashboard/BudgetMonthEndBanner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import TemplatesManager from '@/components/transactions/TemplatesManager';
 import PullToRefresh from '@/components/PullToRefresh';
@@ -494,6 +495,13 @@ export default function Dashboard() {
           </div>
         )}
 
+        <BudgetMonthEndBanner
+          budgets={budgets}
+          transactions={transactions}
+          formatCurrency={formatCurrency}
+          onBudgetUpdated={() => queryClient.invalidateQueries({ queryKey: ['budgets'] })}
+        />
+
         <MonthForecast transactions={transactions} totalBalance={totalBalance} formatCurrency={formatCurrency} />
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mb-8">
@@ -517,7 +525,7 @@ export default function Dashboard() {
           </div>
           <div className="space-y-6">
             {visibleBlocks.budgets && (
-              <BudgetOverview budgets={budgets} formatCurrency={formatCurrency} />
+              <BudgetOverview budgets={budgets} transactions={transactions} formatCurrency={formatCurrency} />
             )}
             {visibleBlocks.goals && (
               <AllGoalsProgress goals={goals} formatCurrency={formatCurrency} />
