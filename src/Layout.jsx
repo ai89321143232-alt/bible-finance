@@ -10,6 +10,7 @@ import MobileTabShell from '@/components/MobileTabShell';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { base44 } from '@/api/base44Client';
 import OfflineBanner from '@/components/OfflineBanner';
+import { useWorkspaceProvision } from '@/components/workspace/WorkspaceContext';
 
 // ============================================================
 // Layout.jsx — ОСНОВНОЙ МАКЕТ ПРИЛОЖЕНИЯ
@@ -41,6 +42,10 @@ export default function Layout({ children, currentPageName }) {
   const isMobile = useIsMobile();
   const isTabPage = ['Dashboard', 'Transactions', 'Goals', 'Budgets', 'Settings'].includes(currentPageName);
   const navigate = useNavigate();
+
+  // Этап 1 Workspace-миграции: единожды на пользователя создаёт Personal/Family
+  // Workspace и проставляет workspace_id существующим записям. Прозрачно для UI.
+  useWorkspaceProvision();
 
   useEffect(() => {
     base44.auth.me().then((user) => {
