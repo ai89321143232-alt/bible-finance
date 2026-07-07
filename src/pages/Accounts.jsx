@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { addFamilyId } from '@/components/FamilyDataWrapper';
+import { AccountService } from '@/services';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -119,10 +119,7 @@ export default function Accounts() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data) => {
-      const dataWithFamily = await addFamilyId(data);
-      return base44.entities.Account.create(dataWithFamily);
-    },
+    mutationFn: (data) => AccountService.create(data),
     onMutate: async (newAccount) => {
       await queryClient.cancelQueries({ queryKey: ['accounts'] });
       const prevAccounts = queryClient.getQueryData(['accounts']);
@@ -149,10 +146,7 @@ export default function Accounts() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }) => {
-      const dataWithFamily = await addFamilyId(data);
-      return base44.entities.Account.update(id, dataWithFamily);
-    },
+    mutationFn: ({ id, data }) => AccountService.update(id, data),
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: ['accounts'] });
       const prevAccounts = queryClient.getQueryData(['accounts']);
@@ -173,21 +167,7 @@ export default function Accounts() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
-      const user = await base44.auth.me();
-      const account = accounts.find(a => a.id === id);
-      if (account && account.created_by_id !== user.id) {
-        throw new Error('Действия с данными других пользователей запрещены!');
-      }
-
-      // Delete related transactions
-      const relatedTransactions = transactions.filter(t => t.account_id === id);
-      for (const tx of relatedTransactions) {
-        await base44.entities.Transaction.delete(tx.id);
-      }
-
-      return base44.entities.Account.delete(id);
-    },
+    mutationFn: (id) => AccountService.remove(id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['accounts'] });
       const prevAccounts = queryClient.getQueryData(['accounts']);

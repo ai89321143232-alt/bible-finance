@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { addFamilyId } from '@/components/FamilyDataWrapper';
+import { useQuery } from '@tanstack/react-query';
+import { TransactionService } from '@/services';
 import { motion, AnimatePresence } from 'framer-motion';
-import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { X, ArrowUpRight, ArrowDownRight, Check, Calendar, Camera, Loader2, Upload, Plus } from 'lucide-react';
@@ -82,7 +81,6 @@ import { toast } from "sonner";
 // ============================================================
 export default function QuickAddTransaction({ transaction, onClose, accounts, defaultType = 'expense' }) {
   const isMobile = window.innerWidth < 640;
-  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('manual');
   const [type, setType] = useState(transaction?.type || defaultType);
   const [amount, setAmount] = useState(transaction?.amount?.toString() || '');
@@ -182,31 +180,6 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     queryFn: () => base44.entities.Budget.filter({ is_active: true })
   });
 
-  const createMutation = useMutation({
-    mutationFn: async (data) => {
-      const dataWithFamily = await addFamilyId(data);
-      return base44.entities.Transaction.create(dataWithFamily);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-    }
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }) => {
-      const dataWithFamily = await addFamilyId(data);
-      return base44.entities.Transaction.update(id, dataWithFamily);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-    }
-  });
-
-  // Budget spent_amount обновляется автоматически через automation updateBudgetOnTransaction
-  const updateBudgetSpent = async (categoryName, amountNum) => {
-    // No-op: handled by entity automation
-  };
-
   const handleSubmit = async () => {
     if (!amount) return;
     if (myAccounts.length === 0) {
@@ -229,116 +202,25 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     }
   };
 
+  // Бизнес-логика перенесена в TransactionService. Компонент только вызывает
+  // сервис и отображает результат — проверки прав, остатков, обновление
+  // балансов и инвалидация кэша выполняются в сервисном слое.
   const handleSubmitInternal = async () => {
-    const amountNum = parseFloat(amount);
-    const user = await base44.auth.me();
-
     if (type === 'transfer') {
-      const isDestGoal = toAccountId.startsWith('goal_');
-      const sourceAccount = accounts.find(a => a.id === accountId);
-
-      if (sourceAccount) {
-        const isOwner = sourceAccount.created_by_id === user.id || sourceAccount.user_id === user.id || sourceAccount.created_by === user.email;
-        if (!isOwner) {
-          toast.error('Действия с данными других пользователей запрещены!');
-          return;
-        }
-        if (sourceAccount.type !== 'credit' && sourceAccount.balance - amountNum < 0) {
-          toast.error('Недостаточно средств на счёте для выполнения операции');
-          return;
-        }
-        await base44.entities.Account.update(accountId, {
-          balance: sourceAccount.balance - amountNum
-        });
-      }
-
-      let destName = '';
-      if (isDestGoal) {
-        const goalId = toAccountId.replace('goal_', '');
-        const goal = goals.find(g => g.id === goalId);
-        if (goal) {
-          const newAmount = (goal.current_amount || 0) + amountNum;
-          await base44.entities.Goal.update(goalId, {
-            current_amount: newAmount,
-            status: newAmount >= goal.target_amount ? 'completed' : 'active'
-          });
-          destName = `Цель: ${goal.title}`;
-          queryClient.invalidateQueries({ queryKey: ['goals'] });
-        }
-      } else {
-        const destAccount = accounts.find(a => a.id === toAccountId);
-        if (destAccount) {
-          await base44.entities.Account.update(toAccountId, {
-            balance: destAccount.balance + amountNum
-          });
-          destName = destAccount.name;
-        }
-      }
-
-      const transferData = {
-        type: 'transfer',
-        amount: amountNum,
-        category: isDestGoal ? 'Перенос на цель' : 'Перенос между счетами',
-        description: `${sourceAccount?.name} → ${destName}${description ? ': ' + description : ''}`,
-        date: date.toISOString(),
-        account_id: accountId,
-        user_id: user.id
-      };
-      await createMutation.mutateAsync(transferData);
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      const res = await TransactionService.transfer({
+        amount, description, date, account_id: accountId, toAccountId, accounts, goals,
+      });
+      if (!res.ok) { toast.error(res.error); return; }
       toast.success('Перенос выполнен');
       onClose();
       return;
     }
 
-    // Validate account ownership for expense/income
-    if (accountId) {
-      const selectedAccount = accounts.find(a => a.id === accountId);
-      const isOwner = selectedAccount && (selectedAccount.created_by_id === user.id || selectedAccount.user_id === user.id || selectedAccount.created_by === user.email);
-      if (selectedAccount && !isOwner) {
-        toast.error('Действия с данными других пользователей запрещены!');
-        return;
-      }
-
-      if (type === 'expense' && selectedAccount) {
-        // For credit cards, allow spending below zero (debt increases)
-        if (selectedAccount.type !== 'credit' && selectedAccount.balance - amountNum < 0) {
-          toast.error('Недостаточно средств на счёте для выполнения операции');
-          return;
-        }
-        // Deduct from account balance
-        await base44.entities.Account.update(accountId, {
-          balance: selectedAccount.balance - amountNum
-        });
-        // Update matching budget spent
-        await updateBudgetSpent(category, amountNum);
-      } else if (type === 'income' && selectedAccount) {
-        // Add to account balance
-        await base44.entities.Account.update(accountId, {
-          balance: selectedAccount.balance + amountNum
-        });
-      }
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
-    }
-
-    const data = {
-      type,
-      amount: amountNum,
-      category,
-      description,
-      date: date.toISOString(),
-      account_id: accountId || undefined,
-      user_id: user.id
-    };
-
-    if (transaction) {
-      await updateMutation.mutateAsync({ id: transaction.id, data });
-    } else {
-      await createMutation.mutateAsync(data);
-    }
-
-    queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    const res = await TransactionService.saveEntry({
+      type, amount, category, description, date,
+      account_id: accountId, accounts, existingId: transaction?.id || null,
+    });
+    if (!res.ok) { toast.error(res.error); return; }
     toast.success(type === 'expense' ? 'Расход добавлен' : 'Доход добавлен');
     onClose();
   };
@@ -427,34 +309,14 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
 
   const handleReviewConfirm = async (itemsWithCategories) => {
     setShowReviewModal(false);
-    const user = await base44.auth.me();
-    const selectedAccount = accountId ? accounts.find(a => a.id === accountId) : null;
-
-    for (const item of itemsWithCategories) {
-      const data = {
-        type: 'expense',
-        amount: item.price,
-        category: item.category,
-        description: `${description} - ${item.name}`,
-        date: format(date, 'yyyy-MM-dd'),
-        account_id: accountId || undefined,
-        user_id: user.id
-      };
-      await createMutation.mutateAsync(data);
-      await updateBudgetSpent(item.category, item.price);
-    }
-
-    // Deduct total from account
-    if (selectedAccount) {
-      const totalAmount = itemsWithCategories.reduce((sum, i) => sum + i.price, 0);
-      await base44.entities.Account.update(accountId, {
-        balance: selectedAccount.balance - totalAmount
-      });
-    }
-
-    queryClient.invalidateQueries({ queryKey: ['transactions'] });
-    queryClient.invalidateQueries({ queryKey: ['accounts'] });
-    toast.success(`Добавлено ${itemsWithCategories.length} операций`);
+    const res = await TransactionService.addReceiptItems({
+      items: itemsWithCategories,
+      description,
+      date,
+      account_id: accountId,
+      accounts,
+    });
+    toast.success(`Добавлено ${res.count} операций`);
     onClose();
   };
 
@@ -663,10 +525,10 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
               {/* Submit */}
               <Button
                 onClick={handleSubmit}
-                disabled={!amount || myAccounts.length === 0 || !accountId || (type !== 'transfer' && !category) || (type === 'transfer' && !toAccountId) || createMutation.isPending || updateMutation.isPending || isSubmitting}
+                disabled={!amount || myAccounts.length === 0 || !accountId || (type !== 'transfer' && !category) || (type === 'transfer' && !toAccountId) || isSubmitting}
                 className="w-full h-14 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold text-lg shadow-lg shadow-violet-500/25"
               >
-                {(createMutation.isPending || updateMutation.isPending || isSubmitting) ? (
+                {isSubmitting ? (
                   <span className="animate-pulse">Сохранение...</span>
                 ) : (
                   <><Check className="w-5 h-5 mr-2" />{transaction ? 'Обновить' : type === 'transfer' ? 'Перенести' : 'Сохранить'}</>

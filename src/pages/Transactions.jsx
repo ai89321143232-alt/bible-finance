@@ -25,6 +25,7 @@ import SwipeableTransaction from '@/components/transactions/SwipeableTransaction
 import PullToRefresh from '@/components/PullToRefresh';
 import MobileSelect from '@/components/mobile/MobileSelect';
 import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/WorkspaceContext';
+import { TransactionService } from '@/services';
 
 const CATEGORY_ICONS = {
   'Еда': '🍔', 'Транспорт': '🚗', 'Жильё': '🏠', 'Развлечения': '🎮',
@@ -80,21 +81,7 @@ export default function Transactions() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
-      const allTransactions = await base44.entities.Transaction.list('-date', 100);
-      const transaction = allTransactions.find(t => t.id === id);
-      if (transaction?.account_id && transaction.type !== 'transfer') {
-        const allAccounts = await base44.entities.Account.list();
-        const account = allAccounts.find(a => a.id === transaction.account_id);
-        if (account) {
-          let newBalance = account.balance ?? 0;
-          if (transaction.type === 'expense') newBalance += transaction.amount;
-          else if (transaction.type === 'income') newBalance -= transaction.amount;
-          await base44.entities.Account.update(transaction.account_id, { balance: newBalance });
-        }
-      }
-      await base44.entities.Transaction.delete(id);
-    },
+    mutationFn: (id) => TransactionService.remove(id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['transactions'] });
       const prevTransactions = queryClient.getQueryData(['transactions']);

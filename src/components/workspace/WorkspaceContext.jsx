@@ -17,6 +17,7 @@
 
 import { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { eventBus, EVENTS } from '@/lib/eventBus';
 
 // Ключ localStorage, чтобы не дёргать провижн на каждый рендер
 const PROVISION_KEY = 'ws_provisioned_v1';
@@ -117,8 +118,9 @@ export const useWorkspaces = () => {
     const next = workspaces.find((w) => w.id === workspaceId);
     if (next) {
       setActiveWorkspace(next);
-      // Уведомляем приложение о смене активного пространства (для будущих этапов)
-      window.dispatchEvent(new CustomEvent('workspace-changed', { detail: next }));
+      // Уведомляем приложение через Event Bus (он ретранслирует в window
+      // для обратной совместимости и триггерит централизованную инвалидацию кэша)
+      eventBus.emit(EVENTS.WORKSPACE_CHANGED, next);
     }
   };
 

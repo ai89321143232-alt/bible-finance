@@ -22,6 +22,7 @@
 
 import { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { enrichWithOwnership } from '@/services/context';
 
 // ------------------------------------------------------------
 // Workspace-резолвер (Этап 3). workspace_id определяется на СЕРВЕРЕ
@@ -95,27 +96,13 @@ export const useFamilyId = () => {
   return { familyId, loading };
 };
 
-// Функция-помощник для автоматического добавления family_id и user_id к данным
+// Функция-помощник для автоматического добавления family_id и user_id к данным.
+// ⚠️ Deprecated: делегирует в сервисный слой (services/context.enrichWithOwnership).
+// Оставлено для обратной совместимости с компонентами, ещё не переведёнными на сервисы.
 export const addFamilyId = async (data) => {
   try {
     const user = await base44.auth.me();
-    const activeWsId = getActiveWorkspaceId(user?.id);
-    const scope = user?.family_id ? 'family' : 'personal';
-    const ws = await resolveWorkspaceFromServer(scope, activeWsId);
-
-    if (!ws) {
-      // Фолбэк на старую логику, если сервер не ответил
-      return user?.family_id
-        ? { ...data, family_id: user.family_id, user_id: user.id }
-        : { ...data, user_id: user?.id };
-    }
-
-    // family_id проставляется ТОЛЬКО когда запись создаётся в семейном пространстве
-    const base = ws.type === 'family'
-      ? { ...data, family_id: ws.family_id || user.family_id, user_id: user.id }
-      : { ...data, family_id: undefined, user_id: user?.id };
-
-    return { ...base, workspace_id: ws.workspace_id, visibility: ws.visibility };
+    return await enrichWithOwnership(data, user);
   } catch (error) {
     console.error('Error adding family_id:', error);
     return data;
