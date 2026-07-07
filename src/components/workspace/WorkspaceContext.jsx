@@ -42,6 +42,37 @@ export const useWorkspaceProvision = () => {
   }, []);
 };
 
+// Активное пространство (id) — синхронизируется с событием workspace-changed.
+// Лёгкий хук для страниц, которым нужна только фильтрация по активному ws.
+export const useActiveWorkspaceId = () => {
+  const [activeId, setActiveId] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const init = async () => {
+      try {
+        const user = await base44.auth.me();
+        if (!user?.id) return;
+        const saved = localStorage.getItem(`active_ws_${user.id}`);
+        if (mounted && saved) setActiveId(saved);
+      } catch { /* ignore */ }
+    };
+    init();
+    const handler = (e) => setActiveId(e.detail?.id || null);
+    window.addEventListener('workspace-changed', handler);
+    return () => { mounted = false; window.removeEventListener('workspace-changed', handler); };
+  }, []);
+
+  return activeId;
+};
+
+// Фильтр записей по активному пространству. Безопасен к старым данным:
+// записи без workspace_id НЕ отсекаются (проходят по старой family_id-логике выше).
+export const filterByWorkspace = (records, activeWorkspaceId) => {
+  if (!activeWorkspaceId) return records;
+  return records.filter((r) => !r.workspace_id || r.workspace_id === activeWorkspaceId);
+};
+
 export const useWorkspaces = () => {
   const [workspaces, setWorkspaces] = useState([]);
   const [activeWorkspace, setActiveWorkspace] = useState(null);

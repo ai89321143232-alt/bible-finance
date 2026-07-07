@@ -36,6 +36,7 @@ import BudgetMonthEndBanner from '@/components/dashboard/BudgetMonthEndBanner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import TemplatesManager from '@/components/transactions/TemplatesManager';
 import PullToRefresh from '@/components/PullToRefresh';
+import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/WorkspaceContext';
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -56,6 +57,7 @@ export default function Dashboard() {
   const [balanceMode, setBalanceMode] = useState('personal');
 
   const isMobile = useIsMobile();
+  const activeWorkspaceId = useActiveWorkspaceId();
 
   const [visibleBlocks, setVisibleBlocks] = useState({
     balance: true,
@@ -142,7 +144,7 @@ export default function Dashboard() {
     setPeriodType(type);
   };
 
-  const { data: transactions = [] } = useQuery({
+  const { data: rawTransactions = [] } = useQuery({
     queryKey: ['transactions', user?.id, family?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -155,7 +157,7 @@ export default function Dashboard() {
     enabled: !!user && familyReady
   });
 
-  const { data: allAccounts = [] } = useQuery({
+  const { data: rawAllAccounts = [] } = useQuery({
     queryKey: ['accounts', user?.id, family?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -168,7 +170,7 @@ export default function Dashboard() {
     enabled: !!user && familyReady
   });
 
-  const { data: budgets = [] } = useQuery({
+  const { data: rawBudgets = [] } = useQuery({
     queryKey: ['budgets', user?.id, family?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -182,7 +184,7 @@ export default function Dashboard() {
     enabled: !!user && familyReady
   });
 
-  const { data: goals = [] } = useQuery({
+  const { data: rawGoals = [] } = useQuery({
     queryKey: ['goals', user?.id, family?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -196,7 +198,7 @@ export default function Dashboard() {
     enabled: !!user && familyReady
   });
 
-  const { data: investments = [] } = useQuery({
+  const { data: rawInvestments = [] } = useQuery({
     queryKey: ['investments', user?.id, family?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -214,6 +216,13 @@ export default function Dashboard() {
     queryFn: () => base44.entities.TransactionTemplate.list('sort_order', 50),
     enabled: !!user
   });
+
+  // Этап 3: фильтрация по активному пространству (безопасна к старым записям без workspace_id)
+  const transactions = filterByWorkspace(rawTransactions, activeWorkspaceId);
+  const allAccounts = filterByWorkspace(rawAllAccounts, activeWorkspaceId);
+  const budgets = filterByWorkspace(rawBudgets, activeWorkspaceId);
+  const goals = filterByWorkspace(rawGoals, activeWorkspaceId);
+  const investments = filterByWorkspace(rawInvestments, activeWorkspaceId);
 
   const familyMembers = family?.members || [];
   const personalAccounts = allAccounts.filter(acc => acc.user_id === user?.id);

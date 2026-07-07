@@ -24,31 +24,27 @@ import { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 
 // ------------------------------------------------------------
-// Workspace-резолвер (Этап 2). Кэширует пространства пользователя,
-// чтобы каждый create/update получал корректный workspace_id + visibility.
-// personal-запись → personal workspace + private
-// family-запись   → family workspace + shared
+// Workspace-резолвер (Этап 3). workspace_id определяется на СЕРВЕРЕ
+// через backend-функцию resolveWorkspace — клиент не может его подделать.
+// Результат кэшируется по scope, чтобы не бить бэкенд на каждую запись.
+//   scope='family' → family workspace + shared
+//   scope='personal' → personal workspace + private
 // ------------------------------------------------------------
-let _wsCache = { userId: null, personal: null, family: null };
+const _wsCache = {}; // { [scope]: { workspace_id, visibility } }
 
-const resolveWorkspaces = async (user) => {
-  if (!user?.id) return { personal: null, family: null };
-  if (_wsCache.userId === user.id) return _wsCache;
+const resolveWorkspaceFromServer = async (scope) => {
+  if (_wsCache[scope]) return _wsCache[scope];
   try {
-    const memberships = await base44.entities.WorkspaceMember.filter({ user_id: user.id });
-    const wsIds = memberships.map((m) => m.workspace_id);
-    const allWs = wsIds.length ? await base44.entities.Workspace.list() : [];
-    const myWs = allWs.filter((w) => wsIds.includes(w.id));
-    _wsCache = {
-      userId: user.id,
-      personal: myWs.find((w) => w.type === 'personal')?.id || null,
-      family: myWs.find((w) => w.type === 'family')?.id || null
-    };
+    const res = await base44.functions.invoke('resolveWorkspace', { scope });
+    const data = res?.data || {};
+    if (data.workspace_id) {
+      _wsCache[scope] = { workspace_id: data.workspace_id, visibility: data.visibility };
+      return _wsCache[scope];
+    }
   } catch (error) {
-    console.error('resolveWorkspaces failed:', error);
-    _wsCache = { userId: user.id, personal: null, family: null };
+    console.error('resolveWorkspace failed:', error);
   }
-  return _wsCache;
+  return null;
 };
 
 // Хук для получения family_id текущего пользователя
@@ -77,20 +73,14 @@ export const useFamilyId = () => {
 export const addFamilyId = async (data) => {
   try {
     const user = await base44.auth.me();
-    const ws = await resolveWorkspaces(user);
-    if (user?.family_id) {
-      return {
-        ...data,
-        family_id: user.family_id,
-        user_id: user.id,
-        ...(ws.family ? { workspace_id: ws.family, visibility: 'shared' } : {})
-      };
-    }
-    return {
-      ...data,
-      user_id: user?.id,
-      ...(ws.personal ? { workspace_id: ws.personal, visibility: 'private' } : {})
-    };
+    const scope = user?.family_id ? 'family' : 'personal';
+    const ws = await resolveWorkspaceFromServer(scope);
+    const base = user?.family_id
+      ? { ...data, family_id: user.family_id, user_id: user.id }
+      : { ...data, user_id: user?.id };
+    return ws
+      ? { ...base, workspace_id: ws.workspace_id, visibility: ws.visibility }
+      : base;
   } catch (error) {
     console.error('Error adding family_id:', error);
     return data;
@@ -106,10 +96,12 @@ export const createFamilyAwareSDK = () => {
 
   const wrapBulkCreate = (entityName) => async (dataArray) => {
     const user = await base44.auth.me();
-    const ws = await resolveWorkspaces(user);
+    const scope = user?.family_id ? 'family' : 'personal';
+    const ws = await resolveWorkspaceFromServer(scope);
+    const wsFields = ws ? { workspace_id: ws.workspace_id, visibility: ws.visibility } : {};
     const dataWithFamily = user?.family_id
-      ? dataArray.map(item => ({ ...item, family_id: user.family_id, user_id: user.id, ...(ws.family ? { workspace_id: ws.family, visibility: 'shared' } : {}) }))
-      : dataArray.map(item => ({ ...item, user_id: user?.id, ...(ws.personal ? { workspace_id: ws.personal, visibility: 'private' } : {}) }));
+      ? dataArray.map(item => ({ ...item, family_id: user.family_id, user_id: user.id, ...wsFields }))
+      : dataArray.map(item => ({ ...item, user_id: user?.id, ...wsFields }));
     return base44.entities[entityName].bulkCreate(dataWithFamily);
   };
 
