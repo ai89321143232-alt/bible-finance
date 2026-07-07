@@ -203,7 +203,7 @@ export default function Investments() {
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-6"
+          className="flex items-center justify-between mb-6 relative z-10"
         >
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
             Инвестиции
@@ -224,8 +224,8 @@ export default function Investments() {
           className="mb-6"
         >
           <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden">
-            <CardContent className="p-6">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-violet-500/20 to-transparent rounded-full blur-3xl" />
+            <CardContent className="p-6 relative">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-violet-500/20 to-transparent rounded-full blur-3xl pointer-events-none" />
               
               <div className="relative grid sm:grid-cols-2 gap-6">
                 <div>
