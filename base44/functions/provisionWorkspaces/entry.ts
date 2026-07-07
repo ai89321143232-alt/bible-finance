@@ -113,8 +113,17 @@ Deno.serve(async (req) => {
     const backfill: Record<string, number> = {};
     for (const entityName of FINANCIAL_ENTITIES) {
       let updated = 0;
-      // Только записи, созданные этим пользователем и без workspace_id
-      const records = await svc.entities[entityName].filter({ created_by: user.email });
+      // Только записи, созданные этим пользователем и без workspace_id.
+      // В этой базе владелец хранится в created_by_id — ищем по нему,
+      // с фолбэком на устаревшее поле created_by (email).
+      const byId = await svc.entities[entityName].filter({ created_by_id: user.id });
+      const byEmail = await svc.entities[entityName].filter({ created_by: user.email });
+      const seen = new Set<string>();
+      const records = [...byId, ...byEmail].filter((r) => {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
+        return true;
+      });
       for (const rec of records) {
         if (rec.workspace_id) continue;
         // family-запись → family workspace, иначе personal
