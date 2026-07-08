@@ -1,11 +1,14 @@
 // ============================================================
 // data/repositories/SupabaseRepository.js — адаптер для Supabase/PostgreSQL
 // ============================================================
-// Реализует IRepository поверх supabase-js. Имя таблицы = имя сущности
-// в lower_snake_case (Base44 entity "Transaction" -> таблица "transactions").
+// Реализует IRepository через бэкенд-функцию supabaseData, которая
+// использует service_role ключ Supabase (обходит RLS). Прямой доступ
+// с anon-ключом с фронтенда не используется, т.к. RLS блокирует запись.
+// Имя таблицы = имя сущности в lower_snake_case
+// (Base44 entity "Transaction" -> таблица "transactions").
 // ============================================================
 
-import { supabase } from '@/lib/supabaseClient';
+import { base44 } from '@/api/base44Client';
 import { IRepository } from './IRepository';
 
 const toTableName = (entityName) => {
@@ -21,61 +24,41 @@ export class SupabaseRepository extends IRepository {
     this.table = toTableName(entityName);
   }
 
+  async _invoke(operation, params = {}) {
+    const response = await base44.functions.invoke('supabaseData', {
+      table: this.table,
+      operation,
+      ...params,
+    });
+    return response.data.result;
+  }
+
   async list(sort, limit) {
-    let query = supabase.from(this.table).select('*');
-    query = this._applySort(query, sort);
-    if (limit) query = query.limit(limit);
-    const { data, error } = await query;
-    if (error) throw error;
-    return data;
+    return this._invoke('list', { sort, limit });
   }
 
   async filter(filterQuery = {}, sort, limit) {
-    let query = supabase.from(this.table).select('*');
-    Object.entries(filterQuery).forEach(([key, value]) => {
-      query = query.eq(key, value);
-    });
-    query = this._applySort(query, sort);
-    if (limit) query = query.limit(limit);
-    const { data, error } = await query;
-    if (error) throw error;
-    return data;
+    return this._invoke('filter', { filterQuery, sort, limit });
   }
 
   async get(id) {
-    const { data, error } = await supabase.from(this.table).select('*').eq('id', id).maybeSingle();
-    if (error) throw error;
-    return data;
+    return this._invoke('get', { id });
   }
 
   async create(data) {
-    const { data: result, error } = await supabase.from(this.table).insert([data]).select().single();
-    if (error) throw error;
-    return result;
+    return this._invoke('create', { data });
   }
 
   async bulkCreate(dataArray) {
-    const { data: result, error } = await supabase.from(this.table).insert(dataArray).select();
-    if (error) throw error;
-    return result;
+    return this._invoke('bulkCreate', { dataArray });
   }
 
   async update(id, data) {
-    const { data: result, error } = await supabase.from(this.table).update(data).eq('id', id).select().single();
-    if (error) throw error;
-    return result;
+    return this._invoke('update', { id, data });
   }
 
   async delete(id) {
-    const { error } = await supabase.from(this.table).delete().eq('id', id);
-    if (error) throw error;
-  }
-
-  _applySort(query, sort) {
-    if (!sort) return query;
-    const isDesc = sort.startsWith('-');
-    const column = isDesc ? sort.slice(1) : sort;
-    return query.order(column, { ascending: !isDesc });
+    return this._invoke('delete', { id });
   }
 }
 

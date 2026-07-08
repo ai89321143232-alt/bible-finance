@@ -17,7 +17,7 @@ import { Base44Repository } from './Base44Repository';
 import { SupabaseRepository } from './SupabaseRepository';
 
 // Переключатель бэкенда: true — работать через Supabase/PostgreSQL, false — через Base44.
-const USE_SUPABASE = false;
+const USE_SUPABASE = true;
 
 const _cache = {};
 
