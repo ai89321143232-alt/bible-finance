@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import QuickAddTransaction from '@/components/transactions/QuickAddTransaction';
+import ExportRangeModal from '@/components/transactions/ExportRangeModal';
 import SwipeableTransaction from '@/components/transactions/SwipeableTransaction';
 import PullToRefresh from '@/components/PullToRefresh';
 import MobileSelect from '@/components/mobile/MobileSelect';
@@ -45,6 +46,7 @@ export default function Transactions() {
   });
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [deleteId, setDeleteId] = useState(null);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [user, setUser] = useState(null);
   const activeWorkspaceId = useActiveWorkspaceId();
 
@@ -124,35 +126,6 @@ export default function Transactions() {
   const totalIncome = filteredTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const totalExpense = filteredTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
-  const exportToCSV = () => {
-    const monthLabel = format(currentMonth, 'yyyy-MM', { locale: ru });
-    const headers = ['Дата', 'Тип', 'Категория', 'Подкатегория', 'Описание', 'Сумма', 'Валюта'];
-    const rows = filteredTransactions
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .map(t => [
-        format(new Date(t.date), 'dd.MM.yyyy'),
-        t.type === 'income' ? 'Доход' : t.type === 'expense' ? 'Расход' : 'Перевод',
-        t.category || '',
-        t.subcategory || '',
-        t.description || '',
-        t.type === 'expense' ? -t.amount : t.amount,
-        t.currency || 'RUB'
-      ]);
-
-    const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-
-    const BOM = '\uFEFF'; // UTF-8 BOM for correct Cyrillic in Excel/Sheets
-    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `transactions-${monthLabel}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   const handleRefresh = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['transactions'] }),
@@ -167,8 +140,8 @@ export default function Transactions() {
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Операции</h1>
           <div className="flex items-center gap-2">
-            <Button onClick={exportToCSV} variant="outline" className="rounded-xl hidden sm:flex" disabled={filteredTransactions.length === 0}>
-              <Download className="w-4 h-4 mr-2" />CSV
+            <Button onClick={() => setShowExportModal(true)} variant="outline" className="rounded-xl hidden sm:flex">
+              <Download className="w-4 h-4 mr-2" />Экспорт
             </Button>
             <Button onClick={() => setShowAddModal(true)} className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl">
               <Plus className="w-5 h-5 mr-2" />Добавить
@@ -250,6 +223,9 @@ export default function Transactions() {
         {showAddModal && (
           <QuickAddTransaction transaction={editTransaction}
             onClose={() => { setShowAddModal(false); setEditTransaction(null); }} accounts={accounts} />
+        )}
+        {showExportModal && user && (
+          <ExportRangeModal user={user} activeWorkspaceId={activeWorkspaceId} onClose={() => setShowExportModal(false)} />
         )}
       </AnimatePresence>
 
