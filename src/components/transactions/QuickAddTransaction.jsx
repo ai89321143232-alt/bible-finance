@@ -560,8 +560,12 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           exit={{ x: '100%' }}
           transition={{ type: 'tween', duration: 0.25 }}
           className="fixed inset-0 bg-[#0f1117] z-50 overflow-y-auto"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          <div className="sticky top-0 bg-[#0a0d13] border-b border-white/5 px-4 py-4 flex items-center gap-3 z-10">
+          <div
+            className="sticky top-0 bg-[#0a0d13] border-b border-white/5 px-4 py-4 flex items-center gap-3 z-10"
+            style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
+          >
             <button onClick={onClose} className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white">
               <X className="w-4 h-4" />
             </button>

@@ -24,7 +24,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -36,6 +36,7 @@ const SUBSCRIPTION_PLANS = {
 };
 
 export default function Admin() {
+  const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPlan, setFilterPlan] = useState('all');
@@ -56,7 +57,7 @@ export default function Admin() {
     setCurrentUser(user);
     
     if (user.role !== 'admin') {
-      window.location.href = createPageUrl('Settings');
+      navigate(createPageUrl('Settings'));
     }
   };
 

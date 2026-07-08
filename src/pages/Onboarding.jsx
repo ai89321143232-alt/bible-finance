@@ -93,9 +93,18 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f1117] flex items-center justify-center p-4">
+    <div
+      className="min-h-screen bg-[#0f1117] flex items-center justify-center p-4"
+      style={{
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}
+    >
       {/* Progress */}
-      <div className="fixed top-6 left-0 right-0 flex justify-center gap-2 z-10">
+      <div
+        className="fixed left-0 right-0 flex justify-center gap-2 z-10"
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)' }}
+      >
         {STEPS.map((s, i) => (
           <div
             key={s.id}

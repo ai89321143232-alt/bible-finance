@@ -106,7 +106,13 @@ export default function ChildDashboard({ user, accounts, onTransactionAdded }) {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-pink-50 to-violet-50 pb-20">
+    <div
+      className="min-h-screen bg-gradient-to-br from-yellow-50 via-pink-50 to-violet-50"
+      style={{
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 5rem)',
+      }}
+    >
       {/* Header */}
       <div className="bg-gradient-to-r from-violet-500 to-pink-500 px-4 pt-8 pb-6 rounded-b-3xl shadow-lg">
         <div className="flex items-center justify-between mb-4">

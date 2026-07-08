@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, ArrowLeftRight, Target, Settings as SettingsIcon, Wallet } from 'lucide-react';
 import Dashboard from '@/pages/Dashboard';
 import Transactions from '@/pages/Transactions';
@@ -13,38 +14,36 @@ import Settings from '@/pages/Settings';
 // CSS display to show/hide them, preserving scroll position
 // and component state when switching tabs.
 //
-// Keeps all tab pages mounted; only the active one is visible.
-// The bottom tab bar is rendered inside this component.
+// Tab switching is driven by react-router-dom (useNavigate/useLocation)
+// so the URL, browser history and the native Android hardware back
+// button all stay in sync — no manual pushState/hash manipulation.
 // ============================================================
 const TABS = [
-  { label: 'Главная', icon: LayoutDashboard, component: Dashboard },
-  { label: 'Операции', icon: ArrowLeftRight, component: Transactions },
-  { label: 'Цели', icon: Target, component: Goals },
-  { label: 'Бюджеты', icon: Wallet, component: Budgets },
-  { label: 'Ещё', icon: SettingsIcon, component: Settings },
+  { label: 'Главная', path: '/', icon: LayoutDashboard, component: Dashboard },
+  { label: 'Операции', path: '/Transactions', icon: ArrowLeftRight, component: Transactions },
+  { label: 'Цели', path: '/Goals', icon: Target, component: Goals },
+  { label: 'Бюджеты', path: '/Budgets', icon: Wallet, component: Budgets },
+  { label: 'Ещё', path: '/Settings', icon: SettingsIcon, component: Settings },
 ];
 
+const getTabIndexForPath = (pathname) => {
+  const index = TABS.findIndex(t => t.path === pathname);
+  return index >= 0 ? index : 0;
+};
+
 export default function MobileTabShell({ initialTab = 0 }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState(initialTab);
 
-  const switchTab = useCallback((index) => {
-    setActiveTab(index);
-    window.history.pushState({ tabIndex: index }, '', `#${TABS[index].label}`);
-  }, []);
-
+  // Keep activeTab in sync with the URL — including native back/forward navigation.
   useEffect(() => {
-    const handlePopState = (e) => {
-      if (e.state?.tabIndex !== undefined) {
-        setActiveTab(e.state.tabIndex);
-      } else {
-        const hash = window.location.hash?.replace('#', '');
-        const tabIndex = TABS.findIndex(t => t.label === hash);
-        if (tabIndex >= 0) setActiveTab(tabIndex);
-      }
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+    setActiveTab(getTabIndexForPath(location.pathname));
+  }, [location.pathname]);
+
+  const switchTab = useCallback((index) => {
+    navigate(TABS[index].path);
+  }, [navigate]);
 
   return (
     <div className="flex flex-col min-h-screen">
