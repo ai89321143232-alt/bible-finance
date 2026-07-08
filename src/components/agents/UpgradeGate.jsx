@@ -12,17 +12,17 @@ import { Button } from '@/components/ui/button';
 export default function UpgradeGate({ title }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
-      <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-5">
-        <Lock className="w-8 h-8 text-white/50" />
+      <div className="w-16 h-16 rounded-2xl bg-muted border border-border flex items-center justify-center mb-5">
+        <Lock className="w-8 h-8 text-muted-foreground" />
       </div>
-      <h2 className="text-xl font-bold text-white mb-2">{title}</h2>
-      <p className="text-white/50 text-sm max-w-md mb-6">
-        AI-ассистенты доступны на тарифах <span className="text-white font-medium">Premium</span> и{' '}
-        <span className="text-white font-medium">Family</span>. Оформите подписку, чтобы получить
+      <h2 className="text-xl font-bold text-foreground mb-2">{title}</h2>
+      <p className="text-muted-foreground text-sm max-w-md mb-6">
+        AI-ассистенты доступны на тарифах <span className="text-foreground font-medium">Premium</span> и{' '}
+        <span className="text-foreground font-medium">Family</span>. Оформите подписку, чтобы получить
         персональные финансовые советы и семейную координацию.
       </p>
       <Link to={createPageUrl('Subscription')}>
-        <Button className="bg-white text-black hover:bg-white/90 rounded-xl gap-2">
+        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl gap-2">
           <Sparkles className="w-4 h-4" />
           Улучшить тариф
         </Button>

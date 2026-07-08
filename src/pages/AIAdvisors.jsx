@@ -54,8 +54,8 @@ export default function AIAdvisors() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-24 lg:pb-6">
       <div className="mb-5">
-        <h1 className="text-2xl font-bold text-white">AI-ассистенты</h1>
-        <p className="text-white/40 text-sm mt-1">
+        <h1 className="text-2xl font-bold text-foreground">AI-ассистенты</h1>
+        <p className="text-muted-foreground text-sm mt-1">
           Персональные финансовые советы и семейная координация
         </p>
       </div>
@@ -71,8 +71,8 @@ export default function AIAdvisors() {
               onClick={() => setActive(a.id)}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-colors border ${
                 isActive
-                  ? 'bg-white/10 border-white/20 text-white'
-                  : 'bg-white/[0.03] border-white/8 text-white/50 hover:text-white/80'
+                  ? 'bg-muted border-border text-foreground'
+                  : 'bg-transparent border-border text-muted-foreground hover:text-foreground'
               }`}
             >
               <Icon className="w-4 h-4" />

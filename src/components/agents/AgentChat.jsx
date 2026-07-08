@@ -63,7 +63,7 @@ export default function AgentChat({ agentName, accentColor = 'bg-violet-600', su
             <div className={`w-14 h-14 rounded-2xl ${accentColor} flex items-center justify-center mb-4`}>
               <Sparkles className="w-7 h-7 text-white" />
             </div>
-            <p className="text-white/60 text-sm max-w-sm">
+            <p className="text-muted-foreground text-sm max-w-sm">
               Задайте вопрос — я проанализирую ваши данные и помогу.
             </p>
             {suggestions.length > 0 && (
@@ -72,7 +72,7 @@ export default function AgentChat({ agentName, accentColor = 'bg-violet-600', su
                   <button
                     key={i}
                     onClick={() => sendMessage(s)}
-                    className="text-left text-sm text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl px-4 py-2.5 transition-colors"
+                    className="text-left text-sm text-foreground bg-muted/50 hover:bg-muted border border-border rounded-xl px-4 py-2.5 transition-colors"
                   >
                     {s}
                   </button>
@@ -87,7 +87,7 @@ export default function AgentChat({ agentName, accentColor = 'bg-violet-600', su
         ))}
 
         {isSending && (
-          <div className="flex items-center gap-2 text-white/40 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
             <Loader2 className="w-4 h-4 animate-spin" />
             Анализирую данные...
           </div>
@@ -107,7 +107,7 @@ export default function AgentChat({ agentName, accentColor = 'bg-violet-600', su
           }}
           rows={1}
           placeholder="Напишите сообщение..."
-          className="flex-1 resize-none bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/25 max-h-32"
+          className="flex-1 resize-none bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring max-h-32"
         />
         <Button
           onClick={() => sendMessage()}
@@ -134,14 +134,14 @@ function MessageBubble({ message, accentColor }) {
     >
       <div
         className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
-          isUser ? `${accentColor} text-white` : 'bg-white/8 text-white/90'
+          isUser ? `${accentColor} text-white` : 'bg-muted text-foreground'
         }`}
       >
         {message.content && (
           isUser ? (
             <p className="whitespace-pre-wrap">{message.content}</p>
           ) : (
-            <ReactMarkdown className="prose prose-sm prose-invert max-w-none prose-p:my-1.5 prose-ul:my-1.5 prose-strong:text-white">
+            <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1.5 prose-ul:my-1.5 prose-strong:text-foreground">
               {message.content}
             </ReactMarkdown>
           )
