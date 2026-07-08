@@ -52,6 +52,12 @@ const PRESET_BACKGROUNDS = [
   { name: 'Изумруд', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/c2586403a_generated_image.png' },
   { name: 'Космос', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/be1b66dc5_generated_image.png' },
   { name: 'Горы', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/d6cb2f566_generated_image.png' },
+  { name: 'Золото', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/593a3a7a7_generated_image.png' },
+  { name: 'Платина', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/9e7390212_generated_image.png' },
+  { name: 'Неон', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/587e0a9db_generated_image.png' },
+  { name: 'Радуга', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/7c6762446_generated_image.png' },
+  { name: 'Золотой блеск', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/9e3710b95_generated_image.png' },
+  { name: 'Неоновый город', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/a9f9846a0_generated_image.png' },
 ];
 
 const SUBSCRIPTION_PLANS = [
