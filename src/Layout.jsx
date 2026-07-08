@@ -11,7 +11,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { base44 } from '@/api/base44Client';
 import OfflineBanner from '@/components/OfflineBanner';
 import { useWorkspaceProvision } from '@/components/workspace/WorkspaceContext';
-import WorkspaceSwitcher from '@/components/workspace/WorkspaceSwitcher';
 
 // ============================================================
 // Layout.jsx — ОСНОВНОЙ МАКЕТ ПРИЛОЖЕНИЯ
@@ -87,11 +86,6 @@ export default function Layout({ children, currentPageName }) {
           </Link>
         </div>
 
-        {/* Workspace switcher */}
-        <div className="px-4 pt-3">
-          <WorkspaceSwitcher />
-        </div>
-
         {/* Navigation */}
         <NavigationMenu
           currentPageName={currentPageName}
@@ -156,7 +150,6 @@ export default function Layout({ children, currentPageName }) {
           <span className="text-white font-semibold text-sm">FinanceApp</span>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <WorkspaceSwitcher compact />
           <NotificationBell />
         </div>
       </div>
