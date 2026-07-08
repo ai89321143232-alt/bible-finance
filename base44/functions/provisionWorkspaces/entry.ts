@@ -109,13 +109,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ---- 4. Проставить workspace_id существующим записям ----
+    // ---- 4. Проставить workspace_id существующим записям (пакетно, быстро) ----
+    // Раньше здесь был последовательный update по одной записи для 8 типов
+    // сущностей — при большом объёме данных это превышало 120-секундный
+    // таймаут прокси и "подвешивало" сохранение новых операций/инвестиций.
+    // Теперь используем bulkUpdate одним пакетным вызовом на каждый тип.
     const backfill: Record<string, number> = {};
     for (const entityName of FINANCIAL_ENTITIES) {
-      let updated = 0;
-      // Только записи, созданные этим пользователем и без workspace_id.
-      // В этой базе владелец хранится в created_by_id — ищем по нему,
-      // с фолбэком на устаревшее поле created_by (email).
       const byId = await svc.entities[entityName].filter({ created_by_id: user.id });
       const byEmail = await svc.entities[entityName].filter({ created_by: user.email });
       const seen = new Set<string>();
@@ -124,20 +124,23 @@ Deno.serve(async (req) => {
         seen.add(r.id);
         return true;
       });
-      for (const rec of records) {
-        if (rec.workspace_id) continue;
-        // family-запись → family workspace, иначе personal
-        const targetWs = (rec.family_id && familyWorkspace)
-          ? familyWorkspace.id
-          : personalWorkspace.id;
-        const isShared = !!(rec.family_id && familyWorkspace);
-        await svc.entities[entityName].update(rec.id, {
-          workspace_id: targetWs,
-          ...(entityName !== 'Category' ? { visibility: isShared ? 'shared' : 'private' } : {})
+
+      const updates = records
+        .filter((rec) => !rec.workspace_id)
+        .map((rec) => {
+          const targetWs = (rec.family_id && familyWorkspace) ? familyWorkspace.id : personalWorkspace.id;
+          const isShared = !!(rec.family_id && familyWorkspace);
+          return {
+            id: rec.id,
+            workspace_id: targetWs,
+            ...(entityName !== 'Category' ? { visibility: isShared ? 'shared' : 'private' } : {})
+          };
         });
-        updated++;
+
+      if (updates.length > 0) {
+        await svc.entities[entityName].bulkUpdate(updates);
       }
-      backfill[entityName] = updated;
+      backfill[entityName] = updates.length;
     }
     report.backfill = backfill;
     report.success = true;
