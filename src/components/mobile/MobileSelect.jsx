@@ -60,7 +60,7 @@ export default function MobileSelect({
     // Desktop: standard Select
     return (
       <Select value={value} onValueChange={onValueChange} disabled={disabled}>
-        <SelectTrigger className={triggerClassName || 'w-36 h-8 text-sm rounded-lg border-white/8 bg-white/5 text-white/70'}>
+        <SelectTrigger className={triggerClassName || 'w-36 h-8 text-sm rounded-lg border-border bg-muted/50 text-foreground'}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
@@ -77,10 +77,10 @@ export default function MobileSelect({
         type="button"
         onClick={() => !disabled && setDrawerOpen(true)}
         disabled={disabled}
-        className={`flex h-9 items-center justify-between whitespace-nowrap rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm ring-offset-background ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${triggerClassName || 'w-36 text-white/70'}`}
+        className={`flex h-9 items-center justify-between whitespace-nowrap rounded-md border border-border bg-muted/50 px-3 py-2 text-sm ring-offset-background ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${triggerClassName || 'w-36 text-foreground'}`}
         style={triggerWidth ? { width: triggerWidth } : {}}
       >
-        <span className={!selectedOption ? 'text-white/40' : 'text-white/80'}>
+        <span className={!selectedOption ? 'text-muted-foreground' : 'text-foreground'}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="h-4 w-4 opacity-50">
@@ -89,9 +89,9 @@ export default function MobileSelect({
       </button>
 
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <DrawerContent className="bg-[#1a1f2b] border-white/10 text-white max-h-[60vh]">
+        <DrawerContent className="bg-popover border-border text-popover-foreground max-h-[60vh]">
           <DrawerHeader>
-            <DrawerTitle className="text-white">{title || placeholder}</DrawerTitle>
+            <DrawerTitle className="text-popover-foreground">{title || placeholder}</DrawerTitle>
           </DrawerHeader>
           <div className="px-4 pb-6 overflow-y-auto">
             {options.map((option) => (
@@ -104,12 +104,12 @@ export default function MobileSelect({
                 }}
                 className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm transition-colors ${
                   option.value === value
-                    ? 'bg-white/10 text-white font-medium'
-                    : 'text-white/60 hover:bg-white/5 hover:text-white/80'
+                    ? 'bg-muted text-foreground font-medium'
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                 }`}
               >
                 <span>{option.label}</span>
-                {option.value === value && <Check className="w-4 h-4 text-white" />}
+                {option.value === value && <Check className="w-4 h-4 text-foreground" />}
               </button>
             ))}
           </div>
