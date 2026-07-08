@@ -44,6 +44,15 @@ import PersonalizationSettings from '@/components/settings/PersonalizationSettin
 import AIModelSettings from '@/components/settings/AIModelSettings';
 import { Layout, Bot } from 'lucide-react';
 
+const PRESET_BACKGROUNDS = [
+  { name: 'Сетка', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/2d7380dc7_generated_image.png' },
+  { name: 'Аврора', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/ce36510b1_generated_image.png' },
+  { name: 'Город', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/7332cb888_generated_image.png' },
+  { name: 'Изумруд', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/c2586403a_generated_image.png' },
+  { name: 'Космос', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/be1b66dc5_generated_image.png' },
+  { name: 'Горы', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/d6cb2f566_generated_image.png' },
+];
+
 const SUBSCRIPTION_PLANS = [
   {
     id: 'free',
@@ -204,6 +213,11 @@ export default function Settings() {
 
   const handleRemoveBackground = async () => {
     await base44.auth.updateMe({ background_image_url: null });
+    await loadUser();
+  };
+
+  const handleSelectPreset = async (url) => {
+    await base44.auth.updateMe({ background_image_url: url });
     await loadUser();
   };
 
@@ -526,6 +540,26 @@ export default function Settings() {
                     )}
                   </div>
                 </label>
+
+                <p className="text-sm text-slate-500 dark:text-slate-400 pt-1">Или выберите готовый фон:</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {PRESET_BACKGROUNDS.map((preset) => (
+                    <button
+                      key={preset.url}
+                      onClick={() => handleSelectPreset(preset.url)}
+                      className={`relative rounded-xl overflow-hidden h-16 border-2 transition-all ${
+                        user?.background_image_url === preset.url ? 'border-violet-500' : 'border-transparent'
+                      }`}
+                    >
+                      <img src={preset.url} alt={preset.name} className="w-full h-full object-cover" />
+                      {user?.background_image_url === preset.url && (
+                        <div className="absolute inset-0 bg-violet-500/20 flex items-center justify-center">
+                          <Check className="w-5 h-5 text-white drop-shadow" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </motion.div>
