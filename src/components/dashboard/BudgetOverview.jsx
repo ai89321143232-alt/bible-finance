@@ -19,6 +19,9 @@ function calcBudgetSpent(budget, transactions) {
 }
 
 export default function BudgetOverview({ budgets, transactions = [], formatCurrency }) {
+  const totalLimit = budgets.reduce((sum, b) => sum + (b.limit_amount || 0), 0);
+  const totalSpent = budgets.reduce((sum, b) => sum + calcBudgetSpent(b, transactions), 0);
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
       <div className="rounded-2xl border border-white/8 bg-[#141820] overflow-hidden">
@@ -30,6 +33,15 @@ export default function BudgetOverview({ budgets, transactions = [], formatCurre
             </span>
           </Link>
         </div>
+
+        {budgets.length > 0 && (
+          <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-white/2">
+            <span className="text-white/40 text-xs">Общий бюджет</span>
+            <span className="text-cyan-400 font-extrabold text-base">
+              {formatCurrency(totalSpent)} <span className="text-white/30 font-medium text-sm">/ {formatCurrency(totalLimit)}</span>
+            </span>
+          </div>
+        )}
 
         {budgets.length > 0 ? (
           <div className="p-4 space-y-4">
@@ -72,8 +84,8 @@ export default function BudgetOverview({ budgets, transactions = [], formatCurre
                     />
                   </div>
                   <div className="flex justify-between mt-1.5">
-                    <span className="text-white/25 text-xs">{formatCurrency(spent)}</span>
-                    <span className="text-white/25 text-xs">{formatCurrency(budget.limit_amount)}</span>
+                    <span className={`text-xs font-bold ${isOver ? 'text-rose-400' : isWarn ? 'text-amber-400' : 'text-cyan-400'}`}>{formatCurrency(spent)}</span>
+                    <span className="text-white/40 text-xs font-bold">{formatCurrency(budget.limit_amount)}</span>
                   </div>
                 </motion.div>
               );
