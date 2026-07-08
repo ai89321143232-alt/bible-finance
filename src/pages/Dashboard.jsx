@@ -33,6 +33,7 @@ import QuickTemplates from '@/components/dashboard/QuickTemplates';
 import QuickFilters from '@/components/dashboard/QuickFilters';
 import MonthForecast from '@/components/dashboard/MonthForecast';
 import BudgetMonthEndBanner from '@/components/dashboard/BudgetMonthEndBanner';
+import FamilyTierBanner from '@/components/dashboard/FamilyTierBanner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import TemplatesManager from '@/components/transactions/TemplatesManager';
 import PullToRefresh from '@/components/PullToRefresh';
@@ -385,6 +386,8 @@ export default function Dashboard() {
             </Button>
           </div>
         </motion.div>
+
+        <FamilyTierBanner user={user} hasFamily={!!family} />
 
         {family && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-4">
