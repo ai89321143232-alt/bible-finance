@@ -84,7 +84,8 @@ export default function Goals() {
       const families = await base44.entities.Family.list();
       return families.find(f => f.owner_id === user?.id || f.members?.some(m => m.user_id === user?.id));
     },
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 60000
   });
 
   const { data: myGoals = [] } = useQuery({
@@ -94,7 +95,8 @@ export default function Goals() {
       const goals = await base44.entities.Goal.list();
       return goals.filter(g => g.created_by === user?.email);
     },
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 30000
   });
 
   const { data: sharedGoals = [] } = useQuery({
@@ -108,7 +110,8 @@ export default function Goals() {
         g.share_with?.includes(user?.id)
       );
     },
-    enabled: !!user && !!family
+    enabled: !!user && !!family,
+    staleTime: 30000
   });
 
   const { data: accounts = [] } = useQuery({
@@ -117,11 +120,13 @@ export default function Goals() {
       if (!user) return [];
       return base44.entities.Account.filter({ user_id: user.id });
     },
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 30000
   });
 
   const { data: categories = [] } = useQuery({
-    queryKey: ['categories'], queryFn: () => base44.entities.Category.filter({ type: 'expense' })
+    queryKey: ['categories'], queryFn: () => base44.entities.Category.filter({ type: 'expense' }),
+    staleTime: 300000
   });
 
   const createMutation = useMutation({
@@ -256,6 +261,14 @@ export default function Goals() {
       queryClient.invalidateQueries({ queryKey: ['accounts'] }),
     ]);
   };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
