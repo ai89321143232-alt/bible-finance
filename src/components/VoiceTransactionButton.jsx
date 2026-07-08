@@ -203,6 +203,32 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
                 </motion.button>
             )}
 
+            {/* Центрированная кнопка "Стоп" во время записи */}
+            <AnimatePresence>
+                {status === 'recording' && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[60] bg-black/60 flex flex-col items-center justify-center gap-6"
+                    >
+                        <motion.button
+                            onClick={stopRecording}
+                            whileTap={{ scale: 0.92 }}
+                            className="relative w-24 h-24 rounded-full bg-red-500 flex items-center justify-center shadow-2xl shadow-red-500/40"
+                        >
+                            <motion.div
+                                className="absolute inset-0 rounded-full bg-red-500 opacity-40"
+                                animate={{ scale: [1, 1.4, 1] }}
+                                transition={{ repeat: Infinity, duration: 1.2 }}
+                            />
+                            <MicOff className="w-9 h-9 text-white relative" />
+                        </motion.button>
+                        <p className="text-white/70 text-sm">Нажмите, чтобы остановить запись</p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Выбор счёта (попап) */}
             <AnimatePresence>
                 {needsAccount && result?.parsed && (
