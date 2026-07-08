@@ -161,10 +161,14 @@ export default function Dashboard() {
     queryKey: ['accounts', user?.id, family?.id],
     queryFn: async () => {
       if (!user) return [];
+      const memberIds = family?.members?.map(m => m.user_id) || [];
       const all = await base44.entities.Account.list();
       return all.filter(a =>
         a.created_by_id === user.id ||
-        (family?.id && a.family_id === family.id)
+        (family?.id && a.family_id === family.id) ||
+        // счета всех членов семьи — по их user_id / created_by_id
+        memberIds.includes(a.created_by_id) ||
+        memberIds.includes(a.user_id)
       );
     },
     enabled: !!user && familyReady
@@ -225,14 +229,21 @@ export default function Dashboard() {
   const investments = filterByWorkspace(rawInvestments, activeWorkspaceId);
 
   const familyMembers = family?.members || [];
-  // Личный режим: собственные счета пользователя (по created_by_id, с фолбэком на user_id)
+  const memberIds = familyMembers.map(m => m.user_id);
+
+  // Личный режим: только мои счета (проходят через фильтр пространства)
   const personalAccounts = allAccounts.filter(acc =>
     acc.created_by_id === user?.id || acc.user_id === user?.id
   );
-  // Семейный режим: счета, привязанные к семье
-  const familyAccounts = family?.id
-    ? allAccounts.filter(acc => acc.family_id === family.id)
-    : allAccounts;
+  // Семейный режим: мои счета + счета всех членов семьи.
+  // Берём из rawAllAccounts (без фильтра по пространству), чтобы чужие счета не отсекались.
+  const familyAccounts = rawAllAccounts.filter(acc =>
+    acc.created_by_id === user?.id ||
+    acc.user_id === user?.id ||
+    (family?.id && acc.family_id === family.id) ||
+    memberIds.includes(acc.created_by_id) ||
+    memberIds.includes(acc.user_id)
+  );
   const displayAccounts = balanceMode === 'family' ? familyAccounts : personalAccounts;
   // Общий баланс = только положительные балансы (активы без долгов)
   const totalBalance = displayAccounts.reduce((sum, acc) => sum + Math.max(acc.balance || 0, 0), 0);
