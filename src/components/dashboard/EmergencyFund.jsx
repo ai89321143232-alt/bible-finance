@@ -36,20 +36,17 @@ export default function EmergencyFund({ totalBalance, transactions, formatCurren
   const months = avgMonthly > 0 ? totalBalance / avgMonthly : 0;
   const monthsDisplay = months >= 100 ? '99+' : months.toFixed(1);
 
-  let statusColor = 'text-rose-400';
-  let statusBg = 'border-rose-500/15 bg-rose-500/5';
-  let statusIcon = 'bg-rose-500/15 text-rose-400';
+  let statusColor = 'text-rose-500';
+  let statusIcon = 'bg-rose-500/15 text-rose-500';
   let message = 'Пора копить';
 
   if (months >= 6) {
-    statusColor = 'text-emerald-400';
-    statusBg = 'border-emerald-500/15 bg-emerald-500/5';
-    statusIcon = 'bg-emerald-500/15 text-emerald-400';
+    statusColor = 'text-emerald-500';
+    statusIcon = 'bg-emerald-500/15 text-emerald-500';
     message = 'Отличная подушка';
   } else if (months >= 3) {
-    statusColor = 'text-amber-400';
-    statusBg = 'border-amber-500/15 bg-amber-500/5';
-    statusIcon = 'bg-amber-500/15 text-amber-400';
+    statusColor = 'text-amber-500';
+    statusIcon = 'bg-amber-500/15 text-amber-500';
     message = 'Хорошее начало';
   }
 
@@ -58,27 +55,27 @@ export default function EmergencyFund({ totalBalance, transactions, formatCurren
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.22 }}
-      className={`rounded-2xl border ${statusBg} p-4`}
+      className="rounded-2xl border border-border bg-card shadow-sm p-4"
     >
       <div className="flex items-center gap-2 mb-3">
         <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${statusIcon}`}>
           <Shield className="w-3.5 h-3.5" />
         </div>
-        <span className="text-white/40 text-xs">Подушка безопасности</span>
+        <span className="text-muted-foreground text-xs">Подушка безопасности</span>
       </div>
       <p className={`${statusColor} font-bold text-lg`}>
         {avgMonthly === 0 ? 'Нет данных' : `${monthsDisplay} мес.`}
       </p>
       {avgMonthly > 0 && (
         <div className="mt-3">
-          <p className="text-white/30 text-xs">{message}</p>
-          <p className="text-white/20 text-xs mt-1">
+          <p className="text-muted-foreground text-xs">{message}</p>
+          <p className="text-muted-foreground/70 text-xs mt-1">
             Трат ~{formatCurrency(avgMonthly)}/мес · Баланс {formatCurrency(totalBalance)}
           </p>
         </div>
       )}
       {avgMonthly === 0 && (
-        <p className="text-white/20 text-xs mt-3">Добавьте расходы для расчёта</p>
+        <p className="text-muted-foreground/70 text-xs mt-3">Добавьте расходы для расчёта</p>
       )}
     </motion.div>
   );
