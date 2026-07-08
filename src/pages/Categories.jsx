@@ -79,13 +79,36 @@ export default function Categories() {
     name: '',
     type: 'expense',
     icon: '📦',
-    color: '#8B5CF6'
+    color: '#8B5CF6',
+    budget_ids: []
   });
 
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ['categories'],
     queryFn: () => base44.entities.Category.list()
   });
+
+  const { data: budgets = [] } = useQuery({
+    queryKey: ['budgets-for-categories'],
+    queryFn: () => base44.entities.Budget.filter({ is_active: true })
+  });
+
+  // Привязывает/отвязывает категорию (по имени) от выбранных бюджетов
+  const syncBudgetCategories = async (categoryName, budgetIds) => {
+    for (const budget of budgets) {
+      const current = budget.categories || (budget.category ? [budget.category] : []);
+      const shouldInclude = budgetIds.includes(budget.id);
+      const has = current.includes(categoryName);
+      if (shouldInclude && !has) {
+        await base44.entities.Budget.update(budget.id, { categories: [...current, categoryName] });
+      } else if (!shouldInclude && has) {
+        await base44.entities.Budget.update(budget.id, { categories: current.filter(c => c !== categoryName) });
+      }
+    }
+    queryClient.invalidateQueries({ queryKey: ['budgets-for-categories'] });
+    queryClient.invalidateQueries({ queryKey: ['my-budgets'] });
+    queryClient.invalidateQueries({ queryKey: ['shared-budgets'] });
+  };
 
   const { data: transactions = [] } = useQuery({
     queryKey: ['transactions'],
@@ -179,7 +202,8 @@ export default function Categories() {
       name: '',
       type: 'expense',
       icon: '📦',
-      color: '#8B5CF6'
+      color: '#8B5CF6',
+      budget_ids: []
     });
     setShowAddModal(false);
     setEditCategory(null);
@@ -190,12 +214,18 @@ export default function Categories() {
     
     // Convert Lucide icon name to emoji
     const iconEmoji = LUCIDE_ICON_MAP[category.icon] || category.icon || '📦';
+
+    // Бюджеты, в категории которых уже включено имя этой категории
+    const linkedBudgetIds = budgets
+      .filter(b => (b.categories || (b.category ? [b.category] : [])).includes(category.name))
+      .map(b => b.id);
     
     setFormData({
       name: category.name,
       type: category.type,
       icon: iconEmoji,
-      color: category.color || '#8B5CF6'
+      color: category.color || '#8B5CF6',
+      budget_ids: linkedBudgetIds
     });
     setShowAddModal(true);
   };
@@ -215,6 +245,10 @@ export default function Categories() {
       updateMutation.mutate({ id: editCategory.id, data });
     } else {
       createMutation.mutate(data);
+    }
+
+    if (formData.type === 'expense') {
+      await syncBudgetCategories(formData.name, formData.budget_ids);
     }
   };
 
@@ -461,6 +495,34 @@ export default function Categories() {
                 ))}
               </div>
             </div>
+            {formData.type === 'expense' && (
+              <div>
+                <Label>Привязать к бюджетам</Label>
+                {budgets.length > 0 ? (
+                  <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
+                    {budgets.map(budget => (
+                      <label key={budget.id} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.budget_ids.includes(budget.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData({ ...formData, budget_ids: [...formData.budget_ids, budget.id] });
+                            } else {
+                              setFormData({ ...formData, budget_ids: formData.budget_ids.filter(id => id !== budget.id) });
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <span className="text-sm text-slate-700 dark:text-slate-300">{budget.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-400 mt-1">Нет доступных бюджетов</p>
+                )}
+              </div>
+            )}
             <Button
               onClick={handleSubmit}
               disabled={!formData.name}
