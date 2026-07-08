@@ -6,8 +6,9 @@ import { format, isToday, isTomorrow, isPast, addDays } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
   Plus, CheckCircle2, Circle, Calendar, Clock, Edit2, Trash2,
-  Flag, X, Check, Coins, ListTodo, AlertCircle, Mic, MicOff
+  Flag, X, Check, Coins, ListTodo, AlertCircle, Mic, MicOff, Bell
 } from 'lucide-react';
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,7 +76,9 @@ export default function Tasks() {
     type: 'personal',
     due_date: null,
     priority: 'medium',
-    amount: ''
+    amount: '',
+    reminder_enabled: false,
+    reminder_date: null
   });
 
   const { data: tasks = [], isLoading } = useQuery({
@@ -119,7 +122,9 @@ export default function Tasks() {
       type: 'personal',
       due_date: null,
       priority: 'medium',
-      amount: ''
+      amount: '',
+      reminder_enabled: false,
+      reminder_date: null
     });
     setShowAddModal(false);
     setEditTask(null);
@@ -133,16 +138,27 @@ export default function Tasks() {
       type: task.type || 'personal',
       due_date: task.due_date ? new Date(task.due_date) : null,
       priority: task.priority || 'medium',
-      amount: task.amount?.toString() || ''
+      amount: task.amount?.toString() || '',
+      reminder_enabled: task.reminder_enabled || false,
+      reminder_date: task.reminder_date ? new Date(task.reminder_date) : null
     });
     setShowAddModal(true);
   };
 
   const handleSubmit = () => {
+    // Дата напоминания: явно выбранная или, по умолчанию, срок задачи
+    const reminderDate = formData.reminder_enabled
+      ? (formData.reminder_date || formData.due_date)
+      : null;
+
     const data = {
       ...formData,
       due_date: formData.due_date ? formData.due_date.toISOString() : null,
       amount: formData.amount ? parseFloat(formData.amount) : null,
+      reminder_enabled: formData.reminder_enabled,
+      reminder_date: reminderDate ? reminderDate.toISOString() : null,
+      // При изменении настроек напоминания сбрасываем флаг отправки
+      notification_sent: false,
       status: editTask?.status || 'pending'
     };
 
@@ -565,6 +581,47 @@ export default function Tasks() {
                 </PopoverContent>
               </Popover>
             </div>
+            {/* Напоминание об оплате */}
+            <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-violet-600" />
+                  <Label className="cursor-pointer">Напоминать об оплате</Label>
+                </div>
+                <Switch
+                  checked={formData.reminder_enabled}
+                  onCheckedChange={(v) => setFormData({ ...formData, reminder_enabled: v })}
+                />
+              </div>
+              {formData.reminder_enabled && (
+                <div>
+                  <Label className="text-xs text-slate-500">Когда напомнить</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal rounded-xl mt-1"
+                      >
+                        <Bell className="mr-2 h-4 w-4" />
+                        {formData.reminder_date
+                          ? format(formData.reminder_date, 'dd.MM.yyyy')
+                          : (formData.due_date ? `В день срока (${format(formData.due_date, 'dd.MM.yyyy')})` : 'Выберите дату')}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <CalendarComponent
+                        mode="single"
+                        selected={formData.reminder_date}
+                        onSelect={(d) => setFormData({ ...formData, reminder_date: d })}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <p className="text-xs text-slate-400 mt-1.5">
+                    Уведомление придёт на email за 24 часа до указанной даты. Если дата не выбрана — в день срока задачи.
+                  </p>
+                </div>
+              )}
+            </div>
             {formData.type === 'financial' && (
               <div>
                 <Label>Сумма</Label>
@@ -681,6 +738,12 @@ function TaskList({ tasks, onToggle, onEdit, onDelete, getDateLabel, isOverdue, 
                         <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700">
                           <Coins className="w-3 h-3 mr-1" />
                           {formatCurrency(task.amount)}
+                        </Badge>
+                      )}
+                      {task.reminder_enabled && (
+                        <Badge variant="secondary" className="text-xs bg-violet-100 text-violet-700">
+                          <Bell className="w-3 h-3 mr-1" />
+                          Напоминание
                         </Badge>
                       )}
                       {task.priority === 'high' && (
