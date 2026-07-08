@@ -6,6 +6,7 @@ import { Menu, X, ArrowLeft, LayoutDashboard, ArrowLeftRight, Target, Settings }
 import { useNavigate } from 'react-router-dom';
 import NavigationMenu from '@/components/Navigation/NavigationMenu';
 import NotificationBell from '@/components/NotificationBell';
+import ThemeIconToggle from '@/components/ThemeIconToggle';
 import MobileTabShell from '@/components/MobileTabShell';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { base44 } from '@/api/base44Client';
@@ -112,8 +113,9 @@ export default function Layout({ children, currentPageName }) {
           isChildMode={themePreference === 'child'} />
         
 
-        {/* Notification Bell (desktop) */}
-        <div className="px-4 pb-2 flex justify-end">
+        {/* Notification Bell + Theme Toggle (desktop) */}
+        <div className="px-4 pb-2 flex justify-end gap-2">
+          <ThemeIconToggle />
           <NotificationBell />
         </div>
 
@@ -168,6 +170,7 @@ export default function Layout({ children, currentPageName }) {
           <span className="text-white font-semibold text-sm">FinanceApp</span>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          <ThemeIconToggle />
           <NotificationBell />
         </div>
       </div>
