@@ -309,7 +309,7 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
-                        className="absolute top-full mt-2 left-0 z-50 bg-[#1a1f2b] border border-white/10 rounded-xl px-4 py-3 text-center min-w-[180px] shadow-xl"
+                        className="fixed inset-x-4 top-20 z-50 bg-[#1a1f2b] border border-white/10 rounded-xl px-4 py-3 text-center sm:absolute sm:inset-x-auto sm:top-full sm:mt-2 sm:left-auto sm:right-0 sm:min-w-[180px]"
                     >
                         <div className="text-2xl mb-1">
                             {CATEGORY_EMOJIS[result.parsed.category] || '📦'}
@@ -325,7 +325,7 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute top-full mt-2 left-0 z-50 bg-[#1a1f2b] border border-red-500/20 rounded-xl px-3 py-2 text-xs text-red-400 max-w-[200px] shadow-xl"
+                        className="fixed inset-x-4 top-20 z-50 bg-[#1a1f2b] border border-red-500/20 rounded-xl px-3 py-2 text-xs text-red-400 text-center sm:absolute sm:inset-x-auto sm:top-full sm:mt-2 sm:left-auto sm:right-0 sm:max-w-[200px]"
                     >
                         {errorMsg}
                     </motion.div>
