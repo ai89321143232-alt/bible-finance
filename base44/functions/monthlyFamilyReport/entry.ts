@@ -126,6 +126,15 @@ function generateXlsx(sheets) {
     return concat(...localHeaders, centralData, eocd);
 }
 
+function escapeHtml(val) {
+    return String(val ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
@@ -237,7 +246,7 @@ Deno.serve(async (req) => {
             const pct = limit > 0 ? Math.round(spent / limit * 100) : 0;
             const status = pct >= 100 ? '🔴 Превышен' : pct >= 80 ? '🟡 Близко' : '🟢 Норма';
             const color = pct >= 100 ? '#ffe0e0' : pct >= 80 ? '#fff3cd' : '#e8f5e9';
-            emailBody += `<tr style="background:${color}"><td>${b.name}</td><td>₽${Math.round(limit).toLocaleString('ru-RU')}</td><td>₽${Math.round(spent).toLocaleString('ru-RU')}</td><td>${pct}%</td><td>${status}</td></tr>`;
+            emailBody += `<tr style="background:${color}"><td>${escapeHtml(b.name)}</td><td>₽${Math.round(limit).toLocaleString('ru-RU')}</td><td>₽${Math.round(spent).toLocaleString('ru-RU')}</td><td>${pct}%</td><td>${status}</td></tr>`;
         }
         emailBody += `</table>`;
 
@@ -249,7 +258,7 @@ Deno.serve(async (req) => {
         emailBody += `<tr><th>Категория</th><th>Сумма</th><th>Доля</th></tr>`;
         for (const [cat, sum] of Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 10)) {
             const pct = totalExpenses > 0 ? Math.round(sum / totalExpenses * 100) : 0;
-            emailBody += `<tr><td>${cat}</td><td>₽${Math.round(sum).toLocaleString('ru-RU')}</td><td>${pct}%</td></tr>`;
+            emailBody += `<tr><td>${escapeHtml(cat)}</td><td>₽${Math.round(sum).toLocaleString('ru-RU')}</td><td>${pct}%</td></tr>`;
         }
         emailBody += `</table>`;
         emailBody += `<p style="color:#888;font-size:12px">Отчёт сформирован автоматически. Для детального Excel-отчёта перейдите в приложение.</p>`;
