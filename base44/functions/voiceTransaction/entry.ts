@@ -23,7 +23,8 @@ Deno.serve(async (req) => {
                 description: parsed.description,
                 date: parsed.date || new Date().toISOString(),
                 account_id,
-                user_id: user.id
+                user_id: user.id,
+                created_by_id: user.id
             });
 
             // Update account balance
@@ -147,7 +148,8 @@ Deno.serve(async (req) => {
                 description: result.description,
                 date: result.date || new Date().toISOString(),
                 account_id: matchedAccountId,
-                user_id: user.id
+                user_id: user.id,
+                created_by_id: user.id
             });
 
             // Update account balance
