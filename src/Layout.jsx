@@ -67,7 +67,7 @@ export default function Layout({ children, currentPageName }) {
     <div
       className="min-h-screen bg-[#0f1117] text-white"
       style={backgroundImageUrl ? {
-        backgroundImage: `linear-gradient(rgba(15,17,23,0.85), rgba(15,17,23,0.85)), url(${backgroundImageUrl})`,
+        backgroundImage: `linear-gradient(rgba(15,17,23,0.55), rgba(15,17,23,0.55)), url(${backgroundImageUrl})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed',
