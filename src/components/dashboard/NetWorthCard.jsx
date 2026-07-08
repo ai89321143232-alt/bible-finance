@@ -1,14 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Wallet, TrendingUp, PiggyBank, CreditCard, AlertCircle } from 'lucide-react';
+import { Wallet, TrendingUp, PiggyBank, CreditCard, AlertCircle, Plus, Home, Car, Gem, Box } from 'lucide-react';
+import AddFixedAssetModal from './AddFixedAssetModal';
+
+const FIXED_ASSET_ICONS = { real_estate: Home, auto: Car, gold: Gem, other: Box };
 
 export default function NetWorthCard({
   accounts = [],
   investments = [],
-  formatCurrency
+  fixedAssets = [],
+  formatCurrency,
+  onFixedAssetAdded
 }) {
+  const [showAddAsset, setShowAddAsset] = useState(false);
+
   const totalAssets = accounts.reduce((sum, a) => sum + Math.max(a.balance || 0, 0), 0);
   const totalDebts = accounts.reduce((sum, a) => sum + Math.abs(Math.min(a.balance || 0, 0)), 0);
 
@@ -19,7 +26,9 @@ export default function NetWorthCard({
     sum + (inv.quantity * (inv.current_price || inv.purchase_price || 0)), 0
   );
 
-  const netWorth = totalAssets + investmentValue - totalDebts;
+  const fixedAssetsValue = fixedAssets.reduce((sum, fa) => sum + (fa.value || 0), 0);
+
+  const netWorth = totalAssets + investmentValue + fixedAssetsValue - totalDebts;
   const isNegative = netWorth < 0;
 
   if (accounts.length === 0) return null;
@@ -99,8 +108,42 @@ export default function NetWorthCard({
               <p className="text-muted-foreground/50 text-xs mt-0.5">Нет долгов</p>
             </div>
           )}
+
+          <button onClick={() => setShowAddAsset(true)} className="text-left">
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-3.5 hover:bg-muted transition-all cursor-pointer h-full">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Plus className="w-3.5 h-3.5 text-amber-500" />
+                <span className="text-muted-foreground text-xs">Недвижимость, авто, золото</span>
+              </div>
+              <p className="text-amber-500 font-bold text-lg">{formatCurrency(fixedAssetsValue)}</p>
+              <p className="text-muted-foreground/70 text-xs mt-0.5">{fixedAssets.length} активов · добавить</p>
+            </div>
+          </button>
         </div>
+
+        {fixedAssets.length > 0 && (
+          <div className="mt-3 space-y-1.5">
+            {fixedAssets.map((fa) => {
+              const Icon = FIXED_ASSET_ICONS[fa.type] || Box;
+              return (
+                <div key={fa.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30">
+                  <div className="flex items-center gap-2">
+                    <Icon className="w-3.5 h-3.5 text-amber-500" />
+                    <span className="text-foreground text-sm">{fa.name}</span>
+                  </div>
+                  <span className="text-foreground text-sm font-medium">{formatCurrency(fa.value)}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      <AddFixedAssetModal
+        open={showAddAsset}
+        onClose={() => setShowAddAsset(false)}
+        onSaved={() => onFixedAssetAdded && onFixedAssetAdded()}
+      />
     </motion.div>
   );
 }

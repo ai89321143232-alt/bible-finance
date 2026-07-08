@@ -216,6 +216,19 @@ export default function Dashboard() {
     enabled: !!user && familyReady
   });
 
+  const { data: rawFixedAssets = [] } = useQuery({
+    queryKey: ['fixed-assets', user?.id, family?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const all = await base44.entities.FixedAsset.list();
+      return all.filter(fa =>
+        fa.created_by_id === user.id ||
+        (family?.id && fa.family_id === family.id)
+      );
+    },
+    enabled: !!user && familyReady
+  });
+
   const { data: templates = [] } = useQuery({
     queryKey: ['transaction-templates'],
     queryFn: () => base44.entities.TransactionTemplate.list('sort_order', 50),
@@ -228,6 +241,7 @@ export default function Dashboard() {
   const budgets = filterByWorkspace(rawBudgets, activeWorkspaceId);
   const goals = filterByWorkspace(rawGoals, activeWorkspaceId);
   const investments = filterByWorkspace(rawInvestments, activeWorkspaceId);
+  const fixedAssets = filterByWorkspace(rawFixedAssets, activeWorkspaceId);
 
   const familyMembers = family?.members || [];
   const memberIds = familyMembers.map(m => m.user_id);
@@ -447,7 +461,9 @@ export default function Dashboard() {
         <NetWorthCard
           accounts={displayAccounts}
           investments={investments}
+          fixedAssets={fixedAssets}
           formatCurrency={formatCurrency}
+          onFixedAssetAdded={() => queryClient.invalidateQueries({ queryKey: ['fixed-assets'] })}
         />
 
         {/* Quick Filters — instant account/category filtering */}
