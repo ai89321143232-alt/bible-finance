@@ -325,14 +325,6 @@ export default function Budgets() {
   const totalBudget = displayBudgets.reduce((sum, b) => sum + (b.limit_amount || 0), 0);
   const totalSpent = displayBudgets.reduce((sum, b) => sum + getBudgetSpent(b), 0);
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
