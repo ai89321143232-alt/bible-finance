@@ -17,7 +17,9 @@ import { Base44Repository } from './Base44Repository';
 import { SupabaseRepository } from './SupabaseRepository';
 
 // Переключатель бэкенда: true — работать через Supabase/PostgreSQL, false — через Base44.
-const USE_SUPABASE = true;
+// Отключено: таблицы в Supabase не соответствуют схеме (нет user_id/family_id
+// в transactions, нет таблицы investments), из-за чего все сохранения падали с 500.
+const USE_SUPABASE = false;
 
 const _cache = {};
 
