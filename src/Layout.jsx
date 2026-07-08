@@ -66,7 +66,7 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <div
-      className="min-h-screen bg-[#0f1117] text-white"
+      className="min-h-screen bg-background text-foreground"
       style={backgroundImageUrl ? {
         backgroundImage: `linear-gradient(rgba(15,17,23,0.55), rgba(15,17,23,0.55)), url(${backgroundImageUrl})`,
         backgroundSize: 'cover',
@@ -94,7 +94,7 @@ export default function Layout({ children, currentPageName }) {
       `}</style>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-64 bg-[#0a0d13] border-r border-white/5 z-40 overflow-y-auto">
+      <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-64 bg-background border-r border-white/5 z-40 overflow-y-auto">
         {/* Logo */}
         <div className="px-6 py-5 border-b border-white/5">
           <Link to={createPageUrl('Dashboard')} className="flex items-center gap-2.5">
@@ -148,7 +148,7 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       {/* Mobile Top Bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#0a0d13] border-b border-white/5 z-40 flex items-center px-5 gap-3"
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-background border-b border-white/5 z-40 flex items-center px-5 gap-3"
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         {currentPageName !== 'Dashboard' && (
           <button
@@ -199,7 +199,7 @@ export default function Layout({ children, currentPageName }) {
                 setShowMobileMenu(false);
               }
             }}
-            className="lg:hidden fixed left-0 top-0 h-full w-72 bg-[#0a0d13] border-r border-white/5 shadow-2xl z-50 overflow-y-auto">
+            className="lg:hidden fixed left-0 top-0 h-full w-72 bg-background border-r border-white/5 shadow-2xl z-50 overflow-y-auto">
             
               <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -241,7 +241,7 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Mobile Bottom Tab Bar — only on non-tab pages (desktop never shows) */}
       {isMobile && !isTabPage && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#0a0d13] border-t border-white/8 z-40"
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-white/8 z-40"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
           <div className="flex items-center justify-around py-2">
             <Link to={createPageUrl('Dashboard')} className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${currentPageName === 'Dashboard' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>
