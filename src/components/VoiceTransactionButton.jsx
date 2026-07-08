@@ -180,12 +180,12 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
                     disabled={status === 'processing' || isFinalizing}
                     whileTap={{ scale: 0.92 }}
                     className={`
-                        relative w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200
-                        ${status === 'recording' ? 'bg-red-500 shadow-red-500/40' : ''}
-                        ${status === 'processing' ? 'bg-white/10 cursor-not-allowed' : ''}
-                        ${status === 'success' ? 'bg-green-500' : ''}
-                        ${status === 'error' ? 'bg-red-400' : ''}
-                        ${status === 'idle' ? 'bg-violet-500/15 border border-violet-500/20 hover:bg-violet-500/25' : ''}
+                        relative w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 border
+                        ${status === 'recording' ? 'bg-red-500 border-red-500 shadow-red-500/40' : ''}
+                        ${status === 'processing' ? 'bg-muted border-border cursor-not-allowed' : ''}
+                        ${status === 'success' ? 'bg-green-500 border-green-500' : ''}
+                        ${status === 'error' ? 'bg-red-400 border-red-400' : ''}
+                        ${status === 'idle' ? 'bg-violet-500/15 border-violet-500/30 hover:bg-violet-500/25' : ''}
                     `}
                 >
                     {status === 'recording' && (
@@ -195,7 +195,7 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
                             transition={{ repeat: Infinity, duration: 1.2 }}
                         />
                     )}
-                    {status === 'idle' && <Mic className="w-4 h-4 text-violet-400" />}
+                    {status === 'idle' && <Mic className="w-4 h-4 text-violet-500" />}
                     {status === 'recording' && <MicOff className="w-4 h-4 text-white" />}
                     {status === 'processing' && <Loader2 className="w-4 h-4 text-white animate-spin" />}
                     {status === 'success' && <CheckCircle className="w-4 h-4 text-white" />}
