@@ -23,11 +23,15 @@ export default function AgentChat({ agentName, accentColor = 'bg-violet-600', su
   const scrollRef = useRef(null);
 
   useEffect(() => {
-    const conv = base44.agents.createConversation({
-      agent_name: agentName,
-      metadata: { name: 'Новый диалог', description: 'Диалог с агентом' }
-    });
-    setConversation(conv);
+    let cancelled = false;
+    (async () => {
+      const conv = await base44.agents.createConversation({
+        agent_name: agentName,
+        metadata: { name: 'Новый диалог', description: 'Диалог с агентом' }
+      });
+      if (!cancelled) setConversation(conv);
+    })();
+    return () => { cancelled = true; };
   }, [agentName]);
 
   useEffect(() => {
