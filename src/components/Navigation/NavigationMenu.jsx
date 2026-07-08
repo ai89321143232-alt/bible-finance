@@ -79,15 +79,15 @@ export default function NavigationMenu({ currentPageName, onNavigate, isChildMod
             className={`
               flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
               ${isActive
-                ? 'bg-white/10 text-white'
-                : 'text-white/40 hover:text-white/80 hover:bg-white/5'
+                ? 'bg-accent text-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent'
               }
             `}
           >
-            <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-white' : 'text-white/40'}`} />
+            <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`} />
             <span>{item.label}</span>
             {isActive && (
-              <div className="ml-auto w-1 h-4 rounded-full bg-white opacity-70" />
+              <div className="ml-auto w-1 h-4 rounded-full bg-foreground opacity-70" />
             )}
           </Link>
         );
