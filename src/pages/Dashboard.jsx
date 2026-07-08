@@ -369,17 +369,17 @@ export default function Dashboard() {
           className="flex items-center justify-between mb-6 pt-2 lg:pt-0"
         >
           <div>
-            <h1 className="text-xl sm:text-2xl font-semibold text-white">Главная</h1>
-            <p className="text-white/35 text-sm mt-0.5">
+            <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Главная</h1>
+            <p className="text-muted-foreground text-sm mt-0.5">
               {format(new Date(), "EEEE, d MMMM", { locale: ru })}
-              {family && (<span className="ml-2 text-white/50">· {family.name}</span>)}
+              {family && (<span className="ml-2 text-muted-foreground">· {family.name}</span>)}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <VoiceTransactionButton onTransactionCreated={() => queryClient.invalidateQueries()} />
             <Button
               onClick={() => { setQuickAddType('expense'); setShowQuickAdd(true); }}
-              className="bg-white text-black hover:bg-white/90 rounded-lg h-9 px-4 text-sm font-semibold"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg h-9 px-4 text-sm font-semibold"
             >
               <Plus className="w-4 h-4 mr-1.5" />
               <span className="hidden sm:inline">Добавить</span>
@@ -391,11 +391,11 @@ export default function Dashboard() {
 
         {family && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-4">
-            <div className="flex gap-1 p-1 bg-white/5 border border-white/8 rounded-lg w-fit">
-             <button onClick={() => setBalanceMode('personal')} className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${balanceMode === 'personal' ? 'bg-white text-black' : 'text-white/40 hover:text-white/70'}`}>
+            <div className="flex gap-1 p-1 bg-muted border border-border rounded-lg w-fit">
+             <button onClick={() => setBalanceMode('personal')} className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${balanceMode === 'personal' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
                 Личный
               </button>
-              <button onClick={() => setBalanceMode('family')} className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${balanceMode === 'family' ? 'bg-white text-black' : 'text-white/40 hover:text-white/70'}`}>
+              <button onClick={() => setBalanceMode('family')} className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${balanceMode === 'family' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
                 Семейный
               </button>
             </div>
@@ -443,8 +443,8 @@ export default function Dashboard() {
 
         {balanceMode === 'family' && family && memberBalances.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-4">
-            <div className="rounded-xl border border-white/8 bg-[#141820] divide-y divide-white/5">
-              <div className="px-4 py-3 text-white/40 text-xs uppercase tracking-widest font-medium">Баланс по членам семьи</div>
+            <div className="rounded-xl border border-border bg-card divide-y divide-border">
+              <div className="px-4 py-3 text-muted-foreground text-xs uppercase tracking-widest font-medium">Баланс по членам семьи</div>
               {memberBalances.map((member) => (
                 <div key={member.user_id} className="flex items-center justify-between px-4 py-3">
                   <div className="flex items-center gap-3">
@@ -452,13 +452,13 @@ export default function Dashboard() {
                       {member.display_name?.[0] || member.name?.[0] || '?'}
                     </div>
                     <div>
-                      <p className="text-white/80 text-sm font-medium">{member.display_name || member.name}</p>
-                      <p className="text-white/30 text-xs">{member.accountsCount} счетов</p>
+                      <p className="text-foreground text-sm font-medium">{member.display_name || member.name}</p>
+                      <p className="text-muted-foreground text-xs">{member.accountsCount} счетов</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-white font-semibold text-sm">{formatCurrency(member.balance)}</p>
-                    <p className="text-white/30 text-xs">{totalBalance > 0 ? Math.round((member.balance / totalBalance) * 100) : 0}%</p>
+                    <p className="text-foreground font-semibold text-sm">{formatCurrency(member.balance)}</p>
+                    <p className="text-muted-foreground text-xs">{totalBalance > 0 ? Math.round((member.balance / totalBalance) * 100) : 0}%</p>
                   </div>
                 </div>
               ))}
@@ -467,8 +467,8 @@ export default function Dashboard() {
         )}
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-5 flex items-center gap-3">
-          <Calendar className="w-4 h-4 text-white/30" />
-          <MobileSelect value={periodType} onValueChange={updatePeriod} placeholder="Период" title="Выберите период" triggerClassName="w-36 h-8 text-sm rounded-lg border-white/8 bg-white/5 text-white/70">
+          <Calendar className="w-4 h-4 text-muted-foreground" />
+          <MobileSelect value={periodType} onValueChange={updatePeriod} placeholder="Период" title="Выберите период" triggerClassName="w-36 h-8 text-sm rounded-lg border-border bg-muted text-muted-foreground">
             <option value="week">Неделя</option>
             <option value="month">Месяц</option>
             <option value="year">Год</option>
@@ -483,7 +483,7 @@ export default function Dashboard() {
               onClick={() => { setQuickAddType('income'); setShowQuickAdd(true); }}>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center"><ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" /></div>
-                <span className="text-white/40 text-xs">Доходы</span>
+                <span className="text-muted-foreground text-xs">Доходы</span>
               </div>
               <p className="text-emerald-400 font-bold text-lg">{formatCurrency(monthIncome)}</p>
             </motion.div>
@@ -492,7 +492,7 @@ export default function Dashboard() {
               onClick={() => { setQuickAddType('expense'); setShowQuickAdd(true); }}>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center"><ArrowDownRight className="w-3.5 h-3.5 text-rose-400" /></div>
-                <span className="text-white/40 text-xs">Расходы</span>
+                <span className="text-muted-foreground text-xs">Расходы</span>
               </div>
               <p className="text-rose-400 font-bold text-lg">{formatCurrency(monthExpenses)}</p>
             </motion.div>
@@ -501,7 +501,7 @@ export default function Dashboard() {
                 <div className="rounded-2xl border border-cyan-500/15 bg-cyan-500/5 p-4 hover:bg-cyan-500/10 transition-all h-full">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-7 h-7 rounded-lg bg-cyan-500/15 flex items-center justify-center"><TrendingUp className="w-3.5 h-3.5 text-cyan-400" /></div>
-                    <span className="text-white/40 text-xs">Инвестиции</span>
+                    <span className="text-muted-foreground text-xs">Инвестиции</span>
                   </div>
                   <p className="text-cyan-400 font-bold text-lg">{formatCurrency(investmentValue)}</p>
                 </div>
@@ -513,11 +513,11 @@ export default function Dashboard() {
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-7 h-7 rounded-lg bg-violet-500/15 flex items-center justify-center"><Sparkles className="w-3.5 h-3.5 text-violet-400" /></div>
-                      <span className="text-white/40 text-xs">AI</span>
+                      <span className="text-muted-foreground text-xs">AI</span>
                     </div>
                     <p className="text-violet-300 font-bold">Спросить</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-white/20" />
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </div>
               </Link>
             </motion.div>
