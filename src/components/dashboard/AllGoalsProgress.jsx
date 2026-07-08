@@ -17,13 +17,13 @@ export default function AllGoalsProgress({ goals, formatCurrency }) {
   if (goals.length === 0) {
     return (
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-        <div className="rounded-2xl border border-black/10 bg-white shadow-sm p-6 text-center">
-          <div className="w-12 h-12 rounded-2xl bg-black/[0.04] flex items-center justify-center mx-auto mb-3">
-            <Target className="w-6 h-6 text-black/25" />
+        <div className="rounded-2xl border border-border bg-card shadow-sm p-6 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
+            <Target className="w-6 h-6 text-muted-foreground/50" />
           </div>
-          <p className="text-black/30 text-sm mb-3">Нет активных целей</p>
+          <p className="text-muted-foreground text-sm mb-3">Нет активных целей</p>
           <Link to={createPageUrl('Goals')}>
-            <span className="inline-flex items-center gap-1.5 text-black/55 hover:text-black/80 text-xs border border-black/15 hover:border-black/25 rounded-lg px-3 py-1.5 transition-all">
+            <span className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-xs border border-border hover:border-foreground/20 rounded-lg px-3 py-1.5 transition-all">
               <Plus className="w-3.5 h-3.5" /> Создать цель
             </span>
           </Link>
@@ -37,11 +37,11 @@ export default function AllGoalsProgress({ goals, formatCurrency }) {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-      <div className="rounded-2xl border border-black/10 bg-white shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-black/5">
-          <span className="text-black/55 text-xs uppercase tracking-widest font-semibold">Цели</span>
+      <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+          <span className="text-muted-foreground text-xs uppercase tracking-widest font-semibold">Цели</span>
           <Link to={createPageUrl('Goals')}>
-            <span className="text-black/40 hover:text-black/70 text-xs flex items-center gap-1 transition-colors">
+            <span className="text-muted-foreground/70 hover:text-foreground text-xs flex items-center gap-1 transition-colors">
               Все <ChevronRight className="w-3.5 h-3.5" />
             </span>
           </Link>
@@ -64,11 +64,11 @@ export default function AllGoalsProgress({ goals, formatCurrency }) {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: scheme.dot }} />
-                    <span className="text-black/80 text-sm font-medium">{goal.title}</span>
+                    <span className="text-foreground text-sm font-medium">{goal.title}</span>
                   </div>
-                  <span className="text-black/40 text-xs font-medium">{progress.toFixed(0)}%</span>
+                  <span className="text-muted-foreground text-xs font-medium">{progress.toFixed(0)}%</span>
                 </div>
-                <div className="h-1.5 rounded-full bg-black/[0.06] overflow-hidden">
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                   <motion.div
                     className={`h-full rounded-full bg-gradient-to-r ${scheme.bar}`}
                     initial={{ width: 0 }}
@@ -77,16 +77,16 @@ export default function AllGoalsProgress({ goals, formatCurrency }) {
                   />
                 </div>
                 <div className="flex justify-between mt-1.5">
-                  <span className="text-black/30 text-xs">{formatCurrency(goal.current_amount || 0)}</span>
-                  <span className="text-black/30 text-xs">{formatCurrency(goal.target_amount)}</span>
+                  <span className="text-muted-foreground/70 text-xs">{formatCurrency(goal.current_amount || 0)}</span>
+                  <span className="text-muted-foreground/70 text-xs">{formatCurrency(goal.target_amount)}</span>
                 </div>
               </motion.div>
             );
           })}
 
-          <div className="pt-2 border-t border-black/5 flex justify-between text-xs mt-2">
-            <span className="text-black/35">Накоплено: <span className="text-black/65 font-medium">{formatCurrency(totalCurrent)}</span></span>
-            <span className="text-black/35">Цель: <span className="text-black/65 font-medium">{formatCurrency(totalTarget)}</span></span>
+          <div className="pt-2 border-t border-border flex justify-between text-xs mt-2">
+            <span className="text-muted-foreground/80">Накоплено: <span className="text-foreground font-medium">{formatCurrency(totalCurrent)}</span></span>
+            <span className="text-muted-foreground/80">Цель: <span className="text-foreground font-medium">{formatCurrency(totalTarget)}</span></span>
           </div>
         </div>
       </div>

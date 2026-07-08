@@ -4,7 +4,6 @@ import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { ChevronRight, Plus, AlertCircle, Layers } from 'lucide-react';
 
-// Вычисляет расходы по бюджету из транзакций текущего месяца (динамически)
 function calcBudgetSpent(budget, transactions) {
   const now = new Date();
   const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -24,21 +23,21 @@ export default function BudgetOverview({ budgets, transactions = [], formatCurre
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-      <div className="rounded-2xl border border-black/10 bg-white shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-black/5">
-          <span className="text-black/55 text-xs uppercase tracking-widest font-semibold">Бюджеты</span>
+      <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+          <span className="text-muted-foreground text-xs uppercase tracking-widest font-semibold">Бюджеты</span>
           <Link to={createPageUrl('Budgets')}>
-            <span className="text-black/40 hover:text-black/70 text-xs flex items-center gap-1 transition-colors">
+            <span className="text-muted-foreground/70 hover:text-foreground text-xs flex items-center gap-1 transition-colors">
               Все <ChevronRight className="w-3.5 h-3.5" />
             </span>
           </Link>
         </div>
 
         {budgets.length > 0 && (
-          <div className="flex items-center justify-between px-5 py-3 border-b border-black/5 bg-black/[0.015]">
-            <span className="text-black/45 text-xs">Общий бюджет</span>
-            <span className="text-cyan-600 font-extrabold text-base">
-              {formatCurrency(totalSpent)} <span className="text-black/35 font-medium text-sm">/ {formatCurrency(totalLimit)}</span>
+          <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-muted/30">
+            <span className="text-muted-foreground text-xs">Общий бюджет</span>
+            <span className="text-cyan-500 font-extrabold text-base">
+              {formatCurrency(totalSpent)} <span className="text-muted-foreground font-medium text-sm">/ {formatCurrency(totalLimit)}</span>
             </span>
           </div>
         )}
@@ -65,17 +64,17 @@ export default function BudgetOverview({ budgets, transactions = [], formatCurre
                   transition={{ delay: 0.05 * idx }}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-black/80 text-sm font-medium">{budget.name}</span>
+                    <span className="text-foreground text-sm font-medium">{budget.name}</span>
                     <div className="flex items-center gap-1.5">
                       {(isOver || isWarn) && (
-                        <AlertCircle className={`w-3.5 h-3.5 ${isOver ? 'text-rose-600' : 'text-amber-600'}`} />
+                        <AlertCircle className={`w-3.5 h-3.5 ${isOver ? 'text-rose-500' : 'text-amber-500'}`} />
                       )}
-                      <span className={`text-xs font-medium ${isOver ? 'text-rose-600' : isWarn ? 'text-amber-600' : 'text-black/40'}`}>
+                      <span className={`text-xs font-medium ${isOver ? 'text-rose-500' : isWarn ? 'text-amber-500' : 'text-muted-foreground'}`}>
                         {Math.round(progress)}%
                       </span>
                     </div>
                   </div>
-                  <div className="h-1.5 rounded-full bg-black/[0.06] overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                     <motion.div
                       className={`h-full rounded-full ${barColor}`}
                       initial={{ width: 0 }}
@@ -84,8 +83,8 @@ export default function BudgetOverview({ budgets, transactions = [], formatCurre
                     />
                   </div>
                   <div className="flex justify-between mt-1.5">
-                    <span className={`text-xs font-bold ${isOver ? 'text-rose-600' : isWarn ? 'text-amber-600' : 'text-cyan-600'}`}>{formatCurrency(spent)}</span>
-                    <span className="text-fuchsia-600 text-xs font-bold">{formatCurrency(budget.limit_amount)}</span>
+                    <span className={`text-xs font-bold ${isOver ? 'text-rose-500' : isWarn ? 'text-amber-500' : 'text-cyan-500'}`}>{formatCurrency(spent)}</span>
+                    <span className="text-fuchsia-500 text-xs font-bold">{formatCurrency(budget.limit_amount)}</span>
                   </div>
                 </motion.div>
               );
@@ -93,12 +92,12 @@ export default function BudgetOverview({ budgets, transactions = [], formatCurre
           </div>
         ) : (
           <div className="py-10 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-black/[0.04] flex items-center justify-center mx-auto mb-3">
-              <Layers className="w-6 h-6 text-black/25" />
+            <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
+              <Layers className="w-6 h-6 text-muted-foreground/50" />
             </div>
-            <p className="text-black/30 text-sm mb-3">Нет бюджетов</p>
+            <p className="text-muted-foreground text-sm mb-3">Нет бюджетов</p>
             <Link to={createPageUrl('Budgets')}>
-              <span className="inline-flex items-center gap-1.5 text-black/55 hover:text-black/80 text-xs border border-black/15 hover:border-black/25 rounded-lg px-3 py-1.5 transition-all">
+              <span className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-xs border border-border hover:border-foreground/20 rounded-lg px-3 py-1.5 transition-all">
                 <Plus className="w-3.5 h-3.5" /> Создать
               </span>
             </Link>

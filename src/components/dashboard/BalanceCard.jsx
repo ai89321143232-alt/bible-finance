@@ -19,7 +19,6 @@ export default function BalanceCard({
   const netFlow = monthIncome - monthExpenses;
   const isPositive = netFlow >= 0;
 
-  // Calculate debt breakdown — only accounts with negative balance (regardless of type)
   const totalDebt = accounts
     .filter(a => (a.balance || 0) < 0)
     .reduce((sum, a) => sum + Math.abs(a.balance || 0), 0);
@@ -32,20 +31,19 @@ export default function BalanceCard({
       transition={{ duration: 0.4 }}
       className="mb-6"
     >
-      <div className="rounded-2xl border border-black/10 bg-white shadow-sm p-6 sm:p-8">
-        {/* Balance Header */}
+      <div className="rounded-2xl border border-border bg-card shadow-sm p-6 sm:p-8">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 rounded-md bg-violet-500/15 flex items-center justify-center">
-              <Wallet className="w-3 h-3 text-violet-600" />
+              <Wallet className="w-3 h-3 text-violet-500" />
             </div>
-            <span className="text-black/50 text-xs uppercase tracking-widest font-medium">Общий баланс</span>
+            <span className="text-muted-foreground text-xs uppercase tracking-widest font-medium">Общий баланс</span>
           </div>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setShowBalance(!showBalance)}
-            className="text-black/40 hover:text-black/70 hover:bg-black/5 h-7 w-7"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted h-7 w-7"
           >
             {showBalance ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
           </Button>
@@ -57,21 +55,21 @@ export default function BalanceCard({
           animate={{ opacity: 1 }}
           className="mb-6"
         >
-          <h2 className="text-4xl sm:text-5xl font-bold text-black tracking-tight">
+          <h2 className="text-4xl sm:text-5xl font-bold text-foreground tracking-tight">
             {showBalance ? formatCurrency(totalBalance + investmentValue) : '••••••'}
           </h2>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
               isPositive
-                ? 'bg-emerald-500/15 text-emerald-600'
-                : 'bg-rose-500/15 text-rose-600'
+                ? 'bg-emerald-500/15 text-emerald-500'
+                : 'bg-rose-500/15 text-rose-500'
             }`}>
               {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
               {isPositive ? '+' : ''}{formatCurrency(netFlow)}
             </span>
-            <span className="text-black/35 text-xs">в этом месяце</span>
+            <span className="text-muted-foreground/70 text-xs">в этом месяце</span>
             {hasDebt && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-600">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-500">
                 <CreditCard className="w-3 h-3" />
                 Долг: {formatCurrency(-totalDebt)}
               </span>
@@ -79,20 +77,19 @@ export default function BalanceCard({
           </div>
         </motion.div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Счета', value: formatCurrency(totalBalance), icon: Wallet, color: 'text-violet-600', bg: 'bg-violet-500/10', link: 'Accounts' },
-            { label: 'Инвестиции', value: formatCurrency(investmentValue), icon: BarChart2, color: 'text-cyan-600', bg: 'bg-cyan-500/10', link: 'Investments' },
-            { label: 'Доходы', value: formatCurrency(monthIncome), icon: ArrowUpRight, color: 'text-emerald-600', bg: 'bg-emerald-500/10', link: 'Transactions' },
-            { label: 'Расходы', value: formatCurrency(monthExpenses), icon: ArrowDownRight, color: 'text-rose-600', bg: 'bg-rose-500/10', link: 'Transactions' },
+            { label: 'Счета', value: formatCurrency(totalBalance), icon: Wallet, color: 'text-violet-500', bg: 'bg-violet-500/10', link: 'Accounts' },
+            { label: 'Инвестиции', value: formatCurrency(investmentValue), icon: BarChart2, color: 'text-cyan-500', bg: 'bg-cyan-500/10', link: 'Investments' },
+            { label: 'Доходы', value: formatCurrency(monthIncome), icon: ArrowUpRight, color: 'text-emerald-500', bg: 'bg-emerald-500/10', link: 'Transactions' },
+            { label: 'Расходы', value: formatCurrency(monthExpenses), icon: ArrowDownRight, color: 'text-rose-500', bg: 'bg-rose-500/10', link: 'Transactions' },
           ].map((stat) => (
             <Link key={stat.label} to={createPageUrl(stat.link)}>
-              <div className="rounded-xl border border-black/10 bg-black/[0.02] p-3.5 hover:bg-black/[0.04] transition-all group cursor-pointer">
+              <div className="rounded-xl border border-border bg-muted/50 p-3.5 hover:bg-muted transition-all group cursor-pointer">
                 <div className={`w-6 h-6 rounded-md ${stat.bg} flex items-center justify-center mb-2`}>
                   <stat.icon className={`w-3.5 h-3.5 ${stat.color}`} />
                 </div>
-                <p className="text-black/40 text-xs mb-1">{stat.label}</p>
+                <p className="text-muted-foreground text-xs mb-1">{stat.label}</p>
                 <p className={`font-semibold text-sm ${stat.color}`}>
                   {showBalance ? stat.value : '••••'}
                 </p>

@@ -24,7 +24,6 @@ function getPeriodRange(periodType, anchor) {
 }
 
 function shiftAnchor(periodType, anchor, direction) {
-  // direction: +1 = вперёд, -1 = назад
   switch (periodType) {
     case 'week':  return direction > 0 ? addWeeks(anchor, 1) : subWeeks(anchor, 1);
     case 'month': return direction > 0 ? addMonths(anchor, 1) : subMonths(anchor, 1);
@@ -51,7 +50,6 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
   const [anchor, setAnchor] = useState(new Date());
   const navigate = useNavigate();
 
-  // Свайп
   const touchStartX = useRef(null);
 
   const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
@@ -64,7 +62,6 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
     touchStartX.current = null;
   };
 
-  // Если период "all" — не показываем навигацию, используем все переданные транзакции
   const isAllTime = periodType === 'all';
 
   const { start, end } = isAllTime ? { start: null, end: null } : getPeriodRange(periodType, anchor);
@@ -98,9 +95,9 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
     if (!active || !payload?.length) return null;
     const d = payload[0].payload;
     return (
-      <div className="bg-white border border-black/10 shadow-md rounded-lg p-3 text-sm">
-        <p className="text-black/80 font-medium">{d.icon} {d.name}</p>
-        <p className="text-black/50 text-xs">{formatCurrency(d.value)} · {((d.value / total) * 100).toFixed(1)}%</p>
+      <div className="bg-popover border border-border shadow-md rounded-lg p-3 text-sm">
+        <p className="text-foreground font-medium">{d.icon} {d.name}</p>
+        <p className="text-muted-foreground text-xs">{formatCurrency(d.value)} · {((d.value / total) * 100).toFixed(1)}%</p>
       </div>
     );
   };
@@ -115,42 +112,40 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
       <div
-        className="rounded-xl border border-black/10 bg-white shadow-sm overflow-hidden"
+        className="rounded-xl border border-border bg-card shadow-sm overflow-hidden"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-black/5">
-          <span className="text-black/45 text-xs uppercase tracking-widest font-medium">Расходы по категориям</span>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <span className="text-muted-foreground text-xs uppercase tracking-widest font-medium">Расходы по категориям</span>
           <div className="flex gap-1">
             <button
               onClick={() => setChartType('pie')}
-              className={`p-1.5 rounded-md transition-colors ${chartType === 'pie' ? 'bg-black/10 text-black' : 'text-black/30 hover:text-black/60'}`}
+              className={`p-1.5 rounded-md transition-colors ${chartType === 'pie' ? 'bg-muted text-foreground' : 'text-muted-foreground/60 hover:text-foreground'}`}
             >
               <PieIcon className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setChartType('bar')}
-              className={`p-1.5 rounded-md transition-colors ${chartType === 'bar' ? 'bg-black/10 text-black' : 'text-black/30 hover:text-black/60'}`}
+              className={`p-1.5 rounded-md transition-colors ${chartType === 'bar' ? 'bg-muted text-foreground' : 'text-muted-foreground/60 hover:text-foreground'}`}
             >
               <BarChart2 className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        {/* Period Navigation */}
         {!isAllTime && (
-          <div className="flex items-center justify-between px-3 py-2 border-b border-black/5">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border">
             <button
               onClick={() => setAnchor(prev => shiftAnchor(periodType, prev, -1))}
-              className="w-7 h-7 flex items-center justify-center rounded-md text-black/40 hover:text-black/80 hover:bg-black/8 transition-colors"
+              className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
 
             <button
               onClick={() => setAnchor(new Date())}
-              className={`text-sm font-medium transition-colors ${isCurrentPeriod ? 'text-black/70' : 'text-violet-600 hover:text-violet-700'}`}
+              className={`text-sm font-medium transition-colors ${isCurrentPeriod ? 'text-foreground/80' : 'text-violet-500 hover:text-violet-600'}`}
             >
               {periodLabel}
             </button>
@@ -158,7 +153,7 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
             <button
               onClick={() => setAnchor(prev => shiftAnchor(periodType, prev, 1))}
               disabled={isCurrentPeriod}
-              className="w-7 h-7 flex items-center justify-center rounded-md text-black/40 hover:text-black/80 hover:bg-black/8 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
+              className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -182,9 +177,9 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
                     </PieChart>
                   ) : (
                     <BarChart data={chartData} layout="vertical" onClick={(d) => d?.activePayload && handleCategoryClick(d.activePayload[0].payload.name)} style={{ cursor: 'pointer' }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(0,0,0,0.06)" />
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
                       <XAxis type="number" hide />
-                      <YAxis type="category" dataKey="name" width={90} tick={{ fill: 'rgba(0,0,0,0.45)', fontSize: 11 }} />
+                      <YAxis type="category" dataKey="name" width={90} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} />
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="value" radius={[0, 6, 6, 0]}>
                         {chartData.map((_, i) => <Cell key={i} fill={chartData[i].color} />)}
@@ -199,12 +194,12 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
                   <div
                     key={item.name}
                     onClick={() => handleCategoryClick(item.name)}
-                    className="flex items-center gap-2 p-2 rounded-lg hover:bg-black/5 transition-colors cursor-pointer"
+                    className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
                   >
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
                     <div className="min-w-0">
-                      <p className="text-black/70 text-xs truncate">{item.name}</p>
-                      <p className="text-black/40 text-xs">{formatCurrency(item.value)}</p>
+                      <p className="text-foreground/80 text-xs truncate">{item.name}</p>
+                      <p className="text-muted-foreground text-xs">{formatCurrency(item.value)}</p>
                     </div>
                   </div>
                 ))}
@@ -212,9 +207,9 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
             </div>
           </div>
         ) : (
-          <div className="h-52 flex items-center justify-center text-black/25">
+          <div className="h-52 flex items-center justify-center text-muted-foreground/50">
             <div className="text-center">
-              <PieIcon className="w-10 h-10 mx-auto mb-2 opacity-40" />
+              <PieIcon className="w-10 h-10 mx-auto mb-2 opacity-50" />
               <p className="text-sm">Нет данных за этот период</p>
             </div>
           </div>
