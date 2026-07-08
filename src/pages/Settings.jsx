@@ -116,6 +116,10 @@ export default function Settings() {
   const [showAISettings, setShowAISettings] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showClearData, setShowClearData] = useState(false);
+  const [clearPassword, setClearPassword] = useState('');
+  const [clearError, setClearError] = useState('');
+  const [isClearing, setIsClearing] = useState(false);
   const [isUploadingBg, setIsUploadingBg] = useState(false);
 
   // Автоматическая активация демо-периода при первом входе
@@ -189,6 +193,44 @@ export default function Settings() {
     } catch (error) {
       console.error('Delete account error:', error);
       setIsDeleting(false);
+    }
+  };
+
+  const handleClearData = async () => {
+    if (clearPassword !== '1234') {
+      setClearError('Неверный пароль');
+      return;
+    }
+    setIsClearing(true);
+    try {
+      const userTransactions = await base44.entities.Transaction.filter({});
+      for (const tx of userTransactions) {
+        try { await base44.entities.Transaction.delete(tx.id); } catch(e) {}
+      }
+      const allAccts = await base44.entities.Account.list();
+      for (const acc of allAccts) {
+        try { await base44.entities.Account.delete(acc.id); } catch(e) {}
+      }
+      const allBudgets = await base44.entities.Budget.filter({});
+      for (const b of allBudgets) {
+        try { await base44.entities.Budget.delete(b.id); } catch(e) {}
+      }
+      const allGoals = await base44.entities.Goal.filter({});
+      for (const g of allGoals) {
+        try { await base44.entities.Goal.delete(g.id); } catch(e) {}
+      }
+      const allInvs = await base44.entities.Investment.list();
+      for (const inv of allInvs) {
+        try { await base44.entities.Investment.delete(inv.id); } catch(e) {}
+      }
+      setShowClearData(false);
+      setClearPassword('');
+      setClearError('');
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Clear data error:', error);
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -681,6 +723,22 @@ export default function Settings() {
            </Button>
           </motion.div>
 
+          {/* Clear Data */}
+          <motion.div
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ delay: 0.47 }}
+          >
+           <Button
+             variant="ghost"
+             onClick={() => { setShowClearData(true); setClearPassword(''); setClearError(''); }}
+             className="w-full h-12 rounded-xl text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+           >
+             <Database className="w-4 h-4 mr-2" />
+             Очистить данные
+           </Button>
+          </motion.div>
+
           {/* Privacy Policy + App Info */}
           <div className="text-center text-sm text-slate-400 py-4 space-y-2">
             <div>
@@ -777,6 +835,46 @@ export default function Settings() {
               className="bg-rose-600 hover:bg-rose-700 rounded-xl"
             >
               {isDeleting ? 'Удаление...' : 'Удалить навсегда'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Clear Data Confirmation */}
+      <AlertDialog open={showClearData} onOpenChange={(v) => { setShowClearData(v); if (!v) { setClearPassword(''); setClearError(''); } }}>
+        <AlertDialogContent className="rounded-2xl max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-amber-600">Очистить данные?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>Аккаунт останется, но будут безвозвратно удалены:</p>
+              <ul className="list-disc pl-5 space-y-1 text-sm">
+                <li>Все ваши транзакции</li>
+                <li>Все счета и их балансы</li>
+                <li>Все бюджеты</li>
+                <li>Все финансовые цели</li>
+                <li>Все инвестиции</li>
+              </ul>
+              <p className="font-medium">Введите пароль, чтобы подтвердить очистку.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div>
+            <Input
+              type="password"
+              value={clearPassword}
+              onChange={(e) => { setClearPassword(e.target.value); setClearError(''); }}
+              placeholder="Введите пароль"
+              className="rounded-xl"
+            />
+            {clearError && <p className="text-sm text-rose-600 mt-1">{clearError}</p>}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl" disabled={isClearing}>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleClearData(); }}
+              disabled={isClearing || !clearPassword}
+              className="bg-amber-600 hover:bg-amber-700 rounded-xl"
+            >
+              {isClearing ? 'Очистка...' : 'Очистить данные'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
