@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
             const { parsed, account_id } = body;
             const amount = parsed.amount;
 
-            const transaction = await base44.asServiceRole.entities.Transaction.create({
+            const transaction = await base44.entities.Transaction.create({
                 type: parsed.type,
                 amount,
                 currency: parsed.currency || 'RUB',
@@ -23,8 +23,7 @@ Deno.serve(async (req) => {
                 description: parsed.description,
                 date: parsed.date || new Date().toISOString(),
                 account_id,
-                user_id: user.id,
-                created_by_id: user.id
+                user_id: user.id
             });
 
             // Update account balance
@@ -140,7 +139,7 @@ Deno.serve(async (req) => {
 
         // 4. If account matched — create transaction immediately
         if (matchedAccountId) {
-            const transaction = await base44.asServiceRole.entities.Transaction.create({
+            const transaction = await base44.entities.Transaction.create({
                 type: result.type,
                 amount: result.amount,
                 currency: result.currency || 'RUB',
@@ -148,8 +147,7 @@ Deno.serve(async (req) => {
                 description: result.description,
                 date: result.date || new Date().toISOString(),
                 account_id: matchedAccountId,
-                user_id: user.id,
-                created_by_id: user.id
+                user_id: user.id
             });
 
             // Update account balance
