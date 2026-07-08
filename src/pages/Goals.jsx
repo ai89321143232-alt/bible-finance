@@ -38,6 +38,7 @@ import SubgoalsManager from '@/components/goals/SubgoalsManager';
 import PullToRefresh from '@/components/PullToRefresh';
 import MobileSelect from '@/components/mobile/MobileSelect';
 import MobilePopover from '@/components/mobile/MobilePopover';
+import { useAuth } from '@/lib/AuthContext';
 
 const GOAL_TYPES = [
   { value: 'savings', label: 'Накопления', icon: '💰', color: '#10B981' },
@@ -50,7 +51,7 @@ const GOAL_TYPES = [
 
 export default function Goals() {
   const queryClient = useQueryClient();
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddFundsModal, setShowAddFundsModal] = useState(null);
   const [showSpendModal, setShowSpendModal] = useState(null);
@@ -69,13 +70,6 @@ export default function Goals() {
     title: '', type: 'savings', target_amount: '', current_amount: '0',
     deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: []
   });
-
-  useEffect(() => { loadUser(); }, []);
-
-  const loadUser = async () => {
-    const userData = await base44.auth.me();
-    setUser(userData);
-  };
 
   const { data: family } = useQuery({
     queryKey: ['my-family', user?.id],
