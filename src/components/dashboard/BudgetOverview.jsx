@@ -85,7 +85,7 @@ export default function BudgetOverview({ budgets, transactions = [], formatCurre
                   </div>
                   <div className="flex justify-between mt-1.5">
                     <span className={`text-xs font-bold ${isOver ? 'text-rose-400' : isWarn ? 'text-amber-400' : 'text-cyan-400'}`}>{formatCurrency(spent)}</span>
-                    <span className="text-white/40 text-xs font-bold">{formatCurrency(budget.limit_amount)}</span>
+                    <span className="text-fuchsia-400 text-xs font-bold">{formatCurrency(budget.limit_amount)}</span>
                   </div>
                 </motion.div>
               );
