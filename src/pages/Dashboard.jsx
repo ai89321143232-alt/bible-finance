@@ -225,14 +225,22 @@ export default function Dashboard() {
   const investments = filterByWorkspace(rawInvestments, activeWorkspaceId);
 
   const familyMembers = family?.members || [];
-  const personalAccounts = allAccounts.filter(acc => acc.user_id === user?.id);
-  const familyAccounts = allAccounts.filter(acc => acc.family_id === family?.id);
+  // Личный режим: собственные счета пользователя (по created_by_id, с фолбэком на user_id)
+  const personalAccounts = allAccounts.filter(acc =>
+    acc.created_by_id === user?.id || acc.user_id === user?.id
+  );
+  // Семейный режим: счета, привязанные к семье
+  const familyAccounts = family?.id
+    ? allAccounts.filter(acc => acc.family_id === family.id)
+    : allAccounts;
   const displayAccounts = balanceMode === 'family' ? familyAccounts : personalAccounts;
   // Общий баланс = только положительные балансы (активы без долгов)
   const totalBalance = displayAccounts.reduce((sum, acc) => sum + Math.max(acc.balance || 0, 0), 0);
   
   const memberBalances = familyMembers.map(member => {
-    const memberAccounts = allAccounts.filter(acc => acc.user_id === member.user_id);
+    const memberAccounts = allAccounts.filter(acc =>
+      acc.created_by_id === member.user_id || acc.user_id === member.user_id
+    );
     const balance = memberAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
     return { ...member, balance, accountsCount: memberAccounts.length };
   });
