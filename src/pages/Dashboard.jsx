@@ -403,12 +403,44 @@ export default function Dashboard() {
         )}
 
         {visibleBlocks.balance && (
-          <BalanceCard 
-            totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses}
-            investmentValue={investmentValue} investmentProfit={investmentProfit}
-            formatCurrency={formatCurrency}
-            accounts={displayAccounts} investments={investments}
-          />
+          family ? (
+            <motion.div
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.6}
+              onDragEnd={(event, info) => {
+                if (info.offset.x < -60 || info.velocity.x < -300) {
+                  setBalanceMode('family');
+                } else if (info.offset.x > 60 || info.velocity.x > 300) {
+                  setBalanceMode('personal');
+                }
+              }}
+            >
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={balanceMode}
+                  initial={{ opacity: 0, x: balanceMode === 'family' ? 40 : -40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: balanceMode === 'family' ? -40 : 40 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <BalanceCard
+                    totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses}
+                    investmentValue={investmentValue} investmentProfit={investmentProfit}
+                    formatCurrency={formatCurrency}
+                    accounts={displayAccounts} investments={investments}
+                  />
+                </motion.div>
+              </AnimatePresence>
+            </motion.div>
+          ) : (
+            <BalanceCard 
+              totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses}
+              investmentValue={investmentValue} investmentProfit={investmentProfit}
+              formatCurrency={formatCurrency}
+              accounts={displayAccounts} investments={investments}
+            />
+          )
         )}
 
         {/* Net Worth Card — shows assets vs debts breakdown */}
