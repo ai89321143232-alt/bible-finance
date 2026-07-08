@@ -59,7 +59,7 @@ export default function AgentChat({ agentName, accentColor = 'bg-violet-600', su
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-9rem)] max-h-[720px]">
+    <div className="flex flex-col h-[calc(100vh-9rem)] max-h-[720px] bg-background/80 backdrop-blur-md rounded-2xl border border-border p-4">
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 pr-1">
         {messages.length === 0 && (
