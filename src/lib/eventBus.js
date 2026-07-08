@@ -23,6 +23,7 @@ export const EVENTS = {
   BUDGET_CHANGED: 'budget-changed',
   GOAL_CHANGED: 'goal-changed',
   PERSONALIZATION_SAVED: 'personalization-saved',
+  BACKGROUND_CHANGED: 'background-changed',
 };
 
 class EventBus {

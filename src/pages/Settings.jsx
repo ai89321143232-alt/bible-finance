@@ -40,6 +40,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useTrialActivation, getSubscriptionStatus } from '@/components/SubscriptionManager';
+import { eventBus, EVENTS } from '@/lib/eventBus';
 import PersonalizationSettings from '@/components/settings/PersonalizationSettings';
 import AIModelSettings from '@/components/settings/AIModelSettings';
 import { Layout, Bot } from 'lucide-react';
@@ -203,6 +204,7 @@ export default function Settings() {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       await base44.auth.updateMe({ background_image_url: file_url });
       await loadUser();
+      eventBus.emit(EVENTS.BACKGROUND_CHANGED, { url: file_url });
     } catch (error) {
       console.error('Failed to upload background:', error);
     } finally {
@@ -214,15 +216,17 @@ export default function Settings() {
   const handleRemoveBackground = async () => {
     await base44.auth.updateMe({ background_image_url: null });
     await loadUser();
+    eventBus.emit(EVENTS.BACKGROUND_CHANGED, { url: null });
   };
 
   const handleSelectPreset = async (url) => {
     await base44.auth.updateMe({ background_image_url: url });
     await loadUser();
+    eventBus.emit(EVENTS.BACKGROUND_CHANGED, { url });
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50/95 via-white/95 to-slate-50/95 dark:from-slate-950/90 dark:via-slate-900/90 dark:to-slate-950/90">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
         {/* Header */}
         <motion.div 

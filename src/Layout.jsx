@@ -11,6 +11,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { base44 } from '@/api/base44Client';
 import OfflineBanner from '@/components/OfflineBanner';
 import { useWorkspaceProvision } from '@/components/workspace/WorkspaceContext';
+import { eventBus, EVENTS } from '@/lib/eventBus';
 
 // ============================================================
 // Layout.jsx — ОСНОВНОЙ МАКЕТ ПРИЛОЖЕНИЯ
@@ -54,6 +55,13 @@ export default function Layout({ children, currentPageName }) {
       setBackgroundImageUrl(user?.background_image_url || null);
     }).catch(() => {});
   }, [currentPageName]);
+
+  useEffect(() => {
+    const off = eventBus.on(EVENTS.BACKGROUND_CHANGED, ({ url }) => {
+      setBackgroundImageUrl(url || null);
+    });
+    return off;
+  }, []);
 
   return (
     <div
