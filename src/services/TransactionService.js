@@ -46,12 +46,22 @@ export const TransactionService = {
     const own = validateAccountOwnership(account, user);
     if (!own.ok) return { ok: false, error: own.error };
 
+    // При редактировании существующей операции сначала откатываем старую сумму,
+    // чтобы баланс не удваивался/не расходился с реальностью.
+    let effectiveBalance = account.balance ?? 0;
+    if (existingId) {
+      const prev = await repo().get(existingId).catch(() => null);
+      if (prev && prev.account_id === account_id && prev.type !== 'transfer') {
+        effectiveBalance = prev.type === 'expense' ? effectiveBalance + prev.amount : effectiveBalance - prev.amount;
+      }
+    }
+
     if (type === 'expense') {
-      const funds = validateSufficientFunds(account, amountNum);
+      const funds = validateSufficientFunds({ ...account, balance: effectiveBalance }, amountNum);
       if (!funds.ok) return { ok: false, error: funds.error };
-      await AccountService.applyBalanceDelta(account, 'expense', amountNum);
+      await AccountService.setBalance(account.id, effectiveBalance - amountNum);
     } else if (type === 'income') {
-      await AccountService.applyBalanceDelta(account, 'income', amountNum);
+      await AccountService.setBalance(account.id, effectiveBalance + amountNum);
     }
 
     const data = await enrichWithOwnership(

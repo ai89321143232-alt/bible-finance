@@ -96,6 +96,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   const [isScanning, setIsScanning] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitLockRef = useRef(false);
   const [scannedItems, setScannedItems] = useState([]);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [suggestedCategory, setSuggestedCategory] = useState(null);
@@ -192,12 +193,14 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     }
     if (type !== 'transfer' && !category) return;
     if (type === 'transfer' && !toAccountId) return;
-    if (isSubmitting) return;
+    if (submitLockRef.current) return;
 
+    submitLockRef.current = true;
     setIsSubmitting(true);
     try {
       await handleSubmitInternal();
     } finally {
+      submitLockRef.current = false;
       setIsSubmitting(false);
     }
   };
