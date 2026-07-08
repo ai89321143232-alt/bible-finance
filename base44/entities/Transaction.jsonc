@@ -116,7 +116,7 @@
               }
             },
             {
-              "data.family_id": "{{user.family_id}}"
+              "data.family_id": "{{user.data.family_id}}"
             }
           ]
         },
@@ -140,7 +140,7 @@
               }
             },
             {
-              "data.family_id": "{{user.family_id}}"
+              "data.family_id": "{{user.data.family_id}}"
             }
           ]
         },

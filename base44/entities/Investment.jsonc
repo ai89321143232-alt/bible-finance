@@ -93,10 +93,10 @@
         {
           "$and": [
             {
-              "data.family_id": "{{user.family_id}}"
+              "data.family_id": "{{user.data.family_id}}"
             },
             {
-              "user.family_id": {
+              "data.family_id": {
                 "$ne": null
               }
             }
@@ -117,10 +117,10 @@
         {
           "$and": [
             {
-              "data.family_id": "{{user.family_id}}"
+              "data.family_id": "{{user.data.family_id}}"
             },
             {
-              "user.family_id": {
+              "data.family_id": {
                 "$ne": null
               }
             }
