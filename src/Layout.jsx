@@ -75,33 +75,16 @@ export default function Layout({ children, currentPageName }) {
       } : undefined}
     >
       <OfflineBanner />
-      <style>{`
-        .dark {
-          --background: 222 47% 7%;
-          --foreground: 210 40% 98%;
-          --card: 222 40% 10%;
-          --card-foreground: 210 40% 98%;
-          --border: 220 20% 16%;
-          --input: 220 20% 16%;
-          --primary: 210 40% 98%;
-          --primary-foreground: 222 47% 7%;
-          --muted: 217 33% 14%;
-          --muted-foreground: 215 20% 55%;
-          --accent: 217 33% 14%;
-          --accent-foreground: 210 40% 98%;
-          --ring: 215 20% 55%;
-        }
-      `}</style>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-64 bg-background border-r border-white/5 z-40 overflow-y-auto">
+      <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-64 bg-background border-r border-border z-40 overflow-y-auto">
         {/* Logo */}
-        <div className="px-6 py-5 border-b border-white/5">
+        <div className="px-6 py-5 border-b border-border">
           <Link to={createPageUrl('Dashboard')} className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-              <span className="text-black font-bold text-sm">F</span>
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-sm">F</span>
             </div>
-            <span className="text-white font-semibold tracking-tight text-base">Библия Финансов</span>
+            <span className="text-foreground font-semibold tracking-tight text-base">Библия Финансов</span>
           </Link>
         </div>
 
@@ -120,12 +103,12 @@ export default function Layout({ children, currentPageName }) {
         </div>
 
         {/* Footer */}
-        <div className="p-4 mt-auto border-t border-white/5">
+        <div className="p-4 mt-auto border-t border-border">
           <Link to={createPageUrl('Settings')}>
-            <div className="rounded-lg border border-white/8 bg-white/3 p-3.5 hover:bg-white/6 transition-colors cursor-pointer">
-              <p className="text-xs font-semibold text-white">Premium</p>
-              <p className="text-xs text-white/40 mt-0.5">AI-ассистент и аналитика</p>
-              <div className="mt-3 py-1.5 px-3 rounded-md bg-white text-black text-xs font-semibold text-center">
+            <div className="rounded-lg border border-border bg-muted p-3.5 hover:bg-accent transition-colors cursor-pointer">
+              <p className="text-xs font-semibold text-foreground">Premium</p>
+              <p className="text-xs text-muted-foreground mt-0.5">AI-ассистент и аналитика</p>
+              <div className="mt-3 py-1.5 px-3 rounded-md bg-primary text-primary-foreground text-xs font-semibold text-center">
                 Улучшить
               </div>
             </div>
@@ -148,26 +131,26 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       {/* Mobile Top Bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-background border-b border-white/5 z-40 flex items-center px-5 gap-3"
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-background border-b border-border z-40 flex items-center px-5 gap-3"
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         {currentPageName !== 'Dashboard' && (
           <button
             onClick={() => navigate(-1)}
-            className="w-9 h-9 bg-white/5 border border-white/10 text-white rounded-lg flex items-center justify-center">
+            className="w-9 h-9 bg-muted border border-border text-foreground rounded-lg flex items-center justify-center">
             <ArrowLeft className="w-4 h-4" />
           </button>
         )}
         <button
           onClick={() => setShowMobileMenu(!showMobileMenu)}
-          className="w-9 h-9 bg-white/5 border border-white/10 text-white rounded-lg flex items-center justify-center">
+          className="w-9 h-9 bg-muted border border-border text-foreground rounded-lg flex items-center justify-center">
           
           <Menu className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-2 flex-1">
-          <div className="w-7 h-7 rounded-md bg-white flex items-center justify-center">
-            <span className="text-black font-bold text-xs">F</span>
+          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-xs">F</span>
           </div>
-          <span className="text-white font-semibold text-sm">FinanceApp</span>
+          <span className="text-foreground font-semibold text-sm">FinanceApp</span>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <ThemeIconToggle />
@@ -199,20 +182,20 @@ export default function Layout({ children, currentPageName }) {
                 setShowMobileMenu(false);
               }
             }}
-            className="lg:hidden fixed left-0 top-0 h-full w-72 bg-background border-r border-white/5 shadow-2xl z-50 overflow-y-auto">
+            className="lg:hidden fixed left-0 top-0 h-full w-72 bg-background border-r border-border shadow-2xl z-50 overflow-y-auto">
             
-              <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+              <div className="px-5 py-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-md bg-white flex items-center justify-center">
-                    <span className="text-black font-bold text-xs">F</span>
+                  <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
+                    <span className="text-primary-foreground font-bold text-xs">F</span>
                   </div>
-                  <span className="text-white font-semibold text-sm">FinanceApp</span>
+                  <span className="text-foreground font-semibold text-sm">FinanceApp</span>
                 </div>
                 <button
                 onClick={() => setShowMobileMenu(false)}
-                className="w-7 h-7 rounded-md bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
+                className="w-7 h-7 rounded-md bg-muted flex items-center justify-center hover:bg-accent transition-colors">
                 
-                  <X className="w-4 h-4 text-white/60" />
+                  <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
 
@@ -223,12 +206,12 @@ export default function Layout({ children, currentPageName }) {
               isChildMode={themePreference === 'child'} />
             
 
-              <div className="p-4 mt-auto border-t border-white/5">
+              <div className="p-4 mt-auto border-t border-border">
                 <Link to={createPageUrl('Settings')} onClick={() => setShowMobileMenu(false)}>
-                  <div className="rounded-lg border border-white/8 bg-white/3 p-3 hover:bg-white/6 transition-colors cursor-pointer">
-                    <p className="text-xs font-semibold text-white">Premium</p>
-                    <p className="text-xs text-white/40 mt-0.5">AI-ассистент и аналитика</p>
-                    <div className="mt-2 py-1.5 px-3 rounded-md bg-white text-black text-xs font-semibold text-center">
+                  <div className="rounded-lg border border-border bg-muted p-3 hover:bg-accent transition-colors cursor-pointer">
+                    <p className="text-xs font-semibold text-foreground">Premium</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">AI-ассистент и аналитика</p>
+                    <div className="mt-2 py-1.5 px-3 rounded-md bg-primary text-primary-foreground text-xs font-semibold text-center">
                       Улучшить
                     </div>
                   </div>
@@ -241,22 +224,22 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Mobile Bottom Tab Bar — only on non-tab pages (desktop never shows) */}
       {isMobile && !isTabPage && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-white/8 z-40"
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border z-40"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
           <div className="flex items-center justify-around py-2">
-            <Link to={createPageUrl('Dashboard')} className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${currentPageName === 'Dashboard' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>
+            <Link to={createPageUrl('Dashboard')} className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${currentPageName === 'Dashboard' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
               <LayoutDashboard className="w-5 h-5" />
               <span className="text-[10px] font-medium">Главная</span>
             </Link>
-            <Link to={createPageUrl('Transactions')} className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${currentPageName === 'Transactions' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>
+            <Link to={createPageUrl('Transactions')} className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${currentPageName === 'Transactions' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
               <ArrowLeftRight className="w-5 h-5" />
               <span className="text-[10px] font-medium">Операции</span>
             </Link>
-            <Link to={createPageUrl('Goals')} className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${currentPageName === 'Goals' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>
+            <Link to={createPageUrl('Goals')} className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${currentPageName === 'Goals' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
               <Target className="w-5 h-5" />
               <span className="text-[10px] font-medium">Цели</span>
             </Link>
-            <Link to={createPageUrl('Settings')} className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${currentPageName === 'Settings' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>
+            <Link to={createPageUrl('Settings')} className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${currentPageName === 'Settings' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
               <Settings className="w-5 h-5" />
               <span className="text-[10px] font-medium">Ещё</span>
             </Link>
