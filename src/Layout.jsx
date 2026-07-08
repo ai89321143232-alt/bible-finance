@@ -39,6 +39,7 @@ import { useWorkspaceProvision } from '@/components/workspace/WorkspaceContext';
 export default function Layout({ children, currentPageName }) {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [themePreference, setThemePreference] = useState(null);
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState(null);
   const isMobile = useIsMobile();
   const isTabPage = ['Dashboard', 'Transactions', 'Goals', 'Budgets', 'Settings'].includes(currentPageName);
   const navigate = useNavigate();
@@ -50,11 +51,20 @@ export default function Layout({ children, currentPageName }) {
   useEffect(() => {
     base44.auth.me().then((user) => {
       setThemePreference(user?.theme_preference || null);
+      setBackgroundImageUrl(user?.background_image_url || null);
     }).catch(() => {});
   }, [currentPageName]);
 
   return (
-    <div className="min-h-screen bg-[#0f1117] text-white">
+    <div
+      className="min-h-screen bg-[#0f1117] text-white"
+      style={backgroundImageUrl ? {
+        backgroundImage: `linear-gradient(rgba(15,17,23,0.85), rgba(15,17,23,0.85)), url(${backgroundImageUrl})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+      } : undefined}
+    >
       <OfflineBanner />
       <style>{`
         .dark {

@@ -5,7 +5,8 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import {
   User, Bell, Moon, Globe, Shield, CreditCard, 
-  HelpCircle, LogOut, ChevronRight, Crown, Check, Tag, Users, Database, Settings as SettingsIcon, Clock, Copy, Trash2
+  HelpCircle, LogOut, ChevronRight, Crown, Check, Tag, Users, Database, Settings as SettingsIcon, Clock, Copy, Trash2,
+  Image, Loader2, X
 } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 import { Button } from "@/components/ui/button";
@@ -105,6 +106,7 @@ export default function Settings() {
   const [showAISettings, setShowAISettings] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUploadingBg, setIsUploadingBg] = useState(false);
 
   // Автоматическая активация демо-периода при первом входе
   useTrialActivation();
@@ -182,6 +184,27 @@ export default function Settings() {
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
+  };
+
+  const handleBackgroundUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingBg(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      await base44.auth.updateMe({ background_image_url: file_url });
+      await loadUser();
+    } catch (error) {
+      console.error('Failed to upload background:', error);
+    } finally {
+      setIsUploadingBg(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveBackground = async () => {
+    await base44.auth.updateMe({ background_image_url: null });
+    await loadUser();
   };
 
   return (
@@ -458,6 +481,51 @@ export default function Settings() {
                     </SelectContent>
                   </Select>
                 </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Background Image */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.27 }}
+          >
+            <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Image className="w-5 h-5 text-violet-600" />
+                  Фоновое изображение
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {user?.background_image_url && (
+                  <div className="relative rounded-xl overflow-hidden h-32">
+                    <img src={user.background_image_url} alt="Фон" className="w-full h-full object-cover" />
+                    <button
+                      onClick={handleRemoveBackground}
+                      className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-black/80"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+                <label className="block">
+                  <input type="file" accept="image/*" onChange={handleBackgroundUpload} className="hidden" disabled={isUploadingBg} />
+                  <div className="w-full h-11 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center gap-2 text-sm text-slate-600 dark:text-slate-300 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                    {isUploadingBg ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Загрузка...
+                      </>
+                    ) : (
+                      <>
+                        <Image className="w-4 h-4" />
+                        {user?.background_image_url ? 'Заменить изображение' : 'Загрузить изображение'}
+                      </>
+                    )}
+                  </div>
+                </label>
               </CardContent>
             </Card>
           </motion.div>
