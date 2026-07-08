@@ -14,20 +14,26 @@
 // ============================================================
 
 import { Base44Repository } from './Base44Repository';
+import { SupabaseRepository } from './SupabaseRepository';
+
+// Переключатель бэкенда: true — работать через Supabase/PostgreSQL, false — через Base44.
+const USE_SUPABASE = false;
 
 const _cache = {};
 
 /**
  * Возвращает (кэшированный) репозиторий для сущности.
  * @param {string} entityName
- * @returns {Base44Repository}
+ * @returns {Base44Repository|SupabaseRepository}
  */
 export const getRepository = (entityName) => {
   if (!_cache[entityName]) {
-    _cache[entityName] = new Base44Repository(entityName);
+    _cache[entityName] = USE_SUPABASE
+      ? new SupabaseRepository(entityName)
+      : new Base44Repository(entityName);
   }
   return _cache[entityName];
 };
 
-export { Base44Repository };
+export { Base44Repository, SupabaseRepository };
 export default getRepository;
