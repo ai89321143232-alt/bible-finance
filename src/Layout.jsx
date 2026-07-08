@@ -150,7 +150,7 @@ export default function Layout({ children, currentPageName }) {
           <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-xs">F</span>
           </div>
-          <span className="text-foreground font-semibold text-sm">FinanceApp</span>
+          <span className="text-foreground font-semibold text-sm">Финансовая Библия</span>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <ThemeIconToggle />
@@ -189,7 +189,7 @@ export default function Layout({ children, currentPageName }) {
                   <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
                     <span className="text-primary-foreground font-bold text-xs">F</span>
                   </div>
-                  <span className="text-foreground font-semibold text-sm">FinanceApp</span>
+                  <span className="text-foreground font-semibold text-sm">Финансовая Библия</span>
                 </div>
                 <button
                 onClick={() => setShowMobileMenu(false)}
