@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ArrowLeftRight, Target, Settings as SettingsIcon, Wallet } from 'lucide-react';
 import Dashboard from '@/pages/Dashboard';
 import Transactions from '@/pages/Transactions';
 import Goals from '@/pages/Goals';
 import Budgets from '@/pages/Budgets';
 import Settings from '@/pages/Settings';
+import BottomTabBar, { BOTTOM_TABS } from '@/components/BottomTabBar';
 
 // ============================================================
 // components/MobileTabShell.jsx — MOBILE TAB CONTAINER
@@ -18,13 +18,10 @@ import Settings from '@/pages/Settings';
 // so the URL, browser history and the native Android hardware back
 // button all stay in sync — no manual pushState/hash manipulation.
 // ============================================================
-const TABS = [
-  { label: 'Главная', path: '/', icon: LayoutDashboard, component: Dashboard },
-  { label: 'Операции', path: '/Transactions', icon: ArrowLeftRight, component: Transactions },
-  { label: 'Цели', path: '/Goals', icon: Target, component: Goals },
-  { label: 'Бюджеты', path: '/Budgets', icon: Wallet, component: Budgets },
-  { label: 'Ещё', path: '/Settings', icon: SettingsIcon, component: Settings },
-];
+const TABS = BOTTOM_TABS.map((tab, index) => ({
+  ...tab,
+  component: [Dashboard, Transactions, Goals, Budgets, Settings][index],
+}));
 
 const getTabIndexForPath = (pathname) => {
   const index = TABS.findIndex(t => t.path === pathname);
@@ -65,42 +62,8 @@ export default function MobileTabShell({ initialTab = 0 }) {
         })}
       </div>
 
-      {/* Bottom Tab Bar — floating */}
-      <div
-        className="fixed left-4 right-4 z-40"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
-      >
-        <div
-          className="flex items-center justify-around py-2 px-1 rounded-2xl"
-          style={{
-            background: 'rgba(10, 13, 19, 0.85)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
-          }}
-        >
-          {TABS.map((tab, index) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === index;
-            return (
-              <button
-                key={tab.label}
-                onClick={() => switchTab(index)}
-                className="flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition-all duration-200 flex-1"
-                style={isActive ? {
-                  background: 'rgba(255,255,255,0.1)',
-                } : {}}
-              >
-                <Icon className={`w-5 h-5 transition-all duration-200 ${isActive ? 'text-white scale-110' : 'text-white/40'}`} />
-                <span className={`text-[10px] font-medium transition-all duration-200 ${isActive ? 'text-white' : 'text-white/40'}`}>
-                  {tab.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Bottom Tab Bar — floating, shared across all pages */}
+      <BottomTabBar activeIndex={activeTab} onTabClick={(index) => switchTab(index)} />
     </div>
   );
 }

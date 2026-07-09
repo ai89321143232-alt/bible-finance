@@ -8,6 +8,7 @@ import NavigationMenu from '@/components/Navigation/NavigationMenu';
 import NotificationBell from '@/components/NotificationBell';
 import ThemeIconToggle from '@/components/ThemeIconToggle';
 import MobileTabShell from '@/components/MobileTabShell';
+import BottomTabBar from '@/components/BottomTabBar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { base44 } from '@/api/base44Client';
 import OfflineBanner from '@/components/OfflineBanner';
@@ -102,18 +103,6 @@ export default function Layout({ children, currentPageName }) {
           <NotificationBell />
         </div>
 
-        {/* Footer */}
-        <div className="p-4 mt-auto border-t border-border">
-          <Link to={createPageUrl('Settings')}>
-            <div className="rounded-lg border border-border bg-muted p-3.5 hover:bg-accent transition-colors cursor-pointer">
-              <p className="text-xs font-semibold text-foreground">Premium</p>
-              <p className="text-xs text-muted-foreground mt-0.5">AI-ассистент и аналитика</p>
-              <div className="mt-3 py-1.5 px-3 rounded-md bg-primary text-primary-foreground text-xs font-semibold text-center">
-                Улучшить
-              </div>
-            </div>
-          </Link>
-        </div>
       </aside>
 
       {/* Main Content */}
@@ -204,47 +193,17 @@ export default function Layout({ children, currentPageName }) {
               onNavigate={() => setShowMobileMenu(false)}
               isMobile={true}
               isChildMode={themePreference === 'child'} />
-            
-
-              <div className="p-4 mt-auto border-t border-border">
-                <Link to={createPageUrl('Settings')} onClick={() => setShowMobileMenu(false)}>
-                  <div className="rounded-lg border border-border bg-muted p-3 hover:bg-accent transition-colors cursor-pointer">
-                    <p className="text-xs font-semibold text-foreground">Premium</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">AI-ассистент и аналитика</p>
-                    <div className="mt-2 py-1.5 px-3 rounded-md bg-primary text-primary-foreground text-xs font-semibold text-center">
-                      Улучшить
-                    </div>
-                  </div>
-                </Link>
-              </div>
             </motion.div>
           </>
         }
       </AnimatePresence>
 
-      {/* Mobile Bottom Tab Bar — only on non-tab pages (desktop never shows) */}
+      {/* Mobile Bottom Tab Bar — only on non-tab pages, same look as main screen (desktop never shows) */}
       {isMobile && !isTabPage && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border z-40"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-          <div className="flex items-center justify-around py-2">
-            <Link to={createPageUrl('Dashboard')} className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${currentPageName === 'Dashboard' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-              <LayoutDashboard className="w-5 h-5" />
-              <span className="text-[10px] font-medium">Главная</span>
-            </Link>
-            <Link to={createPageUrl('Transactions')} className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${currentPageName === 'Transactions' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-              <ArrowLeftRight className="w-5 h-5" />
-              <span className="text-[10px] font-medium">Операции</span>
-            </Link>
-            <Link to={createPageUrl('Goals')} className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${currentPageName === 'Goals' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-              <Target className="w-5 h-5" />
-              <span className="text-[10px] font-medium">Цели</span>
-            </Link>
-            <Link to={createPageUrl('Settings')} className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${currentPageName === 'Settings' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-              <Settings className="w-5 h-5" />
-              <span className="text-[10px] font-medium">Ещё</span>
-            </Link>
-          </div>
-        </div>
+        <BottomTabBar
+          activeIndex={-1}
+          onTabClick={(index, path) => navigate(path)}
+        />
       )}
     </div>);
 
