@@ -143,9 +143,9 @@ export default function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(o => !o)}
-        className="relative w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
+        className="relative w-9 h-9 rounded-lg bg-muted border border-border flex items-center justify-center hover:bg-accent transition-colors"
       >
-        <Bell className="w-4 h-4 text-white/60" />
+        <Bell className="w-4 h-4 text-foreground" />
         {count > 0 && (
           <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
             {count > 9 ? '9+' : count}
@@ -160,10 +160,10 @@ export default function NotificationBell() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-12 w-80 bg-[#1a1f2e] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
+            className="absolute right-0 top-12 w-80 bg-popover border border-border rounded-2xl shadow-2xl z-50 overflow-hidden"
           >
-            <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
-              <span className="text-white/70 text-sm font-semibold">Уведомления</span>
+            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+              <span className="text-foreground text-sm font-semibold">Уведомления</span>
               {count > 0 && (
                 <button
                   onClick={() => {
@@ -172,7 +172,7 @@ export default function NotificationBell() {
                     setDismissed(updated);
                     localStorage.setItem('dismissed_notifications', JSON.stringify(updated));
                   }}
-                  className="text-white/30 hover:text-white/60 text-xs transition-colors"
+                  className="text-muted-foreground hover:text-foreground text-xs transition-colors"
                 >
                   Скрыть все
                 </button>
@@ -181,31 +181,31 @@ export default function NotificationBell() {
 
             <div className="max-h-80 overflow-y-auto">
               {visible.length === 0 ? (
-                <div className="py-10 text-center text-white/25 text-sm">
+                <div className="py-10 text-center text-muted-foreground text-sm">
                   Нет новых уведомлений
                 </div>
               ) : (
                 visible.map(n => {
                   const Icon = n.icon;
                   return (
-                    <div key={n.id} className={`flex items-start gap-3 px-4 py-3 border-b border-white/4 hover:bg-white/3 transition-colors`}>
+                    <div key={n.id} className={`flex items-start gap-3 px-4 py-3 border-b border-border hover:bg-accent/50 transition-colors`}>
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 border ${colorMap[n.type]}`}>
                         <Icon className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-white/85 text-sm font-medium leading-tight">{n.title}</p>
-                        <p className="text-white/40 text-xs mt-0.5">{n.text}</p>
+                        <p className="text-foreground text-sm font-medium leading-tight">{n.title}</p>
+                        <p className="text-muted-foreground text-xs mt-0.5">{n.text}</p>
                         <Link
                           to={createPageUrl(n.link)}
                           onClick={() => setOpen(false)}
-                          className="text-violet-400 text-xs mt-1 inline-flex items-center gap-0.5 hover:text-violet-300"
+                          className="text-violet-500 text-xs mt-1 inline-flex items-center gap-0.5 hover:text-violet-400"
                         >
                           Перейти <ChevronRight className="w-3 h-3" />
                         </Link>
                       </div>
                       <button
                         onClick={() => dismiss(n.id)}
-                        className="text-white/20 hover:text-white/50 transition-colors flex-shrink-0 mt-0.5"
+                        className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 mt-0.5"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
