@@ -9,6 +9,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2.109.0';
 // operation: "list" | "filter" | "get" | "create" | "bulkCreate" | "update" | "delete"
 // ============================================================
 
+const ALLOWED_TABLES = ['transactions', 'accounts', 'budgets', 'goals', 'investments', 'categories'];
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -19,6 +21,9 @@ Deno.serve(async (req) => {
     const { table, operation, id, data, dataArray, filterQuery, sort, limit } = await req.json();
     if (!table || !operation) {
       return Response.json({ error: 'Missing table or operation' }, { status: 400 });
+    }
+    if (!ALLOWED_TABLES.includes(table)) {
+      return Response.json({ error: 'Table not allowed' }, { status: 403 });
     }
 
     const supabase = createClient(

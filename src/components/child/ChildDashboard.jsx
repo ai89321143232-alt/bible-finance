@@ -37,56 +37,22 @@ export default function ChildDashboard({ user, accounts, onTransactionAdded }) {
   }, [user]);
 
   const loadAndUpdateGameProfile = async () => {
-    const profiles = await base44.entities.ChildGameProfile.filter({ user_id: user.id });
-    let profile = profiles[0];
-
-    if (!profile) {
-      profile = await base44.entities.ChildGameProfile.create({
-        user_id: user.id,
-        total_coins: 0,
-        level: 1,
-        streak_days: 0,
-        achievements: []
-      });
-    }
-
-    const today = format(new Date(), 'yyyy-MM-dd');
-    if (profile.last_daily_login !== today) {
-      const newCoins = (profile.total_coins || 0) + DAILY_LOGIN_COINS;
-      const newLevel = Math.floor(newCoins / 100) + 1;
-      const updatedProfile = await base44.entities.ChildGameProfile.update(profile.id, {
-        total_coins: newCoins,
-        last_daily_login: today,
-        level: newLevel,
-        streak_days: (profile.streak_days || 0) + 1
-      });
-      setGameProfile(updatedProfile);
-      setCoinAnim({ coins: DAILY_LOGIN_COINS, message: 'Ежедневная награда!' });
-    } else {
-      setGameProfile(profile);
+    const { data } = await base44.functions.invoke('childGameReward', { action: 'daily_login' });
+    setGameProfile(data.profile);
+    if (data.awarded) {
+      setCoinAnim({ coins: data.coins, message: 'Ежедневная награда!' });
     }
   };
 
   const awardTransactionCoins = async () => {
     if (!gameProfile) return;
 
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const isNewDay = gameProfile.last_transaction_date !== today;
-    const currentCount = isNewDay ? 0 : (gameProfile.daily_transactions_count || 0);
-
-    if (currentCount >= MAX_DAILY_TX_REWARDS) return;
-
-    const newCoins = (gameProfile.total_coins || 0) + TRANSACTION_COINS;
-    const newLevel = Math.floor(newCoins / 100) + 1;
-    const updated = await base44.entities.ChildGameProfile.update(gameProfile.id, {
-      total_coins: newCoins,
-      level: newLevel,
-      daily_transactions_count: currentCount + 1,
-      last_transaction_date: today
-    });
-    setGameProfile(updated);
+    const { data } = await base44.functions.invoke('childGameReward', { action: 'transaction' });
+    setGameProfile(data.profile);
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
-    setCoinAnim({ coins: TRANSACTION_COINS, message: 'За запись расхода!' });
+    if (data.awarded) {
+      setCoinAnim({ coins: data.coins, message: 'За запись расхода!' });
+    }
     if (onTransactionAdded) onTransactionAdded();
   };
 
