@@ -59,7 +59,7 @@ export default function AIAssistant() {
   }, [user]);
 
   const availableModels = [
-    { key: 'default', name: 'Base44 (по умолчанию)' },
+    { key: 'default', name: 'Base44' },
     ...(user?.data?.ai_deepseek_key ? [{ key: 'deepseek', name: 'DeepSeek' }] : []),
     ...(user?.data?.ai_openai_key ? [{ key: 'openai', name: 'ChatGPT' }] : []),
   ];
@@ -321,15 +321,13 @@ ${investments.map(i => `- ${i.name}: ${i.quantity} шт. по ${(i.current_price
   return (
     <div className="flex flex-col bg-white dark:bg-slate-950" style={{ height: '100dvh' }}>
       {/* Top bar */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-        <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600">
+      <div className="flex-shrink-0 flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex-shrink-0">
           <Sparkles className="w-4 h-4 text-white" />
         </div>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-base font-semibold text-slate-900 dark:text-white truncate">AI Ассистент</h1>
-        </div>
+        <h1 className="hidden sm:block flex-1 min-w-0 text-base font-semibold text-slate-900 dark:text-white truncate">AI Ассистент</h1>
         <Select value={selectedModel} onValueChange={setSelectedModel}>
-          <SelectTrigger className="w-36 h-8 rounded-lg text-xs">
+          <SelectTrigger className="w-24 sm:w-36 h-8 rounded-lg text-xs flex-1 sm:flex-none">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -338,9 +336,8 @@ ${investments.map(i => `- ${i.name}: ${i.quantity} шт. по ${(i.current_price
             ))}
           </SelectContent>
         </Select>
-        <Button variant="outline" size="sm" onClick={handleNewChat} className="h-8 rounded-lg gap-1.5 px-3">
+        <Button variant="outline" size="icon" onClick={handleNewChat} className="h-8 w-8 rounded-lg flex-shrink-0">
           <Plus className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Новый чат</span>
         </Button>
       </div>
 
@@ -426,16 +423,16 @@ ${investments.map(i => `- ${i.name}: ${i.quantity} шт. по ${(i.current_price
 
           {/* Quick Prompts */}
           {messages.length === 1 && !pendingTransaction && (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {QUICK_PROMPTS.map((item, index) => (
                 <Button
                   key={index}
                   variant="outline"
                   onClick={() => handleQuickPrompt(item.prompt)}
-                  className="h-auto py-3 px-4 justify-start text-left rounded-xl hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:border-violet-300 transition-all"
+                  className="h-auto min-w-0 w-full py-3 px-4 justify-start text-left rounded-xl whitespace-normal hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:border-violet-300 transition-all"
                 >
-                  <span className="mr-2">{item.icon}</span>
-                  <span className="text-sm">{item.text}</span>
+                  <span className="mr-2 flex-shrink-0">{item.icon}</span>
+                  <span className="text-sm break-words">{item.text}</span>
                 </Button>
               ))}
             </div>
