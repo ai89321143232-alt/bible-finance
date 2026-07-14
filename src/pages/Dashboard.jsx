@@ -155,7 +155,7 @@ export default function Dashboard() {
         (family?.id && t.family_id === family.id)
       );
     },
-    enabled: !!user && familyReady
+    enabled: !!user
   });
 
   const { data: rawAllAccounts = [] } = useQuery({
@@ -172,7 +172,7 @@ export default function Dashboard() {
         memberIds.includes(a.user_id)
       );
     },
-    enabled: !!user && familyReady
+    enabled: !!user
   });
 
   const { data: rawBudgets = [] } = useQuery({
@@ -186,7 +186,7 @@ export default function Dashboard() {
         (family?.id && b.share_with?.includes(user.id))
       );
     },
-    enabled: !!user && familyReady
+    enabled: !!user
   });
 
   const { data: rawGoals = [] } = useQuery({
@@ -200,7 +200,7 @@ export default function Dashboard() {
         (family?.id && g.share_with?.includes(user.id))
       );
     },
-    enabled: !!user && familyReady
+    enabled: !!user
   });
 
   const { data: rawInvestments = [] } = useQuery({
@@ -213,7 +213,7 @@ export default function Dashboard() {
         (family?.id && inv.family_id === family.id)
       );
     },
-    enabled: !!user && familyReady
+    enabled: !!user
   });
 
   const { data: rawFixedAssets = [] } = useQuery({
@@ -226,7 +226,7 @@ export default function Dashboard() {
         (family?.id && fa.family_id === family.id)
       );
     },
-    enabled: !!user && familyReady
+    enabled: !!user
   });
 
   const { data: templates = [] } = useQuery({
