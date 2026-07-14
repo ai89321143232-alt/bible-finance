@@ -40,6 +40,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useTrialActivation, getSubscriptionStatus } from '@/components/SubscriptionManager';
+import { useAuth } from '@/lib/AuthContext';
 import { eventBus, EVENTS } from '@/lib/eventBus';
 import PersonalizationSettings from '@/components/settings/PersonalizationSettings';
 import AIModelSettings from '@/components/settings/AIModelSettings';
@@ -102,7 +103,8 @@ const SUBSCRIPTION_PLANS = [
 ];
 
 export default function Settings() {
-  const [user, setUser] = useState(null);
+  const { user: authUser } = useAuth();
+  const [user, setUser] = useState(authUser);
   const [isDark, setIsDark] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -128,8 +130,11 @@ export default function Settings() {
   useTrialActivation();
 
   useEffect(() => {
+    if (authUser) {
+      setUser(authUser);
+    }
     loadUser();
-  }, []);
+  }, [authUser]);
 
   const loadUser = async () => {
     const userData = await base44.auth.me();
