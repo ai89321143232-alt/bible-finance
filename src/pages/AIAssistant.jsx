@@ -1,16 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, Send, Loader2, TrendingUp, PiggyBank, 
-  AlertTriangle, Lightbulb, RefreshCw, Bot
+  AlertTriangle, Lightbulb, RefreshCw, Bot, Mic, MicOff, Wallet
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import ReactMarkdown from 'react-markdown';
+import { toast } from 'sonner';
 
 const QUICK_PROMPTS = [
   { icon: '📊', text: 'Проанализируй мои расходы', prompt: 'Проанализируй мои расходы за последний месяц и дай рекомендации по оптимизации бюджета.' },
@@ -20,22 +28,43 @@ const QUICK_PROMPTS = [
 ];
 
 export default function AIAssistant() {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
   const [hasAccess, setHasAccess] = useState(false);
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: 'Привет! 👋 Я твой персональный финансовый ассистент. Могу проанализировать твои расходы, помочь с планированием бюджета и дать рекомендации по инвестициям.\n\n*Обратите внимание: я не даю юридических или инвестиционных гарантий. Мои рекомендации носят информационный характер.*\n\nЧем могу помочь?'
+      content: 'Привет! 👋 Я твой персональный финансовый ассистент. Могу проанализировать твои расходы, помочь с планированием бюджета, дать рекомендации по инвестициям, а ещё — записать транзакцию, если ты просто расскажешь (или наговоришь голосом) о покупке или доходе.\n\n*Обратите внимание: я не даю юридических или инвестиционных гарантий. Мои рекомендации носят информационный характер.*\n\nЧем могу помочь?'
     }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('default');
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [pendingTransaction, setPendingTransaction] = useState(null);
+  const [accountOptions, setAccountOptions] = useState([]);
+  const [selectedAccountId, setSelectedAccountId] = useState('');
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
 
   useEffect(() => {
     checkAccess();
   }, []);
+
+  useEffect(() => {
+    if (user?.data?.ai_active_model && user.data[`ai_${user.data.ai_active_model}_key`]) {
+      setSelectedModel(user.data.ai_active_model);
+    }
+  }, [user]);
+
+  const availableModels = [
+    { key: 'default', name: 'Base44 (по умолчанию)' },
+    ...(user?.data?.ai_deepseek_key ? [{ key: 'deepseek', name: 'DeepSeek' }] : []),
+    ...(user?.data?.ai_openai_key ? [{ key: 'openai', name: 'ChatGPT' }] : []),
+  ];
 
   const checkAccess = async () => {
     const userData = await base44.auth.me();
@@ -124,30 +153,37 @@ ${investments.map(i => `- ${i.name}: ${i.quantity} шт. по ${(i.current_price
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
+    setPendingTransaction(null);
+    setAccountOptions([]);
 
     try {
       const financialContext = getFinancialContext();
-      
-      const systemPrompt = `Ты — умный и дружелюбный финансовый ассистент. Твоя задача — помогать пользователю управлять личными финансами.
-
-ПРАВИЛА:
-1. Отвечай на русском языке
-2. Будь конкретным и практичным в советах
-3. Используй эмодзи умеренно для наглядности
-4. НЕ давай юридических гарантий или обещаний конкретной доходности
-5. Если данных недостаточно — скажи об этом
-6. Форматируй ответ с использованием markdown для лучшей читаемости
-
-${financialContext}
-
-Вопрос пользователя: ${prompt}`;
-
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: systemPrompt,
-        response_json_schema: null
+      const response = await base44.functions.invoke('aiChatAssistant', {
+        message: prompt,
+        model: selectedModel,
+        history: messages,
+        financial_context: financialContext
       });
+      const data = response.data;
 
-      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+      if (data.error) {
+        setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${data.error}` }]);
+        return;
+      }
+
+      setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+
+      if (data.transaction) {
+        toast.success('Транзакция добавлена');
+        queryClient.invalidateQueries({ queryKey: ['transactions'] });
+        queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      }
+
+      if (data.needs_account) {
+        setPendingTransaction(data.pendingTransaction);
+        setAccountOptions(data.accounts || []);
+        setSelectedAccountId('');
+      }
     } catch (error) {
       setMessages(prev => [...prev, { 
         role: 'assistant', 
@@ -155,6 +191,74 @@ ${financialContext}
       }]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const finalizeTransaction = async () => {
+    if (!pendingTransaction || !selectedAccountId) return;
+    setIsLoading(true);
+    try {
+      const response = await base44.functions.invoke('aiChatAssistant', {
+        finalize: true,
+        account_id: selectedAccountId,
+        pendingTransaction
+      });
+      const data = response.data;
+      if (data.error) {
+        setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${data.error}` }]);
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+        toast.success('Транзакция добавлена');
+        queryClient.invalidateQueries({ queryKey: ['transactions'] });
+        queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      }
+    } finally {
+      setPendingTransaction(null);
+      setAccountOptions([]);
+      setSelectedAccountId('');
+      setIsLoading(false);
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      chunksRef.current = [];
+      let mimeType = '';
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mimeType = 'audio/webm;codecs=opus';
+      else if (MediaRecorder.isTypeSupported('audio/webm')) mimeType = 'audio/webm';
+      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+      mediaRecorderRef.current = mediaRecorder;
+      const detectedMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
+
+      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        if (chunksRef.current.length === 0) return;
+        const blob = new Blob(chunksRef.current, { type: detectedMime });
+        setIsTranscribing(true);
+        try {
+          const file = new File([blob], 'recording.webm', { type: detectedMime });
+          const { file_url } = await base44.integrations.Core.UploadFile({ file });
+          const transcript = await base44.integrations.Core.TranscribeAudio({ audio_url: file_url });
+          if (transcript?.trim()) sendMessage(transcript);
+        } catch (e) {
+          toast.error('Не удалось распознать голос');
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      toast.error(err.name === 'NotAllowedError' ? 'Доступ к микрофону запрещён' : 'Микрофон недоступен');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
     }
   };
 
@@ -205,7 +309,7 @@ ${financialContext}
           <div className="p-3 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/25">
             <Sparkles className="w-6 h-6 text-white" />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
               AI Ассистент
             </h1>
@@ -213,6 +317,16 @@ ${financialContext}
               Ваш персональный финансовый советник
             </p>
           </div>
+          <Select value={selectedModel} onValueChange={setSelectedModel}>
+            <SelectTrigger className="w-40 rounded-xl text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {availableModels.map((m) => (
+                <SelectItem key={m.key} value={m.key}>{m.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </motion.div>
 
         {/* Chat Area */}
@@ -271,8 +385,43 @@ ${financialContext}
             </div>
           </ScrollArea>
 
+          {/* Account picker for a pending transaction */}
+          {pendingTransaction && accountOptions.length > 0 && (
+            <div className="px-4 pb-4">
+              <div className="rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20 p-3">
+                <div className="flex items-center gap-2 mb-2 text-sm text-slate-700 dark:text-slate-200">
+                  <Wallet className="w-4 h-4 text-violet-600" />
+                  {pendingTransaction.type === 'expense' ? 'С какого счёта списать?' : 'На какой счёт зачислить?'}
+                </div>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {accountOptions.map((acc) => (
+                    <button
+                      key={acc.id}
+                      onClick={() => setSelectedAccountId(acc.id)}
+                      className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${
+                        selectedAccountId === acc.id
+                          ? 'bg-violet-600 text-white border-violet-600'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'
+                      }`}
+                    >
+                      {acc.name}
+                    </button>
+                  ))}
+                </div>
+                <Button
+                  size="sm"
+                  disabled={!selectedAccountId || isLoading}
+                  onClick={finalizeTransaction}
+                  className="rounded-lg bg-violet-600 hover:bg-violet-700 w-full"
+                >
+                  Подтвердить
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Quick Prompts */}
-          {messages.length === 1 && (
+          {messages.length === 1 && !pendingTransaction && (
             <div className="px-4 pb-4">
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">Быстрые вопросы:</p>
               <div className="grid grid-cols-2 gap-2">
@@ -303,6 +452,20 @@ ${financialContext}
                 className="rounded-xl border-slate-200 dark:border-slate-600 focus:border-violet-500"
                 disabled={isLoading}
               />
+              <Button
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={isLoading || isTranscribing}
+                variant="outline"
+                className={`rounded-xl px-4 ${isRecording ? 'bg-red-500 border-red-500 text-white hover:bg-red-600' : ''}`}
+              >
+                {isTranscribing ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : isRecording ? (
+                  <MicOff className="w-5 h-5" />
+                ) : (
+                  <Mic className="w-5 h-5" />
+                )}
+              </Button>
               <Button
                 onClick={() => sendMessage(inputValue)}
                 disabled={!inputValue.trim() || isLoading}
