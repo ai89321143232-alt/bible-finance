@@ -8,7 +8,7 @@ import NavigationMenu from '@/components/Navigation/NavigationMenu';
 import NotificationBell from '@/components/NotificationBell';
 import ThemeIconToggle from '@/components/ThemeIconToggle';
 import MobileTabShell from '@/components/MobileTabShell';
-import BottomTabBar from '@/components/BottomTabBar';
+import BottomTabBar, { BOTTOM_TABS } from '@/components/BottomTabBar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { base44 } from '@/api/base44Client';
 import OfflineBanner from '@/components/OfflineBanner';
@@ -201,7 +201,7 @@ export default function Layout({ children, currentPageName }) {
       {/* Mobile Bottom Tab Bar — only on non-tab pages, same look as main screen (desktop never shows) */}
       {isMobile && !isTabPage && (
         <BottomTabBar
-          activeIndex={-1}
+          activeIndex={BOTTOM_TABS.findIndex((t) => t.page === currentPageName)}
           onTabClick={(index, path) => navigate(path)}
         />
       )}

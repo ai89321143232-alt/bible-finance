@@ -442,7 +442,7 @@ ${investments.map(i => `- ${i.name}: ${i.quantity} шт. по ${(i.current_price
       </div>
 
       {/* Input Area */}
-      <div className="flex-shrink-0 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 py-3"
+      <div className="flex-shrink-0 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 py-3 mb-28 lg:mb-0"
         style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }}>
         <div className="max-w-3xl mx-auto w-full flex items-end gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2">
           <textarea

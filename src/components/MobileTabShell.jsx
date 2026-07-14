@@ -18,7 +18,8 @@ import BottomTabBar, { BOTTOM_TABS } from '@/components/BottomTabBar';
 // so the URL, browser history and the native Android hardware back
 // button all stay in sync — no manual pushState/hash manipulation.
 // ============================================================
-const TABS = BOTTOM_TABS.map((tab, index) => ({
+// AI Чат (isCenter) не входит в постоянные вкладки шелла — это отдельная страница
+const TABS = BOTTOM_TABS.filter((tab) => !tab.isCenter).map((tab, index) => ({
   ...tab,
   component: [Dashboard, Transactions, Goals, Budgets, Settings][index],
 }));
@@ -38,9 +39,7 @@ export default function MobileTabShell({ initialTab = 0 }) {
     setActiveTab(getTabIndexForPath(location.pathname));
   }, [location.pathname]);
 
-  const switchTab = useCallback((index) => {
-    navigate(TABS[index].path);
-  }, [navigate]);
+
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -63,7 +62,7 @@ export default function MobileTabShell({ initialTab = 0 }) {
       </div>
 
       {/* Bottom Tab Bar — floating, shared across all pages */}
-      <BottomTabBar activeIndex={activeTab} onTabClick={(index) => switchTab(index)} />
+      <BottomTabBar activeIndex={activeTab} onTabClick={(index, path) => navigate(path)} />
     </div>
   );
 }
