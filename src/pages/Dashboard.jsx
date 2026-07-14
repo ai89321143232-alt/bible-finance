@@ -53,7 +53,6 @@ export default function Dashboard() {
     end: endOfMonth(new Date())
   });
 
-  const [user, setUser] = useState(null);
   const [themePreference, setThemePreference] = useState(null);
   const [balanceMode, setBalanceMode] = useState('personal');
 
@@ -69,37 +68,35 @@ export default function Dashboard() {
     goals: true
   });
 
+  // Кэшированный запрос пользователя — при переходах между страницами данные
+  // берутся мгновенно из кэша, без "мигания" на null и обнуления баланса
+  const { data: user } = useQuery({
+    queryKey: ['auth-me'],
+    queryFn: () => base44.auth.me(),
+    staleTime: 5 * 60 * 1000
+  });
+
   useEffect(() => {
-    loadUser();
-    migrateUserData();
-    const handler = () => loadUser();
-    window.addEventListener('personalization-saved', handler);
-    return () => window.removeEventListener('personalization-saved', handler);
-  }, []);
-
-  const migrateUserData = async () => {
-    try {
-      const user = await base44.auth.me();
-      if (user?.family_id) {
-        await base44.functions.invoke('migrateFamilyData', {});
-        setTimeout(() => {
-          queryClient.invalidateQueries();
-        }, 1000);
-      }
-    } catch (error) {
-      console.error('Migration error:', error);
-    }
-  };
-
-  const loadUser = async () => {
-    const userData = await base44.auth.me();
-    setUser(userData);
-    setThemePreference(userData.theme_preference || null);
-    const blocks = userData.visible_dashboard_blocks || userData.data?.visible_dashboard_blocks;
+    if (!user) return;
+    setThemePreference(user.theme_preference || null);
+    const blocks = user.visible_dashboard_blocks || user.data?.visible_dashboard_blocks;
     if (blocks) {
       setVisibleBlocks(prev => ({ ...prev, ...blocks }));
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user?.family_id) return;
+    base44.functions.invoke('migrateFamilyData', {}).then(() => {
+      setTimeout(() => queryClient.invalidateQueries(), 1000);
+    }).catch((error) => console.error('Migration error:', error));
+  }, [user?.family_id]);
+
+  useEffect(() => {
+    const handler = () => queryClient.invalidateQueries({ queryKey: ['auth-me'] });
+    window.addEventListener('personalization-saved', handler);
+    return () => window.removeEventListener('personalization-saved', handler);
+  }, [queryClient]);
 
   const { data: family, isSuccess: familyLoaded } = useQuery({
     queryKey: ['my-family', user?.id],
