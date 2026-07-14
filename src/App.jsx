@@ -37,6 +37,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import SplashScreen from './components/SplashScreen';
+import GlobalCacheSync from './components/GlobalCacheSync';
 
 // Достаём список страниц, компонент Layout и имя главной страницы
 const { Pages, Layout, mainPage } = pagesConfig;
@@ -128,6 +129,7 @@ function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
+        <GlobalCacheSync />
         <SplashScreen onFinish={() => setSplashDone(true)} />
         {splashDone && (
           <Router>
