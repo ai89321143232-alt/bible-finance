@@ -23,7 +23,12 @@ export default function ReceiptScanner({ onDataExtracted }) {
     setIsScanning(true);
 
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      // Гарантируем правильное расширение файла — без него сервис распознавания
+      // не может определить тип и падает с ошибкой "Unsupported file type"
+      const extByType = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' };
+      const ext = extByType[file.type] || (file.name?.split('.').pop() || 'jpg');
+      const namedFile = new File([file], `receipt.${ext}`, { type: file.type });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: namedFile });
       
       // Extract data from receipt using AI
       const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
