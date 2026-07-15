@@ -102,6 +102,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [isBankOperations, setIsBankOperations] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const [scanError, setScanError] = useState(null);
   const [suggestedCategory, setSuggestedCategory] = useState(null);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const cameraInputRef = useRef(null);
@@ -235,6 +236,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   const handleReceiptScan = async (file) => {
     if (!file) return;
     setIsScanning(true);
+    setScanError(null);
     try {
       // Гарантируем правильное расширение файла — без него сервис распознавания
       // не может определить тип и падает с ошибкой "Unsupported file type"
@@ -351,11 +353,15 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           toast.success('Распознано успешно!');
         }
       } else {
-        toast.error('Не удалось найти сумму на изображении. Попробуйте другое фото или введите операцию вручную.');
+        const msg = 'Не удалось найти сумму на изображении. Попробуйте другое фото или введите операцию вручную.';
+        toast.error(msg);
+        setScanError(msg);
       }
     } catch (error) {
       console.error('Receipt scan error:', error);
-      toast.error('Ошибка при сканировании чека');
+      const msg = 'Ошибка при сканировании: ' + (error?.message || 'неизвестная ошибка');
+      toast.error(msg);
+      setScanError(msg);
     } finally {
       setIsScanning(false);
     }
@@ -460,6 +466,11 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                 <p className="text-sm text-slate-500 mb-6">
                   Загрузите фото или скан чека для автоматического распознавания
                 </p>
+                {scanError && (
+                  <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 text-sm text-rose-700 dark:text-rose-400 text-left">
+                    {scanError}
+                  </div>
+                )}
                 <input ref={cameraInputRef} type="file" accept="image/*" capture="environment"
                   onChange={(e) => { if (e.target.files?.[0]) { handleReceiptScan(e.target.files[0]); e.target.value = ''; } }}
                   className="hidden" />
