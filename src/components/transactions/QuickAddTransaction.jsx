@@ -265,7 +265,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
             },
             operations: {
               type: 'array',
-              description: 'Список ОТДЕЛЬНЫХ операций, если на изображении история/список транзакций из банковского приложения (несколько разных платежей/переводов/пополнений с разными датами), а НЕ товары одного чека. Извлеки КАЖДУЮ видимую операцию из списка, не только последнюю.',
+              description: 'Список ОТДЕЛЬНЫХ операций, если на изображении история/лента транзакций из банковского приложения (список отдельных платежей/переводов/пополнений с разными продавцами/получателями, даже если все они за один и тот же день) — это НЕ товары одного чека. Извлеки КАЖДУЮ видимую операцию из списка, не только последнюю.',
               items: {
                 type: 'object',
                 properties: {
@@ -280,7 +280,9 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         }
       });
 
-      if (result.status === 'success' && result.output && result.output.amount) {
+      const hasOperations = (result.output?.operations || []).length > 0;
+      const hasItems = (result.output?.items || []).length > 0;
+      if (result.status === 'success' && result.output && (result.output.amount || hasOperations || hasItems)) {
         const items = result.output.items || [];
         if (result.output.operation_type === 'income') {
           setType('income');
