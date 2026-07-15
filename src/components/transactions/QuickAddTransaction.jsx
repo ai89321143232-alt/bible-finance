@@ -5,8 +5,9 @@ import { TransactionService } from '@/services';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { X, ArrowUpRight, ArrowDownRight, Check, Calendar, Camera, Loader2, Upload, Plus } from 'lucide-react';
+import { X, ArrowUpRight, ArrowDownRight, Check, Calendar, Camera, Loader2, Upload, Plus, QrCode } from 'lucide-react';
 import ReceiptReviewModal from './ReceiptReviewModal';
+import QRReceiptScanner from './QRReceiptScanner';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -99,6 +100,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   const submitLockRef = useRef(false);
   const [scannedItems, setScannedItems] = useState([]);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showQRScanner, setShowQRScanner] = useState(false);
   const [suggestedCategory, setSuggestedCategory] = useState(null);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const cameraInputRef = useRef(null);
@@ -310,6 +312,17 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     }
   };
 
+  // Данные, извлечённые из QR-кода чека (сумма + дата)
+  const handleQRDataExtracted = (data) => {
+    setAmount(data.amount?.toString() || '');
+    if (data.date) {
+      try { setDate(new Date(data.date)); } catch (e) {}
+    }
+    setDescription(data.description || '');
+    setActiveTab('manual');
+    setShowQRScanner(false);
+  };
+
   const handleReviewConfirm = async (itemsWithCategories) => {
     setShowReviewModal(false);
     const res = await TransactionService.addReceiptItems({
@@ -377,6 +390,9 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                   </Button>
                   <Button onClick={(e) => { e.stopPropagation(); galleryInputRef.current?.click(); }} variant="outline" disabled={isScanning}>
                     <Upload className="w-5 h-5 mr-2" /> Загрузить из галереи
+                  </Button>
+                  <Button onClick={(e) => { e.stopPropagation(); setShowQRScanner(true); }} variant="outline" disabled={isScanning}>
+                    <QrCode className="w-5 h-5 mr-2" /> Сканировать QR-код чека
                   </Button>
                 </div>
               </div>
@@ -544,6 +560,13 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
 
   return (
     <>
+      {showQRScanner && (
+        <QRReceiptScanner
+          onDataExtracted={handleQRDataExtracted}
+          onClose={() => setShowQRScanner(false)}
+        />
+      )}
+
       <AnimatePresence>
         {showReviewModal && (
           <ReceiptReviewModal
