@@ -246,7 +246,8 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         json_schema: {
           type: 'object',
           properties: {
-            amount: { type: 'number' },
+            amount: { type: 'number', description: 'Итоговая сумма операции (по модулю, без знака минус). Это может быть чек из магазина ИЛИ скриншот из банковского приложения (перевод, списание, пополнение).' },
+            operation_type: { type: 'string', enum: ['expense', 'income'], description: 'Тип операции: "expense" если это списание/оплата/расход/перевод другому человеку, "income" если это пополнение/зачисление/поступление денег' },
             date: { type: 'string' },
             merchant: { type: 'string' },
             items: {
@@ -263,8 +264,13 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         }
       });
 
-      if (result.status === 'success' && result.output) {
+      if (result.status === 'success' && result.output && result.output.amount) {
         const items = result.output.items || [];
+        if (result.output.operation_type === 'income') {
+          setType('income');
+        } else if (result.output.operation_type === 'expense') {
+          setType('expense');
+        }
         if (items.length > 1) {
           setScannedItems(items.map(item => ({
             name: item.name || 'Товар',
@@ -276,16 +282,16 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
             try { setDate(new Date(result.output.date)); } catch (e) {}
           }
           setShowReviewModal(true);
-        } else if (items.length === 1) {
+        } else if (items.length === 1 && result.output.operation_type !== 'income') {
           await categorizeAndAddSingleItem(items[0], result.output);
         } else {
           setAmount(result.output.amount?.toString() || '');
           setDescription(result.output.merchant || '');
           setActiveTab('manual');
-          toast.success('Чек распознан успешно!');
+          toast.success('Распознано успешно!');
         }
       } else {
-        toast.error('Не удалось распознать чек');
+        toast.error('Не удалось найти сумму на изображении. Попробуйте другое фото или введите операцию вручную.');
       }
     } catch (error) {
       console.error('Receipt scan error:', error);
