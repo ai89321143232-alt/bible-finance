@@ -48,10 +48,10 @@ export default function AIModelSettings({ open, onOpenChange }) {
   const loadSettings = async () => {
     const user = await base44.auth.me();
     setKeys({
-      deepseek: user.data?.ai_deepseek_key || '',
-      openai: user.data?.ai_openai_key || '',
+      deepseek: user.ai_deepseek_key || '',
+      openai: user.ai_openai_key || '',
     });
-    setActiveModel(user.data?.ai_active_model || '');
+    setActiveModel(user.ai_active_model || '');
   };
 
   const handleSave = async () => {

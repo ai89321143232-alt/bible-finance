@@ -133,7 +133,7 @@ ${financial_context || ''}
 
     let parsed;
     if (model === 'deepseek' || model === 'openai') {
-      const apiKey = model === 'deepseek' ? user.data?.ai_deepseek_key : user.data?.ai_openai_key;
+      const apiKey = model === 'deepseek' ? user.ai_deepseek_key : user.ai_openai_key;
       if (!apiKey) {
         return Response.json({ error: `Добавьте API-ключ для ${model === 'deepseek' ? 'DeepSeek' : 'ChatGPT'} в настройках` }, { status: 400 });
       }

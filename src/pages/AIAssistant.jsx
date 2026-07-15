@@ -53,15 +53,15 @@ export default function AIAssistant() {
   }, []);
 
   useEffect(() => {
-    if (user?.data?.ai_active_model && user.data[`ai_${user.data.ai_active_model}_key`]) {
-      setSelectedModel(user.data.ai_active_model);
+    if (user?.ai_active_model && user[`ai_${user.ai_active_model}_key`]) {
+      setSelectedModel(user.ai_active_model);
     }
   }, [user]);
 
   const availableModels = [
     { key: 'default', name: 'Base44' },
-    ...(user?.data?.ai_deepseek_key ? [{ key: 'deepseek', name: 'DeepSeek' }] : []),
-    ...(user?.data?.ai_openai_key ? [{ key: 'openai', name: 'ChatGPT' }] : []),
+    ...(user?.ai_deepseek_key ? [{ key: 'deepseek', name: 'DeepSeek' }] : []),
+    ...(user?.ai_openai_key ? [{ key: 'openai', name: 'ChatGPT' }] : []),
   ];
 
   const checkAccess = async () => {
