@@ -279,7 +279,8 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           })));
           setDescription(result.output.merchant || '');
           if (result.output.date) {
-            try { setDate(new Date(result.output.date)); } catch (e) {}
+            const parsedDate = new Date(result.output.date);
+            if (!isNaN(parsedDate.getTime())) setDate(parsedDate);
           }
           setShowReviewModal(true);
         } else if (items.length === 1 && result.output.operation_type !== 'income') {
@@ -312,7 +313,8 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
       setDescription(`${receiptData.merchant || ''} - ${item.name}`);
       setCategory(response.trim());
       if (receiptData.date) {
-        try { setDate(new Date(receiptData.date)); } catch (e) {}
+        const parsedDate = new Date(receiptData.date);
+        if (!isNaN(parsedDate.getTime())) setDate(parsedDate);
       }
       setActiveTab('manual');
       toast.success('Товар добавлен!');
@@ -335,16 +337,21 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   };
 
   const handleReviewConfirm = async (itemsWithCategories) => {
-    setShowReviewModal(false);
-    const res = await TransactionService.addReceiptItems({
-      items: itemsWithCategories,
-      description,
-      date,
-      account_id: accountId,
-      accounts,
-    });
-    toast.success(`Добавлено ${res.count} операций`);
-    onClose();
+    try {
+      const res = await TransactionService.addReceiptItems({
+        items: itemsWithCategories,
+        description,
+        date,
+        account_id: accountId,
+        accounts,
+      });
+      setShowReviewModal(false);
+      toast.success(`Добавлено ${res.count} операций`);
+      onClose();
+    } catch (error) {
+      console.error('Save receipt items error:', error);
+      toast.error('Не удалось сохранить операции');
+    }
   };
 
   const filteredCategories = categories.filter(c => c.type === type);
