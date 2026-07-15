@@ -1,0 +1,65 @@
+{
+  "name": "PromoCode",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "\u041f\u0440\u043e\u043c\u043e\u043a\u043e\u0434, \u043a\u043e\u0442\u043e\u0440\u044b\u0439 \u0432\u0432\u043e\u0434\u0438\u0442 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c"
+    },
+    "plan": {
+      "type": "string",
+      "enum": [
+        "premium",
+        "family"
+      ],
+      "description": "\u0422\u0430\u0440\u0438\u0444, \u043a\u043e\u0442\u043e\u0440\u044b\u0439 \u043f\u043e\u043b\u0443\u0447\u0438\u0442 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u043f\u0440\u0438 \u0430\u043a\u0442\u0438\u0432\u0430\u0446\u0438\u0438"
+    },
+    "duration_days": {
+      "type": "number",
+      "default": 30,
+      "description": "\u041d\u0430 \u0441\u043a\u043e\u043b\u044c\u043a\u043e \u0434\u043d\u0435\u0439 \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u0443\u0435\u0442\u0441\u044f \u043f\u043e\u0434\u043f\u0438\u0441\u043a\u0430"
+    },
+    "max_uses": {
+      "type": "number",
+      "default": 1,
+      "description": "\u041c\u0430\u043a\u0441\u0438\u043c\u0430\u043b\u044c\u043d\u043e\u0435 \u043a\u043e\u043b\u0438\u0447\u0435\u0441\u0442\u0432\u043e \u0430\u043a\u0442\u0438\u0432\u0430\u0446\u0438\u0439 \u044d\u0442\u043e\u0433\u043e \u043a\u043e\u0434\u0430"
+    },
+    "used_count": {
+      "type": "number",
+      "default": 0,
+      "description": "\u0421\u043a\u043e\u043b\u044c\u043a\u043e \u0440\u0430\u0437 \u043a\u043e\u0434 \u0443\u0436\u0435 \u0431\u044b\u043b \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "\u041c\u043e\u0436\u043d\u043e \u043b\u0438 \u0435\u0449\u0451 \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u044d\u0442\u043e\u0442 \u043a\u043e\u0434"
+    }
+  },
+  "required": [
+    "code",
+    "plan",
+    "duration_days"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

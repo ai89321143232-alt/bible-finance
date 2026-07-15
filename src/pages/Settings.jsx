@@ -44,6 +44,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { eventBus, EVENTS } from '@/lib/eventBus';
 import PersonalizationSettings from '@/components/settings/PersonalizationSettings';
 import AIModelSettings from '@/components/settings/AIModelSettings';
+import RedeemPromoCode from '@/components/settings/RedeemPromoCode';
 import { Layout, Bot } from 'lucide-react';
 
 const PRESET_BACKGROUNDS = [
@@ -828,7 +829,11 @@ export default function Settings() {
               </Card>
             ))}
           </div>
-          <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl text-center">
+          <div className="mt-6">
+            <RedeemPromoCode onSuccess={() => { loadUser(); setShowPlanModal(false); }} />
+          </div>
+
+          <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl text-center">
             <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">
               Для подключения тарифа свяжитесь с разработчиком
             </p>

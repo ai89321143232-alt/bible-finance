@@ -28,6 +28,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { Ticket } from 'lucide-react';
+import PromoCodesManager from '@/components/admin/PromoCodesManager';
 
 const SUBSCRIPTION_PLANS = {
   free: { name: 'Бесплатный', color: 'bg-slate-100 text-slate-700' },
@@ -45,6 +47,7 @@ export default function Admin() {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('user');
+  const [promoModalOpen, setPromoModalOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -175,13 +178,23 @@ export default function Admin() {
               </h1>
               <p className="text-slate-500 mt-1">Управление пользователями и подписками</p>
             </div>
-            <Button 
-              onClick={() => setInviteModalOpen(true)}
-              className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 rounded-xl"
-            >
-              <Mail className="w-4 h-4 mr-2" />
-              Пригласить
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setPromoModalOpen(true)}
+                variant="outline"
+                className="rounded-xl"
+              >
+                <Ticket className="w-4 h-4 mr-2" />
+                Промокоды
+              </Button>
+              <Button 
+                onClick={() => setInviteModalOpen(true)}
+                className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 rounded-xl"
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                Пригласить
+              </Button>
+            </div>
           </div>
         </motion.div>
 
@@ -401,6 +414,19 @@ export default function Admin() {
               <p className="text-sm text-center text-slate-500">Обновление...</p>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Promo Codes Modal */}
+      <Dialog open={promoModalOpen} onOpenChange={setPromoModalOpen}>
+        <DialogContent className="rounded-2xl max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Промокоды</DialogTitle>
+            <DialogDescription>
+              Создавайте коды для присвоения подписок пользователям
+            </DialogDescription>
+          </DialogHeader>
+          <PromoCodesManager />
         </DialogContent>
       </Dialog>
 
