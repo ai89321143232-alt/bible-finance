@@ -177,6 +177,45 @@ export const TransactionService = {
   },
 
   /**
+   * Пакетное добавление ОТДЕЛЬНЫХ операций из выписки банка (каждая со своими
+   * датой и типом income/expense) + суммарная корректировка баланса счёта.
+   * @returns {Promise<{ok:boolean, count:number}>}
+   */
+  async addBankOperations({ items = [], account_id, accounts = [] }) {
+    const user = await getCurrentUser();
+    const account = accounts.find((a) => a.id === account_id);
+    let netDelta = 0;
+
+    for (const item of items) {
+      const itemType = item.type === 'income' ? 'income' : 'expense';
+      let txDate = new Date();
+      if (item.date) {
+        const parsed = new Date(item.date);
+        if (!isNaN(parsed.getTime())) txDate = parsed;
+      }
+      const data = await enrichWithOwnership(
+        {
+          type: itemType,
+          amount: item.price,
+          category: item.category,
+          description: item.name,
+          date: txDate.toISOString(),
+          account_id: account_id || undefined,
+        },
+        user
+      );
+      await repo().create(data);
+      netDelta += itemType === 'income' ? (item.price || 0) : -(item.price || 0);
+    }
+
+    if (account) {
+      await AccountService.setBalance(account.id, (account.balance || 0) + netDelta);
+    }
+    notifyChanged();
+    return { ok: true, count: items.length };
+  },
+
+  /**
    * Низкоуровневое создание записи операции без побочных эффектов на баланс.
    * Используется, когда изменение баланса уже выполнено вызывающим кодом
    * (напр. GoalService при пополнении/трате цели).

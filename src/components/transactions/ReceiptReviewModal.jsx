@@ -12,12 +12,17 @@ export default function ReceiptReviewModal({
   categories, 
   onConfirm, 
   onClose,
-  isLoading = false 
+  isLoading = false,
+  mode = 'receipt',
+  accounts = [],
+  accountId = '',
+  onAccountChange = () => {}
 }) {
   const [expandedIndex, setExpandedIndex] = useState(0);
   const [itemsWithCategories, setItemsWithCategories] = useState(items);
   const [clarificationQuestion, setClarificationQuestion] = useState('');
   const [isAsking, setIsAsking] = useState(false);
+  const isBank = mode === 'bank';
 
   const handleCategoryChange = (index, newCategory) => {
     const updated = [...itemsWithCategories];
@@ -57,6 +62,10 @@ ${itemsWithCategories.map((item, i) => `${i + 1}. ${item.name || 'Товар'} -
   };
 
   const handleConfirm = () => {
+    if (isBank && !accountId) {
+      toast.error('Выберите счёт');
+      return;
+    }
     // Проверяем что все товары имеют категории
     const incomplete = itemsWithCategories.find(item => !item.category);
     if (incomplete) {
@@ -87,7 +96,7 @@ ${itemsWithCategories.map((item, i) => `${i + 1}. ${item.name || 'Товар'} -
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-            Распознанные товары
+            {isBank ? 'Операции из выписки' : 'Распознанные товары'}
           </h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
             <X className="w-5 h-5" />
@@ -100,6 +109,25 @@ ${itemsWithCategories.map((item, i) => `${i + 1}. ${item.name || 'Товар'} -
           </div>
         ) : (
           <>
+            {/* Account selector — для операций из банковской выписки */}
+            {isBank && accounts.length > 0 && (
+              <div className="mb-4">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-2">
+                  Счёт списания/зачисления
+                </label>
+                <Select value={accountId} onValueChange={onAccountChange}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Выберите счёт" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts.map((acc) => (
+                      <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* Items List */}
             <div className="space-y-2 mb-6">
               {itemsWithCategories.map((item, index) => (
@@ -113,9 +141,21 @@ ${itemsWithCategories.map((item, i) => `${i + 1}. ${item.name || 'Товар'} -
                   >
                     <div className="text-left flex-1">
                       <p className="font-medium text-slate-900 dark:text-white">{item.name || 'Товар'}</p>
-                      <p className="text-sm text-slate-500">{item.price}₽</p>
+                      <p className="text-sm text-slate-500">
+                        {isBank && item.type === 'income' ? '+' : isBank ? '-' : ''}{item.price}₽
+                        {isBank && item.date && ` · ${item.date}`}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
+                      {isBank && (
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          item.type === 'income'
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                            : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
+                        }`}>
+                          {item.type === 'income' ? 'Доход' : 'Расход'}
+                        </span>
+                      )}
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
                         item.category 
                           ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400' 
@@ -144,7 +184,7 @@ ${itemsWithCategories.map((item, i) => `${i + 1}. ${item.name || 'Товар'} -
                           <SelectValue placeholder="Выберите категорию" />
                         </SelectTrigger>
                         <SelectContent>
-                          {expenseCats.map((cat) => (
+                          {(isBank ? categories.filter(c => c.type === (item.type === 'income' ? 'income' : 'expense')) : expenseCats).map((cat) => (
                             <SelectItem key={cat.id} value={cat.name}>
                               {cat.icon} {cat.name}
                             </SelectItem>
@@ -190,11 +230,17 @@ ${itemsWithCategories.map((item, i) => `${i + 1}. ${item.name || 'Товар'} -
 
             {/* Summary */}
             <div className="mb-6 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              {isBank ? (
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  <span className="font-medium">Итого:</span> {itemsWithCategories.reduce((sum, item) => sum + (item.type === 'income' ? (item.price || 0) : -(item.price || 0)), 0)}₽
+                </p>
+              ) : (
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  <span className="font-medium">Сумма:</span> {itemsWithCategories.reduce((sum, item) => sum + (item.price || 0), 0)}₽
+                </p>
+              )}
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                <span className="font-medium">Сумма:</span> {itemsWithCategories.reduce((sum, item) => sum + (item.price || 0), 0)}₽
-              </p>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                <span className="font-medium">Товаров:</span> {itemsWithCategories.length}
+                <span className="font-medium">{isBank ? 'Операций:' : 'Товаров:'}</span> {itemsWithCategories.length}
               </p>
             </div>
 

@@ -100,6 +100,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   const submitLockRef = useRef(false);
   const [scannedItems, setScannedItems] = useState([]);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [isBankOperations, setIsBankOperations] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [suggestedCategory, setSuggestedCategory] = useState(null);
   const [isSuggesting, setIsSuggesting] = useState(false);
@@ -253,11 +254,25 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
             card_hint: { type: 'string', description: 'Название карты или счёта, если видно на скриншоте (например "Карта Пэй", "Visa Classic")' },
             items: {
               type: 'array',
+              description: 'Товары ОДНОГО чека из магазина (позиции одной покупки на одну дату).',
               items: {
                 type: 'object',
                 properties: {
                   name: { type: 'string' },
                   price: { type: 'number' }
+                }
+              }
+            },
+            operations: {
+              type: 'array',
+              description: 'Список ОТДЕЛЬНЫХ операций, если на изображении история/список транзакций из банковского приложения (несколько разных платежей/переводов/пополнений с разными датами), а НЕ товары одного чека. Извлеки КАЖДУЮ видимую операцию из списка, не только последнюю.',
+              items: {
+                type: 'object',
+                properties: {
+                  merchant: { type: 'string', description: 'Название операции/получателя/магазина' },
+                  amount: { type: 'number', description: 'Сумма операции по модулю' },
+                  date: { type: 'string' },
+                  operation_type: { type: 'string', enum: ['expense', 'income'] }
                 }
               }
             }
@@ -280,7 +295,29 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           );
           if (matchedAccount) setAccountId(matchedAccount.id);
         }
-        if (items.length > 1) {
+        const operations = result.output.operations || [];
+        if (operations.length > 1) {
+          // Скриншот из банка со списком операций — у каждой своя дата/тип/сумма
+          let suggestedCats = [];
+          try {
+            const catList = categories.map(c => `${c.name} (${c.type === 'income' ? 'доход' : 'расход'})`);
+            const catResult = await base44.integrations.Core.InvokeLLM({
+              prompt: `Для каждой банковской операции определи наиболее подходящую категорию с учётом её типа (доход/расход).\n\nОперации:\n${operations.map((op, i) => `${i + 1}. ${op.merchant || 'Операция'} — ${op.amount}₽ (${op.operation_type === 'income' ? 'доход' : 'расход'})`).join('\n')}\n\nДоступные категории: ${catList.join(', ')}\n\nВерни категорию для каждой операции в том же порядке, точное название категории соответствующего типа.`,
+              response_json_schema: { type: 'object', properties: { categories: { type: 'array', items: { type: 'string' } } } }
+            });
+            suggestedCats = catResult?.categories || [];
+          } catch (e) { /* оставим категории пустыми, пользователь выберет вручную */ }
+
+          setIsBankOperations(true);
+          setScannedItems(operations.map((op, i) => ({
+            name: op.merchant || 'Операция',
+            price: op.amount || 0,
+            type: op.operation_type === 'income' ? 'income' : 'expense',
+            date: op.date || null,
+            category: suggestedCats[i] || ''
+          })));
+          setShowReviewModal(true);
+        } else if (items.length > 1) {
           let suggestedCats = [];
           try {
             const categoryNames = categories.filter(c => c.type === 'expense').map(c => c.name);
@@ -291,6 +328,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
             suggestedCats = catResult?.categories || [];
           } catch (e) { /* оставим категории пустыми, пользователь выберет вручную */ }
 
+          setIsBankOperations(false);
           setScannedItems(items.map((item, i) => ({
             name: item.name || 'Товар',
             price: item.price || 0,
@@ -357,13 +395,19 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
 
   const handleReviewConfirm = async (itemsWithCategories) => {
     try {
-      const res = await TransactionService.addReceiptItems({
-        items: itemsWithCategories,
-        description,
-        date,
-        account_id: accountId,
-        accounts,
-      });
+      const res = isBankOperations
+        ? await TransactionService.addBankOperations({
+            items: itemsWithCategories,
+            account_id: accountId,
+            accounts,
+          })
+        : await TransactionService.addReceiptItems({
+            items: itemsWithCategories,
+            description,
+            date,
+            account_id: accountId,
+            accounts,
+          });
       setShowReviewModal(false);
       toast.success(`Добавлено ${res.count} операций`);
       onClose();
@@ -612,6 +656,10 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
             onConfirm={handleReviewConfirm}
             onClose={() => setShowReviewModal(false)}
             isLoading={isScanning}
+            mode={isBankOperations ? 'bank' : 'receipt'}
+            accounts={myAccounts}
+            accountId={accountId}
+            onAccountChange={setAccountId}
           />
         )}
       </AnimatePresence>
