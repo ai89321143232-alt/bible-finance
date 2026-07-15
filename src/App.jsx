@@ -38,6 +38,7 @@ import ResetPassword from './pages/ResetPassword';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import SplashScreen from './components/SplashScreen';
 import GlobalCacheSync from './components/GlobalCacheSync';
+import { Toaster as SonnerToaster } from 'sonner';
 
 // Достаём список страниц, компонент Layout и имя главной страницы
 const { Pages, Layout, mainPage } = pagesConfig;
@@ -138,6 +139,7 @@ function App() {
           </Router>
         )}
         <Toaster />
+        <SonnerToaster richColors position="top-center" />
       </QueryClientProvider>
     </AuthProvider>
   )
