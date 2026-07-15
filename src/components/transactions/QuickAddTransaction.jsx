@@ -250,6 +250,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
             operation_type: { type: 'string', enum: ['expense', 'income'], description: 'Тип операции: "expense" если это списание/оплата/расход/перевод другому человеку, "income" если это пополнение/зачисление/поступление денег' },
             date: { type: 'string' },
             merchant: { type: 'string' },
+            card_hint: { type: 'string', description: 'Название карты или счёта, если видно на скриншоте (например "Карта Пэй", "Visa Classic")' },
             items: {
               type: 'array',
               items: {
@@ -271,11 +272,29 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         } else if (result.output.operation_type === 'expense') {
           setType('expense');
         }
+        // Пытаемся определить счёт по названию карты, если оно видно на фото
+        if (result.output.card_hint) {
+          const hint = result.output.card_hint.toLowerCase();
+          const matchedAccount = myAccounts.find(acc =>
+            acc.name && (hint.includes(acc.name.toLowerCase()) || acc.name.toLowerCase().includes(hint))
+          );
+          if (matchedAccount) setAccountId(matchedAccount.id);
+        }
         if (items.length > 1) {
-          setScannedItems(items.map(item => ({
+          let suggestedCats = [];
+          try {
+            const categoryNames = categories.filter(c => c.type === 'expense').map(c => c.name);
+            const catResult = await base44.integrations.Core.InvokeLLM({
+              prompt: `Для каждого расхода определи наиболее подходящую категорию.\n\nРасходы:\n${items.map((it, i) => `${i + 1}. ${it.name} — ${it.price}₽`).join('\n')}\n\nДоступные категории: ${categoryNames.join(', ')}\n\nВерни категорию для каждого расхода в том же порядке, точное название из списка.`,
+              response_json_schema: { type: 'object', properties: { categories: { type: 'array', items: { type: 'string' } } } }
+            });
+            suggestedCats = catResult?.categories || [];
+          } catch (e) { /* оставим категории пустыми, пользователь выберет вручную */ }
+
+          setScannedItems(items.map((item, i) => ({
             name: item.name || 'Товар',
             price: item.price || 0,
-            category: ''
+            category: suggestedCats[i] || ''
           })));
           setDescription(result.output.merchant || '');
           if (result.output.date) {
