@@ -131,7 +131,16 @@
           "data.user_id": "{{user.id}}"
         },
         {
-          "data.family_id": "{{user.data.family_id}}"
+          "$and": [
+            {
+              "data.family_id": {
+                "$ne": null
+              }
+            },
+            {
+              "data.family_id": "{{user.data.family_id}}"
+            }
+          ]
         },
         {
           "data.share_with": {
@@ -156,7 +165,16 @@
           "data.user_id": "{{user.id}}"
         },
         {
-          "data.family_id": "{{user.data.family_id}}"
+          "$and": [
+            {
+              "data.family_id": {
+                "$ne": null
+              }
+            },
+            {
+              "data.family_id": "{{user.data.family_id}}"
+            }
+          ]
         },
         {
           "data.share_with": {
