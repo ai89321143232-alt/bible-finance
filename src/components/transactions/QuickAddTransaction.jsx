@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { X, ArrowUpRight, ArrowDownRight, Check, Calendar, Camera, Loader2, Upload, Plus, QrCode } from 'lucide-react';
 import ReceiptReviewModal from './ReceiptReviewModal';
+import { parseFlexibleDate } from '@/lib/parseDate';
 import QRReceiptScanner from './QRReceiptScanner';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -252,7 +253,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           properties: {
             amount: { type: 'number', description: 'Итоговая сумма операции (по модулю, без знака минус). Это может быть чек из магазина ИЛИ скриншот из банковского приложения (перевод, списание, пополнение).' },
             operation_type: { type: 'string', enum: ['expense', 'income'], description: 'Тип операции: "expense" если это списание/оплата/расход/перевод другому человеку, "income" если это пополнение/зачисление/поступление денег' },
-            date: { type: 'string' },
+            date: { type: 'string', description: 'Дата операции строго в формате YYYY-MM-DD (например 2025-07-18). Если год не виден на фото, используй текущий год.' },
             merchant: { type: 'string' },
             card_hint: { type: 'string', description: 'Название карты или счёта, если видно на скриншоте (например "Карта Пэй", "Visa Classic")' },
             items: {
@@ -274,7 +275,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                 properties: {
                   merchant: { type: 'string', description: 'Название операции/получателя/магазина' },
                   amount: { type: 'number', description: 'Сумма операции по модулю' },
-                  date: { type: 'string' },
+                  date: { type: 'string', description: 'Дата операции строго в формате YYYY-MM-DD (например 2025-07-18). Если год не виден на фото, используй текущий год.' },
                   operation_type: { type: 'string', enum: ['expense', 'income'] }
                 }
               }
@@ -340,10 +341,8 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
             category: suggestedCats[i] || ''
           })));
           setDescription(result.output.merchant || '');
-          if (result.output.date) {
-            const parsedDate = new Date(result.output.date);
-            if (!isNaN(parsedDate.getTime())) setDate(parsedDate);
-          }
+          const parsedDate = parseFlexibleDate(result.output.date);
+          if (parsedDate) setDate(parsedDate);
           setShowReviewModal(true);
         } else if (items.length === 1 && result.output.operation_type !== 'income') {
           await categorizeAndAddSingleItem(items[0], result.output);
@@ -378,10 +377,8 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
       setAmount(item.price?.toString() || '');
       setDescription(`${receiptData.merchant || ''} - ${item.name}`);
       setCategory(response.trim());
-      if (receiptData.date) {
-        const parsedDate = new Date(receiptData.date);
-        if (!isNaN(parsedDate.getTime())) setDate(parsedDate);
-      }
+      const parsedDate = parseFlexibleDate(receiptData.date);
+      if (parsedDate) setDate(parsedDate);
       setActiveTab('manual');
       toast.success('Товар добавлен!');
     } catch (error) {

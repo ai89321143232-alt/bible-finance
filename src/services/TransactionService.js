@@ -18,6 +18,7 @@ import {
   validateSufficientFunds,
 } from '@/domain/validators';
 import { eventBus, EVENTS } from '@/lib/eventBus';
+import { parseFlexibleDate } from '@/lib/parseDate';
 
 const repo = () => getRepository('Transaction');
 const goalRepo = () => getRepository('Goal');
@@ -188,11 +189,7 @@ export const TransactionService = {
 
     for (const item of items) {
       const itemType = item.type === 'income' ? 'income' : 'expense';
-      let txDate = new Date();
-      if (item.date) {
-        const parsed = new Date(item.date);
-        if (!isNaN(parsed.getTime())) txDate = parsed;
-      }
+      const txDate = parseFlexibleDate(item.date) || new Date();
       const data = await enrichWithOwnership(
         {
           type: itemType,
