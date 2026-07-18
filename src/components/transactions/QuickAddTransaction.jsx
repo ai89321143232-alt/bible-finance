@@ -98,6 +98,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   const [currentUser, setCurrentUser] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submitLockRef = useRef(false);
+  const reviewSubmitLockRef = useRef(false);
   const [scannedItems, setScannedItems] = useState([]);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [isBankOperations, setIsBankOperations] = useState(false);
@@ -402,6 +403,8 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   };
 
   const handleReviewConfirm = async (itemsWithCategories) => {
+    if (reviewSubmitLockRef.current) return;
+    reviewSubmitLockRef.current = true;
     try {
       const res = isBankOperations
         ? await TransactionService.addBankOperations({
@@ -422,6 +425,8 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     } catch (error) {
       console.error('Save receipt items error:', error);
       toast.error('Не удалось сохранить операции');
+    } finally {
+      reviewSubmitLockRef.current = false;
     }
   };
 
