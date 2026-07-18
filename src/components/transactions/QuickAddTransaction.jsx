@@ -461,10 +461,11 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                   )}
                 </div>
                 <h3 className="font-semibold text-slate-900 dark:text-white mb-2">
-                  {isScanning ? 'Распознавание чека...' : 'Сканирование чека'}
+                  {isScanning ? 'Распознавание с помощью AI...' : 'AI-сканер операций'}
                 </h3>
                 <p className="text-sm text-slate-500 mb-6">
-                  Загрузите фото или скан чека для автоматического распознавания
+                  Загрузите фото чека или скриншот истории операций из банковского приложения —
+                  AI сам распознает все расходы и доходы и предложит категории
                 </p>
                 {scanError && (
                   <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 text-sm text-rose-700 dark:text-rose-400 text-left">
@@ -480,10 +481,10 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                 <div className="flex flex-col gap-3">
                   <Button onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }} disabled={isScanning}
                     className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
-                    <Camera className="w-5 h-5 mr-2" /> Сфотографировать чек
+                    <Camera className="w-5 h-5 mr-2" /> Сфотографировать чек или экран
                   </Button>
                   <Button onClick={(e) => { e.stopPropagation(); galleryInputRef.current?.click(); }} variant="outline" disabled={isScanning}>
-                    <Upload className="w-5 h-5 mr-2" /> Загрузить из галереи
+                    <Upload className="w-5 h-5 mr-2" /> Загрузить фото или скриншот
                   </Button>
                   <Button onClick={(e) => { e.stopPropagation(); setShowQRScanner(true); }} variant="outline" disabled={isScanning}>
                     <QrCode className="w-5 h-5 mr-2" /> Сканировать QR-код чека
