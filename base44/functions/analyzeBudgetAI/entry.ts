@@ -18,13 +18,13 @@ Deno.serve(async (req) => {
 
     // Получаем необходимые данные
     const transactions = await base44.entities.Transaction.filter(
-      { created_by: user.email },
+      { created_by_id: user.id },
       '-date',
       100
     );
 
     const budgets = await base44.entities.Budget.filter(
-      { created_by: user.email },
+      { created_by_id: user.id },
       '-created_date',
       50
     );
