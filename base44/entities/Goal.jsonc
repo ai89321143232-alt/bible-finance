@@ -90,7 +90,7 @@
     "is_family_goal": {
       "type": "boolean",
       "default": false,
-      "description": "\u042f\u0432\u043b\u044f\u0435\u0442\u0441\u044f \u043b\u0438 \u0441\u0435\u043c\u0435\u0439\u043d\u043e\u0439 \u0446\u0435\u043b\u044c\u044e"
+      "description": "\u042f\u0432\u043b\u044f\u0435\u0442\u0441\u044f \u043b\u0438 \u044d\u0442\u043e \u0441\u0435\u043c\u0435\u0439\u043d\u043e\u0439 \u0446\u0435\u043b\u044c\u044e"
     },
     "share_with": {
       "type": "array",
@@ -175,7 +175,16 @@
           "created_by_id": "{{user.id}}"
         },
         {
-          "data.family_id": "{{user.data.family_id}}"
+          "$and": [
+            {
+              "data.family_id": {
+                "$ne": null
+              }
+            },
+            {
+              "data.family_id": "{{user.data.family_id}}"
+            }
+          ]
         },
         {
           "data.share_with": {
@@ -197,7 +206,16 @@
           "created_by_id": "{{user.id}}"
         },
         {
-          "data.family_id": "{{user.data.family_id}}"
+          "$and": [
+            {
+              "data.family_id": {
+                "$ne": null
+              }
+            },
+            {
+              "data.family_id": "{{user.data.family_id}}"
+            }
+          ]
         },
         {
           "data.share_with": {
