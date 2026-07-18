@@ -22,6 +22,7 @@ export default function ReceiptReviewModal({
   const [itemsWithCategories, setItemsWithCategories] = useState(items);
   const [clarificationQuestion, setClarificationQuestion] = useState('');
   const [isAsking, setIsAsking] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const isBank = mode === 'bank';
 
   const handleCategoryChange = (index, newCategory) => {
@@ -61,7 +62,8 @@ ${itemsWithCategories.map((item, i) => `${i + 1}. ${item.name || 'Товар'} -
     }
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    if (isSaving) return;
     if (isBank && !accountId) {
       toast.error('Выберите счёт');
       return;
@@ -72,7 +74,12 @@ ${itemsWithCategories.map((item, i) => `${i + 1}. ${item.name || 'Товар'} -
       toast.error('Пожалуйста, выберите категорию для всех товаров');
       return;
     }
-    onConfirm(itemsWithCategories);
+    setIsSaving(true);
+    try {
+      await onConfirm(itemsWithCategories);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const expenseCats = categories.filter(c => c.type === 'expense');
@@ -250,14 +257,23 @@ ${itemsWithCategories.map((item, i) => `${i + 1}. ${item.name || 'Товар'} -
                 onClick={onClose}
                 variant="outline"
                 className="flex-1 h-11"
+                disabled={isSaving}
               >
                 Отмена
               </Button>
               <Button
                 onClick={handleConfirm}
+                disabled={isSaving}
                 className="flex-1 h-11 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
               >
-                Добавить операции
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Сохранение...
+                  </>
+                ) : (
+                  'Добавить операции'
+                )}
               </Button>
             </div>
           </>
