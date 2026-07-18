@@ -11,7 +11,7 @@ export default function Education() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 pb-24 lg:pb-8">
       {/* Hero */}
-      <div className="mb-8">
+      <div className="mb-8 p-5 sm:p-6 rounded-2xl bg-card/90 backdrop-blur-sm border border-border shadow-sm">
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
           Путь к финансовой свободе по Божьим принципам
         </h1>

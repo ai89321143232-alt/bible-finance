@@ -28,20 +28,22 @@ export default function EducationLesson() {
         Все темы обучения
       </Link>
 
-      <div className="flex items-center gap-4 mb-2">
-        <div
-          className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: `${topic.color}1A` }}
-        >
-          <Icon className="w-6 h-6" style={{ color: topic.color }} />
+      <div className="p-5 sm:p-6 rounded-2xl bg-card/90 backdrop-blur-sm border border-border shadow-sm">
+        <div className="flex items-center gap-4">
+          <div
+            className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: `${topic.color}1A` }}
+          >
+            <Icon className="w-6 h-6" style={{ color: topic.color }} />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">{topic.title}</h1>
+            <div className="text-sm text-muted-foreground">{topic.subtitle}</div>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">{topic.title}</h1>
-          <div className="text-sm text-muted-foreground">{topic.subtitle}</div>
-        </div>
-      </div>
 
-      <p className="mt-4 text-muted-foreground leading-relaxed">{topic.description}</p>
+        <p className="mt-4 text-muted-foreground leading-relaxed">{topic.description}</p>
+      </div>
 
       <Card className="mt-6 p-6 flex flex-col items-center text-center gap-3">
         <Construction className="w-8 h-8 text-amber-500" />
