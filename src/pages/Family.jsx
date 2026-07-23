@@ -62,7 +62,7 @@ export default function Family() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('invite');
     if (code) {
-      setJoinCode(code);
+      setJoinCode(code.replace(/\s/g, '').toUpperCase());
       setShowJoinModal(true);
     }
   };
@@ -514,7 +514,7 @@ export default function Family() {
               <Label>Код приглашения</Label>
               <Input
                 value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                onChange={(e) => setJoinCode(e.target.value.replace(/\s/g, '').toUpperCase())}
                 placeholder="Введите код"
                 className="rounded-xl mt-1 font-mono uppercase"
                 maxLength={8}
