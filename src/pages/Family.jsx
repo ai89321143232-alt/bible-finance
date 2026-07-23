@@ -115,42 +115,11 @@ export default function Family() {
 
   const joinFamilyMutation = useMutation({
     mutationFn: async (code) => {
-      // Need to search all families - try getting from public list
-      let targetFamily = null;
-      
-      // First try to find among families visible to user
-      const visibleFamilies = await base44.entities.Family.list();
-      targetFamily = visibleFamilies.find(f => f.invite_code === code.trim().toUpperCase());
-
-      if (!targetFamily) {
-        throw new Error('Семья с таким кодом не найдена. Проверьте код и попробуйте снова.');
+      const res = await base44.functions.invoke('joinFamilyByCode', { code });
+      if (res.data?.error) {
+        throw new Error(res.data.error);
       }
-
-      const isAlreadyMember = targetFamily.members?.some(m => m.user_id === currentUser?.id);
-      if (isAlreadyMember) {
-        throw new Error('Вы уже являетесь участником этой семьи');
-      }
-
-      const colors = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#EC4899'];
-      const randomColor = colors[Math.floor(Math.random() * colors.length)];
-
-      const updatedMembers = [
-        ...(targetFamily.members || []),
-        {
-          user_id: currentUser.id,
-          name: currentUser.full_name || currentUser.email,
-          display_name: currentUser.full_name || currentUser.email,
-          role: 'editor',
-          avatar_color: randomColor
-        }
-      ];
-
-      await base44.entities.Family.update(targetFamily.id, { members: updatedMembers });
-
-      // Save family_id to user profile
-      await base44.auth.updateMe({ family_id: targetFamily.id });
-
-      return targetFamily;
+      return res.data.family;
     },
     onSuccess: (family) => {
       queryClient.invalidateQueries({ queryKey: ['families'] });
@@ -163,7 +132,7 @@ export default function Family() {
       window.history.replaceState({}, '', url);
     },
     onError: (error) => {
-      toast.error(error.message || 'Не удалось присоединиться к семье');
+      toast.error(error?.response?.data?.error || error.message || 'Не удалось присоединиться к семье');
     }
   });
 
