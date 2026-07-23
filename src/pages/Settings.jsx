@@ -45,6 +45,7 @@ import { eventBus, EVENTS } from '@/lib/eventBus';
 import PersonalizationSettings from '@/components/settings/PersonalizationSettings';
 import AIModelSettings from '@/components/settings/AIModelSettings';
 import RedeemPromoCode from '@/components/settings/RedeemPromoCode';
+import TelegramBotSettings from '@/components/settings/TelegramBotSettings';
 import { Layout, Bot } from 'lucide-react';
 
 const PRESET_BACKGROUNDS = [
@@ -123,6 +124,7 @@ export default function Settings() {
   });
   const [showPersonalization, setShowPersonalization] = useState(false);
   const [showAISettings, setShowAISettings] = useState(false);
+  const [showTelegramBot, setShowTelegramBot] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploadingBg, setIsUploadingBg] = useState(false);
@@ -452,6 +454,35 @@ export default function Settings() {
             </Card>
           </motion.div>
 
+          {/* Telegram Bot — Premium only */}
+          {subscriptionStatus?.isActive && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.215 }}
+            >
+              <Card
+                className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => setShowTelegramBot(true)}
+              >
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center">
+                        <Bot className="w-5 h-5 text-sky-600" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-900 dark:text-white">Telegram-бот</p>
+                        <p className="text-sm text-slate-500">Голос, фото чеков и выписок — прямо в приложение</p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-400" />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
           {/* Personalization */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -710,6 +741,12 @@ export default function Settings() {
       <AIModelSettings
         open={showAISettings}
         onOpenChange={setShowAISettings}
+      />
+
+      {/* Telegram Bot Modal */}
+      <TelegramBotSettings
+        open={showTelegramBot}
+        onOpenChange={setShowTelegramBot}
       />
 
       {/* Personalization Modal */}
