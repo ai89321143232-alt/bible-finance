@@ -196,13 +196,14 @@ export default function Family() {
   const removeMemberMutation = useMutation({
     mutationFn: async (memberId) => {
       if (!myFamily) return;
-      const updatedMembers = (myFamily.members || []).filter(m => m.user_id !== memberId);
-      await base44.entities.Family.update(myFamily.id, { members: updatedMembers });
+      const res = await base44.functions.invoke('removeFamilyMember', { familyId: myFamily.id, memberId });
+      if (res.data?.error) throw new Error(res.data.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['families'] });
       toast.success('Участник удалён');
-    }
+    },
+    onError: (err) => toast.error(err.message || 'Ошибка удаления участника')
   });
 
   const myFamily = families.find(f => 
