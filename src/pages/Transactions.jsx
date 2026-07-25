@@ -48,6 +48,7 @@ export default function Transactions() {
   const [deleteId, setDeleteId] = useState(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [user, setUser] = useState(null);
+  const [openSwipeId, setOpenSwipeId] = useState(null);
   const activeWorkspaceId = useActiveWorkspaceId();
 
   useEffect(() => {
@@ -204,7 +205,7 @@ export default function Transactions() {
           </MobileSelect>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-6" onClick={() => setOpenSwipeId(null)}>
           {sortedDates.length > 0 ? (
             sortedDates.map((dateKey) => (
               <motion.div key={dateKey} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -216,7 +217,9 @@ export default function Transactions() {
                     {groupedTransactions[dateKey].map((transaction, index) => (
                       <SwipeableTransaction key={transaction.id} transaction={transaction} index={index}
                         onDelete={setDeleteId} onEdit={(t) => { setEditTransaction(t); setShowAddModal(true); }}
-                        formatCurrency={formatCurrency} showActions={false} family={family} currentUser={user} />
+                        formatCurrency={formatCurrency} showActions={false} family={family} currentUser={user}
+                        isOpen={openSwipeId === transaction.id}
+                        onOpenChange={(open) => setOpenSwipeId(open ? transaction.id : null)} />
                     ))}
                   </CardContent>
                 </Card>
