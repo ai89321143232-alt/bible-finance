@@ -146,7 +146,8 @@ export default function Budgets() {
       // Show ALL family budgets (own + shared): is_family_budget with matching family_id, or explicitly shared with user
       return budgets.filter(b => 
         (b.is_family_budget && b.family_id && familyId && b.family_id === familyId) ||
-        (b.share_with?.includes(user?.id) && b.created_by_id !== user?.id)
+        (b.share_with?.includes(user?.id) && b.created_by_id !== user?.id) ||
+        (b.created_by_id === user?.id && b.is_family_budget)
       );
     },
     enabled: !!user && !!family,
