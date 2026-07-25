@@ -78,6 +78,13 @@ export default function SwipeableTransaction({
                 {transaction.description}
               </p>
             )}
+            <span className={`inline-block mt-0.5 text-[11px] font-medium ${
+              transaction.source === 'telegram_bot'
+                ? 'text-sky-600 dark:text-sky-400'
+                : 'text-slate-400 dark:text-slate-500'
+            }`}>
+              {transaction.source === 'telegram_bot' ? '#бот' : '#вручную'}
+            </span>
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">

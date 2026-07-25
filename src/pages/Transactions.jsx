@@ -77,6 +77,7 @@ export default function Transactions() {
       const all = await base44.entities.Transaction.list('-date', 100);
       const mine = all.filter(t =>
         t.created_by_id === user.id ||
+        t.user_id === user.id ||
         (family?.id && t.family_id === family.id)
       );
       return filterByWorkspace(mine, activeWorkspaceId);
