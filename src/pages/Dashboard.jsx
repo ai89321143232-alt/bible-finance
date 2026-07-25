@@ -149,6 +149,7 @@ export default function Dashboard() {
       const all = await base44.entities.Transaction.list('-date', 200);
       return all.filter(t =>
         t.created_by_id === user.id ||
+        t.user_id === user.id ||
         (family?.id && t.family_id === family.id)
       );
     },

@@ -161,6 +161,7 @@ export default function Budgets() {
       const all = await base44.entities.Transaction.list('-date', 1000);
       return all.filter(t =>
         t.created_by_id === user.id ||
+        t.user_id === user.id ||
         (family?.id && t.family_id === family.id)
       );
     },
