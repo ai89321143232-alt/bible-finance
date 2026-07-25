@@ -124,7 +124,7 @@ export default function Transactions() {
     return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(amount);
   };
 
-  const isFamilyTier = family?.subscription_tier === 'family';
+  const isFamilyTier = family?.subscription_tier === 'family' || family?.subscription_tier === 'premium';
   const displayedTransactions = (showOnlyMine && isFamilyTier)
     ? transactions.filter(t => t.created_by_id === user?.id || t.user_id === user?.id)
     : transactions;
