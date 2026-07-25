@@ -318,6 +318,10 @@ export default function Dashboard() {
     sum + (inv.quantity * ((inv.current_price || inv.purchase_price) - inv.purchase_price)), 0
   );
 
+  // Личный режим: только мои фиксированные активы. Семейный режим: мои + семьи.
+  const personalFixedAssets = fixedAssets.filter(fa => fa.created_by_id === user?.id);
+  const modeFixedAssets = (family && balanceMode === 'family') ? fixedAssets : personalFixedAssets;
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('ru-RU', { 
       style: 'currency', 
@@ -472,8 +476,8 @@ export default function Dashboard() {
         {/* Net Worth Card — shows assets vs debts breakdown */}
         <NetWorthCard
           accounts={displayAccounts}
-          investments={investments}
-          fixedAssets={fixedAssets}
+          investments={modeInvestments}
+          fixedAssets={modeFixedAssets}
           formatCurrency={formatCurrency}
           onFixedAssetAdded={() => queryClient.invalidateQueries({ queryKey: ['fixed-assets'] })}
         />
