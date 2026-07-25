@@ -325,8 +325,14 @@ export default function Budgets() {
     viewMode === 'personal' ? myBudgets : sharedBudgets,
     activeWorkspaceId
   );
-  const totalBudget = displayBudgets.reduce((sum, b) => sum + (b.limit_amount || 0), 0);
-  const totalSpent = displayBudgets.reduce((sum, b) => sum + getBudgetSpent(b), 0);
+
+  // Общая сводка: личные + семейные бюджеты вместе, и по отдельности
+  const personalBudgets = filterByWorkspace(myBudgets, activeWorkspaceId);
+  const familyBudgets = filterByWorkspace(sharedBudgets, activeWorkspaceId);
+  const personalTotal = personalBudgets.reduce((sum, b) => sum + (b.limit_amount || 0), 0);
+  const familyTotal = familyBudgets.reduce((sum, b) => sum + (b.limit_amount || 0), 0);
+  const totalBudget = personalTotal + familyTotal;
+  const totalSpent = [...personalBudgets, ...familyBudgets].reduce((sum, b) => sum + getBudgetSpent(b), 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -408,6 +414,18 @@ export default function Budgets() {
               <div className="flex justify-between mt-2 text-sm text-violet-200">
                 <span>Потрачено: {formatCurrency(totalSpent)}</span>
                 <span>Осталось: {formatCurrency(totalBudget - totalSpent)}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-white/20">
+                <div>
+                  <p className="text-violet-200 text-xs">Личный</p>
+                  <p className="text-lg font-semibold text-white">{formatCurrency(personalTotal)}</p>
+                </div>
+                <div>
+                  <p className="text-violet-200 text-xs flex items-center gap-1">
+                    <Users className="w-3 h-3" /> Семейный
+                  </p>
+                  <p className="text-lg font-semibold text-white">{formatCurrency(familyTotal)}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
