@@ -43,6 +43,10 @@ async function createTransactionRecord({ entities, parsed, account, ownerId }) {
     if (!isNaN(d.getTime())) txDate = d;
   }
 
+  // Проставляем family_id владельца бота, иначе операция видна только ему —
+  // остальные члены семьи не увидят её ни в списке, ни в семейных финансах.
+  const owner = await entities.User.get(ownerId).catch(() => null);
+
   await entities.Transaction.create({
     type: parsed.type,
     amount: parsed.amount,
@@ -52,6 +56,7 @@ async function createTransactionRecord({ entities, parsed, account, ownerId }) {
     date: txDate.toISOString(),
     account_id: account.id,
     user_id: ownerId,
+    family_id: owner?.family_id || undefined,
     source: 'telegram_bot'
   });
 
@@ -185,6 +190,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
           date: t.date || new Date().toISOString(),
           account_id: targetAccount.id,
           user_id: ownerId,
+          family_id: owner?.family_id || undefined,
           source: 'telegram_bot'
         });
         await applyBalanceDelta(entities, targetAccount.id, effect(t.type, t.amount));
@@ -214,6 +220,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
           currency: inv.currency || 'RUB',
           purchase_date: new Date().toISOString().split('T')[0],
           user_id: ownerId,
+          family_id: owner?.family_id || undefined,
           created_by_id: ownerId
         });
         await applyBalanceDelta(entities, targetAccount.id, -totalCost);
