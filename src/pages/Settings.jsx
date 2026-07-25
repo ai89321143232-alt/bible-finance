@@ -127,6 +127,8 @@ export default function Settings() {
   const [showTelegramBot, setShowTelegramBot] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showResetData, setShowResetData] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [isUploadingBg, setIsUploadingBg] = useState(false);
 
   // Автоматическая активация демо-периода при первом входе
@@ -203,6 +205,18 @@ export default function Settings() {
     } catch (error) {
       console.error('Delete account error:', error);
       setIsDeleting(false);
+    }
+  };
+
+  const handleResetData = async () => {
+    setIsResetting(true);
+    try {
+      await base44.functions.invoke('resetAllData', {});
+      setShowResetData(false);
+      window.location.href = createPageUrl('Dashboard');
+    } catch (error) {
+      console.error('Reset data error:', error);
+      setIsResetting(false);
     }
   };
 
@@ -707,6 +721,23 @@ export default function Settings() {
            </Button>
           </motion.div>
 
+          {/* Reset Data */}
+          <motion.div
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ delay: 0.42 }}
+           className="mt-3"
+          >
+           <Button
+             variant="ghost"
+             onClick={() => setShowResetData(true)}
+             className="w-full h-12 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+           >
+             <Database className="w-4 h-4 mr-2" />
+             Обнулить все данные
+           </Button>
+          </motion.div>
+
           {/* Delete Account */}
           <motion.div
            initial={{ opacity: 0, y: 20 }}
@@ -826,6 +857,37 @@ export default function Settings() {
               className="bg-rose-600 hover:bg-rose-700 rounded-xl"
             >
               {isDeleting ? 'Удаление...' : 'Удалить навсегда'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reset Data Confirmation */}
+      <AlertDialog open={showResetData} onOpenChange={setShowResetData}>
+        <AlertDialogContent className="rounded-2xl max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-amber-600">Обнулить все данные?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>Это действие <strong>нельзя отменить</strong>. Будут безвозвратно удалены только ваши записи:</p>
+              <ul className="list-disc pl-5 space-y-1 text-sm">
+                <li>Все транзакции</li>
+                <li>Все счета и их балансы</li>
+                <li>Все бюджеты</li>
+                <li>Все финансовые цели</li>
+                <li>Все инвестиции</li>
+                <li>Все задачи, заметки и шаблоны операций</li>
+              </ul>
+              <p className="font-medium">Аккаунт, семья и настройки профиля сохранятся — можно начать вести учёт заново.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl" disabled={isResetting}>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetData}
+              disabled={isResetting}
+              className="bg-amber-600 hover:bg-amber-700 rounded-xl"
+            >
+              {isResetting ? 'Обнуление...' : 'Обнулить данные'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

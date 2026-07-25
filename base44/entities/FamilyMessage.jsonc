@@ -1,0 +1,57 @@
+{
+  "name": "FamilyMessage",
+  "type": "object",
+  "properties": {
+    "family_id": {
+      "type": "string",
+      "description": "ID \u0441\u0435\u043c\u044c\u0438, \u043a \u043a\u043e\u0442\u043e\u0440\u043e\u0439 \u043e\u0442\u043d\u043e\u0441\u0438\u0442\u0441\u044f \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435"
+    },
+    "content": {
+      "type": "string",
+      "description": "\u0422\u0435\u043a\u0441\u0442 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u044f"
+    }
+  },
+  "required": [
+    "family_id",
+    "content"
+  ],
+  "rls": {
+    "create": {
+      "$and": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        }
+      ]
+    },
+    "read": {
+      "$and": [
+        {
+          "data.family_id": {
+            "$ne": null
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        }
+      ]
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

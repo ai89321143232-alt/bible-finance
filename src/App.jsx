@@ -31,6 +31,7 @@ import HelpCenter from './pages/HelpCenter';
 import DebtAnalytics from './pages/DebtAnalytics';
 import Education from './pages/Education';
 import EducationLesson from './pages/EducationLesson';
+import FamilyChat from './pages/FamilyChat';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Login from './pages/Login';
@@ -118,6 +119,8 @@ const AuthenticatedApp = () => {
         <Route path="/Education/:lessonId" element={<LayoutWrapper currentPageName="Education"><EducationLesson /></LayoutWrapper>} />
         {/* Политика конфиденциальности */}
         <Route path="/PrivacyPolicy" element={<LayoutWrapper currentPageName="PrivacyPolicy"><PrivacyPolicy /></LayoutWrapper>} />
+        {/* Семейный чат */}
+        <Route path="/FamilyChat" element={<LayoutWrapper currentPageName="FamilyChat"><FamilyChat /></LayoutWrapper>} />
       </Route>
 
       {/* 404 */}
