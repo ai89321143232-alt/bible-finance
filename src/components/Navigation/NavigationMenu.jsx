@@ -6,6 +6,7 @@ import {
   LayoutDashboard, ArrowLeftRight, CreditCard, Target, TrendingUp,
   ListTodo, PieChart, Settings, Users, FileText, Lightbulb, Baby, BarChart2, HelpCircle, Sparkles, MessageCircle, GraduationCap, MessageSquare
 } from 'lucide-react';
+import useUnreadFamilyChat from '@/hooks/useUnreadFamilyChat';
 
 const MENU_ITEMS = [
   { name: 'Dashboard',         label: 'Дашборд',          icon: LayoutDashboard },
@@ -44,6 +45,7 @@ const MENU_ITEMS = [
 // ============================================================
 export default function NavigationMenu({ currentPageName, onNavigate, isChildMode }) {
   const [hiddenItems, setHiddenItems] = useState([]);
+  const { data: unreadChatCount = 0 } = useUnreadFamilyChat();
 
   useEffect(() => {
     base44.auth.me().then(user => {
@@ -89,6 +91,11 @@ export default function NavigationMenu({ currentPageName, onNavigate, isChildMod
           >
             <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`} />
             <span>{item.label}</span>
+            {item.name === 'FamilyChat' && unreadChatCount > 0 && (
+              <span className="ml-auto flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-fuchsia-600 text-white text-[10px] font-semibold">
+                {unreadChatCount > 9 ? '9+' : unreadChatCount}
+              </span>
+            )}
             {isActive && (
               <div className="ml-auto w-1 h-4 rounded-full bg-foreground opacity-70" />
             )}

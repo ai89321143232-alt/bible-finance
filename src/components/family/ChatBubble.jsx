@@ -8,7 +8,7 @@ import ReactionBar from '@/components/family/ReactionBar';
 // Один пузырь сообщения в семейном чате: справа/цветной для своих,
 // слева/нейтральный для чужих. Поддерживает редактирование, реакции
 // и особый вид для запроса денег.
-export default function ChatBubble({ message, member, isOwn, userId, onReact, onEdit, onFulfillRequest }) {
+export default function ChatBubble({ message, member, isOwn, userId, totalMembers = 1, payer, onReact, onEdit, onFulfillRequest }) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(message.content);
   const name = member?.display_name || member?.name || 'Участник';
@@ -54,7 +54,8 @@ export default function ChatBubble({ message, member, isOwn, userId, onReact, on
             {message.content && <p className="mt-1 opacity-95 whitespace-pre-wrap break-words">{message.content}</p>}
             {isFulfilled ? (
               <div className="mt-2 flex items-center gap-1 text-xs font-medium bg-white/25 rounded-full px-2 py-0.5 w-fit">
-                <PartyPopper className="w-3 h-3" /> Оплачено
+                <PartyPopper className="w-3 h-3" />
+                Оплачено{payer ? ` — ${payer.display_name || payer.name}` : ''}
               </div>
             ) : !isOwn ? (
               <button
@@ -108,6 +109,13 @@ export default function ChatBubble({ message, member, isOwn, userId, onReact, on
             {format(new Date(message.created_date), 'HH:mm', { locale: ru })}
           </span>
           {message.edited && !isMoneyRequest && <span className="text-[10px] text-muted-foreground">(изменено)</span>}
+          {isOwn && !isMoneyRequest && totalMembers > 1 && (
+            <span className="text-[10px] text-muted-foreground">
+              {(message.read_by || []).filter(id => id !== message.created_by_id).length >= totalMembers - 1
+                ? '· Прочитано всеми'
+                : `· Прочитано ${(message.read_by || []).filter(id => id !== message.created_by_id).length}/${totalMembers - 1}`}
+            </span>
+          )}
         </div>
 
         {!isMoneyRequest && (

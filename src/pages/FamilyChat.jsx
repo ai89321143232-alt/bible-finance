@@ -45,9 +45,23 @@ export default function FamilyChat() {
     }
     setIsLoading(true);
     base44.entities.FamilyMessage.filter({ family_id: family.id }, 'created_date', 200)
-      .then(setMessages)
+      .then((data) => {
+        setMessages(data);
+        markMessagesRead(data);
+      })
       .finally(() => setIsLoading(false));
   }, [family?.id]);
+
+  // Отмечает чужие непрочитанные сообщения прочитанными текущим пользователем
+  const markMessagesRead = (list) => {
+    if (!user) return;
+    const unread = list.filter(m => m.created_by_id !== user.id && !(m.read_by || []).includes(user.id));
+    if (unread.length === 0) return;
+    setMessages(prev => prev.map(m => unread.some(u => u.id === m.id) ? { ...m, read_by: [...(m.read_by || []), user.id] } : m));
+    Promise.all(unread.map(m =>
+      base44.entities.FamilyMessage.update(m.id, { read_by: [...(m.read_by || []), user.id] })
+    ));
+  };
 
   useEffect(() => {
     if (!family) return;
@@ -55,6 +69,7 @@ export default function FamilyChat() {
       if (event.data?.family_id !== family.id) return;
       if (event.type === 'create') {
         setMessages(prev => prev.some(m => m.id === event.data.id) ? prev : [...prev, event.data]);
+        markMessagesRead([event.data]);
       } else if (event.type === 'update') {
         setMessages(prev => prev.map(m => m.id === event.data.id ? event.data : m));
       }
@@ -72,7 +87,7 @@ export default function FamilyChat() {
     setIsSending(true);
     setText('');
     try {
-      await base44.entities.FamilyMessage.create({ family_id: family.id, content });
+      await base44.entities.FamilyMessage.create({ family_id: family.id, content, read_by: [user.id] });
     } finally {
       setIsSending(false);
     }
@@ -86,6 +101,7 @@ export default function FamilyChat() {
       type: 'money_request',
       amount,
       request_status: 'pending',
+      read_by: [user.id],
     });
   };
 
@@ -112,8 +128,22 @@ export default function FamilyChat() {
   };
 
   const handleFulfillRequest = async (message) => {
-    setMessages(prev => prev.map(m => m.id === message.id ? { ...m, request_status: 'fulfilled' } : m));
-    await base44.entities.FamilyMessage.update(message.id, { request_status: 'fulfilled' });
+    const requester = getMember(message.created_by_id);
+    const requesterName = requester?.display_name || requester?.name || 'участника семьи';
+    const transaction = await base44.entities.Transaction.create({
+      type: 'expense',
+      amount: message.amount,
+      category: 'Семейные переводы',
+      description: `Перевод для ${requesterName} (запрос в чате)`,
+      date: new Date().toISOString(),
+      family_id: family.id,
+      user_id: user.id,
+      source: 'app',
+      visibility: 'shared',
+    });
+    const updates = { request_status: 'fulfilled', paid_by: user.id, transaction_id: transaction.id };
+    setMessages(prev => prev.map(m => m.id === message.id ? { ...m, ...updates } : m));
+    await base44.entities.FamilyMessage.update(message.id, updates);
   };
 
   const handleKeyDown = (e) => {
@@ -169,6 +199,8 @@ export default function FamilyChat() {
               member={getMember(m.created_by_id)}
               isOwn={m.created_by_id === user.id}
               userId={user.id}
+              totalMembers={family.members?.length || 1}
+              payer={getMember(m.paid_by)}
               onReact={(emoji) => handleReact(m, emoji)}
               onEdit={(content) => handleEdit(m, content)}
               onFulfillRequest={() => handleFulfillRequest(m)}
