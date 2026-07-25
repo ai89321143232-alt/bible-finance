@@ -426,6 +426,8 @@ export default function Budgets() {
                 onEdit={handleEdit}
                 onDelete={(id) => setDeleteId(id)}
                 formatCurrency={formatCurrency}
+                family={family}
+                currentUser={user}
               />
             ))}
           </div>

@@ -36,6 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/WorkspaceContext';
+import CreatorTag from '@/components/shared/CreatorTag';
 
 const ACCOUNT_TYPES = [
   { value: 'cash', label: 'Наличные', icon: '💵', color: '#10B981' },
@@ -368,8 +369,9 @@ export default function Accounts() {
                               {account.name}
                             </h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400">
-                              {typeInfo.label} • {(account.created_by || '').split('@')[0]}
+                              {typeInfo.label}
                             </p>
+                            <CreatorTag creatorId={account.created_by_id} family={family} currentUser={currentUser} className="mt-0.5" />
                           </div>
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

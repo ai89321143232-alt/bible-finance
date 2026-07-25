@@ -216,7 +216,7 @@ export default function Transactions() {
                     {groupedTransactions[dateKey].map((transaction, index) => (
                       <SwipeableTransaction key={transaction.id} transaction={transaction} index={index}
                         onDelete={setDeleteId} onEdit={(t) => { setEditTransaction(t); setShowAddModal(true); }}
-                        formatCurrency={formatCurrency} showActions={false} />
+                        formatCurrency={formatCurrency} showActions={false} family={family} currentUser={user} />
                     ))}
                   </CardContent>
                 </Card>

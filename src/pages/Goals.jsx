@@ -297,7 +297,7 @@ export default function Goals() {
                   isEditable={viewMode === 'personal' || goal.created_by_id === user?.id}
                   onEdit={handleEdit} onDelete={(id) => setDeleteId(id)}
                   onAddFunds={setShowAddFundsModal} onSpend={setShowSpendModal}
-                  formatCurrency={formatCurrency} />
+                  formatCurrency={formatCurrency} family={family} currentUser={user} />
               ))}
             </div>
           </div>

@@ -5,6 +5,7 @@ import { Edit2, Trash2, Coins, MinusCircle, AlertCircle, Lock } from 'lucide-rea
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import CreatorTag from '@/components/shared/CreatorTag';
 
 const GOAL_TYPES = [
   { value: 'savings', label: 'Накопления', icon: '💰', color: '#10B981' },
@@ -23,7 +24,9 @@ export default function GoalCard({
   onDelete, 
   onAddFunds, 
   onSpend,
-  formatCurrency 
+  formatCurrency,
+  family,
+  currentUser
 }) {
   const typeInfo = GOAL_TYPES.find(t => t.value === goal.type) || GOAL_TYPES[5];
   const progress = goal.target_amount > 0 
@@ -102,6 +105,7 @@ export default function GoalCard({
                     {priorityLabels[goal.priority]}
                   </div>
                 </div>
+                <CreatorTag creatorId={goal.created_by_id} family={family} currentUser={currentUser} className="mt-0.5" />
               </div>
             </div>
             {isEditable && (

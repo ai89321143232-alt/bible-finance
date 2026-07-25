@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { InvestmentService } from '@/services';
+import CreatorTag from '@/components/shared/CreatorTag';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -92,6 +94,25 @@ export default function Investments() {
   const { data: investments = [], isLoading } = useQuery({
     queryKey: ['investments'],
     queryFn: () => InvestmentService.list()
+  });
+
+  const [currentUser, setCurrentUser] = useState(null);
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
+
+  const { data: family } = useQuery({
+    queryKey: ['my-family', currentUser?.id],
+    queryFn: async () => {
+      if (!currentUser) return null;
+      const families = await base44.entities.Family.list();
+      return families.find(f =>
+        f.owner_id === currentUser?.id ||
+        f.members?.some(m => m.user_id === currentUser?.id)
+      ) ?? null;
+    },
+    enabled: !!currentUser,
+    staleTime: 60000
   });
 
   const createMutation = useMutation({
@@ -345,6 +366,7 @@ export default function Investments() {
                             <p className="text-sm text-slate-500 dark:text-slate-400">
                               {investment.quantity} шт. × {formatCurrency(currentPrice)}
                             </p>
+                            <CreatorTag creatorId={investment.created_by_id} family={family} currentUser={currentUser} className="mt-0.5" />
                           </div>
                         </div>
 

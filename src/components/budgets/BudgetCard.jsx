@@ -4,6 +4,7 @@ import { AlertCircle, Edit2, Trash2, Lock } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import CreatorTag from '@/components/shared/CreatorTag';
 
 const BUDGET_CATEGORIES = [
   { value: 'Еда', icon: '🍔', color: '#F59E0B' },
@@ -24,7 +25,9 @@ export default function BudgetCard({
   isEditable,
   onEdit, 
   onDelete,
-  formatCurrency 
+  formatCurrency,
+  family,
+  currentUser
 }) {
   const progress = budget.limit_amount > 0 ? (spent / budget.limit_amount) * 100 : 0;
   const isOverBudget = progress > 100;
@@ -73,6 +76,7 @@ export default function BudgetCard({
                 <p className="text-sm text-slate-500 dark:text-slate-400">
                   {budgetCategories.join(', ')}
                 </p>
+                <CreatorTag creatorId={budget.created_by_id} family={family} currentUser={currentUser} className="mt-0.5" />
               </div>
             </div>
             {isEditable && (
