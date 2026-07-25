@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { getSubscriptionStatus } from '@/components/SubscriptionManager';
 
 export default function Family() {
   const queryClient = useQueryClient();
@@ -47,6 +48,7 @@ export default function Family() {
   const [familyName, setFamilyName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [copied, setCopied] = useState(false);
+  const [showDeleteFamilyModal, setShowDeleteFamilyModal] = useState(false);
 
   useEffect(() => {
     loadCurrentUser();
@@ -206,12 +208,27 @@ export default function Family() {
     onError: (err) => toast.error(err.message || 'Ошибка удаления участника')
   });
 
+  const deleteFamilyMutation = useMutation({
+    mutationFn: async () => {
+      if (!myFamily) return;
+      const res = await base44.functions.invoke('deleteFamily', { familyId: myFamily.id });
+      if (res.data?.error) throw new Error(res.data.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['families'] });
+      setShowDeleteFamilyModal(false);
+      toast.success('Семья удалена');
+    },
+    onError: (err) => toast.error(err.message || 'Ошибка удаления семьи')
+  });
+
   const myFamily = families.find(f => 
     f.owner_id === currentUser?.id || 
     f.members?.some(m => m.user_id === currentUser?.id)
   );
   
   const isOwner = myFamily?.owner_id === currentUser?.id;
+  const subscriptionStatus = getSubscriptionStatus(currentUser);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -377,6 +394,20 @@ export default function Family() {
               </motion.div>
             )}
 
+            {/* Delete Family Button (owner only) */}
+            {isOwner && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteFamilyModal(true)}
+                  className="w-full rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Удалить семью
+                </Button>
+              </motion.div>
+            )}
+
             {/* Info Cards */}
             <div className="grid sm:grid-cols-2 gap-4 mt-6">
               <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
@@ -388,8 +419,13 @@ export default function Family() {
                     <span className="font-medium text-slate-900 dark:text-white">План подписки</span>
                   </div>
                   <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {myFamily.subscription_tier === 'free' ? 'Бесплатный' : myFamily.subscription_tier === 'premium' ? 'Premium' : 'Family'}
+                    {subscriptionStatus.displayName}
                   </p>
+                  {subscriptionStatus.isTrial && subscriptionStatus.daysLeft > 0 && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Осталось {subscriptionStatus.daysLeft} дн.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -503,6 +539,28 @@ export default function Family() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Family Confirmation */}
+      <AlertDialog open={showDeleteFamilyModal} onOpenChange={setShowDeleteFamilyModal}>
+        <AlertDialogContent className="rounded-2xl max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-rose-600">Удалить семью?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Семья "{myFamily?.name}" будет удалена безвозвратно, а все участники потеряют доступ к общим данным. Это действие нельзя отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl" disabled={deleteFamilyMutation.isPending}>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteFamilyMutation.mutate()}
+              disabled={deleteFamilyMutation.isPending}
+              className="bg-rose-600 hover:bg-rose-700 rounded-xl"
+            >
+              {deleteFamilyMutation.isPending ? 'Удаление...' : 'Удалить навсегда'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Join Family Modal */}
       <Dialog open={showJoinModal} onOpenChange={setShowJoinModal}>
