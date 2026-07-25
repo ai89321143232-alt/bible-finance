@@ -4,15 +4,27 @@ import { buildAssistantSystemPrompt, invokeAssistantModel, computeFinancialConte
 
 const EXPENSE_CATEGORIES = 'Еда и рестораны, Транспорт, Здоровье, Развлечения, Одежда, ЖКХ, Связь, Образование, Зарплата, Другое';
 
-async function sendMessage(botToken, chatId, text) {
+async function sendMessage(botToken, chatId, text, replyMarkup) {
   try {
     await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text })
+      body: JSON.stringify({ chat_id: chatId, text, reply_markup: replyMarkup })
     });
   } catch (e) {
     // best-effort — webhook must still respond ok to Telegram
+  }
+}
+
+async function answerCallbackQuery(botToken, callbackQueryId, text) {
+  try {
+    await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ callback_query_id: callbackQueryId, text })
+    });
+  } catch (e) {
+    // best-effort
   }
 }
 
@@ -24,7 +36,7 @@ async function downloadTelegramFile(botToken, fileId) {
   return await fileRes.arrayBuffer();
 }
 
-async function finalizeTransaction({ entities, parsed, account, ownerId, botToken, chatId }) {
+async function createTransactionRecord({ entities, parsed, account, ownerId }) {
   let txDate = new Date();
   if (parsed.date) {
     const d = new Date(parsed.date);
@@ -45,13 +57,69 @@ async function finalizeTransaction({ entities, parsed, account, ownerId, botToke
 
   await applyBalanceDelta(entities, account.id, effect(parsed.type, parsed.amount));
   if (parsed.type === 'expense') await applyBudgetDelta(entities, ownerId, parsed.category, parsed.amount);
+}
 
+async function finalizeTransaction({ entities, parsed, account, ownerId, botToken, chatId }) {
+  await createTransactionRecord({ entities, parsed, account, ownerId });
   const emoji = parsed.type === 'expense' ? '💸' : '💰';
   await sendMessage(
     botToken,
     chatId,
     `${emoji} Записано: ${parsed.description || 'Операция'}\nСумма: ${parsed.amount} ${account.currency || 'RUB'}\nКатегория: ${parsed.category || 'Другое'}\nСчёт: ${account.name}`
   );
+}
+
+// Отправляет список счетов кнопками и сохраняет операции, ожидающие выбора счёта
+async function requestAccountSelection({ entities, config, accounts, transactions, botToken, chatId }) {
+  await entities.TelegramBotConfig.update(config.id, { pending_transactions: transactions });
+  const keyboard = accounts.map(a => ([{ text: a.name, callback_data: `acc:${a.id}` }]));
+  const summary = transactions.length === 1
+    ? `${transactions[0].type === 'expense' ? '💸' : '💰'} ${transactions[0].description || 'Операция'} — ${transactions[0].amount} ₽`
+    : `Найдено операций: ${transactions.length} на сумму ${transactions.reduce((s, t) => s + (t.amount || 0), 0)} ₽`;
+  await sendMessage(botToken, chatId, `${summary}\n\nВыберите счёт для записи:`, { inline_keyboard: keyboard });
+}
+
+// Если счёт один — сразу проводит операцию(и), иначе просит выбрать счёт кнопками
+async function finalizeOrAskAccount({ entities, config, accounts, transactions, ownerId, botToken, chatId }) {
+  if (accounts.length <= 1) {
+    const account = accounts[0];
+    if (!account) {
+      await sendMessage(botToken, chatId, 'Не найден счёт для записи операции. Добавьте счёт в приложении.');
+      return;
+    }
+    for (const t of transactions) {
+      await finalizeTransaction({ entities, parsed: t, account, ownerId, botToken, chatId });
+    }
+    return;
+  }
+  await requestAccountSelection({ entities, config, accounts, transactions, botToken, chatId });
+}
+
+// Обработка нажатия кнопки выбора счёта
+async function handleAccountCallback({ base44, config, accounts, ownerId, botToken, chatId, callbackQueryId, accountId }) {
+  const entities = base44.asServiceRole.entities;
+  const pending = config.pending_transactions || [];
+  if (pending.length === 0) {
+    await answerCallbackQuery(botToken, callbackQueryId, 'Операция уже обработана');
+    return;
+  }
+  const account = accounts.find(a => a.id === accountId);
+  if (!account) {
+    await answerCallbackQuery(botToken, callbackQueryId, 'Счёт не найден');
+    return;
+  }
+
+  for (const t of pending) {
+    await createTransactionRecord({ entities, parsed: t, account, ownerId });
+  }
+  await entities.TelegramBotConfig.update(config.id, { pending_transactions: [] });
+  await answerCallbackQuery(botToken, callbackQueryId, 'Записано ✅');
+
+  const total = pending.reduce((s, t) => s + (t.amount || 0), 0);
+  const label = pending.length === 1
+    ? `${pending[0].type === 'expense' ? '💸' : '💰'} Записано: ${pending[0].description || 'Операция'}\nСумма: ${pending[0].amount} ${account.currency || 'RUB'}\nКатегория: ${pending[0].category || 'Другое'}\nСчёт: ${account.name}`
+    : `✅ Записано ${pending.length} операций на сумму ${total} ${account.currency || 'RUB'}\nСчёт: ${account.name}`;
+  await sendMessage(botToken, chatId, label);
 }
 
 // Полноценный AI-чат в Telegram — те же вопросы/отчёты/создание/правка/удаление операций,
@@ -92,7 +160,18 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
     if (!t.amount || !t.type) {
       replyText = replyText || 'Не удалось распознать сумму или тип операции.';
     } else {
-      const matchedAccountId = matchAccount(accounts, t.account_hint) || account?.id;
+      const matchedAccountId = matchAccount(accounts, t.account_hint);
+      if (!matchedAccountId && accounts.length > 1) {
+        // AI не смог определить счёт по подсказке — просим выбрать кнопками
+        await requestAccountSelection({
+          entities, config, accounts,
+          transactions: [{ type: t.type, amount: t.amount, category: t.category || 'Другое', description: t.description || 'Операция из Telegram', date: t.date }],
+          botToken, chatId
+        });
+        const newHistory = [...history, { role: 'user', content: text }, { role: 'assistant', content: 'Уточняю счёт для записи операции…' }].slice(-20);
+        await entities.TelegramBotConfig.update(config.id, { chat_history: newHistory });
+        return;
+      }
       const targetAccount = accounts.find(a => a.id === matchedAccountId) || account;
       if (!targetAccount) {
         replyText = 'Не найден счёт для записи операции. Добавьте счёт в приложении.';
@@ -156,6 +235,12 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
   await entities.TelegramBotConfig.update(config.id, { chat_history: newHistory });
 }
 
+function mimeAndNameFromDocument(doc) {
+  const name = doc.file_name || 'file';
+  const mime = doc.mime_type || 'application/octet-stream';
+  return { name, mime };
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -166,10 +251,31 @@ Deno.serve(async (req) => {
     if (!config || !config.is_active) return Response.json({ ok: true });
 
     const update = await req.json();
+    const botToken = config.bot_token;
+
+    // Нажатие на кнопку выбора счёта
+    if (update.callback_query) {
+      const cq = update.callback_query;
+      const chatId = cq.message?.chat?.id;
+      const fromId = String(cq.from?.id || '');
+      if (fromId !== String(config.telegram_user_id)) {
+        await answerCallbackQuery(botToken, cq.id, 'Этот бот подключён к другому аккаунту.');
+        return Response.json({ ok: true });
+      }
+      const data = cq.data || '';
+      if (data.startsWith('acc:')) {
+        const accountId = data.slice(4);
+        const ownerId = config.created_by_id;
+        const allAccounts = await base44.asServiceRole.entities.Account.filter({ user_id: ownerId });
+        const accounts = allAccounts.length > 0 ? allAccounts : await base44.asServiceRole.entities.Account.filter({ created_by_id: ownerId });
+        await handleAccountCallback({ base44, config, accounts, ownerId, botToken, chatId, callbackQueryId: cq.id, accountId });
+      }
+      return Response.json({ ok: true });
+    }
+
     const message = update.message;
     if (!message) return Response.json({ ok: true });
 
-    const botToken = config.bot_token;
     const chatId = message.chat.id;
     const fromId = String(message.from?.id || '');
 
@@ -189,6 +295,8 @@ Deno.serve(async (req) => {
       await sendMessage(botToken, chatId, 'Не найден счёт для записи операции. Добавьте счёт в приложении.');
       return Response.json({ ok: true });
     }
+
+    const entities = base44.asServiceRole.entities;
 
     // Голосовое сообщение
     if (message.voice) {
@@ -227,7 +335,7 @@ Deno.serve(async (req) => {
         return Response.json({ ok: true });
       }
 
-      await finalizeTransaction({ entities: base44.asServiceRole.entities, parsed, account, ownerId, botToken, chatId });
+      await finalizeOrAskAccount({ entities, config, accounts, transactions: [parsed], ownerId, botToken, chatId });
       return Response.json({ ok: true });
     }
 
@@ -270,14 +378,68 @@ Deno.serve(async (req) => {
         date: out.date
       };
 
-      await finalizeTransaction({ entities: base44.asServiceRole.entities, parsed, account, ownerId, botToken, chatId });
+      await finalizeOrAskAccount({ entities, config, accounts, transactions: [parsed], ownerId, botToken, chatId });
+      return Response.json({ ok: true });
+    }
+
+    // Файл (PDF или банковская выписка: pdf, csv, xlsx, png/jpg документом)
+    if (message.document) {
+      const { name, mime } = mimeAndNameFromDocument(message.document);
+      const fileBuffer = await downloadTelegramFile(botToken, message.document.file_id);
+      if (!fileBuffer) {
+        await sendMessage(botToken, chatId, 'Не удалось загрузить файл.');
+        return Response.json({ ok: true });
+      }
+      const docFile = new File([fileBuffer], name, { type: mime });
+      const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file: docFile });
+
+      await sendMessage(botToken, chatId, '📄 Обрабатываю файл, это может занять немного времени…');
+
+      const extracted = await base44.asServiceRole.integrations.Core.ExtractDataFromUploadedFile({
+        file_url,
+        json_schema: {
+          type: 'object',
+          properties: {
+            transactions: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  merchant: { type: 'string' },
+                  amount: { type: 'number' },
+                  operation_type: { type: 'string', enum: ['expense', 'income'] },
+                  date: { type: 'string' },
+                  category: { type: 'string' }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const rows = extracted.status === 'success' ? (extracted.output?.transactions || []) : [];
+      const valid = rows.filter(r => r && r.amount);
+      if (valid.length === 0) {
+        await sendMessage(botToken, chatId, 'Не удалось распознать операции в этом файле. Поддерживаются PDF, CSV, XLSX, а также фото чеков.');
+        return Response.json({ ok: true });
+      }
+
+      const transactions = valid.map(r => ({
+        type: r.operation_type === 'income' ? 'income' : 'expense',
+        amount: r.amount,
+        category: r.category || 'Другое',
+        description: r.merchant || 'Операция из выписки',
+        date: r.date
+      }));
+
+      await finalizeOrAskAccount({ entities, config, accounts, transactions, ownerId, botToken, chatId });
       return Response.json({ ok: true });
     }
 
     // Текстовое сообщение — полноценный AI-чат (вопросы, отчёты, создание/правка/удаление операций)
     if (message.text) {
       if (message.text.trim() === '/start') {
-        await sendMessage(botToken, chatId, 'Привет! 👋 Я твой финансовый ассистент. Спроси меня об операциях, попроси отчёт, отправь голосовое/фото чека — или просто опиши покупку текстом, и я всё запишу.');
+        await sendMessage(botToken, chatId, 'Привет! 👋 Я твой финансовый ассистент. Спроси меня об операциях, попроси отчёт, отправь голосовое/фото чека/PDF или CSV выписку — или просто опиши покупку текстом, и я всё запишу. Если счетов несколько — предложу выбрать нужный кнопками.');
         return Response.json({ ok: true });
       }
       await handleTextMessage({ base44, config, account, accounts, ownerId, botToken, chatId, text: message.text });
