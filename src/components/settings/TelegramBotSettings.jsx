@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { appParams } from '@/lib/app-params';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -70,6 +71,7 @@ export default function TelegramBotSettings({ open, onOpenChange }) {
         bot_token: botToken.trim(),
         telegram_user_id: telegramUserId.trim(),
         default_account_id: defaultAccountId || undefined,
+        app_url: appParams.appBaseUrl || window.location.origin,
       });
       if (res.data?.error) {
         setError(res.data.error);

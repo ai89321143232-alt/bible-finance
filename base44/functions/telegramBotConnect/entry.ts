@@ -47,7 +47,10 @@ Deno.serve(async (req) => {
       : await base44.entities.TelegramBotConfig.create(payload);
 
     const configId = saved.id || config?.id;
-    const origin = new URL(req.url).origin;
+    // req.url origin points at the internal dispatcher (used for authenticated SDK calls)
+    // and is NOT reachable by Telegram — it returns 401 for external callers.
+    // Use the public app URL sent by the frontend (window.location.origin) instead.
+    const origin = body.app_url || new URL(req.url).origin;
     const webhookUrl = `${origin}/functions/telegramWebhook?configId=${configId}`;
 
     const setRes = await fetch(`https://api.telegram.org/bot${bot_token}/setWebhook`, {
