@@ -308,7 +308,9 @@ export default function Budgets() {
       .filter(t => 
         t.type === 'expense' && 
         (budgetCategories.length === 0 || budgetCategories.includes(t.category)) &&
-        new Date(t.date) >= periodStart
+        new Date(t.date) >= periodStart &&
+        // Личный бюджет считает только свои транзакции, семейный — все транзакции семьи
+        (budget.is_family_budget || t.created_by_id === user?.id || t.user_id === user?.id)
       )
       .reduce((sum, t) => sum + t.amount, 0);
   };
