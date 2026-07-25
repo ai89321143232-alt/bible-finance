@@ -3,16 +3,18 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Send, Users, Loader2 } from 'lucide-react';
+import { Send, Users, Loader2, HandCoins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import ChatBubble from '@/components/family/ChatBubble';
+import MoneyRequestDialog from '@/components/family/MoneyRequestDialog';
 
 // ============================================================
 // FamilyChat.jsx — семейный чат
 // ============================================================
-// Простой мессенджер для членов одной семьи: текстовые сообщения,
-// доставка в реальном времени (entities.subscribe), автопрокрутка вниз.
+// Мессенджер для членов одной семьи: текстовые сообщения и запросы
+// денег в реальном времени (entities.subscribe), реакции-эмодзи,
+// редактирование своих сообщений, автопрокрутка вниз.
 // ============================================================
 export default function FamilyChat() {
   const [user, setUser] = useState(null);
@@ -20,6 +22,7 @@ export default function FamilyChat() {
   const [text, setText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showMoneyRequest, setShowMoneyRequest] = useState(false);
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -51,7 +54,9 @@ export default function FamilyChat() {
     const unsubscribe = base44.entities.FamilyMessage.subscribe((event) => {
       if (event.data?.family_id !== family.id) return;
       if (event.type === 'create') {
-        setMessages(prev => [...prev, event.data]);
+        setMessages(prev => prev.some(m => m.id === event.data.id) ? prev : [...prev, event.data]);
+      } else if (event.type === 'update') {
+        setMessages(prev => prev.map(m => m.id === event.data.id ? event.data : m));
       }
     });
     return unsubscribe;
@@ -71,6 +76,44 @@ export default function FamilyChat() {
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleMoneyRequest = async ({ amount, note }) => {
+    if (!family) return;
+    await base44.entities.FamilyMessage.create({
+      family_id: family.id,
+      content: note?.trim() || '',
+      type: 'money_request',
+      amount,
+      request_status: 'pending',
+    });
+  };
+
+  const handleReact = async (message, emoji) => {
+    const reactions = message.reactions || [];
+    const existing = reactions.find(r => r.emoji === emoji);
+    let updated;
+    if (existing) {
+      const hasUser = existing.user_ids.includes(user.id);
+      const newUserIds = hasUser ? existing.user_ids.filter(id => id !== user.id) : [...existing.user_ids, user.id];
+      updated = newUserIds.length > 0
+        ? reactions.map(r => r.emoji === emoji ? { ...r, user_ids: newUserIds } : r)
+        : reactions.filter(r => r.emoji !== emoji);
+    } else {
+      updated = [...reactions, { emoji, user_ids: [user.id] }];
+    }
+    setMessages(prev => prev.map(m => m.id === message.id ? { ...m, reactions: updated } : m));
+    await base44.entities.FamilyMessage.update(message.id, { reactions: updated });
+  };
+
+  const handleEdit = async (message, newContent) => {
+    setMessages(prev => prev.map(m => m.id === message.id ? { ...m, content: newContent, edited: true } : m));
+    await base44.entities.FamilyMessage.update(message.id, { content: newContent, edited: true });
+  };
+
+  const handleFulfillRequest = async (message) => {
+    setMessages(prev => prev.map(m => m.id === message.id ? { ...m, request_status: 'fulfilled' } : m));
+    await base44.entities.FamilyMessage.update(message.id, { request_status: 'fulfilled' });
   };
 
   const handleKeyDown = (e) => {
@@ -106,13 +149,13 @@ export default function FamilyChat() {
   }
 
   return (
-    <div className="flex flex-col h-screen lg:h-[calc(100vh)]">
-      <div className="px-4 sm:px-6 py-4 border-b border-border">
-        <h1 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <Users className="w-5 h-5 text-primary" />
+    <div className="flex flex-col h-[calc(100vh-4rem)] lg:h-screen">
+      <div className="px-4 sm:px-6 py-4 bg-gradient-to-r from-fuchsia-600 via-violet-600 to-indigo-600 shadow-md flex-shrink-0">
+        <h1 className="text-lg font-semibold text-white flex items-center gap-2">
+          <Users className="w-5 h-5" />
           {family.name}
         </h1>
-        <p className="text-xs text-muted-foreground">{family.members?.length || 0} участников</p>
+        <p className="text-xs text-white/80">{family.members?.length || 0} участников</p>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
@@ -125,13 +168,25 @@ export default function FamilyChat() {
               message={m}
               member={getMember(m.created_by_id)}
               isOwn={m.created_by_id === user.id}
+              userId={user.id}
+              onReact={(emoji) => handleReact(m, emoji)}
+              onEdit={(content) => handleEdit(m, content)}
+              onFulfillRequest={() => handleFulfillRequest(m)}
             />
           ))
         )}
         <div ref={bottomRef} />
       </div>
 
-      <div className="px-4 sm:px-6 py-3 border-t border-border flex items-end gap-2 pb-safe">
+      <div className="px-4 sm:px-6 pt-3 pb-[92px] lg:pb-3 border-t border-border flex items-end gap-2 flex-shrink-0 bg-background">
+        <Button
+          onClick={() => setShowMoneyRequest(true)}
+          size="icon"
+          variant="outline"
+          className="rounded-xl h-11 w-11 flex-shrink-0 border-amber-400 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+        >
+          <HandCoins className="w-5 h-5" />
+        </Button>
         <Textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -144,11 +199,17 @@ export default function FamilyChat() {
           onClick={handleSend}
           disabled={!text.trim() || isSending}
           size="icon"
-          className="rounded-xl h-11 w-11 flex-shrink-0"
+          className="rounded-xl h-11 w-11 flex-shrink-0 bg-gradient-to-br from-fuchsia-500 to-violet-600 hover:from-fuchsia-600 hover:to-violet-700"
         >
           <Send className="w-4 h-4" />
         </Button>
       </div>
+
+      <MoneyRequestDialog
+        open={showMoneyRequest}
+        onOpenChange={setShowMoneyRequest}
+        onSubmit={handleMoneyRequest}
+      />
     </div>
   );
 }
