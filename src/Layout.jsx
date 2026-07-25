@@ -106,7 +106,7 @@ export default function Layout({ children, currentPageName }) {
       </aside>
 
       {/* Main Content */}
-      <main className="lg:ml-64 pt-16 lg:pt-0">
+      <main className="lg:ml-64 pt-[calc(4rem+env(safe-area-inset-top,0px))] lg:pt-0">
         {isMobile && isTabPage ? (
           <MobileTabShell initialTab={
             currentPageName === 'Dashboard' ? 0 :
@@ -120,8 +120,8 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       {/* Mobile Top Bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-background border-b border-border z-40 flex items-center px-5 gap-3"
-        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-background border-b border-border z-40 flex items-center px-5 gap-3"
+        style={{ height: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         {currentPageName !== 'Dashboard' && (
           <button
             onClick={() => navigate(-1)}

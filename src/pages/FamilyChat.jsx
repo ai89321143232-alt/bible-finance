@@ -179,7 +179,7 @@ export default function FamilyChat() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] lg:h-screen">
+    <div className="flex flex-col h-[calc(100vh-4rem-env(safe-area-inset-top,0px))] lg:!h-screen">
       <div className="px-4 sm:px-6 py-4 bg-gradient-to-r from-fuchsia-600 via-violet-600 to-indigo-600 shadow-md flex-shrink-0">
         <h1 className="text-lg font-semibold text-white flex items-center gap-2">
           <Users className="w-5 h-5" />
@@ -210,7 +210,10 @@ export default function FamilyChat() {
         <div ref={bottomRef} />
       </div>
 
-      <div className="px-4 sm:px-6 pt-3 pb-[92px] lg:pb-3 border-t border-border flex items-end gap-2 flex-shrink-0 bg-background">
+      <div
+        className="px-4 sm:px-6 pt-3 border-t border-border flex items-end gap-2 flex-shrink-0 bg-background lg:!pb-3"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 88px)' }}
+      >
         <Button
           onClick={() => setShowMoneyRequest(true)}
           size="icon"
