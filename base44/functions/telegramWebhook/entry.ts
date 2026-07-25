@@ -213,7 +213,8 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
           current_price: purchasePrice,
           currency: inv.currency || 'RUB',
           purchase_date: new Date().toISOString().split('T')[0],
-          user_id: ownerId
+          user_id: ownerId,
+          created_by_id: ownerId
         });
         await applyBalanceDelta(entities, targetAccount.id, -totalCost);
         replyText = replyText || `✅ Записал покупку инвестиции: ${inv.name} на ${totalCost.toLocaleString()} ₽ (счёт: ${targetAccount.name})`;
