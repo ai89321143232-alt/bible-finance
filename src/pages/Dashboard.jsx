@@ -39,6 +39,7 @@ import TemplatesManager from '@/components/transactions/TemplatesManager';
 import PullToRefresh from '@/components/PullToRefresh';
 import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/WorkspaceContext';
 import MemberAvatar from '@/components/family/MemberAvatar';
+import MemberSpendingBreakdown from '@/components/dashboard/MemberSpendingBreakdown';
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -498,6 +499,10 @@ export default function Dashboard() {
             onUseTemplate={handleUseTemplate}
             onOpenManager={() => setShowTemplatesManager(true)}
           />
+        )}
+
+        {balanceMode === 'family' && family && memberBalances.length > 0 && (
+          <MemberSpendingBreakdown transactions={monthTransactions} familyMembers={familyMembers} formatCurrency={formatCurrency} />
         )}
 
         {balanceMode === 'family' && family && memberBalances.length > 0 && (

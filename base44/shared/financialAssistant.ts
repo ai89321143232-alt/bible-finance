@@ -52,6 +52,7 @@ export function buildAssistantSystemPrompt({ categoryNames, accountNames, recent
    ПРИОРИТЕТ: если в сообщении есть слова/названия активов — акции, акций, крипта, криптовалюта, биткоин, bitcoin, ETF, облигации, вклад, депозит, золото, драгметаллы, инвестиция, инвестировал, портфель, тикер компании (например Apple, Tesla, Сбербанк) — ВСЕГДА выбирай action="create_investment", а НЕ create_transaction, даже если фраза звучит как "потратил"/"купил на Х рублей". Пример: "купил акции Apple на 10000 руб" → action="create_investment", investment={name:"Apple", type:"stocks", quantity:1, purchase_price:10000}. Обычным расходом (create_transaction) считай только покупку товаров/услуг для потребления, а не покупку финансового актива.
 4) Редактировать существующую транзакцию (сумму, категорию, описание, дату), если пользователь просит что-то исправить.
 5) Удалять существующую транзакцию, если пользователь просит её убрать/отменить.
+6) Если в данных ниже есть раздел "РАСХОДЫ ЧЛЕНОВ СЕМЬИ" — используй его, чтобы отвечать на вопросы о том, кто из членов семьи и куда (на какие категории) тратит деньги, и кто тратит больше/меньше.
 
 Доступные категории: ${categoryNames}
 Доступные счета пользователя: ${accountNames}
@@ -121,13 +122,15 @@ export async function invokeAssistantModel({ base44, model, apiKeys = {}, system
 // Собирает текстовый финансовый контекст пользователя (для Telegram-бота, где нет фронтенда,
 // который бы прислал этот контекст, как в веб-чате).
 export async function computeFinancialContext(entities, ownerId) {
-  const [allTransactions, allBudgets, allGoals, allInvestments, allAccounts] = await Promise.all([
+  const [allTransactions, allBudgets, allGoals, allInvestments, allAccounts, owner] = await Promise.all([
     entities.Transaction.list('-date', 300),
     entities.Budget.list(),
     entities.Goal.list(),
     entities.Investment.list(),
-    entities.Account.list()
+    entities.Account.list(),
+    entities.User.get(ownerId).catch(() => null)
   ]);
+  const family = owner?.family_id ? await entities.Family.get(owner.family_id).catch(() => null) : null;
 
   const mine = (arr) => arr.filter(x => x.created_by_id === ownerId || x.user_id === ownerId);
   const transactions = mine(allTransactions);
@@ -158,6 +161,32 @@ export async function computeFinancialContext(entities, ownerId) {
 
   const investmentValue = investments.reduce((sum, inv) => sum + (inv.quantity * (inv.current_price || inv.purchase_price)), 0);
 
+  // Расходы по каждому члену семьи за текущий месяц, отсортированные по сумме —
+  // чтобы ассистент мог рассказать, кто и куда тратит деньги в семье.
+  let familySection = '';
+  if (family?.members?.length > 0) {
+    const familyMonthExpenses = allTransactions.filter(t =>
+      t.type === 'expense' && new Date(t.date) >= monthStart &&
+      family.members.some(m => t.user_id === m.user_id || t.created_by_id === m.user_id)
+    );
+    const byMember = family.members.map(m => {
+      const memberTx = familyMonthExpenses.filter(t => t.user_id === m.user_id || t.created_by_id === m.user_id);
+      const total = memberTx.reduce((s, t) => s + t.amount, 0);
+      const byCat = memberTx.reduce((acc, t) => {
+        const cat = t.category || 'Другое';
+        acc[cat] = (acc[cat] || 0) + t.amount;
+        return acc;
+      }, {});
+      const topCat = Object.entries(byCat).sort((a, b) => b[1] - a[1])[0];
+      return { name: m.display_name || m.name, total, topCat };
+    }).sort((a, b) => b.total - a.total);
+
+    familySection = `
+РАСХОДЫ ЧЛЕНОВ СЕМЬИ ЗА МЕСЯЦ (${family.name}), отсортировано по убыванию суммы:
+${byMember.map(b => `- ${b.name}: ${b.total.toLocaleString()} ₽${b.topCat ? ` (больше всего на «${b.topCat[0]}»: ${b.topCat[1].toLocaleString()} ₽)` : ''}`).join('\n')}
+`;
+  }
+
   return `
 Финансовые данные пользователя:
 
@@ -185,5 +214,5 @@ ${goals.map(g => `- ${g.title}: накоплено ${(g.current_amount || 0).toL
 
 ИНВЕСТИЦИОННЫЙ ПОРТФЕЛЬ:
 - Общая стоимость: ${investmentValue.toLocaleString()} ₽
-`;
+${familySection}`;
 }

@@ -93,6 +93,15 @@ export default function AIAssistant() {
     queryFn: () => base44.entities.Investment.list()
   });
 
+  const { data: family } = useQuery({
+    queryKey: ['my-family-ai', user?.id],
+    queryFn: async () => {
+      const families = await base44.entities.Family.list();
+      return families.find(f => f.owner_id === user.id || f.members?.some(m => m.user_id === user.id)) ?? null;
+    },
+    enabled: !!user
+  });
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
@@ -123,6 +132,29 @@ export default function AIAssistant() {
       sum + (inv.quantity * (inv.current_price || inv.purchase_price)), 0
     );
 
+    // Расходы по каждому члену семьи за месяц, отсортированные по сумме —
+    // чтобы ассистент мог рассказать, кто и куда тратит деньги в семье.
+    let familySection = '';
+    if (family?.members?.length > 0) {
+      const familyMonthExpenses = monthTransactions.filter(t => t.type === 'expense');
+      const byMember = family.members.map(m => {
+        const memberTx = familyMonthExpenses.filter(t => t.user_id === m.user_id || t.created_by_id === m.user_id);
+        const total = memberTx.reduce((s, t) => s + t.amount, 0);
+        const byCat = memberTx.reduce((acc, t) => {
+          const cat = t.category || 'Другое';
+          acc[cat] = (acc[cat] || 0) + t.amount;
+          return acc;
+        }, {});
+        const topCat = Object.entries(byCat).sort((a, b) => b[1] - a[1])[0];
+        return { name: m.display_name || m.name, total, topCat };
+      }).sort((a, b) => b.total - a.total);
+
+      familySection = `
+
+РАСХОДЫ ЧЛЕНОВ СЕМЬИ ЗА МЕСЯЦ (${family.name}), отсортировано по убыванию суммы:
+${byMember.map(b => `- ${b.name}: ${b.total.toLocaleString()} ₽${b.topCat ? ` (больше всего на «${b.topCat[0]}»: ${b.topCat[1].toLocaleString()} ₽)` : ''}`).join('\n')}`;
+    }
+
     return `
 Финансовые данные пользователя:
 
@@ -148,7 +180,7 @@ ${activeGoals.map(g => `- ${g.title}: накоплено ${(g.current_amount || 
 ИНВЕСТИЦИОННЫЙ ПОРТФЕЛЬ:
 - Общая стоимость: ${investmentValue.toLocaleString()} ₽
 ${investments.map(i => `- ${i.name}: ${i.quantity} шт. по ${(i.current_price || i.purchase_price).toLocaleString()} ₽`).join('\n') || ''}
-`;
+${familySection}`;
   };
 
   const refreshData = () => {
