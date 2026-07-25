@@ -23,19 +23,29 @@ Deno.serve(async (req) => {
         const matchingBudgets = allBudgets.filter(b => {
             if (!b.is_active) return false;
 
-            // Проверяем принадлежность бюджета пользователю или семье
-            const belongsToUser = b.user_id === data.user_id || b.created_by_id === data.user_id;
-            const belongsToFamily = data.family_id && b.family_id === data.family_id;
-            if (!belongsToUser && !belongsToFamily) return false;
-
             // Проверяем даты
             if (b.start_date && transactionDate < b.start_date) return false;
             if (b.end_date && transactionDate > b.end_date) return false;
 
             // Проверяем категорию
             const budgetCategories = b.categories || (b.category ? [b.category] : []);
-            if (budgetCategories.length === 0) return true; // бюджет без категорий — учитывает все расходы
-            return budgetCategories.includes(data.category);
+            const categoryMatches = budgetCategories.length === 0 || budgetCategories.includes(data.category);
+            if (!categoryMatches) return false;
+
+            // Семейный и личный бюджет с одинаковой категорией не должны оба получать один
+            // и тот же расход — budget_scope (выбор пользователя при вводе операции) решает,
+            // в какой именно бюджет засчитать расход, если есть совпадение.
+            if (b.is_family_budget) {
+                const belongsToFamily = data.family_id && b.family_id === data.family_id;
+                if (!belongsToFamily) return false;
+                if (data.budget_scope === 'personal') return false;
+                return true;
+            }
+
+            const belongsToUser = b.user_id === data.user_id || b.created_by_id === data.user_id;
+            if (!belongsToUser) return false;
+            if (data.budget_scope === 'family') return false;
+            return true;
         });
 
         if (matchingBudgets.length === 0) {

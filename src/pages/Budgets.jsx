@@ -305,13 +305,18 @@ export default function Budgets() {
     const budgetCategories = budget.categories || (budget.category ? [budget.category] : []);
     
     return transactions
-      .filter(t => 
-        t.type === 'expense' && 
-        (budgetCategories.length === 0 || budgetCategories.includes(t.category)) &&
-        new Date(t.date) >= periodStart &&
-        // Личный бюджет считает только свои транзакции, семейный — все транзакции семьи
-        (budget.is_family_budget || t.created_by_id === user?.id || t.user_id === user?.id)
-      )
+      .filter(t => {
+        if (t.type !== 'expense') return false;
+        if (budgetCategories.length > 0 && !budgetCategories.includes(t.category)) return false;
+        if (new Date(t.date) < periodStart) return false;
+        // Личный бюджет считает только свои транзакции, семейный — все транзакции семьи.
+        // budget_scope позволяет явно отнести расход к одному из бюджетов, если категория
+        // совпадает и с личным, и с семейным бюджетом — тогда он не дублируется в обоих.
+        if (budget.is_family_budget) {
+          return t.budget_scope !== 'personal';
+        }
+        return (t.created_by_id === user?.id || t.user_id === user?.id) && t.budget_scope !== 'family';
+      })
       .reduce((sum, t) => sum + t.amount, 0);
   };
 

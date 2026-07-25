@@ -36,7 +36,7 @@ export const TransactionService = {
    * @param {object} params { type, amount, category, description, date, account_id, accounts, existingId }
    * @returns {Promise<{ok:boolean, error?:string}>}
    */
-  async saveEntry({ type, amount, category, description, date, account_id, accounts = [], existingId = null }) {
+  async saveEntry({ type, amount, category, description, date, account_id, accounts = [], existingId = null, budget_scope = undefined }) {
     const valid = validateTransactionInput({ type, amount, category, account_id });
     if (!valid.ok) return { ok: false, error: valid.error };
 
@@ -73,6 +73,7 @@ export const TransactionService = {
         description,
         date: date instanceof Date ? date.toISOString() : date,
         account_id: account_id || undefined,
+        budget_scope,
       },
       user
     );

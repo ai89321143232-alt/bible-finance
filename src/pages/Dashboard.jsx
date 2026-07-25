@@ -601,7 +601,7 @@ export default function Dashboard() {
           </div>
           <div className="space-y-6">
             {visibleBlocks.budgets && (
-              <BudgetOverview budgets={budgets} transactions={transactions} formatCurrency={formatCurrency} />
+              <BudgetOverview budgets={budgets} transactions={transactions} formatCurrency={formatCurrency} currentUser={user} />
             )}
             {visibleBlocks.goals && (
               <AllGoalsProgress goals={goals} formatCurrency={formatCurrency} />

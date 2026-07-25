@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
   Plus, TrendingUp, TrendingDown, Edit2, Trash2, Check, 
-  PieChart, BarChart2, Bitcoin, Building2, Landmark, Gem
+  PieChart, BarChart2, Bitcoin, Building2, Landmark, Gem, Lock
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -331,6 +331,7 @@ export default function Investments() {
               const cost = investment.quantity * investment.purchase_price;
               const profit = value - cost;
               const profitPct = cost > 0 ? (profit / cost) * 100 : 0;
+              const isEditable = investment.created_by_id === currentUser?.id;
 
               return (
                 <motion.div
@@ -340,8 +341,8 @@ export default function Investments() {
                   transition={{ delay: index * 0.05 }}
                 >
                   <Card 
-                    className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-all group cursor-pointer"
-                    onClick={() => handleEdit(investment)}
+                    className={`border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-all group ${isEditable ? 'cursor-pointer' : ''}`}
+                    onClick={() => isEditable && handleEdit(investment)}
                   >
                     <CardContent className="p-5">
                       <div className="flex items-center justify-between">
@@ -357,6 +358,9 @@ export default function Investments() {
                               <h3 className="font-semibold text-slate-900 dark:text-white">
                                 {investment.name}
                               </h3>
+                              {!isEditable && (
+                                <Lock className="w-4 h-4 text-slate-400" />
+                              )}
                               {investment.ticker && (
                                 <span className="text-xs font-mono px-2 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-slate-500">
                                   {investment.ticker}
@@ -385,30 +389,32 @@ export default function Investments() {
                               </span>
                             </div>
                           </div>
-                          <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEdit(investment);
-                              }}
-                              className="h-8 w-8"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteId(investment.id);
-                              }}
-                              className="h-8 w-8 text-rose-600"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
+                          {isEditable && (
+                            <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEdit(investment);
+                                }}
+                                className="h-8 w-8"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteId(investment.id);
+                                }}
+                                className="h-8 w-8 text-rose-600"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </CardContent>

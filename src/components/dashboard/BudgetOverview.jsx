@@ -4,22 +4,27 @@ import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { ChevronRight, Plus, AlertCircle, Layers } from 'lucide-react';
 
-function calcBudgetSpent(budget, transactions) {
+function calcBudgetSpent(budget, transactions, currentUserId) {
   const now = new Date();
   const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const categories = budget.categories || (budget.category ? [budget.category] : []);
   return transactions
-    .filter(t =>
-      t.type === 'expense' &&
-      (categories.length === 0 || categories.includes(t.category)) &&
-      new Date(t.date) >= periodStart
-    )
+    .filter(t => {
+      if (t.type !== 'expense') return false;
+      if (categories.length > 0 && !categories.includes(t.category)) return false;
+      if (new Date(t.date) < periodStart) return false;
+      // Личный бюджет считает только свои транзакции, семейный — все транзакции семьи.
+      // budget_scope разделяет расход между личным и семейным бюджетом, если категория совпадает у обоих.
+      if (budget.is_family_budget) return t.budget_scope !== 'personal';
+      return (t.created_by_id === currentUserId || t.user_id === currentUserId) && t.budget_scope !== 'family';
+    })
     .reduce((sum, t) => sum + t.amount, 0);
 }
 
-export default function BudgetOverview({ budgets, transactions = [], formatCurrency }) {
+export default function BudgetOverview({ budgets, transactions = [], formatCurrency, currentUser }) {
+  const currentUserId = currentUser?.id;
   const totalLimit = budgets.reduce((sum, b) => sum + (b.limit_amount || 0), 0);
-  const totalSpent = budgets.reduce((sum, b) => sum + calcBudgetSpent(b, transactions), 0);
+  const totalSpent = budgets.reduce((sum, b) => sum + calcBudgetSpent(b, transactions, currentUserId), 0);
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
@@ -45,7 +50,7 @@ export default function BudgetOverview({ budgets, transactions = [], formatCurre
         {budgets.length > 0 ? (
           <div className="p-4 space-y-4">
             {budgets.slice(0, 4).map((budget, idx) => {
-              const spent = calcBudgetSpent(budget, transactions);
+              const spent = calcBudgetSpent(budget, transactions, currentUserId);
               const progress = budget.limit_amount > 0 ? (spent / budget.limit_amount) * 100 : 0;
               const isOver = progress > 100;
               const isWarn = progress >= (budget.notify_at_percent || 80) && !isOver;

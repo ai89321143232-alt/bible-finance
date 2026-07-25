@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
   Plus, Wallet, CreditCard, Building2, PiggyBank, 
-  Edit2, Trash2, Check, ArrowUpRight, ArrowDownRight, AlertCircle
+  Edit2, Trash2, Check, ArrowUpRight, ArrowDownRight, AlertCircle, Lock
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -340,6 +340,7 @@ export default function Accounts() {
             {accounts.map((account, index) => {
               const typeInfo = ACCOUNT_TYPES.find(t => t.value === account.type) || ACCOUNT_TYPES[1];
               const stats = getAccountStats(account.id);
+              const isEditable = account.created_by_id === currentUser?.id;
 
               return (
                 <motion.div
@@ -365,41 +366,48 @@ export default function Accounts() {
                             {typeInfo.icon}
                           </div>
                           <div>
-                            <h3 className="font-semibold text-slate-900 dark:text-white">
-                              {account.name}
-                            </h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold text-slate-900 dark:text-white">
+                                {account.name}
+                              </h3>
+                              {!isEditable && (
+                                <Lock className="w-4 h-4 text-slate-400" />
+                              )}
+                            </div>
                             <p className="text-sm text-slate-500 dark:text-slate-400">
                               {typeInfo.label}
                             </p>
                             <CreatorTag creatorId={account.created_by_id} family={family} currentUser={currentUser} className="mt-0.5" />
                           </div>
                         </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEdit(account);
-                            }}
-                            className="h-8 w-8"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const count = transactions.filter(t => t.account_id === account.id).length;
-                              setRelatedTransactionsCount(count);
-                              setDeleteId(account.id);
-                            }}
-                            className="h-8 w-8 text-rose-600"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        {isEditable && (
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(account);
+                              }}
+                              className="h-8 w-8"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const count = transactions.filter(t => t.account_id === account.id).length;
+                                setRelatedTransactionsCount(count);
+                                setDeleteId(account.id);
+                              }}
+                              className="h-8 w-8 text-rose-600"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
 
                       <p className={`text-2xl font-bold mb-1 ${(account.balance || 0) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>

@@ -107,6 +107,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   const [scanError, setScanError] = useState(null);
   const [suggestedCategory, setSuggestedCategory] = useState(null);
   const [isSuggesting, setIsSuggesting] = useState(false);
+  const [budgetScope, setBudgetScope] = useState('personal');
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
   const debounceRef = useRef(null);
@@ -187,6 +188,20 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     queryFn: () => base44.entities.Budget.filter({ is_active: true })
   });
 
+  // Если категория расхода совпадает и с личным, и с семейным бюджетом — нужно
+  // явно спросить пользователя, в какой из них засчитать эту операцию, иначе
+  // расход задваивается в обоих бюджетах.
+  const hasPersonalBudgetMatch = category && budgets.some(b =>
+    !b.is_family_budget &&
+    b.created_by_id === currentUser?.id &&
+    (b.categories?.length > 0 ? b.categories : (b.category ? [b.category] : [])).includes(category)
+  );
+  const hasFamilyBudgetMatch = category && budgets.some(b =>
+    b.is_family_budget &&
+    (b.categories?.length > 0 ? b.categories : (b.category ? [b.category] : [])).includes(category)
+  );
+  const showBudgetScopeChoice = type === 'expense' && hasPersonalBudgetMatch && hasFamilyBudgetMatch;
+
   const handleSubmit = async () => {
     if (!amount) return;
     if (myAccounts.length === 0) {
@@ -228,6 +243,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     const res = await TransactionService.saveEntry({
       type, amount, category, description, date,
       account_id: accountId, accounts, existingId: transaction?.id || null,
+      budget_scope: showBudgetScopeChoice ? budgetScope : undefined,
     });
     if (!res.ok) { toast.error(res.error); return; }
     toast.success(type === 'expense' ? 'Расход добавлен' : 'Доход добавлен');
@@ -596,6 +612,31 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                         <span className="text-xs">{cat.name}</span>
                       </Button>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Budget scope — category matches both a personal and a family budget */}
+              {showBudgetScopeChoice && (
+                <div className="mb-4">
+                  <Label className="text-slate-500 dark:text-slate-400 text-sm mb-2 block">Куда отнести расход</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={budgetScope === 'personal' ? 'default' : 'outline'}
+                      onClick={() => setBudgetScope('personal')}
+                      className={cn('flex-1 h-11 rounded-xl', budgetScope === 'personal' ? 'bg-violet-600 hover:bg-violet-700 border-0 text-white' : 'text-slate-900 dark:text-white')}
+                    >
+                      Личный бюджет
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={budgetScope === 'family' ? 'default' : 'outline'}
+                      onClick={() => setBudgetScope('family')}
+                      className={cn('flex-1 h-11 rounded-xl', budgetScope === 'family' ? 'bg-violet-600 hover:bg-violet-700 border-0 text-white' : 'text-slate-900 dark:text-white')}
+                    >
+                      Семейный бюджет
+                    </Button>
                   </div>
                 </div>
               )}
