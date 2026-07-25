@@ -6,7 +6,7 @@ export const ASSISTANT_RESPONSE_SCHEMA = {
   type: 'object',
   properties: {
     reply: { type: 'string' },
-    action: { type: 'string', enum: ['create_transaction', 'update_transaction', 'delete_transaction', 'none'] },
+    action: { type: 'string', enum: ['create_transaction', 'create_investment', 'update_transaction', 'delete_transaction', 'none'] },
     transaction: {
       type: 'object',
       properties: {
@@ -16,6 +16,17 @@ export const ASSISTANT_RESPONSE_SCHEMA = {
         category: { type: 'string' },
         description: { type: 'string' },
         date: { type: 'string' },
+        account_hint: { type: 'string' }
+      }
+    },
+    investment: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        type: { type: 'string', enum: ['stocks', 'crypto', 'etf', 'bonds', 'deposit', 'real_estate', 'precious_metals', 'other'] },
+        quantity: { type: 'number' },
+        purchase_price: { type: 'number' },
+        currency: { type: 'string' },
         account_hint: { type: 'string' }
       }
     },
@@ -37,8 +48,9 @@ export function buildAssistantSystemPrompt({ categoryNames, accountNames, recent
   return `Ты — финансовый ассистент в приложении учёта личных финансов. Ты умеешь:
 1) Отвечать на вопросы о финансах пользователя и давать отчёты по тратам/доходам (за сегодня, за период, по категориям) — используй предоставленные данные.
 2) Добавлять новую транзакцию (расход/доход), когда пользователь описывает покупку/доход.
-3) Редактировать существующую транзакцию (сумму, категорию, описание, дату), если пользователь просит что-то исправить.
-4) Удалять существующую транзакцию, если пользователь просит её убрать/отменить.
+3) Записывать покупку инвестиции (акции, крипта, ETF, облигации, вклад, драгметаллы, недвижимость как актив), когда пользователь пишет, что купил/приобрёл/вложился в такой актив. Это НЕ обычный расход — используй action="create_investment" и заполни investment (не transaction). Деньги списываются со счёта, но операция не попадает в категории расходов и бюджеты — это инвестиционный актив.
+4) Редактировать существующую транзакцию (сумму, категорию, описание, дату), если пользователь просит что-то исправить.
+5) Удалять существующую транзакцию, если пользователь просит её убрать/отменить.
 
 Доступные категории: ${categoryNames}
 Доступные счета пользователя: ${accountNames}
@@ -53,14 +65,16 @@ ${financial_context || ''}
 Правила ответа: верни ТОЛЬКО валидный JSON вида:
 {
   "reply": "текстовый ответ пользователю на русском языке",
-  "action": "create_transaction" | "update_transaction" | "delete_transaction" | "none",
+  "action": "create_transaction" | "create_investment" | "update_transaction" | "delete_transaction" | "none",
   "transaction": null или { "type": "expense"|"income", "amount": число, "currency": "RUB", "category": "одна из доступных категорий", "description": "краткое описание", "date": "YYYY-MM-DDT00:00:00.000Z", "account_hint": "название счёта, если упомянуто, иначе пустая строка" },
+  "investment": null или { "name": "название актива, например Apple или Bitcoin", "type": "stocks"|"crypto"|"etf"|"bonds"|"deposit"|"real_estate"|"precious_metals"|"other", "quantity": число (1, если не указано), "purchase_price": цена за единицу (если куплено на общую сумму X штук 1 — вся сумма), "currency": "RUB", "account_hint": "название счёта, если упомянуто, иначе пустая строка" },
   "transaction_id": null или "id операции из списка выше" (для update_transaction/delete_transaction),
   "updates": null или { "amount": число, "category": "...", "description": "...", "date": "...", "type": "expense"|"income" } (только изменённые поля, для update_transaction)
 }
 
 Если это вопрос/отчёт — action="none", transaction=null, а в reply дай содержательный ответ на основе данных.
-Если описывается новая покупка/доход — action="create_transaction" и заполни transaction.
+Если описывается новая покупка/доход (обычная, не инвестиционная) — action="create_transaction" и заполни transaction.
+Если описывается покупка инвестиционного актива — action="create_investment" и заполни investment, transaction оставь null.
 Если просят исправить/поменять существующую операцию — action="update_transaction", укажи transaction_id и только изменённые поля в updates.
 Если просят удалить/отменить операцию — action="delete_transaction" и укажи transaction_id.
 Если не можешь однозначно определить, какую операцию редактировать/удалять — action="none" и в reply уточни у пользователя.`;

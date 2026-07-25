@@ -40,6 +40,7 @@ export default function AIAssistant() {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [pendingTransaction, setPendingTransaction] = useState(null);
+  const [pendingInvestment, setPendingInvestment] = useState(null);
   const [accountOptions, setAccountOptions] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState('');
   const scrollRef = useRef(null);
@@ -154,6 +155,7 @@ ${investments.map(i => `- ${i.name}: ${i.quantity} шт. по ${(i.current_price
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
     queryClient.invalidateQueries({ queryKey: ['accounts'] });
     queryClient.invalidateQueries({ queryKey: ['budgets'] });
+    queryClient.invalidateQueries({ queryKey: ['investments'] });
   };
 
   const sendMessage = async (prompt) => {
@@ -164,6 +166,7 @@ ${investments.map(i => `- ${i.name}: ${i.quantity} шт. по ${(i.current_price
     setInputValue('');
     setIsLoading(true);
     setPendingTransaction(null);
+    setPendingInvestment(null);
     setAccountOptions([]);
 
     try {
@@ -186,6 +189,9 @@ ${investments.map(i => `- ${i.name}: ${i.quantity} шт. по ${(i.current_price
       if (data.action === 'created') {
         toast.success('Транзакция добавлена');
         refreshData();
+      } else if (data.action === 'created_investment') {
+        toast.success('Инвестиция добавлена');
+        refreshData();
       } else if (data.action === 'updated') {
         toast.success('Операция обновлена');
         refreshData();
@@ -195,7 +201,8 @@ ${investments.map(i => `- ${i.name}: ${i.quantity} шт. по ${(i.current_price
       }
 
       if (data.needs_account) {
-        setPendingTransaction(data.pendingTransaction);
+        setPendingTransaction(data.pendingTransaction || null);
+        setPendingInvestment(data.pendingInvestment || null);
         setAccountOptions(data.accounts || []);
         setSelectedAccountId('');
       }
@@ -210,24 +217,26 @@ ${investments.map(i => `- ${i.name}: ${i.quantity} шт. по ${(i.current_price
   };
 
   const finalizeTransaction = async () => {
-    if (!pendingTransaction || !selectedAccountId) return;
+    if ((!pendingTransaction && !pendingInvestment) || !selectedAccountId) return;
     setIsLoading(true);
     try {
       const response = await base44.functions.invoke('aiChatAssistant', {
         finalize: true,
         account_id: selectedAccountId,
-        pendingTransaction
+        pendingTransaction: pendingTransaction || undefined,
+        pendingInvestment: pendingInvestment || undefined
       });
       const data = response.data;
       if (data.error) {
         setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${data.error}` }]);
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
-        toast.success('Транзакция добавлена');
+        toast.success(pendingInvestment ? 'Инвестиция добавлена' : 'Транзакция добавлена');
         refreshData();
       }
     } finally {
       setPendingTransaction(null);
+      setPendingInvestment(null);
       setAccountOptions([]);
       setSelectedAccountId('');
       setIsLoading(false);
@@ -283,6 +292,7 @@ ${investments.map(i => `- ${i.name}: ${i.quantity} шт. по ${(i.current_price
   const handleNewChat = () => {
     setMessages([WELCOME_MESSAGE]);
     setPendingTransaction(null);
+    setPendingInvestment(null);
     setAccountOptions([]);
     setInputValue('');
   };
@@ -388,12 +398,12 @@ ${investments.map(i => `- ${i.name}: ${i.quantity} шт. по ${(i.current_price
             </motion.div>
           )}
 
-          {/* Account picker for a pending transaction */}
-          {pendingTransaction && accountOptions.length > 0 && (
+          {/* Account picker for a pending transaction or investment purchase */}
+          {(pendingTransaction || pendingInvestment) && accountOptions.length > 0 && (
             <div className="rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20 p-3 mb-6">
               <div className="flex items-center gap-2 mb-2 text-sm text-slate-700 dark:text-slate-200">
                 <Wallet className="w-4 h-4 text-violet-600" />
-                {pendingTransaction.type === 'expense' ? 'С какого счёта списать?' : 'На какой счёт зачислить?'}
+                {pendingInvestment ? 'С какого счёта списать деньги на покупку?' : (pendingTransaction.type === 'expense' ? 'С какого счёта списать?' : 'На какой счёт зачислить?')}
               </div>
               <div className="flex flex-wrap gap-2 mb-3">
                 {accountOptions.map((acc) => (
@@ -422,7 +432,7 @@ ${investments.map(i => `- ${i.name}: ${i.quantity} шт. по ${(i.current_price
           )}
 
           {/* Quick Prompts */}
-          {messages.length === 1 && !pendingTransaction && (
+          {messages.length === 1 && !pendingTransaction && !pendingInvestment && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {QUICK_PROMPTS.map((item, index) => (
                 <Button

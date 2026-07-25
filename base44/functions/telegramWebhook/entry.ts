@@ -192,6 +192,33 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         replyText = replyText || `✅ Записал: ${t.type === 'expense' ? '-' : '+'}${t.amount} ₽ (${t.category || 'Другое'})`;
       }
     }
+  } else if (action === 'create_investment' && parsed.investment) {
+    const inv = parsed.investment;
+    if (!inv.name || !inv.type) {
+      replyText = replyText || 'Не удалось распознать данные об инвестиции.';
+    } else {
+      const matchedAccountId = matchAccount(accounts, inv.account_hint);
+      const targetAccount = accounts.find(a => a.id === matchedAccountId) || account;
+      if (!targetAccount) {
+        replyText = 'Не найден счёт для списания денег на покупку. Добавьте счёт в приложении.';
+      } else {
+        const quantity = inv.quantity || 1;
+        const purchasePrice = inv.purchase_price || 0;
+        const totalCost = quantity * purchasePrice;
+        await entities.Investment.create({
+          name: inv.name,
+          type: inv.type,
+          quantity,
+          purchase_price: purchasePrice,
+          current_price: purchasePrice,
+          currency: inv.currency || 'RUB',
+          purchase_date: new Date().toISOString().split('T')[0],
+          user_id: ownerId
+        });
+        await applyBalanceDelta(entities, targetAccount.id, -totalCost);
+        replyText = replyText || `✅ Записал покупку инвестиции: ${inv.name} на ${totalCost.toLocaleString()} ₽ (счёт: ${targetAccount.name})`;
+      }
+    }
   } else if (action === 'update_transaction' && parsed.transaction_id && parsed.updates) {
     const existing = recentTx.find(t => t.id === parsed.transaction_id);
     if (!existing) {

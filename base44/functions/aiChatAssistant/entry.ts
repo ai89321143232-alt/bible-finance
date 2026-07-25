@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { message, model = 'default', history = [], financial_context = '', finalize, account_id, pendingTransaction } = body;
+    const { message, model = 'default', history = [], financial_context = '', finalize, account_id, pendingTransaction, pendingInvestment } = body;
 
     const allAccounts = await base44.entities.Account.list();
     const accounts = allAccounts.filter(a => a.created_by_id === user.id || a.user_id === user.id);
@@ -35,6 +35,30 @@ Deno.serve(async (req) => {
         reply: `✅ Записал: ${t.type === 'expense' ? '-' : '+'}${t.amount} ₽ (${t.category})`,
         action: 'created',
         transaction
+      });
+    }
+
+    // === Finalize: user picked an account for a pending investment purchase ===
+    if (finalize && pendingInvestment && account_id) {
+      const inv = pendingInvestment;
+      const quantity = inv.quantity || 1;
+      const purchasePrice = inv.purchase_price || 0;
+      const totalCost = quantity * purchasePrice;
+      const investment = await base44.entities.Investment.create({
+        name: inv.name,
+        type: inv.type,
+        quantity,
+        purchase_price: purchasePrice,
+        current_price: purchasePrice,
+        currency: inv.currency || 'RUB',
+        purchase_date: new Date().toISOString().split('T')[0],
+        user_id: user.id
+      });
+      await applyBalanceDelta(entities, account_id, -totalCost);
+      return Response.json({
+        reply: `✅ Записал покупку инвестиции: ${inv.name} на ${totalCost.toLocaleString()} ₽`,
+        action: 'created_investment',
+        investment
       });
     }
 
@@ -97,6 +121,42 @@ Deno.serve(async (req) => {
       if (t.type === 'expense') await applyBudgetDelta(entities, user.id, t.category, t.amount);
 
       return Response.json({ reply: parsed.reply, action: 'created', transaction });
+    }
+
+    // === Create investment purchase (not a regular expense) ===
+    if (action === 'create_investment' && parsed.investment) {
+      const inv = parsed.investment;
+      if (!inv.name || !inv.type) {
+        return Response.json({ reply: parsed.reply || 'Не удалось распознать данные об инвестиции' });
+      }
+
+      const matchedAccountId = matchAccount(accounts, inv.account_hint);
+
+      if (!matchedAccountId) {
+        return Response.json({
+          reply: parsed.reply || 'Уточните, пожалуйста, с какого счёта списать деньги на покупку?',
+          needs_account: true,
+          pendingInvestment: inv,
+          accounts: accounts.map(a => ({ id: a.id, name: a.name, balance: a.balance }))
+        });
+      }
+
+      const quantity = inv.quantity || 1;
+      const purchasePrice = inv.purchase_price || 0;
+      const totalCost = quantity * purchasePrice;
+      const investment = await base44.entities.Investment.create({
+        name: inv.name,
+        type: inv.type,
+        quantity,
+        purchase_price: purchasePrice,
+        current_price: purchasePrice,
+        currency: inv.currency || 'RUB',
+        purchase_date: new Date().toISOString().split('T')[0],
+        user_id: user.id
+      });
+      await applyBalanceDelta(entities, matchedAccountId, -totalCost);
+
+      return Response.json({ reply: parsed.reply || `✅ Записал покупку инвестиции: ${inv.name} на ${totalCost.toLocaleString()} ₽`, action: 'created_investment', investment });
     }
 
     // === Update ===
