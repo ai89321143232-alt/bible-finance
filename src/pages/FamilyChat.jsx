@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import ChatBubble from '@/components/family/ChatBubble';
 import MoneyRequestDialog from '@/components/family/MoneyRequestDialog';
+import PayRequestDialog from '@/components/family/PayRequestDialog';
 
 // ============================================================
 // FamilyChat.jsx — семейный чат
@@ -23,6 +24,7 @@ export default function FamilyChat() {
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showMoneyRequest, setShowMoneyRequest] = useState(false);
+  const [payingMessage, setPayingMessage] = useState(null);
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -37,6 +39,22 @@ export default function FamilyChat() {
     },
     enabled: !!user,
   });
+
+  const { data: familyAccounts = [] } = useQuery({
+    queryKey: ['family-accounts-chat', family?.id],
+    queryFn: async () => {
+      const memberIds = family.members?.map(m => m.user_id) || [];
+      const all = await base44.entities.Account.list();
+      return all.filter(a =>
+        a.family_id === family.id ||
+        memberIds.includes(a.created_by_id) ||
+        memberIds.includes(a.user_id)
+      );
+    },
+    enabled: !!family,
+  });
+
+  const myAccounts = familyAccounts.filter(a => a.created_by_id === user?.id || a.user_id === user?.id);
 
   useEffect(() => {
     if (!family) {
@@ -127,20 +145,48 @@ export default function FamilyChat() {
     await base44.entities.FamilyMessage.update(message.id, { content: newContent, edited: true });
   };
 
-  const handleFulfillRequest = async (message) => {
+  const handleFulfillRequest = async (message, payerAccountId) => {
     const requester = getMember(message.created_by_id);
     const requesterName = requester?.display_name || requester?.name || 'участника семьи';
+    const payerName = getMember(user.id)?.display_name || getMember(user.id)?.name || user.full_name;
+    const payerAccount = myAccounts.find(a => a.id === payerAccountId);
+    const requesterAccount = familyAccounts.find(a => a.created_by_id === message.created_by_id || a.user_id === message.created_by_id);
+
+    if (payerAccount) {
+      await base44.entities.Account.update(payerAccount.id, { balance: (payerAccount.balance || 0) - message.amount });
+    }
+    if (requesterAccount) {
+      await base44.entities.Account.update(requesterAccount.id, { balance: (requesterAccount.balance || 0) + message.amount });
+    }
+
     const transaction = await base44.entities.Transaction.create({
-      type: 'expense',
+      type: 'transfer',
       amount: message.amount,
       category: 'Семейные переводы',
       description: `Перевод для ${requesterName} (запрос в чате)`,
       date: new Date().toISOString(),
       family_id: family.id,
       user_id: user.id,
+      account_id: payerAccount?.id,
       source: 'app',
       visibility: 'shared',
     });
+
+    if (requesterAccount) {
+      await base44.entities.Transaction.create({
+        type: 'transfer',
+        amount: message.amount,
+        category: 'Семейные переводы',
+        description: `Перевод от ${payerName} (запрос в чате)`,
+        date: new Date().toISOString(),
+        family_id: family.id,
+        user_id: message.created_by_id,
+        account_id: requesterAccount.id,
+        source: 'app',
+        visibility: 'shared',
+      });
+    }
+
     const updates = { request_status: 'fulfilled', paid_by: user.id, transaction_id: transaction.id };
     setMessages(prev => prev.map(m => m.id === message.id ? { ...m, ...updates } : m));
     await base44.entities.FamilyMessage.update(message.id, updates);
@@ -203,7 +249,7 @@ export default function FamilyChat() {
               payer={getMember(m.paid_by)}
               onReact={(emoji) => handleReact(m, emoji)}
               onEdit={(content) => handleEdit(m, content)}
-              onFulfillRequest={() => handleFulfillRequest(m)}
+              onFulfillRequest={() => setPayingMessage(m)}
             />
           ))
         )}
@@ -244,6 +290,15 @@ export default function FamilyChat() {
         open={showMoneyRequest}
         onOpenChange={setShowMoneyRequest}
         onSubmit={handleMoneyRequest}
+      />
+
+      <PayRequestDialog
+        open={!!payingMessage}
+        onOpenChange={(v) => !v && setPayingMessage(null)}
+        message={payingMessage}
+        requesterName={payingMessage ? (getMember(payingMessage.created_by_id)?.display_name || getMember(payingMessage.created_by_id)?.name || 'Участник') : ''}
+        accounts={myAccounts}
+        onConfirm={(accountId) => handleFulfillRequest(payingMessage, accountId)}
       />
     </div>
   );
