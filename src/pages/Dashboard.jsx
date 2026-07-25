@@ -270,7 +270,13 @@ export default function Dashboard() {
     return { ...member, balance, accountsCount: memberAccounts.length };
   });
   
-  const monthTransactions = transactions.filter(t => {
+  // Личный режим: только мои операции. Семейный режим: все операции (моих + членов семьи), как раньше.
+  const personalTransactions = transactions.filter(t =>
+    t.created_by_id === user?.id || t.user_id === user?.id
+  );
+  const modeTransactions = (family && balanceMode === 'family') ? transactions : personalTransactions;
+
+  const monthTransactions = modeTransactions.filter(t => {
     const date = new Date(t.date);
     return date >= currentPeriod.start && date <= currentPeriod.end;
   });
@@ -297,11 +303,17 @@ export default function Dashboard() {
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const investmentValue = investments.reduce((sum, inv) => 
+  // Личный режим: только мои инвестиции. Семейный режим: все инвестиции (мои + семьи), как раньше.
+  const personalInvestments = investments.filter(inv =>
+    inv.created_by_id === user?.id || inv.user_id === user?.id
+  );
+  const modeInvestments = (family && balanceMode === 'family') ? investments : personalInvestments;
+
+  const investmentValue = modeInvestments.reduce((sum, inv) => 
     sum + (inv.quantity * (inv.current_price || inv.purchase_price)), 0
   );
 
-  const investmentProfit = investments.reduce((sum, inv) => 
+  const investmentProfit = modeInvestments.reduce((sum, inv) => 
     sum + (inv.quantity * ((inv.current_price || inv.purchase_price) - inv.purchase_price)), 0
   );
 
@@ -441,7 +453,7 @@ export default function Dashboard() {
                     totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses}
                     investmentValue={investmentValue} investmentProfit={investmentProfit}
                     formatCurrency={formatCurrency}
-                    accounts={displayAccounts} investments={investments}
+                    accounts={displayAccounts} investments={modeInvestments}
                   />
                 </motion.div>
               </AnimatePresence>
@@ -451,7 +463,7 @@ export default function Dashboard() {
               totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses}
               investmentValue={investmentValue} investmentProfit={investmentProfit}
               formatCurrency={formatCurrency}
-              accounts={displayAccounts} investments={investments}
+              accounts={displayAccounts} investments={modeInvestments}
             />
           )
         )}
