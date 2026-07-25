@@ -128,9 +128,10 @@ export default function Budgets() {
     queryKey: ['my-budgets', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      // Синхронно с дашбордом: только активные бюджеты, созданные пользователем
+      // Синхронно с дашбордом: только активные бюджеты, созданные пользователем.
+      // Семейные бюджеты (is_family_budget) исключаем — они показываются во вкладке "Общие", чтобы не дублировались.
       const budgets = await base44.entities.Budget.filter({ is_active: true });
-      return budgets.filter(b => b.created_by_id === user?.id);
+      return budgets.filter(b => b.created_by_id === user?.id && !b.is_family_budget);
     },
     enabled: !!user,
     staleTime: 30000
@@ -145,7 +146,7 @@ export default function Budgets() {
       // Show ALL family budgets (own + shared): is_family_budget with matching family_id, or explicitly shared with user
       return budgets.filter(b => 
         (b.is_family_budget && b.family_id && familyId && b.family_id === familyId) ||
-        b.share_with?.includes(user?.id)
+        (b.share_with?.includes(user?.id) && b.created_by_id !== user?.id)
       );
     },
     enabled: !!user && !!family,

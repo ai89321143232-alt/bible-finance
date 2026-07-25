@@ -106,10 +106,25 @@ export default function Accounts() {
     setCurrentUser(user);
   };
 
+  // Семья определяется через Family (owner_id/members) — user.family_id не всегда актуален у владельца.
+  const { data: family } = useQuery({
+    queryKey: ['my-family', currentUser?.id],
+    queryFn: async () => {
+      if (!currentUser) return null;
+      const families = await base44.entities.Family.list();
+      return families.find(f =>
+        f.owner_id === currentUser?.id ||
+        f.members?.some(m => m.user_id === currentUser?.id)
+      ) ?? null;
+    },
+    enabled: !!currentUser,
+    staleTime: 60000
+  });
+
   // Доступные пользователю счета (личные + семейные), затем фильтр по активному пространству
   const myAccounts = allAccounts.filter(acc =>
     acc.created_by_id === currentUser?.id ||
-    (currentUser?.family_id && acc.family_id === currentUser.family_id)
+    (family?.id && acc.family_id === family.id)
   );
   const accounts = filterByWorkspace(myAccounts, activeWorkspaceId);
 

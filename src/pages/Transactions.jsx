@@ -54,14 +54,30 @@ export default function Transactions() {
     base44.auth.me().then(setUser).catch(() => {});
   }, []);
 
+  // Семья определяется через Family (owner_id/members), а не только user.family_id —
+  // это поле не всегда актуально у владельца семьи.
+  const { data: family } = useQuery({
+    queryKey: ['my-family', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const families = await base44.entities.Family.list();
+      return families.find(f =>
+        f.owner_id === user?.id ||
+        f.members?.some(m => m.user_id === user?.id)
+      ) ?? null;
+    },
+    enabled: !!user,
+    staleTime: 60000
+  });
+
   const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions', user?.id, activeWorkspaceId],
+    queryKey: ['transactions', user?.id, family?.id, activeWorkspaceId],
     queryFn: async () => {
       if (!user) return [];
       const all = await base44.entities.Transaction.list('-date', 100);
       const mine = all.filter(t =>
         t.created_by_id === user.id ||
-        (user.family_id && t.family_id === user.family_id)
+        (family?.id && t.family_id === family.id)
       );
       return filterByWorkspace(mine, activeWorkspaceId);
     },
@@ -69,13 +85,13 @@ export default function Transactions() {
   });
 
   const { data: accounts = [] } = useQuery({
-    queryKey: ['accounts', user?.id, activeWorkspaceId],
+    queryKey: ['accounts', user?.id, family?.id, activeWorkspaceId],
     queryFn: async () => {
       if (!user) return [];
       const all = await base44.entities.Account.list();
       const mine = all.filter(a =>
         a.created_by_id === user.id ||
-        (user.family_id && a.family_id === user.family_id)
+        (family?.id && a.family_id === family.id)
       );
       return filterByWorkspace(mine, activeWorkspaceId);
     },
