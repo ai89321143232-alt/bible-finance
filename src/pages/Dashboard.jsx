@@ -38,6 +38,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import TemplatesManager from '@/components/transactions/TemplatesManager';
 import PullToRefresh from '@/components/PullToRefresh';
 import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/WorkspaceContext';
+import MemberAvatar from '@/components/family/MemberAvatar';
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -494,9 +495,7 @@ export default function Dashboard() {
               {memberBalances.map((member) => (
                 <div key={member.user_id} className="flex items-center justify-between px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold" style={{ backgroundColor: member.avatar_color || '#555' }}>
-                      {member.display_name?.[0] || member.name?.[0] || '?'}
-                    </div>
+                    <MemberAvatar member={member} size="sm" />
                     <div>
                       <p className="text-foreground text-sm font-medium">{member.display_name || member.name}</p>
                       <p className="text-muted-foreground text-xs">{member.accountsCount} счетов</p>

@@ -4,8 +4,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   Users, UserPlus, Copy, Check, Crown, Mail, Shield, Trash2, 
-  Link as LinkIcon, Settings, X, LogOut
+  Link as LinkIcon, Settings, X, LogOut, Pencil
 } from 'lucide-react';
+import MemberAvatar from '@/components/family/MemberAvatar';
+import EditMemberModal from '@/components/family/EditMemberModal';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +51,7 @@ export default function Family() {
   const [joinCode, setJoinCode] = useState('');
   const [copied, setCopied] = useState(false);
   const [showDeleteFamilyModal, setShowDeleteFamilyModal] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
 
   useEffect(() => {
     loadCurrentUser();
@@ -222,6 +225,21 @@ export default function Family() {
     onError: (err) => toast.error(err.message || 'Ошибка удаления семьи')
   });
 
+  const updateMemberProfileMutation = useMutation({
+    mutationFn: async ({ memberId, display_name, avatar_url }) => {
+      const res = await base44.functions.invoke('updateFamilyMemberProfile', {
+        familyId: myFamily.id, memberId, display_name, avatar_url
+      });
+      if (res.data?.error) throw new Error(res.data.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['families'] });
+      setEditingMember(null);
+      toast.success('Профиль обновлён');
+    },
+    onError: (err) => toast.error(err.message || 'Ошибка обновления профиля')
+  });
+
   const myFamily = families.find(f => 
     f.owner_id === currentUser?.id || 
     f.members?.some(m => m.user_id === currentUser?.id)
@@ -336,18 +354,14 @@ export default function Family() {
                   {myFamily.members?.map((member, index) => {
                     const isMemberOwner = member.user_id === myFamily.owner_id;
                     const isMe = member.user_id === currentUser?.id;
+                    const canEdit = isMe || isOwner;
                     
                     return (
                       <div 
                         key={index}
                         className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                       >
-                        <div 
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0"
-                          style={{ backgroundColor: member.avatar_color || '#8B5CF6' }}
-                        >
-                          {(member.display_name || member.name)?.[0]?.toUpperCase() || '?'}
-                        </div>
+                        <MemberAvatar member={member} />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-slate-900 dark:text-white truncate">
                             {member.display_name || member.name} {isMe && <span className="text-violet-500 text-xs">(вы)</span>}
@@ -361,6 +375,16 @@ export default function Family() {
                             <Crown className="w-3 h-3 mr-1" />
                             Владелец
                           </Badge>
+                        )}
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setEditingMember(member)}
+                            className="text-slate-400 hover:text-violet-600 hover:bg-violet-50 flex-shrink-0"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
                         )}
                         {isOwner && !isMemberOwner && (
                           <Button
@@ -561,6 +585,15 @@ export default function Family() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Member Modal */}
+      <EditMemberModal
+        member={editingMember}
+        open={!!editingMember}
+        onClose={() => setEditingMember(null)}
+        saving={updateMemberProfileMutation.isPending}
+        onSave={(data) => updateMemberProfileMutation.mutate({ memberId: editingMember.user_id, ...data })}
+      />
 
       {/* Join Family Modal */}
       <Dialog open={showJoinModal} onOpenChange={setShowJoinModal}>
