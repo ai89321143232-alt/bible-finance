@@ -48,6 +48,8 @@ ${recentTxText}
 
 ${financial_context || ''}
 
+Важно: если пользователь спрашивает про остаток/баланс/"сколько у меня денег" — отвечай суммой из раздела "ОСТАТОК ДЕНЕГ" (реальный баланс счетов), а НЕ суммой расходов или дохода за месяц — это разные вещи.
+
 Правила ответа: верни ТОЛЬКО валидный JSON вида:
 {
   "reply": "текстовый ответ пользователю на русском языке",
@@ -104,11 +106,12 @@ export async function invokeAssistantModel({ base44, model, apiKeys = {}, system
 // Собирает текстовый финансовый контекст пользователя (для Telegram-бота, где нет фронтенда,
 // который бы прислал этот контекст, как в веб-чате).
 export async function computeFinancialContext(entities, ownerId) {
-  const [allTransactions, allBudgets, allGoals, allInvestments] = await Promise.all([
+  const [allTransactions, allBudgets, allGoals, allInvestments, allAccounts] = await Promise.all([
     entities.Transaction.list('-date', 300),
     entities.Budget.list(),
     entities.Goal.list(),
-    entities.Investment.list()
+    entities.Investment.list(),
+    entities.Account.list()
   ]);
 
   const mine = (arr) => arr.filter(x => x.created_by_id === ownerId || x.user_id === ownerId);
@@ -116,6 +119,8 @@ export async function computeFinancialContext(entities, ownerId) {
   const budgets = mine(allBudgets).filter(b => b.is_active);
   const goals = mine(allGoals).filter(g => g.status === 'active');
   const investments = mine(allInvestments);
+  const accounts = mine(allAccounts);
+  const totalBalance = accounts.reduce((sum, a) => sum + (a.balance || 0), 0);
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -141,14 +146,18 @@ export async function computeFinancialContext(entities, ownerId) {
   return `
 Финансовые данные пользователя:
 
+ОСТАТОК ДЕНЕГ (текущий баланс на счетах прямо сейчас — используй ЭТО значение, если спрашивают "сколько денег", "какой остаток", "баланс"):
+${accounts.map(a => `- ${a.name}: ${(a.balance || 0).toLocaleString()} ₽`).join('\n') || '- Нет счетов'}
+- ИТОГО остаток по всем счетам: ${totalBalance.toLocaleString()} ₽
+
 СЕГОДНЯ (${todayStr}):
 - Доход: ${todayIncome.toLocaleString()} ₽
 - Расходы: ${todayExpenses.toLocaleString()} ₽
 
-ДОХОДЫ И РАСХОДЫ (текущий месяц):
+ДОХОДЫ И РАСХОДЫ (текущий месяц, НЕ путать с остатком денег):
 - Общий доход: ${monthIncome.toLocaleString()} ₽
 - Общие расходы: ${monthExpenses.toLocaleString()} ₽
-- Баланс: ${(monthIncome - monthExpenses).toLocaleString()} ₽
+- Разница доход-расход за месяц: ${(monthIncome - monthExpenses).toLocaleString()} ₽
 
 РАСХОДЫ ПО КАТЕГОРИЯМ:
 ${Object.entries(expensesByCategory).map(([cat, amount]) => `- ${cat}: ${amount.toLocaleString()} ₽`).join('\n') || '- Нет данных'}
