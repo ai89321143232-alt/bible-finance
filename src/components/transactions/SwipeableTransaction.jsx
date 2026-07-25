@@ -35,6 +35,15 @@ export default function SwipeableTransaction({
 }) {
   const isOwner = !currentUser || transaction.created_by_id === currentUser.id;
 
+  // Переводы (transfer) бывают двух видов: списание у плательщика и зачисление у получателя.
+  // Направление определяем по subcategory (новые записи) или по тексту описания (старые записи).
+  const isIncoming = transaction.type === 'income' || (
+    transaction.type === 'transfer' && (
+      transaction.subcategory === 'incoming' ||
+      (transaction.description || '').startsWith('Перевод от')
+    )
+  );
+
   const handleDragEnd = (_event, info) => {
     onOpenChange(info.offset.x < -DELETE_WIDTH / 2);
   };
@@ -70,7 +79,7 @@ export default function SwipeableTransaction({
       >
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className={`w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-lg shadow-sm ${
-            transaction.type === 'income'
+            isIncoming
               ? 'bg-emerald-100 dark:bg-emerald-900/30'
               : 'bg-rose-100 dark:bg-rose-900/30'
           }`}>
@@ -99,11 +108,11 @@ export default function SwipeableTransaction({
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <p className={`font-semibold text-lg whitespace-nowrap ${
-            transaction.type === 'income'
+            isIncoming
               ? 'text-emerald-600 dark:text-emerald-400'
               : 'text-rose-600 dark:text-rose-400'
           }`}>
-            {transaction.type === 'income' ? '+' : '-'}
+            {isIncoming ? '+' : '-'}
             {formatCurrency(transaction.amount)}
           </p>
           {isOwner && (
