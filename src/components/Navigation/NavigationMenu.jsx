@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 const MENU_ITEMS = [
-  { name: 'Dashboard',         label: 'Главная',          icon: LayoutDashboard },
+  { name: 'Dashboard',         label: 'Дашборд',          icon: LayoutDashboard },
   { name: 'Transactions',      label: 'Операции',         icon: ArrowLeftRight },
   { name: 'Accounts',          label: 'Счета',            icon: CreditCard },
   { name: 'Budgets',           label: 'Бюджеты',          icon: PieChart },

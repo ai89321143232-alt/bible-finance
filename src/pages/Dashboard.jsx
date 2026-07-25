@@ -380,11 +380,11 @@ export default function Dashboard() {
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-between mb-6 pt-2 lg:pt-0"
         >
-          <div>
-            <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Главная</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">
+          <div className="bg-card/70 backdrop-blur-sm rounded-xl px-3 py-2 -mx-3 -my-2">
+            <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Дашборд</h1>
+            <p className="text-foreground/70 text-sm mt-0.5">
               {format(new Date(), "EEEE, d MMMM", { locale: ru })}
-              {family && (<span className="ml-2 text-muted-foreground">· {family.name}</span>)}
+              {family && (<span className="ml-2 text-foreground/70">· {family.name}</span>)}
             </p>
           </div>
           <div className="flex items-center gap-2">

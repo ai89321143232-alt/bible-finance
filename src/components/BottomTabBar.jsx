@@ -13,7 +13,7 @@ import { LayoutDashboard, ArrowLeftRight, Target, Settings as SettingsIcon, Wall
 // подсветки активной вкладки и логики переключения табов).
 // ============================================================
 export const BOTTOM_TABS = [
-  { label: 'Главная', path: '/', icon: LayoutDashboard, page: 'Dashboard' },
+  { label: 'Дашборд', path: '/', icon: LayoutDashboard, page: 'Dashboard' },
   { label: 'Операции', path: '/Transactions', icon: ArrowLeftRight, page: 'Transactions' },
   { label: 'Цели', path: '/Goals', icon: Target, page: 'Goals' },
   { label: 'Бюджеты', path: '/Budgets', icon: Wallet, page: 'Budgets' },
