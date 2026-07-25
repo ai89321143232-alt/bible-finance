@@ -7,7 +7,12 @@ export const useTrialActivation = () => {
     const activateTrial = async () => {
       try {
         const user = await base44.auth.me();
-        
+
+        // Администраторы приложения не участвуют в демо/подписке для обычных
+        // пользователей — иначе им автоматически включаются premium-функции
+        // (например, Telegram-бот) в настройках.
+        if (user.role === 'admin') return;
+
         // Проверяем, нужно ли активировать пробный период
         if (!user.trial_end_date && !user.subscription_plan) {
           const trialEndDate = new Date();
