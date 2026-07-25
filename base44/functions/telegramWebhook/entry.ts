@@ -28,6 +28,13 @@ async function answerCallbackQuery(botToken, callbackQueryId, text) {
   }
 }
 
+// Дата "YYYY-MM-DD" в часовом поясе пользователя (а не сервера/VPN) — чтобы операции,
+// отправленные ночью по местному времени, попадали на правильный день.
+function localDateString(timezone) {
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
+  return fmt.format(new Date());
+}
+
 async function downloadTelegramFile(botToken, fileId) {
   const infoRes = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
   const infoData = await infoRes.json();
@@ -146,7 +153,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
     `id=${t.id} | ${t.date?.slice(0, 10)} | ${t.type === 'expense' ? 'расход' : 'доход'} | ${t.amount} ₽ | ${t.category} | ${t.description || ''}`
   ).join('\n') || 'нет операций';
 
-  const financial_context = await computeFinancialContext(entities, ownerId);
+  const financial_context = await computeFinancialContext(entities, ownerId, config.timezone || 'Europe/Moscow');
   const systemPrompt = buildAssistantSystemPrompt({ categoryNames, accountNames, recentTxText, financial_context });
 
   const history = (config.chat_history || []).slice(-10);
@@ -349,7 +356,7 @@ Deno.serve(async (req) => {
         return Response.json({ ok: true });
       }
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = localDateString(config.timezone || 'Europe/Moscow');
       const parsed = await base44.asServiceRole.integrations.Core.InvokeLLM({
         prompt: `Ты финансовый ассистент. Извлеки данные о транзакции из текста на русском языке.\n\nТекст: "${transcript}"\nСегодняшняя дата: ${today}\n\nПравила:\n- type: "expense" если это расход/потратил/купил/заплатил, "income" если доход/получил/заработал/пришло\n- amount: только число\n- category: выбери наиболее подходящую из списка: ${EXPENSE_CATEGORIES}\n- description: краткое описание (1-5 слов)\n- date: дата в формате YYYY-MM-DD (сегодня, если не указана другая)\n\nЕсли не удалось распознать сумму — верни error: "Не удалось распознать сумму"`,
         response_json_schema: {

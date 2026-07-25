@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
       return Response.json({ success: true });
     }
 
-    const { bot_token, telegram_user_id, default_account_id } = body;
+    const { bot_token, telegram_user_id, default_account_id, timezone } = body;
     if (!bot_token || !telegram_user_id) {
       return Response.json({ error: 'Укажите токен бота и ваш Telegram ID' }, { status: 400 });
     }
@@ -38,6 +38,7 @@ Deno.serve(async (req) => {
       bot_username: meData.result.username,
       telegram_user_id: String(telegram_user_id),
       default_account_id: default_account_id || undefined,
+      timezone: timezone || 'Europe/Moscow',
       is_active: true,
       last_error: null
     };

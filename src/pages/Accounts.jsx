@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/WorkspaceContext';
 import CreatorTag from '@/components/shared/CreatorTag';
+import FamilyVisibilityToggle from '@/components/shared/FamilyVisibilityToggle';
 
 const ACCOUNT_TYPES = [
   { value: 'cash', label: 'Наличные', icon: '💵', color: '#10B981' },
@@ -79,6 +80,7 @@ export default function Accounts() {
   const [editAccount, setEditAccount] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [relatedTransactionsCount, setRelatedTransactionsCount] = useState(0);
+  const [showOnlyMine, setShowOnlyMine] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -128,6 +130,10 @@ export default function Accounts() {
     (family?.id && acc.family_id === family.id)
   );
   const accounts = filterByWorkspace(myAccounts, activeWorkspaceId);
+  const isFamilyTier = family?.subscription_tier === 'family';
+  const displayedAccounts = (showOnlyMine && isFamilyTier)
+    ? accounts.filter(acc => acc.created_by_id === currentUser?.id)
+    : accounts;
 
   const { data: transactions = [] } = useQuery({
     queryKey: ['transactions'],
@@ -269,13 +275,13 @@ export default function Accounts() {
     return { income, expenses };
   };
 
-  const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+  const totalBalance = displayedAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
   
   // Net worth breakdown — all balances summed directly: positive = assets, negative = debts
-  const positiveBalance = accounts
+  const positiveBalance = displayedAccounts
     .filter(a => (a.balance || 0) > 0)
     .reduce((sum, a) => sum + (a.balance || 0), 0);
-  const negativeBalance = accounts
+  const negativeBalance = displayedAccounts
     .filter(a => (a.balance || 0) < 0)
     .reduce((sum, a) => sum + (a.balance || 0), 0);
   // netWorth is simply the sum of all balances (already equals positiveBalance + negativeBalance)
@@ -293,13 +299,18 @@ export default function Accounts() {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
             Счета
           </h1>
-          <Button
-            onClick={() => setShowAddModal(true)}
-            className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Добавить
-          </Button>
+          <div className="flex items-center gap-2">
+            {isFamilyTier && (
+              <FamilyVisibilityToggle showOnlyMine={showOnlyMine} onToggle={() => setShowOnlyMine(v => !v)} />
+            )}
+            <Button
+              onClick={() => setShowAddModal(true)}
+              className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Добавить
+            </Button>
+          </div>
         </motion.div>
 
         {/* Net Worth Card */}
@@ -328,16 +339,16 @@ export default function Accounts() {
                     </div>
                   )}
                 </div>
-                <p className="text-slate-400 text-xs mt-2">{accounts.length} счетов</p>
+                <p className="text-slate-400 text-xs mt-2">{displayedAccounts.length} счетов</p>
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
         {/* Accounts Grid */}
-        {accounts.length > 0 ? (
+        {displayedAccounts.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2">
-            {accounts.map((account, index) => {
+            {displayedAccounts.map((account, index) => {
               const typeInfo = ACCOUNT_TYPES.find(t => t.value === account.type) || ACCOUNT_TYPES[1];
               const stats = getAccountStats(account.id);
               const isEditable = account.created_by_id === currentUser?.id;

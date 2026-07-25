@@ -119,9 +119,19 @@ export async function invokeAssistantModel({ base44, model, apiKeys = {}, system
   });
 }
 
+// Возвращает {year, month, day} даты в конкретном часовом поясе (IANA), чтобы день/месяц
+// определялись по времени пользователя, а не по времени сервера.
+function tzDateParts(date, timezone) {
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
+  const parts = fmt.formatToParts(date).reduce((acc, p) => { acc[p.type] = p.value; return acc; }, {});
+  return { year: parseInt(parts.year), month: parseInt(parts.month), day: parseInt(parts.day) };
+}
+
 // Собирает текстовый финансовый контекст пользователя (для Telegram-бота, где нет фронтенда,
 // который бы прислал этот контекст, как в веб-чате).
-export async function computeFinancialContext(entities, ownerId) {
+// timezone (IANA, например "Europe/Moscow") — часовой пояс пользователя, чтобы "сегодня"/"этот месяц"
+// определялись по его локальному времени, а не по времени сервера.
+export async function computeFinancialContext(entities, ownerId, timezone = 'UTC') {
   const [allTransactions, allBudgets, allGoals, allInvestments, allAccounts, owner] = await Promise.all([
     entities.Transaction.list('-date', 300),
     entities.Budget.list(),
@@ -141,8 +151,9 @@ export async function computeFinancialContext(entities, ownerId) {
   const totalBalance = accounts.reduce((sum, a) => sum + (a.balance || 0), 0);
 
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const todayStr = now.toISOString().slice(0, 10);
+  const { year, month, day } = tzDateParts(now, timezone);
+  const monthStart = new Date(Date.UTC(year, month - 1, 1));
+  const todayStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
   const monthTransactions = transactions.filter(t => new Date(t.date) >= monthStart);
   const monthIncome = monthTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);

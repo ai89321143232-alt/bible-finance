@@ -19,6 +19,20 @@ import {
 } from '@/components/ui/select';
 import { Loader2, Bot, Check, Unlink } from 'lucide-react';
 
+const TIMEZONES = [
+  { value: 'Europe/Kaliningrad', label: 'Калининград (UTC+2)' },
+  { value: 'Europe/Moscow', label: 'Москва (UTC+3)' },
+  { value: 'Europe/Samara', label: 'Самара (UTC+4)' },
+  { value: 'Asia/Yekaterinburg', label: 'Екатеринбург (UTC+5)' },
+  { value: 'Asia/Omsk', label: 'Омск (UTC+6)' },
+  { value: 'Asia/Krasnoyarsk', label: 'Красноярск (UTC+7)' },
+  { value: 'Asia/Irkutsk', label: 'Иркутск (UTC+8)' },
+  { value: 'Asia/Yakutsk', label: 'Якутск (UTC+9)' },
+  { value: 'Asia/Vladivostok', label: 'Владивосток (UTC+10)' },
+  { value: 'Asia/Magadan', label: 'Магадан (UTC+11)' },
+  { value: 'Asia/Kamchatka', label: 'Камчатка (UTC+12)' },
+];
+
 // ============================================================
 // TelegramBotSettings — модалка подключения личного Telegram-бота
 // (Premium-функция). Пользователь вводит токен от @BotFather и свой
@@ -31,6 +45,7 @@ export default function TelegramBotSettings({ open, onOpenChange }) {
   const [botToken, setBotToken] = useState('');
   const [telegramUserId, setTelegramUserId] = useState('');
   const [defaultAccountId, setDefaultAccountId] = useState('');
+  const [timezone, setTimezone] = useState('Europe/Moscow');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -53,6 +68,7 @@ export default function TelegramBotSettings({ open, onOpenChange }) {
       setBotToken(existing?.bot_token || '');
       setTelegramUserId(existing?.telegram_user_id || '');
       setDefaultAccountId(existing?.default_account_id || accs[0]?.id || '');
+      setTimezone(existing?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Moscow');
     } finally {
       setIsLoading(false);
     }
@@ -71,6 +87,7 @@ export default function TelegramBotSettings({ open, onOpenChange }) {
         bot_token: botToken.trim(),
         telegram_user_id: telegramUserId.trim(),
         default_account_id: defaultAccountId || undefined,
+        timezone,
         app_url: appParams.appBaseUrl || window.location.origin,
       });
       if (res.data?.error) {
@@ -180,6 +197,23 @@ export default function TelegramBotSettings({ open, onOpenChange }) {
                 </Select>
               </div>
             )}
+
+            <div>
+              <Label>Ваш часовой пояс</Label>
+              <Select value={timezone} onValueChange={setTimezone}>
+                <SelectTrigger className="rounded-xl mt-1">
+                  <SelectValue placeholder="Выберите часовой пояс" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIMEZONES.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-400 mt-1">Операции из Telegram будут записываться с датой по этому часовому поясу</p>
+            </div>
 
             {error && <p className="text-sm text-rose-600">{error}</p>}
 

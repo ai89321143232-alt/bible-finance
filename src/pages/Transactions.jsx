@@ -27,6 +27,7 @@ import PullToRefresh from '@/components/PullToRefresh';
 import MobileSelect from '@/components/mobile/MobileSelect';
 import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/WorkspaceContext';
 import { TransactionService } from '@/services';
+import FamilyVisibilityToggle from '@/components/shared/FamilyVisibilityToggle';
 
 const CATEGORY_ICONS = {
   'Еда': '🍔', 'Транспорт': '🚗', 'Жильё': '🏠', 'Развлечения': '🎮',
@@ -49,6 +50,7 @@ export default function Transactions() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [user, setUser] = useState(null);
   const [openSwipeId, setOpenSwipeId] = useState(null);
+  const [showOnlyMine, setShowOnlyMine] = useState(false);
   const activeWorkspaceId = useActiveWorkspaceId();
 
   useEffect(() => {
@@ -122,7 +124,12 @@ export default function Transactions() {
     return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(amount);
   };
 
-  const filteredTransactions = transactions.filter(t => {
+  const isFamilyTier = family?.subscription_tier === 'family';
+  const displayedTransactions = (showOnlyMine && isFamilyTier)
+    ? transactions.filter(t => t.created_by_id === user?.id || t.user_id === user?.id)
+    : transactions;
+
+  const filteredTransactions = displayedTransactions.filter(t => {
     const date = new Date(t.date);
     const inMonth = date >= startOfMonth(currentMonth) && date <= endOfMonth(currentMonth);
     const matchesSearch = !searchQuery || t.category?.toLowerCase().includes(searchQuery.toLowerCase()) || t.description?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -140,7 +147,7 @@ export default function Transactions() {
   }, {});
 
   const sortedDates = Object.keys(groupedTransactions).sort((a, b) => new Date(b) - new Date(a));
-  const allCategories = [...new Set(transactions.map(t => t.category).filter(Boolean))];
+  const allCategories = [...new Set(displayedTransactions.map(t => t.category).filter(Boolean))];
   const totalIncome = filteredTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const totalExpense = filteredTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
@@ -158,6 +165,9 @@ export default function Transactions() {
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Операции</h1>
           <div className="flex items-center gap-2">
+            {isFamilyTier && (
+              <FamilyVisibilityToggle showOnlyMine={showOnlyMine} onToggle={() => setShowOnlyMine(v => !v)} />
+            )}
             <Button onClick={() => setShowExportModal(true)} variant="outline" className="rounded-xl hidden sm:flex">
               <Download className="w-4 h-4 mr-2" />Экспорт
             </Button>
