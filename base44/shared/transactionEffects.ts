@@ -5,12 +5,16 @@ export function effect(type, amount) {
   return type === 'expense' ? -amount : amount;
 }
 
-export async function applyBalanceDelta(entities, accountId, delta) {
+// ownerId — обязательная проверка владения: счёт должен принадлежать этому пользователю
+// (created_by_id или user_id), иначе баланс чужого счёта менять нельзя.
+export async function applyBalanceDelta(entities, accountId, delta, ownerId) {
   if (!accountId) return;
   const account = await entities.Account.get(accountId);
-  if (account) {
-    await entities.Account.update(accountId, { balance: (account.balance || 0) + delta });
+  if (!account) return;
+  if (ownerId && account.created_by_id !== ownerId && account.user_id !== ownerId) {
+    throw new Error('Account does not belong to this user');
   }
+  await entities.Account.update(accountId, { balance: (account.balance || 0) + delta });
 }
 
 export async function applyBudgetDelta(entities, userId, category, delta) {

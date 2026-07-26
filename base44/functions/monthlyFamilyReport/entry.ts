@@ -143,16 +143,36 @@ Deno.serve(async (req) => {
         let user = null;
         try { user = await base44.auth.me(); } catch (_) {}
 
+        if (!user) {
+            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        // Семья определяется через Family (owner_id/members) — используется, чтобы отчёт
+        // включал только данные вызывающего пользователя и его семьи, а не всех пользователей.
+        const families = await base44.asServiceRole.entities.Family.list();
+        const family = families.find(f =>
+            f.owner_id === user.id || f.members?.some(m => m.user_id === user.id)
+        ) ?? null;
+
         // Период: прошлый месяц
         const now = new Date();
         const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const lastDay = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
 
-        const [transactions, budgets, accounts] = await Promise.all([
+        const [allTransactions, allBudgets, allAccounts] = await Promise.all([
             base44.asServiceRole.entities.Transaction.list('-date', 2000),
             base44.asServiceRole.entities.Budget.list(),
             base44.asServiceRole.entities.Account.list(),
         ]);
+
+        const belongsToCaller = (record) =>
+            record.created_by_id === user.id ||
+            record.user_id === user.id ||
+            (family?.id && record.family_id === family.id);
+
+        const transactions = allTransactions.filter(belongsToCaller);
+        const budgets = allBudgets.filter(belongsToCaller);
+        const accounts = allAccounts.filter(belongsToCaller);
 
         // Фильтруем транзакции за прошлый месяц
         const monthTxns = transactions.filter(t => {

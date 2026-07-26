@@ -15,6 +15,12 @@ Deno.serve(async (req) => {
             const { parsed, account_id } = body;
             const amount = parsed.amount;
 
+            // Verify the account belongs to this user before creating anything against it
+            const ownedAccount = await base44.asServiceRole.entities.Account.get(account_id).catch(() => null);
+            if (!ownedAccount || (ownedAccount.created_by_id !== user.id && ownedAccount.user_id !== user.id)) {
+                return Response.json({ error: 'Account does not belong to this user' }, { status: 403 });
+            }
+
             const transaction = await base44.entities.Transaction.create({
                 type: parsed.type,
                 amount,
@@ -26,18 +32,15 @@ Deno.serve(async (req) => {
                 user_id: user.id
             });
 
-            // Update account balance
-            const account = await base44.asServiceRole.entities.Account.get(account_id);
-            if (account) {
-                if (parsed.type === 'expense') {
-                    await base44.asServiceRole.entities.Account.update(account_id, {
-                        balance: account.balance - amount
-                    });
-                } else {
-                    await base44.asServiceRole.entities.Account.update(account_id, {
-                        balance: account.balance + amount
-                    });
-                }
+            // Update account balance (ownership already verified above)
+            if (parsed.type === 'expense') {
+                await base44.asServiceRole.entities.Account.update(account_id, {
+                    balance: ownedAccount.balance - amount
+                });
+            } else {
+                await base44.asServiceRole.entities.Account.update(account_id, {
+                    balance: ownedAccount.balance + amount
+                });
             }
 
             // Update matching budget for expenses (only user's own budgets)
@@ -150,9 +153,9 @@ Deno.serve(async (req) => {
                 user_id: user.id
             });
 
-            // Update account balance
+            // Update account balance — matchedAccountId was already resolved from this user's own accounts
             const account = await base44.asServiceRole.entities.Account.get(matchedAccountId);
-            if (account) {
+            if (account && (account.created_by_id === user.id || account.user_id === user.id)) {
                 if (result.type === 'expense') {
                     await base44.asServiceRole.entities.Account.update(matchedAccountId, {
                         balance: account.balance - result.amount

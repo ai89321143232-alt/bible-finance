@@ -67,7 +67,7 @@ async function createTransactionRecord({ entities, parsed, account, ownerId }) {
     source: 'telegram_bot'
   });
 
-  await applyBalanceDelta(entities, account.id, effect(parsed.type, parsed.amount));
+  await applyBalanceDelta(entities, account.id, effect(parsed.type, parsed.amount), ownerId);
   if (parsed.type === 'expense') await applyBudgetDelta(entities, ownerId, parsed.category, parsed.amount);
 }
 
@@ -200,7 +200,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
           family_id: owner?.family_id || undefined,
           source: 'telegram_bot'
         });
-        await applyBalanceDelta(entities, targetAccount.id, effect(t.type, t.amount));
+        await applyBalanceDelta(entities, targetAccount.id, effect(t.type, t.amount), ownerId);
         if (t.type === 'expense') await applyBudgetDelta(entities, ownerId, t.category, t.amount);
         replyText = replyText || `✅ Записал: ${t.type === 'expense' ? '-' : '+'}${t.amount} ₽ (${t.category || 'Другое'})`;
       }
@@ -230,7 +230,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
           family_id: owner?.family_id || undefined,
           created_by_id: ownerId
         });
-        await applyBalanceDelta(entities, targetAccount.id, -totalCost);
+        await applyBalanceDelta(entities, targetAccount.id, -totalCost, ownerId);
         replyText = replyText || `✅ Записал покупку инвестиции: ${inv.name} на ${totalCost.toLocaleString()} ₽ (счёт: ${targetAccount.name})`;
       }
     }
@@ -244,10 +244,10 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
       const newAmount = u.amount !== undefined ? u.amount : existing.amount;
       const newCategory = u.category || existing.category;
 
-      await applyBalanceDelta(entities, existing.account_id, -effect(existing.type, existing.amount));
+      await applyBalanceDelta(entities, existing.account_id, -effect(existing.type, existing.amount), ownerId);
       if (existing.type === 'expense') await applyBudgetDelta(entities, ownerId, existing.category, -existing.amount);
 
-      await applyBalanceDelta(entities, existing.account_id, effect(newType, newAmount));
+      await applyBalanceDelta(entities, existing.account_id, effect(newType, newAmount), ownerId);
       if (newType === 'expense') await applyBudgetDelta(entities, ownerId, newCategory, newAmount);
 
       const updatePayload = {};
@@ -264,7 +264,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
     if (!existing) {
       replyText = replyText || 'Не удалось найти указанную операцию.';
     } else {
-      await applyBalanceDelta(entities, existing.account_id, -effect(existing.type, existing.amount));
+      await applyBalanceDelta(entities, existing.account_id, -effect(existing.type, existing.amount), ownerId);
       if (existing.type === 'expense') await applyBudgetDelta(entities, ownerId, existing.category, -existing.amount);
       await entities.Transaction.delete(existing.id);
       replyText = replyText || '🗑️ Операция удалена';

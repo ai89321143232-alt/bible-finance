@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
         account_id,
         user_id: user.id
       });
-      await applyBalanceDelta(entities, account_id, effect(t.type, t.amount));
+      await applyBalanceDelta(entities, account_id, effect(t.type, t.amount), user.id);
       if (t.type === 'expense') await applyBudgetDelta(entities, user.id, t.category, t.amount);
       return Response.json({
         reply: `✅ Записал: ${t.type === 'expense' ? '-' : '+'}${t.amount} ₽ (${t.category})`,
@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
         purchase_date: new Date().toISOString().split('T')[0],
         user_id: user.id
       });
-      await applyBalanceDelta(entities, account_id, -totalCost);
+      await applyBalanceDelta(entities, account_id, -totalCost, user.id);
       return Response.json({
         reply: `✅ Записал покупку инвестиции: ${inv.name} на ${totalCost.toLocaleString()} ₽`,
         action: 'created_investment',
@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
         account_id: matchedAccountId,
         user_id: user.id
       });
-      await applyBalanceDelta(entities, matchedAccountId, effect(t.type, t.amount));
+      await applyBalanceDelta(entities, matchedAccountId, effect(t.type, t.amount), user.id);
       if (t.type === 'expense') await applyBudgetDelta(entities, user.id, t.category, t.amount);
 
       return Response.json({ reply: parsed.reply, action: 'created', transaction });
@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
         purchase_date: new Date().toISOString().split('T')[0],
         user_id: user.id
       });
-      await applyBalanceDelta(entities, matchedAccountId, -totalCost);
+      await applyBalanceDelta(entities, matchedAccountId, -totalCost, user.id);
 
       return Response.json({ reply: parsed.reply || `✅ Записал покупку инвестиции: ${inv.name} на ${totalCost.toLocaleString()} ₽`, action: 'created_investment', investment });
     }
@@ -171,10 +171,10 @@ Deno.serve(async (req) => {
       const newCategory = u.category || existing.category;
 
       // Revert old effect, apply new effect
-      await applyBalanceDelta(entities, existing.account_id, -effect(existing.type, existing.amount));
+      await applyBalanceDelta(entities, existing.account_id, -effect(existing.type, existing.amount), user.id);
       if (existing.type === 'expense') await applyBudgetDelta(entities, user.id, existing.category, -existing.amount);
 
-      await applyBalanceDelta(entities, existing.account_id, effect(newType, newAmount));
+      await applyBalanceDelta(entities, existing.account_id, effect(newType, newAmount), user.id);
       if (newType === 'expense') await applyBudgetDelta(entities, user.id, newCategory, newAmount);
 
       const updatePayload = {};
@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
       if (!existing) {
         return Response.json({ reply: parsed.reply || 'Не удалось найти указанную операцию.' });
       }
-      await applyBalanceDelta(entities, existing.account_id, -effect(existing.type, existing.amount));
+      await applyBalanceDelta(entities, existing.account_id, -effect(existing.type, existing.amount), user.id);
       if (existing.type === 'expense') await applyBudgetDelta(entities, user.id, existing.category, -existing.amount);
       await base44.entities.Transaction.delete(existing.id);
       return Response.json({ reply: parsed.reply || '🗑️ Операция удалена', action: 'deleted' });
