@@ -310,12 +310,21 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           setType('expense');
         }
         // Пытаемся определить счёт по названию карты, если оно видно на фото
+        let matchedAccountId = null;
         if (result.output.card_hint) {
           const hint = result.output.card_hint.toLowerCase();
           const matchedAccount = myAccounts.find(acc =>
             acc.name && (hint.includes(acc.name.toLowerCase()) || acc.name.toLowerCase().includes(hint))
           );
-          if (matchedAccount) setAccountId(matchedAccount.id);
+          if (matchedAccount) {
+            setAccountId(matchedAccount.id);
+            matchedAccountId = matchedAccount.id;
+          }
+        }
+        // Если счёт не определён по подсказке, но у пользователя только один счёт — выбираем его
+        if (!matchedAccountId && myAccounts.length === 1) {
+          setAccountId(myAccounts[0].id);
+          matchedAccountId = myAccounts[0].id;
         }
         const operations = result.output.operations || [];
         if (operations.length > 1) {
@@ -361,7 +370,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           if (parsedDate) setDate(parsedDate);
           setShowReviewModal(true);
         } else if (items.length === 1 && result.output.operation_type !== 'income') {
-          await categorizeAndAddSingleItem(items[0], result.output);
+          await categorizeAndAddSingleItem(items[0], result.output, matchedAccountId);
         } else {
           setAmount(result.output.amount?.toString() || '');
           setDescription(result.output.merchant || '');
@@ -383,20 +392,45 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     }
   };
 
-  const categorizeAndAddSingleItem = async (item, receiptData) => {
+  const categorizeAndAddSingleItem = async (item, receiptData, matchedAccountId) => {
     try {
       const categoryNames = categories.map(c => c.name).join(', ');
       const response = await base44.integrations.Core.InvokeLLM({
         prompt: `Определи наиболее подходящую категорию для товара "${item.name}" стоимостью ${item.price}₽.\n\nДоступные категории: ${categoryNames}\n\nОтвечай только с названием категории.`,
         add_context_from_internet: false
       });
+      const cat = response.trim();
+      const parsedDate = parseFlexibleDate(receiptData.date) || new Date();
+
+      // Если счёт определён — сохраняем автоматически
+      if (matchedAccountId) {
+        const res = await TransactionService.saveEntry({
+          type: 'expense',
+          amount: item.price,
+          category: cat,
+          description: `${receiptData.merchant || ''} - ${item.name}`,
+          date: parsedDate,
+          account_id: matchedAccountId,
+          accounts,
+        });
+        if (res.ok) {
+          toast.success('Расход добавлен');
+          onClose();
+          return;
+        }
+        toast.error(res.error || 'Не удалось сохранить');
+      }
+
+      // Иначе — заполняем форму для ручного сохранения
       setAmount(item.price?.toString() || '');
       setDescription(`${receiptData.merchant || ''} - ${item.name}`);
-      setCategory(response.trim());
-      const parsedDate = parseFlexibleDate(receiptData.date);
-      if (parsedDate) setDate(parsedDate);
+      setCategory(cat);
+      setDate(parsedDate);
+      if (matchedAccountId) setAccountId(matchedAccountId);
       setActiveTab('manual');
-      toast.success('Товар добавлен!');
+      if (!matchedAccountId) {
+        toast.info('Выберите счёт и нажмите «Сохранить»');
+      }
     } catch (error) {
       setAmount(item.price?.toString() || '');
       setDescription(`${receiptData.merchant || ''} - ${item.name}`);

@@ -159,7 +159,7 @@ export const TransactionService = {
       const data = await enrichWithOwnership(
         {
           type: 'expense',
-          amount: item.price,
+          amount: parseFloat(item.price) || 0,
           category: item.category,
           description: `${description} - ${item.name}`,
           date: date instanceof Date ? date.toISOString() : date,
@@ -171,7 +171,7 @@ export const TransactionService = {
     }
 
     if (account) {
-      const total = items.reduce((sum, i) => sum + (i.price || 0), 0);
+      const total = items.reduce((sum, i) => sum + (parseFloat(i.price) || 0), 0);
       await AccountService.setBalance(account.id, (account.balance || 0) - total);
     }
     notifyChanged();
@@ -191,10 +191,11 @@ export const TransactionService = {
     for (const item of items) {
       const itemType = item.type === 'income' ? 'income' : 'expense';
       const txDate = parseFlexibleDate(item.date) || new Date();
+      const itemAmount = parseFloat(item.price) || 0;
       const data = await enrichWithOwnership(
         {
           type: itemType,
-          amount: item.price,
+          amount: itemAmount,
           category: item.category,
           description: item.name,
           date: txDate.toISOString(),
@@ -203,7 +204,7 @@ export const TransactionService = {
         user
       );
       await repo().create(data);
-      netDelta += itemType === 'income' ? (item.price || 0) : -(item.price || 0);
+      netDelta += itemType === 'income' ? itemAmount : -itemAmount;
     }
 
     if (account) {
