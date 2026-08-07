@@ -180,7 +180,7 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
         disabled={status === 'processing' || isFinalizing}
         whileTap={{ scale: 0.92 }}
         className={`
-                        relative w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 border [font-family:'Abril_Fatface',_system-ui] text-xs text-center bg-[hsl(var(--destructive))]
+                        relative w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 border [font-family:'Abril_Fatface',_system-ui] text-xs text-center bg-[#6b47bd] text-[hsl(var(--background))]
                         ${status === 'recording' ? 'bg-red-500 border-red-500 shadow-red-500/40' : ''}
                         ${status === 'processing' ? 'bg-muted border-border cursor-not-allowed' : ''}
                         ${status === 'success' ? 'bg-green-500 border-green-500' : ''}
