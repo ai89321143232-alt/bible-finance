@@ -358,9 +358,9 @@ export default function Dashboard() {
 
 
 
+
       // Don't block, but could show a warning — for now just proceed
-    }await base44.entities.Transaction.create({ type: template.type, amount: template.amount, category: template.category, subcategory: template.subcategory || undefined, description: template.description || template.name, account_id: accountId, date: new Date().toISOString(), user_id: user?.id,
-        family_id: family?.id || undefined
+    }await base44.entities.Transaction.create({ type: template.type, amount: template.amount, category: template.category, subcategory: template.subcategory || undefined, description: template.description || template.name, account_id: accountId, date: new Date().toISOString(), user_id: user?.id, family_id: family?.id || undefined
       });
 
     // Update account balance
@@ -409,7 +409,7 @@ export default function Dashboard() {
             <VoiceTransactionButton onTransactionCreated={() => queryClient.invalidateQueries()} />
             <Button
                 onClick={() => {setQuickAddType('expense');setShowQuickAdd(true);}}
-                className="hover:bg-primary/90 rounded-lg h-9 px-4 text-sm font-semibold opacity-100 text-[hsl(var(--popover-foreground))] bg-[#3e0e0e]">
+                className="hover:bg-primary/90 rounded-lg h-9 px-4 text-sm font-semibold opacity-100 text-[hsl(var(--popover-foreground))] bg-[#2b2626]">
                 
               <Plus className="w-4 h-4 mr-1.5" />
               <span className="hidden sm:inline">Добавить</span>
