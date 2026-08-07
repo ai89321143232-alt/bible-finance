@@ -35,26 +35,26 @@ export default function FamilyChat() {
     queryKey: ['my-family-chat', user?.id],
     queryFn: async () => {
       const families = await base44.entities.Family.list();
-      return families.find(f => f.owner_id === user.id || f.members?.some(m => m.user_id === user.id)) ?? null;
+      return families.find((f) => f.owner_id === user.id || f.members?.some((m) => m.user_id === user.id)) ?? null;
     },
-    enabled: !!user,
+    enabled: !!user
   });
 
   const { data: familyAccounts = [] } = useQuery({
     queryKey: ['family-accounts-chat', family?.id],
     queryFn: async () => {
-      const memberIds = family.members?.map(m => m.user_id) || [];
+      const memberIds = family.members?.map((m) => m.user_id) || [];
       const all = await base44.entities.Account.list();
-      return all.filter(a =>
-        a.family_id === family.id ||
-        memberIds.includes(a.created_by_id) ||
-        memberIds.includes(a.user_id)
+      return all.filter((a) =>
+      a.family_id === family.id ||
+      memberIds.includes(a.created_by_id) ||
+      memberIds.includes(a.user_id)
       );
     },
-    enabled: !!family,
+    enabled: !!family
   });
 
-  const myAccounts = familyAccounts.filter(a => a.created_by_id === user?.id || a.user_id === user?.id);
+  const myAccounts = familyAccounts.filter((a) => a.created_by_id === user?.id || a.user_id === user?.id);
 
   useEffect(() => {
     if (!family) {
@@ -62,22 +62,22 @@ export default function FamilyChat() {
       return;
     }
     setIsLoading(true);
-    base44.entities.FamilyMessage.filter({ family_id: family.id }, 'created_date', 200)
-      .then((data) => {
-        setMessages(data);
-        markMessagesRead(data);
-      })
-      .finally(() => setIsLoading(false));
+    base44.entities.FamilyMessage.filter({ family_id: family.id }, 'created_date', 200).
+    then((data) => {
+      setMessages(data);
+      markMessagesRead(data);
+    }).
+    finally(() => setIsLoading(false));
   }, [family?.id]);
 
   // Отмечает чужие непрочитанные сообщения прочитанными текущим пользователем
   const markMessagesRead = (list) => {
     if (!user) return;
-    const unread = list.filter(m => m.created_by_id !== user.id && !(m.read_by || []).includes(user.id));
+    const unread = list.filter((m) => m.created_by_id !== user.id && !(m.read_by || []).includes(user.id));
     if (unread.length === 0) return;
-    setMessages(prev => prev.map(m => unread.some(u => u.id === m.id) ? { ...m, read_by: [...(m.read_by || []), user.id] } : m));
-    Promise.all(unread.map(m =>
-      base44.entities.FamilyMessage.update(m.id, { read_by: [...(m.read_by || []), user.id] })
+    setMessages((prev) => prev.map((m) => unread.some((u) => u.id === m.id) ? { ...m, read_by: [...(m.read_by || []), user.id] } : m));
+    Promise.all(unread.map((m) =>
+    base44.entities.FamilyMessage.update(m.id, { read_by: [...(m.read_by || []), user.id] })
     ));
   };
 
@@ -86,10 +86,10 @@ export default function FamilyChat() {
     const unsubscribe = base44.entities.FamilyMessage.subscribe((event) => {
       if (event.data?.family_id !== family.id) return;
       if (event.type === 'create') {
-        setMessages(prev => prev.some(m => m.id === event.data.id) ? prev : [...prev, event.data]);
+        setMessages((prev) => prev.some((m) => m.id === event.data.id) ? prev : [...prev, event.data]);
         markMessagesRead([event.data]);
       } else if (event.type === 'update') {
-        setMessages(prev => prev.map(m => m.id === event.data.id ? event.data : m));
+        setMessages((prev) => prev.map((m) => m.id === event.data.id ? event.data : m));
       }
     });
     return unsubscribe;
@@ -119,29 +119,29 @@ export default function FamilyChat() {
       type: 'money_request',
       amount,
       request_status: 'pending',
-      read_by: [user.id],
+      read_by: [user.id]
     });
   };
 
   const handleReact = async (message, emoji) => {
     const reactions = message.reactions || [];
-    const existing = reactions.find(r => r.emoji === emoji);
+    const existing = reactions.find((r) => r.emoji === emoji);
     let updated;
     if (existing) {
       const hasUser = existing.user_ids.includes(user.id);
-      const newUserIds = hasUser ? existing.user_ids.filter(id => id !== user.id) : [...existing.user_ids, user.id];
-      updated = newUserIds.length > 0
-        ? reactions.map(r => r.emoji === emoji ? { ...r, user_ids: newUserIds } : r)
-        : reactions.filter(r => r.emoji !== emoji);
+      const newUserIds = hasUser ? existing.user_ids.filter((id) => id !== user.id) : [...existing.user_ids, user.id];
+      updated = newUserIds.length > 0 ?
+      reactions.map((r) => r.emoji === emoji ? { ...r, user_ids: newUserIds } : r) :
+      reactions.filter((r) => r.emoji !== emoji);
     } else {
       updated = [...reactions, { emoji, user_ids: [user.id] }];
     }
-    setMessages(prev => prev.map(m => m.id === message.id ? { ...m, reactions: updated } : m));
+    setMessages((prev) => prev.map((m) => m.id === message.id ? { ...m, reactions: updated } : m));
     await base44.entities.FamilyMessage.update(message.id, { reactions: updated });
   };
 
   const handleEdit = async (message, newContent) => {
-    setMessages(prev => prev.map(m => m.id === message.id ? { ...m, content: newContent, edited: true } : m));
+    setMessages((prev) => prev.map((m) => m.id === message.id ? { ...m, content: newContent, edited: true } : m));
     await base44.entities.FamilyMessage.update(message.id, { content: newContent, edited: true });
   };
 
@@ -149,8 +149,8 @@ export default function FamilyChat() {
     const requester = getMember(message.created_by_id);
     const requesterName = requester?.display_name || requester?.name || 'участника семьи';
     const payerName = getMember(user.id)?.display_name || getMember(user.id)?.name || user.full_name;
-    const payerAccount = myAccounts.find(a => a.id === payerAccountId);
-    const requesterAccount = familyAccounts.find(a => a.created_by_id === message.created_by_id || a.user_id === message.created_by_id);
+    const payerAccount = myAccounts.find((a) => a.id === payerAccountId);
+    const requesterAccount = familyAccounts.find((a) => a.created_by_id === message.created_by_id || a.user_id === message.created_by_id);
 
     if (payerAccount) {
       await base44.entities.Account.update(payerAccount.id, { balance: (payerAccount.balance || 0) - message.amount });
@@ -170,7 +170,7 @@ export default function FamilyChat() {
       user_id: user.id,
       account_id: payerAccount?.id,
       source: 'app',
-      visibility: 'shared',
+      visibility: 'shared'
     });
 
     if (requesterAccount) {
@@ -185,12 +185,12 @@ export default function FamilyChat() {
         user_id: message.created_by_id,
         account_id: requesterAccount.id,
         source: 'app',
-        visibility: 'shared',
+        visibility: 'shared'
       });
     }
 
     const updates = { request_status: 'fulfilled', paid_by: user.id, transaction_id: transaction.id };
-    setMessages(prev => prev.map(m => m.id === message.id ? { ...m, ...updates } : m));
+    setMessages((prev) => prev.map((m) => m.id === message.id ? { ...m, ...updates } : m));
     await base44.entities.FamilyMessage.update(message.id, updates);
   };
 
@@ -201,14 +201,14 @@ export default function FamilyChat() {
     }
   };
 
-  const getMember = (createdById) => family?.members?.find(m => m.user_id === createdById);
+  const getMember = (createdById) => family?.members?.find((m) => m.user_id === createdById);
 
   if (isLoading || !user) {
     return (
       <div className="flex items-center justify-center h-[70vh]">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+      </div>);
+
   }
 
   if (!family) {
@@ -216,14 +216,14 @@ export default function FamilyChat() {
       <div className="flex flex-col items-center justify-center h-[70vh] px-6 text-center gap-3">
         <Users className="w-10 h-10 text-muted-foreground" />
         <h2 className="text-lg font-semibold text-foreground">У вас пока нет семьи</h2>
-        <p className="text-sm text-muted-foreground max-w-xs">
-          Создайте семью или присоединитесь по коду приглашения, чтобы общаться с её участниками.
+        <p className="text-sm max-w-xs text-[hsl(var(--sidebar-primary-foreground))]">Создайте семью или присоединитесь по коду приглашения, чтобы общаться с её участниками.
+
         </p>
         <Link to={createPageUrl('Family')}>
           <Button className="rounded-xl mt-1">Перейти к семье</Button>
         </Link>
-      </div>
-    );
+      </div>);
+
   }
 
   return (
@@ -237,37 +237,37 @@ export default function FamilyChat() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
-        {messages.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground mt-10">Пока нет сообщений. Напишите первым!</p>
-        ) : (
-          messages.map((m) => (
-            <ChatBubble
-              key={m.id}
-              message={m}
-              member={getMember(m.created_by_id)}
-              isOwn={m.created_by_id === user.id}
-              userId={user.id}
-              totalMembers={family.members?.length || 1}
-              payer={getMember(m.paid_by)}
-              onReact={(emoji) => handleReact(m, emoji)}
-              onEdit={(content) => handleEdit(m, content)}
-              onFulfillRequest={() => setPayingMessage(m)}
-            />
-          ))
-        )}
+        {messages.length === 0 ?
+        <p className="text-center text-sm text-muted-foreground mt-10">Пока нет сообщений. Напишите первым!</p> :
+
+        messages.map((m) =>
+        <ChatBubble
+          key={m.id}
+          message={m}
+          member={getMember(m.created_by_id)}
+          isOwn={m.created_by_id === user.id}
+          userId={user.id}
+          totalMembers={family.members?.length || 1}
+          payer={getMember(m.paid_by)}
+          onReact={(emoji) => handleReact(m, emoji)}
+          onEdit={(content) => handleEdit(m, content)}
+          onFulfillRequest={() => setPayingMessage(m)} />
+
+        )
+        }
         <div ref={bottomRef} />
       </div>
 
       <div
         className="px-4 sm:px-6 pt-3 border-t border-border flex items-end gap-2 flex-shrink-0 bg-background lg:!pb-3"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 88px)' }}
-      >
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 88px)' }}>
+        
         <Button
           onClick={() => setShowMoneyRequest(true)}
           size="icon"
           variant="outline"
-          className="rounded-xl h-11 w-11 flex-shrink-0 border-amber-400 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-        >
+          className="rounded-xl h-11 w-11 flex-shrink-0 border-amber-400 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30">
+          
           <HandCoins className="w-5 h-5" />
         </Button>
         <Textarea
@@ -276,14 +276,14 @@ export default function FamilyChat() {
           onKeyDown={handleKeyDown}
           placeholder="Напишите сообщение..."
           className="rounded-xl resize-none min-h-[44px] max-h-32"
-          rows={1}
-        />
+          rows={1} />
+        
         <Button
           onClick={handleSend}
           disabled={!text.trim() || isSending}
           size="icon"
-          className="rounded-xl h-11 w-11 flex-shrink-0 bg-gradient-to-br from-fuchsia-500 to-violet-600 hover:from-fuchsia-600 hover:to-violet-700"
-        >
+          className="rounded-xl h-11 w-11 flex-shrink-0 bg-gradient-to-br from-fuchsia-500 to-violet-600 hover:from-fuchsia-600 hover:to-violet-700">
+          
           <Send className="w-4 h-4" />
         </Button>
       </div>
@@ -291,17 +291,17 @@ export default function FamilyChat() {
       <MoneyRequestDialog
         open={showMoneyRequest}
         onOpenChange={setShowMoneyRequest}
-        onSubmit={handleMoneyRequest}
-      />
+        onSubmit={handleMoneyRequest} />
+      
 
       <PayRequestDialog
         open={!!payingMessage}
         onOpenChange={(v) => !v && setPayingMessage(null)}
         message={payingMessage}
-        requesterName={payingMessage ? (getMember(payingMessage.created_by_id)?.display_name || getMember(payingMessage.created_by_id)?.name || 'Участник') : ''}
+        requesterName={payingMessage ? getMember(payingMessage.created_by_id)?.display_name || getMember(payingMessage.created_by_id)?.name || 'Участник' : ''}
         accounts={myAccounts}
-        onConfirm={(accountId) => handleFulfillRequest(payingMessage, accountId)}
-      />
-    </div>
-  );
+        onConfirm={(accountId) => handleFulfillRequest(payingMessage, accountId)} />
+      
+    </div>);
+
 }
