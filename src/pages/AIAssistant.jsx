@@ -3,8 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Sparkles, Send, Loader2, Bot, Mic, MicOff, Wallet, Plus, User as UserIcon
-} from 'lucide-react';
+  Sparkles, Send, Loader2, Bot, Mic, MicOff, Wallet, Plus, User as UserIcon } from
+'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -12,17 +12,17 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  SelectValue } from
+"@/components/ui/select";
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
 
 const QUICK_PROMPTS = [
-  { icon: '📊', text: 'Проанализируй мои расходы', prompt: 'Проанализируй мои расходы за последний месяц и дай рекомендации по оптимизации бюджета.' },
-  { icon: '📅', text: 'Отчёт за сегодня', prompt: 'Дай отчёт по моим тратам и доходам за сегодня.' },
-  { icon: '🎯', text: 'Как достичь целей быстрее?', prompt: 'Дай советы как быстрее достичь моих финансовых целей.' },
-  { icon: '⚠️', text: 'Где я перерасходую?', prompt: 'В каких категориях у меня перерасход? Дай конкретные рекомендации.' },
-];
+{ icon: '📊', text: 'Проанализируй мои расходы', prompt: 'Проанализируй мои расходы за последний месяц и дай рекомендации по оптимизации бюджета.' },
+{ icon: '📅', text: 'Отчёт за сегодня', prompt: 'Дай отчёт по моим тратам и доходам за сегодня.' },
+{ icon: '🎯', text: 'Как достичь целей быстрее?', prompt: 'Дай советы как быстрее достичь моих финансовых целей.' },
+{ icon: '⚠️', text: 'Где я перерасходую?', prompt: 'В каких категориях у меня перерасход? Дай конкретные рекомендации.' }];
+
 
 const WELCOME_MESSAGE = {
   role: 'assistant',
@@ -60,10 +60,10 @@ export default function AIAssistant() {
   }, [user]);
 
   const availableModels = [
-    { key: 'default', name: 'Base44' },
-    ...(user?.ai_deepseek_key ? [{ key: 'deepseek', name: 'DeepSeek' }] : []),
-    ...(user?.ai_openai_key ? [{ key: 'openai', name: 'ChatGPT' }] : []),
-  ];
+  { key: 'default', name: 'Base44' },
+  ...(user?.ai_deepseek_key ? [{ key: 'deepseek', name: 'DeepSeek' }] : []),
+  ...(user?.ai_openai_key ? [{ key: 'openai', name: 'ChatGPT' }] : [])];
+
 
   const checkAccess = async () => {
     const userData = await base44.auth.me();
@@ -97,7 +97,7 @@ export default function AIAssistant() {
     queryKey: ['my-family-ai', user?.id],
     queryFn: async () => {
       const families = await base44.entities.Family.list();
-      return families.find(f => f.owner_id === user.id || f.members?.some(m => m.user_id === user.id)) ?? null;
+      return families.find((f) => f.owner_id === user.id || f.members?.some((m) => m.user_id === user.id)) ?? null;
     },
     enabled: !!user
   });
@@ -111,34 +111,34 @@ export default function AIAssistant() {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const todayStr = now.toISOString().slice(0, 10);
 
-    const monthTransactions = transactions.filter(t => new Date(t.date) >= monthStart);
-    const monthIncome = monthTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const monthExpenses = monthTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const monthTransactions = transactions.filter((t) => new Date(t.date) >= monthStart);
+    const monthIncome = monthTransactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const monthExpenses = monthTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
-    const todayTransactions = transactions.filter(t => (t.date || '').slice(0, 10) === todayStr);
-    const todayIncome = todayTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const todayExpenses = todayTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const todayTransactions = transactions.filter((t) => (t.date || '').slice(0, 10) === todayStr);
+    const todayIncome = todayTransactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const todayExpenses = todayTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
-    const expensesByCategory = monthTransactions
-      .filter(t => t.type === 'expense')
-      .reduce((acc, t) => {
-        acc[t.category || 'Другое'] = (acc[t.category || 'Другое'] || 0) + t.amount;
-        return acc;
-      }, {});
+    const expensesByCategory = monthTransactions.
+    filter((t) => t.type === 'expense').
+    reduce((acc, t) => {
+      acc[t.category || 'Другое'] = (acc[t.category || 'Другое'] || 0) + t.amount;
+      return acc;
+    }, {});
 
-    const activeGoals = goals.filter(g => g.status === 'active');
+    const activeGoals = goals.filter((g) => g.status === 'active');
 
     const investmentValue = investments.reduce((sum, inv) =>
-      sum + (inv.quantity * (inv.current_price || inv.purchase_price)), 0
+    sum + inv.quantity * (inv.current_price || inv.purchase_price), 0
     );
 
     // Расходы по каждому члену семьи за месяц, отсортированные по сумме —
     // чтобы ассистент мог рассказать, кто и куда тратит деньги в семье.
     let familySection = '';
     if (family?.members?.length > 0) {
-      const familyMonthExpenses = monthTransactions.filter(t => t.type === 'expense');
-      const byMember = family.members.map(m => {
-        const memberTx = familyMonthExpenses.filter(t => t.user_id === m.user_id || t.created_by_id === m.user_id);
+      const familyMonthExpenses = monthTransactions.filter((t) => t.type === 'expense');
+      const byMember = family.members.map((m) => {
+        const memberTx = familyMonthExpenses.filter((t) => t.user_id === m.user_id || t.created_by_id === m.user_id);
         const total = memberTx.reduce((s, t) => s + t.amount, 0);
         const byCat = memberTx.reduce((acc, t) => {
           const cat = t.category || 'Другое';
@@ -152,7 +152,7 @@ export default function AIAssistant() {
       familySection = `
 
 РАСХОДЫ ЧЛЕНОВ СЕМЬИ ЗА МЕСЯЦ (${family.name}), отсортировано по убыванию суммы:
-${byMember.map(b => `- ${b.name}: ${b.total.toLocaleString()} ₽${b.topCat ? ` (больше всего на «${b.topCat[0]}»: ${b.topCat[1].toLocaleString()} ₽)` : ''}`).join('\n')}`;
+${byMember.map((b) => `- ${b.name}: ${b.total.toLocaleString()} ₽${b.topCat ? ` (больше всего на «${b.topCat[0]}»: ${b.topCat[1].toLocaleString()} ₽)` : ''}`).join('\n')}`;
     }
 
     return `
@@ -161,7 +161,7 @@ ${byMember.map(b => `- ${b.name}: ${b.total.toLocaleString()} ₽${b.topCat ? ` 
 СЕГОДНЯ (${todayStr}):
 - Доход: ${todayIncome.toLocaleString()} ₽
 - Расходы: ${todayExpenses.toLocaleString()} ₽
-${todayTransactions.map(t => `- ${t.type === 'expense' ? 'расход' : 'доход'}: ${t.amount.toLocaleString()} ₽ (${t.category}${t.description ? ', ' + t.description : ''})`).join('\n') || '- Операций за сегодня нет'}
+${todayTransactions.map((t) => `- ${t.type === 'expense' ? 'расход' : 'доход'}: ${t.amount.toLocaleString()} ₽ (${t.category}${t.description ? ', ' + t.description : ''})`).join('\n') || '- Операций за сегодня нет'}
 
 ДОХОДЫ И РАСХОДЫ (текущий месяц):
 - Общий доход: ${monthIncome.toLocaleString()} ₽
@@ -172,14 +172,14 @@ ${todayTransactions.map(t => `- ${t.type === 'expense' ? 'расход' : 'до�
 ${Object.entries(expensesByCategory).map(([cat, amount]) => `- ${cat}: ${amount.toLocaleString()} ₽`).join('\n') || '- Нет данных'}
 
 БЮДЖЕТЫ:
-${budgets.map(b => `- ${b.name} (${b.category}): потрачено ${(b.spent_amount || 0).toLocaleString()} из ${b.limit_amount.toLocaleString()} ₽`).join('\n') || '- Нет бюджетов'}
+${budgets.map((b) => `- ${b.name} (${b.category}): потрачено ${(b.spent_amount || 0).toLocaleString()} из ${b.limit_amount.toLocaleString()} ₽`).join('\n') || '- Нет бюджетов'}
 
 ФИНАНСОВЫЕ ЦЕЛИ:
-${activeGoals.map(g => `- ${g.title}: накоплено ${(g.current_amount || 0).toLocaleString()} из ${g.target_amount.toLocaleString()} ₽`).join('\n') || '- Нет целей'}
+${activeGoals.map((g) => `- ${g.title}: накоплено ${(g.current_amount || 0).toLocaleString()} из ${g.target_amount.toLocaleString()} ₽`).join('\n') || '- Нет целей'}
 
 ИНВЕСТИЦИОННЫЙ ПОРТФЕЛЬ:
 - Общая стоимость: ${investmentValue.toLocaleString()} ₽
-${investments.map(i => `- ${i.name}: ${i.quantity} шт. по ${(i.current_price || i.purchase_price).toLocaleString()} ₽`).join('\n') || ''}
+${investments.map((i) => `- ${i.name}: ${i.quantity} шт. по ${(i.current_price || i.purchase_price).toLocaleString()} ₽`).join('\n') || ''}
 ${familySection}`;
   };
 
@@ -194,7 +194,7 @@ ${familySection}`;
     if (!prompt.trim() || isLoading) return;
 
     const userMessage = { role: 'user', content: prompt };
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
     setPendingTransaction(null);
@@ -212,11 +212,11 @@ ${familySection}`;
       const data = response.data;
 
       if (data.error) {
-        setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${data.error}` }]);
+        setMessages((prev) => [...prev, { role: 'assistant', content: `⚠️ ${data.error}` }]);
         return;
       }
 
-      setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }]);
 
       if (data.action === 'created') {
         toast.success('Транзакция добавлена');
@@ -239,7 +239,7 @@ ${familySection}`;
         setSelectedAccountId('');
       }
     } catch (error) {
-      setMessages(prev => [...prev, {
+      setMessages((prev) => [...prev, {
         role: 'assistant',
         content: 'Извините, произошла ошибка. Пожалуйста, попробуйте позже.'
       }]);
@@ -249,7 +249,7 @@ ${familySection}`;
   };
 
   const finalizeTransaction = async () => {
-    if ((!pendingTransaction && !pendingInvestment) || !selectedAccountId) return;
+    if (!pendingTransaction && !pendingInvestment || !selectedAccountId) return;
     setIsLoading(true);
     try {
       const response = await base44.functions.invoke('aiChatAssistant', {
@@ -260,9 +260,9 @@ ${familySection}`;
       });
       const data = response.data;
       if (data.error) {
-        setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${data.error}` }]);
+        setMessages((prev) => [...prev, { role: 'assistant', content: `⚠️ ${data.error}` }]);
       } else {
-        setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+        setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }]);
         toast.success(pendingInvestment ? 'Инвестиция добавлена' : 'Транзакция добавлена');
         refreshData();
       }
@@ -280,15 +280,15 @@ ${familySection}`;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       chunksRef.current = [];
       let mimeType = '';
-      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mimeType = 'audio/webm;codecs=opus';
-      else if (MediaRecorder.isTypeSupported('audio/webm')) mimeType = 'audio/webm';
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mimeType = 'audio/webm;codecs=opus';else
+      if (MediaRecorder.isTypeSupported('audio/webm')) mimeType = 'audio/webm';
       const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
       mediaRecorderRef.current = mediaRecorder;
       const detectedMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
 
-      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      mediaRecorder.ondataavailable = (e) => {if (e.data.size > 0) chunksRef.current.push(e.data);};
       mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop());
+        stream.getTracks().forEach((t) => t.stop());
         if (chunksRef.current.length === 0) return;
         const blob = new Blob(chunksRef.current, { type: detectedMime });
         setIsTranscribing(true);
@@ -347,8 +347,8 @@ ${familySection}`;
               href="https://t.me/RussianExpert"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block"
-            >
+              className="inline-block">
+              
               <Button className="rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
                 <span className="mr-2">💬</span>
                 Связаться в Telegram
@@ -356,8 +356,8 @@ ${familySection}`;
             </a>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>);
+
   }
 
   return (
@@ -373,9 +373,9 @@ ${familySection}`;
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {availableModels.map((m) => (
-              <SelectItem key={m.key} value={m.key}>{m.name}</SelectItem>
-            ))}
+            {availableModels.map((m) =>
+            <SelectItem key={m.key} value={m.key}>{m.name}</SelectItem>
+            )}
           </SelectContent>
         </Select>
         <Button variant="outline" size="icon" onClick={handleNewChat} className="h-8 w-8 rounded-lg flex-shrink-0">
@@ -387,39 +387,39 @@ ${familySection}`;
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto w-full px-4 py-6">
           <AnimatePresence initial={false}>
-            {messages.map((message, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex gap-3 mb-6"
-              >
+            {messages.map((message, index) =>
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex gap-3 mb-6">
+              
                 <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                  message.role === 'assistant'
-                    ? 'bg-gradient-to-br from-violet-500 to-indigo-600'
-                    : 'bg-slate-200 dark:bg-slate-700'
-                }`}>
-                  {message.role === 'assistant' ? (
-                    <Bot className="w-4 h-4 text-white" />
-                  ) : (
-                    <UserIcon className="w-4 h-4 text-slate-600 dark:text-slate-200" />
-                  )}
+              message.role === 'assistant' ?
+              'bg-gradient-to-br from-violet-500 to-indigo-600' :
+              'bg-slate-200 dark:bg-slate-700'}`
+              }>
+                  {message.role === 'assistant' ?
+                <Bot className="w-4 h-4 text-white" /> :
+
+                <UserIcon className="w-4 h-4 text-slate-600 dark:text-slate-200" />
+                }
                 </div>
                 <div className="flex-1 min-w-0 pt-1">
-                  {message.role === 'assistant' ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 text-slate-800 dark:text-slate-100">
+                  {message.role === 'assistant' ?
+                <div className="prose prose-sm dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 text-slate-800 dark:text-slate-100">
                       <ReactMarkdown>{message.content}</ReactMarkdown>
-                    </div>
-                  ) : (
-                    <p className="text-slate-900 dark:text-white whitespace-pre-wrap">{message.content}</p>
-                  )}
+                    </div> :
+
+                <p className="text-slate-900 dark:text-white whitespace-pre-wrap">{message.content}</p>
+                }
                 </div>
               </motion.div>
-            ))}
+            )}
           </AnimatePresence>
 
-          {isLoading && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3 mb-6">
+          {isLoading &&
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3 mb-6">
               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
                 <Bot className="w-4 h-4 text-white" />
               </div>
@@ -428,64 +428,64 @@ ${familySection}`;
                 <span className="text-sm text-slate-500">Думаю...</span>
               </div>
             </motion.div>
-          )}
+          }
 
           {/* Account picker for a pending transaction or investment purchase */}
-          {(pendingTransaction || pendingInvestment) && accountOptions.length > 0 && (
-            <div className="rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20 p-3 mb-6">
+          {(pendingTransaction || pendingInvestment) && accountOptions.length > 0 &&
+          <div className="rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20 p-3 mb-6">
               <div className="flex items-center gap-2 mb-2 text-sm text-slate-700 dark:text-slate-200">
                 <Wallet className="w-4 h-4 text-violet-600" />
-                {pendingInvestment ? 'С какого счёта списать деньги на покупку?' : (pendingTransaction.type === 'expense' ? 'С какого счёта списать?' : 'На какой счёт зачислить?')}
+                {pendingInvestment ? 'С какого счёта списать деньги на покупку?' : pendingTransaction.type === 'expense' ? 'С какого счёта списать?' : 'На какой счёт зачислить?'}
               </div>
               <div className="flex flex-wrap gap-2 mb-3">
-                {accountOptions.map((acc) => (
-                  <button
-                    key={acc.id}
-                    onClick={() => setSelectedAccountId(acc.id)}
-                    className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${
-                      selectedAccountId === acc.id
-                        ? 'bg-violet-600 text-white border-violet-600'
-                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'
-                    }`}
-                  >
+                {accountOptions.map((acc) =>
+              <button
+                key={acc.id}
+                onClick={() => setSelectedAccountId(acc.id)}
+                className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${
+                selectedAccountId === acc.id ?
+                'bg-violet-600 text-white border-violet-600' :
+                'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'}`
+                }>
+                
                     {acc.name}
                   </button>
-                ))}
+              )}
               </div>
               <Button
-                size="sm"
-                disabled={!selectedAccountId || isLoading}
-                onClick={finalizeTransaction}
-                className="rounded-lg bg-violet-600 hover:bg-violet-700 w-full"
-              >
+              size="sm"
+              disabled={!selectedAccountId || isLoading}
+              onClick={finalizeTransaction}
+              className="rounded-lg bg-violet-600 hover:bg-violet-700 w-full">
+              
                 Подтвердить
               </Button>
             </div>
-          )}
+          }
 
           {/* Quick Prompts */}
-          {messages.length === 1 && !pendingTransaction && !pendingInvestment && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {QUICK_PROMPTS.map((item, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  onClick={() => handleQuickPrompt(item.prompt)}
-                  className="h-auto min-w-0 w-full py-3 px-4 justify-start text-left rounded-xl whitespace-normal hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:border-violet-300 transition-all"
-                >
+          {messages.length === 1 && !pendingTransaction && !pendingInvestment &&
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {QUICK_PROMPTS.map((item, index) =>
+            <Button
+              key={index}
+              variant="outline"
+              onClick={() => handleQuickPrompt(item.prompt)}
+              className="h-auto min-w-0 w-full py-3 px-4 justify-start text-left rounded-xl whitespace-normal hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:border-violet-300 transition-all">
+              
                   <span className="mr-2 flex-shrink-0">{item.icon}</span>
                   <span className="text-sm break-words">{item.text}</span>
                 </Button>
-              ))}
+            )}
             </div>
-          )}
+          }
           <div ref={bottomRef} />
         </div>
       </div>
 
       {/* Input Area */}
       <div className="flex-shrink-0 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 py-3 mb-28 lg:mb-0"
-        style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }}>
+      style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }}>
         <div className="max-w-3xl mx-auto w-full flex items-end gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2">
           <textarea
             ref={inputRef}
@@ -499,41 +499,41 @@ ${familySection}`;
             }}
             placeholder="Напишите сообщение или спросите об операциях..."
             rows={1}
-            className="flex-1 resize-none bg-transparent outline-none text-sm py-1.5 max-h-32 text-slate-900 dark:text-white placeholder:text-slate-400"
-            disabled={isLoading}
-          />
+            className="flex-1 resize-none bg-transparent outline-none text-sm py-1.5 max-h-32 text-slate-900 dark:text-white placeholder:text-slate-400 opacity-100"
+            disabled={isLoading} />
+          
           <Button
             onClick={isRecording ? stopRecording : startRecording}
             disabled={isLoading || isTranscribing}
             variant="ghost"
             size="icon"
-            className={`rounded-full flex-shrink-0 ${isRecording ? 'bg-red-500 text-white hover:bg-red-600' : ''}`}
-          >
-            {isTranscribing ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : isRecording ? (
-              <MicOff className="w-4 h-4" />
-            ) : (
-              <Mic className="w-4 h-4" />
-            )}
+            className={`rounded-full flex-shrink-0 ${isRecording ? 'bg-red-500 text-white hover:bg-red-600' : ''}`}>
+            
+            {isTranscribing ?
+            <Loader2 className="w-4 h-4 animate-spin" /> :
+            isRecording ?
+            <MicOff className="w-4 h-4" /> :
+
+            <Mic className="w-4 h-4" />
+            }
           </Button>
           <Button
             onClick={() => sendMessage(inputValue)}
             disabled={!inputValue.trim() || isLoading}
             size="icon"
-            className="rounded-full flex-shrink-0 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
-          >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
+            className="rounded-full flex-shrink-0 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
+            
+            {isLoading ?
+            <Loader2 className="w-4 h-4 animate-spin" /> :
+
+            <Send className="w-4 h-4" />
+            }
           </Button>
         </div>
         <p className="text-[11px] text-slate-400 text-center mt-2">
           AI-ассистент не даёт юридических и инвестиционных гарантий.
         </p>
       </div>
-    </div>
-  );
+    </div>);
+
 }
