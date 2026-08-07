@@ -53,7 +53,7 @@ export default function Education() {
       </div>
 
       {/* Темы */}
-      <h2 className="text-lg font-semibold text-foreground mb-4">Темы курса</h2>
+      <h2 className="text-lg font-semibold mb-4 text-[hsl(var(--popover))]">Темы курса</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {EDUCATION_TOPICS.map((topic) => {
           const Icon = topic.icon;
@@ -63,8 +63,8 @@ export default function Education() {
                 <div className="flex items-start gap-4">
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: `${topic.color}1A` }}
-                  >
+                    style={{ backgroundColor: `${topic.color}1A` }}>
+                    
                     <Icon className="w-5 h-5" style={{ color: topic.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -75,10 +75,10 @@ export default function Education() {
                   <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 group-hover:translate-x-0.5 transition-transform mt-1" />
                 </div>
               </Card>
-            </Link>
-          );
+            </Link>);
+
         })}
       </div>
-    </div>
-  );
+    </div>);
+
 }
