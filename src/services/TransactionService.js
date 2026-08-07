@@ -19,11 +19,12 @@ import {
 } from '@/domain/validators';
 import { eventBus, EVENTS } from '@/lib/eventBus';
 import { parseFlexibleDate } from '@/lib/parseDate';
+import { offlineQueue } from '@/lib/offlineQueue';
 
 const repo = () => getRepository('Transaction');
 const goalRepo = () => getRepository('Goal');
 
-const notifyChanged = () => eventBus.emit(EVENTS.TRANSACTION_CHANGED, { action: 'change' });
+const notifyChanged = (payload = {}) => eventBus.emit(EVENTS.TRANSACTION_CHANGED, payload);
 
 export const TransactionService = {
   list(sort = '-date', limit = 100) {
@@ -80,10 +81,22 @@ export const TransactionService = {
 
     if (existingId) {
       await repo().update(existingId, data);
+      notifyChanged({ action: 'update', transaction: { id: existingId, ...data } });
     } else {
-      await repo().create(data);
+      let created;
+      try {
+        created = await repo().create(data);
+      } catch (e) {
+        // Нет интернета — ставим в очередь, покажем оптимистично
+        if (!navigator.onLine) {
+          const entry = offlineQueue.enqueue(data);
+          notifyChanged({ action: 'create', transaction: { ...data, id: entry.id, _pending: true } });
+          return { ok: true, offline: true };
+        }
+        throw e;
+      }
+      notifyChanged({ action: 'create', transaction: created });
     }
-    notifyChanged();
     return { ok: true };
   },
 
@@ -142,8 +155,18 @@ export const TransactionService = {
       },
       user
     );
-    await repo().create(data);
-    notifyChanged();
+    let created;
+    try {
+      created = await repo().create(data);
+    } catch (e) {
+      if (!navigator.onLine) {
+        const entry = offlineQueue.enqueue(data);
+        notifyChanged({ action: 'create', transaction: { ...data, id: entry.id, _pending: true } });
+        return { ok: true, offline: true };
+      }
+      throw e;
+    }
+    notifyChanged({ action: 'create', transaction: created });
     return { ok: true };
   },
 
@@ -154,6 +177,7 @@ export const TransactionService = {
   async addReceiptItems({ items = [], description, date, account_id, accounts = [] }) {
     const user = await getCurrentUser();
     const account = accounts.find((a) => a.id === account_id);
+    const createdTx = [];
 
     for (const item of items) {
       const data = await enrichWithOwnership(
@@ -167,14 +191,24 @@ export const TransactionService = {
         },
         user
       );
-      await repo().create(data);
+      try {
+        const created = await repo().create(data);
+        createdTx.push(created);
+      } catch (e) {
+        if (!navigator.onLine) {
+          offlineQueue.enqueue(data);
+          createdTx.push({ ...data, id: `offline_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, _pending: true });
+        } else {
+          throw e;
+        }
+      }
     }
 
     if (account) {
       const total = items.reduce((sum, i) => sum + (parseFloat(i.price) || 0), 0);
       await AccountService.setBalance(account.id, (account.balance || 0) - total);
     }
-    notifyChanged();
+    createdTx.forEach((tx) => notifyChanged({ action: 'create', transaction: tx }));
     return { ok: true, count: items.length };
   },
 
@@ -187,6 +221,7 @@ export const TransactionService = {
     const user = await getCurrentUser();
     const account = accounts.find((a) => a.id === account_id);
     let netDelta = 0;
+    const createdTx = [];
 
     for (const item of items) {
       const itemType = item.type === 'income' ? 'income' : 'expense';
@@ -203,14 +238,24 @@ export const TransactionService = {
         },
         user
       );
-      await repo().create(data);
+      try {
+        const created = await repo().create(data);
+        createdTx.push(created);
+      } catch (e) {
+        if (!navigator.onLine) {
+          offlineQueue.enqueue(data);
+          createdTx.push({ ...data, id: `offline_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, _pending: true });
+        } else {
+          throw e;
+        }
+      }
       netDelta += itemType === 'income' ? itemAmount : -itemAmount;
     }
 
     if (account) {
       await AccountService.setBalance(account.id, (account.balance || 0) + netDelta);
     }
-    notifyChanged();
+    createdTx.forEach((tx) => notifyChanged({ action: 'create', transaction: tx }));
     return { ok: true, count: items.length };
   },
 
@@ -233,7 +278,7 @@ export const TransactionService = {
       user
     );
     const created = await repo().create(data);
-    notifyChanged();
+    notifyChanged({ action: 'create', transaction: created });
     return created;
   },
 
@@ -252,7 +297,7 @@ export const TransactionService = {
       }
     }
     await repo().delete(id);
-    notifyChanged();
+    notifyChanged({ action: 'delete', transaction: { id } });
   },
 };
 
