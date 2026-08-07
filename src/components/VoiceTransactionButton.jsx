@@ -195,7 +195,7 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
           transition={{ repeat: Infinity, duration: 1.2 }} />
 
         }
-                    {status === 'idle' && <Mic className="w-4 h-4 text-violet-500" />}
+                    {status === 'idle' && <Mic className="w-4 h-4 text-[hsl(var(--popover))]" />}
                     {status === 'recording' && <MicOff className="w-4 h-4 text-white" />}
                     {status === 'processing' && <Loader2 className="w-4 h-4 text-white animate-spin" />}
                     {status === 'success' && <CheckCircle className="w-4 h-4 text-white" />}
