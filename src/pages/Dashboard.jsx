@@ -409,7 +409,7 @@ export default function Dashboard() {
             <VoiceTransactionButton onTransactionCreated={() => queryClient.invalidateQueries()} />
             <Button
                 onClick={() => {setQuickAddType('expense');setShowQuickAdd(true);}}
-                className="hover:bg-primary/90 rounded-lg h-9 px-4 text-sm font-semibold opacity-100 text-[hsl(var(--popover-foreground))] bg-[#2b2626]">
+                className="rounded-lg h-9 px-4 text-sm font-semibold transition-colors bg-white text-violet-600 hover:bg-violet-600 hover:text-white dark:bg-violet-600 dark:text-white dark:hover:bg-slate-400 dark:hover:text-white">
                 
               <Plus className="w-4 h-4 mr-1.5" />
               <span className="hidden sm:inline">Добавить</span>
