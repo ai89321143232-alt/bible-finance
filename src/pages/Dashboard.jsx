@@ -349,9 +349,9 @@ export default function Dashboard() {
     // For expense, check non-credit account balance
     if (template.type === 'expense' && account.type !== 'credit' && (account.balance || 0) - template.amount < 0) {
 
+
       // Don't block, but could show a warning — for now just proceed
-    }
-    await base44.entities.Transaction.create({
+    }await base44.entities.Transaction.create({
       type: template.type,
       amount: template.amount,
       category: template.category,
@@ -409,7 +409,7 @@ export default function Dashboard() {
             <VoiceTransactionButton onTransactionCreated={() => queryClient.invalidateQueries()} />
             <Button
                 onClick={() => {setQuickAddType('expense');setShowQuickAdd(true);}}
-                className="text-primary-foreground hover:bg-primary/90 rounded-lg h-9 px-4 text-sm font-semibold bg-[hsl(var(--sidebar-ring))]">
+                className="text-primary-foreground hover:bg-primary/90 rounded-lg h-9 px-4 text-sm font-semibold bg-[#ab45b0]">
                 
               <Plus className="w-4 h-4 mr-1.5" />
               <span className="hidden sm:inline">Добавить</span>
