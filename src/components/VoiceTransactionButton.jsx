@@ -4,240 +4,240 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 
 const CATEGORY_EMOJIS = {
-    'Еда и рестораны': '🍕',
-    'Транспорт': '🚗',
-    'Здоровье': '💊',
-    'Развлечения': '🎬',
-    'Одежда': '👕',
-    'ЖКХ': '🏠',
-    'Связь': '📱',
-    'Образование': '📚',
-    'Зарплата': '💰',
-    'Другое': '📦',
+  'Еда и рестораны': '🍕',
+  'Транспорт': '🚗',
+  'Здоровье': '💊',
+  'Развлечения': '🎬',
+  'Одежда': '👕',
+  'ЖКХ': '🏠',
+  'Связь': '📱',
+  'Образование': '📚',
+  'Зарплата': '💰',
+  'Другое': '📦'
 };
 
 export default function VoiceTransactionButton({ onTransactionCreated }) {
-    const [status, setStatus] = useState('idle');
-    const [errorMsg, setErrorMsg] = useState('');
-    const [result, setResult] = useState(null);
-    const [needsAccount, setNeedsAccount] = useState(false);
-    const [accounts, setAccounts] = useState([]);
-    const [selectedAccountId, setSelectedAccountId] = useState('');
-    const [isFinalizing, setIsFinalizing] = useState(false);
-    const mediaRecorderRef = useRef(null);
-    const chunksRef = useRef([]);
+  const [status, setStatus] = useState('idle');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [result, setResult] = useState(null);
+  const [needsAccount, setNeedsAccount] = useState(false);
+  const [accounts, setAccounts] = useState([]);
+  const [selectedAccountId, setSelectedAccountId] = useState('');
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
 
-    const fetchAccounts = async () => {
-        try {
-            const user = await base44.auth.me();
-            const all = await base44.entities.Account.list();
-            const mine = all.filter(acc =>
-                acc.user_id === user?.id || acc.created_by_id === user?.id
-            );
-            setAccounts(mine);
-        } catch (e) {}
-    };
+  const fetchAccounts = async () => {
+    try {
+      const user = await base44.auth.me();
+      const all = await base44.entities.Account.list();
+      const mine = all.filter((acc) =>
+      acc.user_id === user?.id || acc.created_by_id === user?.id
+      );
+      setAccounts(mine);
+    } catch (e) {}
+  };
 
-    const startRecording = async () => {
-        setStatus('recording');
-        setResult(null);
-        setErrorMsg('');
-        setNeedsAccount(false);
-        setSelectedAccountId('');
-        chunksRef.current = [];
+  const startRecording = async () => {
+    setStatus('recording');
+    setResult(null);
+    setErrorMsg('');
+    setNeedsAccount(false);
+    setSelectedAccountId('');
+    chunksRef.current = [];
 
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          let mimeType = '';
-          if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-            mimeType = 'audio/webm;codecs=opus';
-          } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-            mimeType = 'audio/webm';
-          } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-            mimeType = 'audio/mp4';
-          }
-          const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
-          mediaRecorderRef.current = mediaRecorder;
-          const detectedMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
-          const fileExt = detectedMime.includes('mp4') ? 'm4a' : 'webm';
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      let mimeType = '';
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        mimeType = 'audio/webm;codecs=opus';
+      } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+        mimeType = 'audio/webm';
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        mimeType = 'audio/mp4';
+      }
+      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+      mediaRecorderRef.current = mediaRecorder;
+      const detectedMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
+      const fileExt = detectedMime.includes('mp4') ? 'm4a' : 'webm';
 
-          mediaRecorder.ondataavailable = (e) => {
-            if (e.data.size > 0) chunksRef.current.push(e.data);
-          };
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
 
-          mediaRecorder.onstop = async () => {
-            stream.getTracks().forEach(t => t.stop());
-            if (chunksRef.current.length === 0) {
-              setErrorMsg('Не удалось записать аудио');
-              setStatus('error');
-              setTimeout(() => setStatus('idle'), 3000);
-              return;
-            }
-            const blob = new Blob(chunksRef.current, { type: detectedMime });
-            await processAudio(blob, fileExt);
-          };
-
-          mediaRecorder.start();
-        } catch (err) {
-          setErrorMsg(err.name === 'NotAllowedError' ? 'Доступ к микрофону запрещён' : 'Микрофон недоступен');
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        if (chunksRef.current.length === 0) {
+          setErrorMsg('Не удалось записать аудио');
           setStatus('error');
           setTimeout(() => setStatus('idle'), 3000);
+          return;
         }
-    };
+        const blob = new Blob(chunksRef.current, { type: detectedMime });
+        await processAudio(blob, fileExt);
+      };
 
-    const stopRecording = () => {
-        if (mediaRecorderRef.current && status === 'recording') {
-            mediaRecorderRef.current.stop();
-            setStatus('processing');
-        }
-    };
+      mediaRecorder.start();
+    } catch (err) {
+      setErrorMsg(err.name === 'NotAllowedError' ? 'Доступ к микрофону запрещён' : 'Микрофон недоступен');
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 3000);
+    }
+  };
 
-    const processAudio = async (blob, ext) => {
-        try {
-            const fileName = 'recording.' + (ext || 'webm');
-            const fileType = blob.type || 'audio/webm';
-            const file = new File([blob], fileName, { type: fileType });
-            const { file_url } = await base44.integrations.Core.UploadFile({ file });
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && status === 'recording') {
+      mediaRecorderRef.current.stop();
+      setStatus('processing');
+    }
+  };
 
-            const response = await base44.functions.invoke('voiceTransaction', { audio_url: file_url });
-            const data = response.data;
+  const processAudio = async (blob, ext) => {
+    try {
+      const fileName = 'recording.' + (ext || 'webm');
+      const fileType = blob.type || 'audio/webm';
+      const file = new File([blob], fileName, { type: fileType });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
-            if (data.error) {
-                setErrorMsg(data.error + (data.transcript ? `\n"${data.transcript}"` : ''));
-                setStatus('error');
-                return;
-            }
+      const response = await base44.functions.invoke('voiceTransaction', { audio_url: file_url });
+      const data = response.data;
 
-            // Account matched — transaction created immediately
-            if (data.success) {
-                setResult(data);
-                setStatus('success');
-                if (onTransactionCreated) onTransactionCreated(data.transaction);
-                setTimeout(() => setStatus('idle'), 4000);
-                return;
-            }
+      if (data.error) {
+        setErrorMsg(data.error + (data.transcript ? `\n"${data.transcript}"` : ''));
+        setStatus('error');
+        return;
+      }
 
-            // Account not detected — show picker
-            if (data.needs_account) {
-                setResult(data);
-                setNeedsAccount(true);
-                setStatus('idle'); // stop "processing" spinner, show picker
-                await fetchAccounts();
-                return;
-            }
-        } catch (err) {
-            setErrorMsg(err.message || 'Ошибка обработки');
-            setStatus('error');
-            setTimeout(() => setStatus('idle'), 3000);
-        }
-    };
+      // Account matched — transaction created immediately
+      if (data.success) {
+        setResult(data);
+        setStatus('success');
+        if (onTransactionCreated) onTransactionCreated(data.transaction);
+        setTimeout(() => setStatus('idle'), 4000);
+        return;
+      }
 
-    const finalizeWithAccount = async () => {
-        if (!selectedAccountId || !result?.parsed) return;
-        setIsFinalizing(true);
-        try {
-            const response = await base44.functions.invoke('voiceTransaction', {
-                parsed: result.parsed,
-                account_id: selectedAccountId
-            });
-            const data = response.data;
+      // Account not detected — show picker
+      if (data.needs_account) {
+        setResult(data);
+        setNeedsAccount(true);
+        setStatus('idle'); // stop "processing" spinner, show picker
+        await fetchAccounts();
+        return;
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Ошибка обработки');
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 3000);
+    }
+  };
 
-            if (data.error) {
-                setErrorMsg(data.error);
-                setStatus('error');
-                return;
-            }
+  const finalizeWithAccount = async () => {
+    if (!selectedAccountId || !result?.parsed) return;
+    setIsFinalizing(true);
+    try {
+      const response = await base44.functions.invoke('voiceTransaction', {
+        parsed: result.parsed,
+        account_id: selectedAccountId
+      });
+      const data = response.data;
 
-            setResult(data);
-            setNeedsAccount(false);
-            setStatus('success');
-            if (onTransactionCreated) onTransactionCreated(data.transaction);
-            setTimeout(() => setStatus('idle'), 4000);
-        } catch (err) {
-            setErrorMsg(err.message || 'Ошибка сохранения');
-            setStatus('error');
-            setTimeout(() => setStatus('idle'), 3000);
-        } finally {
-            setIsFinalizing(false);
-        }
-    };
+      if (data.error) {
+        setErrorMsg(data.error);
+        setStatus('error');
+        return;
+      }
 
-    const handleClick = () => {
-        if (status === 'idle' || status === 'success' || status === 'error') startRecording();
-        else if (status === 'recording') stopRecording();
-    };
+      setResult(data);
+      setNeedsAccount(false);
+      setStatus('success');
+      if (onTransactionCreated) onTransactionCreated(data.transaction);
+      setTimeout(() => setStatus('idle'), 4000);
+    } catch (err) {
+      setErrorMsg(err.message || 'Ошибка сохранения');
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 3000);
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
 
-    const formatBalance = (amount) => {
-        return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(amount);
-    };
+  const handleClick = () => {
+    if (status === 'idle' || status === 'success' || status === 'error') startRecording();else
+    if (status === 'recording') stopRecording();
+  };
 
-    return (
-        <div className="relative inline-flex items-center justify-end">
+  const formatBalance = (amount) => {
+    return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(amount);
+  };
+
+  return (
+    <div className="relative inline-flex items-center justify-end">
             {/* Кнопка записи */}
-            {!needsAccount && (
-                <motion.button
-                    onClick={handleClick}
-                    disabled={status === 'processing' || isFinalizing}
-                    whileTap={{ scale: 0.92 }}
-                    className={`
-                        relative w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 border
+            {!needsAccount &&
+      <motion.button
+        onClick={handleClick}
+        disabled={status === 'processing' || isFinalizing}
+        whileTap={{ scale: 0.92 }}
+        className={`
+                        relative w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 border [font-family:'Abril_Fatface',_system-ui] text-xs text-center bg-[hsl(var(--destructive))]
                         ${status === 'recording' ? 'bg-red-500 border-red-500 shadow-red-500/40' : ''}
                         ${status === 'processing' ? 'bg-muted border-border cursor-not-allowed' : ''}
                         ${status === 'success' ? 'bg-green-500 border-green-500' : ''}
                         ${status === 'error' ? 'bg-red-400 border-red-400' : ''}
-                        ${status === 'idle' ? 'bg-violet-500/15 border-violet-500/30 hover:bg-violet-500/25' : ''}
-                    `}
-                >
-                    {status === 'recording' && (
-                        <motion.div
-                            className="absolute inset-0 rounded-lg bg-red-500 opacity-30"
-                            animate={{ scale: [1, 1.3, 1] }}
-                            transition={{ repeat: Infinity, duration: 1.2 }}
-                        />
-                    )}
+                        ${status === 'idle' ? "border-violet-500/30 hover:bg-violet-500/25" : ''}
+                    `}>
+        
+                    {status === 'recording' &&
+        <motion.div
+          className="absolute inset-0 rounded-lg bg-red-500 opacity-30"
+          animate={{ scale: [1, 1.3, 1] }}
+          transition={{ repeat: Infinity, duration: 1.2 }} />
+
+        }
                     {status === 'idle' && <Mic className="w-4 h-4 text-violet-500" />}
                     {status === 'recording' && <MicOff className="w-4 h-4 text-white" />}
                     {status === 'processing' && <Loader2 className="w-4 h-4 text-white animate-spin" />}
                     {status === 'success' && <CheckCircle className="w-4 h-4 text-white" />}
                     {status === 'error' && <AlertCircle className="w-4 h-4 text-white" />}
                 </motion.button>
-            )}
+      }
 
             {/* Центрированная кнопка "Стоп" во время записи */}
             <AnimatePresence>
-                {status === 'recording' && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[60] bg-black/60 flex flex-col items-center justify-center gap-6"
-                    >
+                {status === 'recording' &&
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[60] bg-black/60 flex flex-col items-center justify-center gap-6">
+          
                         <motion.button
-                            onClick={stopRecording}
-                            whileTap={{ scale: 0.92 }}
-                            className="relative w-24 h-24 rounded-full bg-red-500 flex items-center justify-center shadow-2xl shadow-red-500/40"
-                        >
+            onClick={stopRecording}
+            whileTap={{ scale: 0.92 }}
+            className="relative w-24 h-24 rounded-full bg-red-500 flex items-center justify-center shadow-2xl shadow-red-500/40">
+            
                             <motion.div
-                                className="absolute inset-0 rounded-full bg-red-500 opacity-40"
-                                animate={{ scale: [1, 1.4, 1] }}
-                                transition={{ repeat: Infinity, duration: 1.2 }}
-                            />
+              className="absolute inset-0 rounded-full bg-red-500 opacity-40"
+              animate={{ scale: [1, 1.4, 1] }}
+              transition={{ repeat: Infinity, duration: 1.2 }} />
+            
                             <MicOff className="w-9 h-9 text-white relative" />
                         </motion.button>
                         <p className="text-white/70 text-sm">Нажмите, чтобы остановить запись</p>
                     </motion.div>
-                )}
+        }
             </AnimatePresence>
 
             {/* Выбор счёта (попап) */}
             <AnimatePresence>
-                {needsAccount && result?.parsed && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="fixed inset-x-4 bottom-24 z-50 bg-[#1a1f2b] border border-white/10 rounded-2xl p-4 shadow-2xl sm:absolute sm:inset-auto sm:top-full sm:mt-2 sm:right-0 sm:w-64 sm:bottom-auto"
-                    >
+                {needsAccount && result?.parsed &&
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="fixed inset-x-4 bottom-24 z-50 bg-[#1a1f2b] border border-white/10 rounded-2xl p-4 shadow-2xl sm:absolute sm:inset-auto sm:top-full sm:mt-2 sm:right-0 sm:w-64 sm:bottom-auto">
+          
                         <div className="flex items-center gap-2 mb-3">
                             <Wallet className="w-4 h-4 text-white/50" />
                             <span className="text-sm text-white/70">
@@ -257,60 +257,60 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
                             </div>
                         </div>
 
-                        {accounts.length === 0 ? (
-                            <p className="text-xs text-white/30 text-center py-2">Нет доступных счетов</p>
-                        ) : (
-                            <div className="space-y-1 max-h-48 overflow-y-auto mb-3">
-                                {accounts.map(acc => (
-                                    <button
-                                        key={acc.id}
-                                        onClick={() => setSelectedAccountId(acc.id)}
-                                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all text-sm ${
-                                            selectedAccountId === acc.id
-                                                ? 'bg-violet-500/20 border border-violet-500/30 text-white'
-                                                : 'bg-white/3 hover:bg-white/8 text-white/70 border border-transparent'
-                                        }`}
-                                    >
+                        {accounts.length === 0 ?
+          <p className="text-xs text-white/30 text-center py-2">Нет доступных счетов</p> :
+
+          <div className="space-y-1 max-h-48 overflow-y-auto mb-3">
+                                {accounts.map((acc) =>
+            <button
+              key={acc.id}
+              onClick={() => setSelectedAccountId(acc.id)}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all text-sm ${
+              selectedAccountId === acc.id ?
+              'bg-violet-500/20 border border-violet-500/30 text-white' :
+              'bg-white/3 hover:bg-white/8 text-white/70 border border-transparent'}`
+              }>
+              
                                         <span>{acc.name}</span>
                                         <span className="text-xs text-white/40">{formatBalance(acc.balance)}</span>
                                     </button>
-                                ))}
+            )}
                             </div>
-                        )}
+          }
 
                         <button
-                            onClick={finalizeWithAccount}
-                            disabled={!selectedAccountId || isFinalizing}
-                            className="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:bg-white/10 disabled:text-white/30 text-white text-sm font-semibold transition-all"
-                        >
-                            {isFinalizing ? (
-                                <span className="flex items-center justify-center gap-2">
+            onClick={finalizeWithAccount}
+            disabled={!selectedAccountId || isFinalizing}
+            className="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:bg-white/10 disabled:text-white/30 text-white text-sm font-semibold transition-all">
+            
+                            {isFinalizing ?
+            <span className="flex items-center justify-center gap-2">
                                     <Loader2 className="w-4 h-4 animate-spin" /> Сохранение...
-                                </span>
-                            ) : (
-                                'Сохранить'
-                            )}
+                                </span> :
+
+            'Сохранить'
+            }
                         </button>
 
                         <button
-                            onClick={() => { setNeedsAccount(false); setResult(null); }}
-                            className="w-full mt-2 py-2 text-xs text-white/30 hover:text-white/50 transition-colors"
-                        >
+            onClick={() => {setNeedsAccount(false);setResult(null);}}
+            className="w-full mt-2 py-2 text-xs text-white/30 hover:text-white/50 transition-colors">
+            
                             Отмена
                         </button>
                     </motion.div>
-                )}
+        }
             </AnimatePresence>
 
             {/* Результат (абсолютно позиционирован) */}
             <AnimatePresence>
-                {status === 'success' && result?.parsed && !needsAccount && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-x-4 top-20 z-50 bg-[#1a1f2b] border border-white/10 rounded-xl px-4 py-3 text-center sm:absolute sm:inset-x-auto sm:top-full sm:mt-2 sm:left-auto sm:right-0 sm:min-w-[180px]"
-                    >
+                {status === 'success' && result?.parsed && !needsAccount &&
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-x-4 top-20 z-50 bg-[#1a1f2b] border border-white/10 rounded-xl px-4 py-3 text-center sm:absolute sm:inset-x-auto sm:top-full sm:mt-2 sm:left-auto sm:right-0 sm:min-w-[180px]">
+          
                         <div className="text-2xl mb-1">
                             {CATEGORY_EMOJIS[result.parsed.category] || '📦'}
                         </div>
@@ -319,18 +319,18 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
                         </div>
                         <div className="text-xs text-white/50 mt-0.5">{result.parsed.description}</div>
                     </motion.div>
-                )}
-                {status === 'error' && errorMsg && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-x-4 top-20 z-50 bg-[#1a1f2b] border border-red-500/20 rounded-xl px-3 py-2 text-xs text-red-400 text-center sm:absolute sm:inset-x-auto sm:top-full sm:mt-2 sm:left-auto sm:right-0 sm:max-w-[200px]"
-                    >
+        }
+                {status === 'error' && errorMsg &&
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-x-4 top-20 z-50 bg-[#1a1f2b] border border-red-500/20 rounded-xl px-3 py-2 text-xs text-red-400 text-center sm:absolute sm:inset-x-auto sm:top-full sm:mt-2 sm:left-auto sm:right-0 sm:max-w-[200px]">
+          
                         {errorMsg}
                     </motion.div>
-                )}
+        }
             </AnimatePresence>
-        </div>
-    );
+        </div>);
+
 }
