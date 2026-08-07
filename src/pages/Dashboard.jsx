@@ -8,8 +8,8 @@ import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
   ArrowUpRight, ArrowDownRight, TrendingUp, Plus, Wallet,
-  PiggyBank, Target, ChevronRight, Sparkles, CreditCard, Calendar
-} from 'lucide-react';
+  PiggyBank, Target, ChevronRight, Sparkles, CreditCard, Calendar } from
+'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -83,7 +83,7 @@ export default function Dashboard() {
     setThemePreference(user.theme_preference || null);
     const blocks = user.visible_dashboard_blocks || user.data?.visible_dashboard_blocks;
     if (blocks) {
-      setVisibleBlocks(prev => ({ ...prev, ...blocks }));
+      setVisibleBlocks((prev) => ({ ...prev, ...blocks }));
     }
   }, [user]);
 
@@ -105,9 +105,9 @@ export default function Dashboard() {
     queryFn: async () => {
       if (!user) return null;
       const families = await base44.entities.Family.list();
-      return families.find(f => 
-        f.owner_id === user?.id || 
-        f.members?.some(m => m.user_id === user?.id)
+      return families.find((f) =>
+      f.owner_id === user?.id ||
+      f.members?.some((m) => m.user_id === user?.id)
       ) ?? null;
     },
     enabled: !!user
@@ -119,7 +119,7 @@ export default function Dashboard() {
   const updatePeriod = (type) => {
     const now = new Date();
     let start, end;
-    switch(type) {
+    switch (type) {
       case 'week':
         start = new Date(now.setDate(now.getDate() - now.getDay()));
         end = new Date(now.setDate(start.getDate() + 6));
@@ -149,10 +149,10 @@ export default function Dashboard() {
     queryFn: async () => {
       if (!user) return [];
       const all = await base44.entities.Transaction.list('-date', 200);
-      return all.filter(t =>
-        t.created_by_id === user.id ||
-        t.user_id === user.id ||
-        (family?.id && t.family_id === family.id)
+      return all.filter((t) =>
+      t.created_by_id === user.id ||
+      t.user_id === user.id ||
+      family?.id && t.family_id === family.id
       );
     },
     enabled: !!user
@@ -162,14 +162,14 @@ export default function Dashboard() {
     queryKey: ['accounts', user?.id, family?.id],
     queryFn: async () => {
       if (!user) return [];
-      const memberIds = family?.members?.map(m => m.user_id) || [];
+      const memberIds = family?.members?.map((m) => m.user_id) || [];
       const all = await base44.entities.Account.list();
-      return all.filter(a =>
-        a.created_by_id === user.id ||
-        (family?.id && a.family_id === family.id) ||
-        // счета всех членов семьи — по их user_id / created_by_id
-        memberIds.includes(a.created_by_id) ||
-        memberIds.includes(a.user_id)
+      return all.filter((a) =>
+      a.created_by_id === user.id ||
+      family?.id && a.family_id === family.id ||
+      // счета всех членов семьи — по их user_id / created_by_id
+      memberIds.includes(a.created_by_id) ||
+      memberIds.includes(a.user_id)
       );
     },
     enabled: !!user
@@ -180,10 +180,10 @@ export default function Dashboard() {
     queryFn: async () => {
       if (!user) return [];
       const all = await base44.entities.Budget.filter({ is_active: true });
-      return all.filter(b =>
-        b.created_by_id === user.id ||
-        (family?.id && b.is_family_budget && b.family_id === family.id) ||
-        (family?.id && b.share_with?.includes(user.id))
+      return all.filter((b) =>
+      b.created_by_id === user.id ||
+      family?.id && b.is_family_budget && b.family_id === family.id ||
+      family?.id && b.share_with?.includes(user.id)
       );
     },
     enabled: !!user
@@ -194,10 +194,10 @@ export default function Dashboard() {
     queryFn: async () => {
       if (!user) return [];
       const all = await base44.entities.Goal.filter({ status: 'active' });
-      return all.filter(g =>
-        g.created_by_id === user.id ||
-        (family?.id && g.is_family_goal && g.family_id === family.id) ||
-        (family?.id && g.share_with?.includes(user.id))
+      return all.filter((g) =>
+      g.created_by_id === user.id ||
+      family?.id && g.is_family_goal && g.family_id === family.id ||
+      family?.id && g.share_with?.includes(user.id)
       );
     },
     enabled: !!user
@@ -208,9 +208,9 @@ export default function Dashboard() {
     queryFn: async () => {
       if (!user) return [];
       const all = await base44.entities.Investment.list();
-      return all.filter(inv =>
-        inv.created_by_id === user.id ||
-        (family?.id && inv.family_id === family.id)
+      return all.filter((inv) =>
+      inv.created_by_id === user.id ||
+      family?.id && inv.family_id === family.id
       );
     },
     enabled: !!user
@@ -221,9 +221,9 @@ export default function Dashboard() {
     queryFn: async () => {
       if (!user) return [];
       const all = await base44.entities.FixedAsset.list();
-      return all.filter(fa =>
-        fa.created_by_id === user.id ||
-        (family?.id && fa.family_id === family.id)
+      return all.filter((fa) =>
+      fa.created_by_id === user.id ||
+      family?.id && fa.family_id === family.id
       );
     },
     enabled: !!user
@@ -244,48 +244,48 @@ export default function Dashboard() {
   const fixedAssets = filterByWorkspace(rawFixedAssets, activeWorkspaceId);
 
   const familyMembers = family?.members || [];
-  const memberIds = familyMembers.map(m => m.user_id);
+  const memberIds = familyMembers.map((m) => m.user_id);
 
   // Личный режим: только мои счета (проходят через фильтр пространства)
-  const personalAccounts = allAccounts.filter(acc =>
-    acc.created_by_id === user?.id || acc.user_id === user?.id
+  const personalAccounts = allAccounts.filter((acc) =>
+  acc.created_by_id === user?.id || acc.user_id === user?.id
   );
   // Семейный режим: мои счета + счета всех членов семьи.
   // Берём из rawAllAccounts (без фильтра по пространству), чтобы чужие счета не отсекались.
-  const familyAccounts = rawAllAccounts.filter(acc =>
-    acc.created_by_id === user?.id ||
-    acc.user_id === user?.id ||
-    (family?.id && acc.family_id === family.id) ||
-    memberIds.includes(acc.created_by_id) ||
-    memberIds.includes(acc.user_id)
+  const familyAccounts = rawAllAccounts.filter((acc) =>
+  acc.created_by_id === user?.id ||
+  acc.user_id === user?.id ||
+  family?.id && acc.family_id === family.id ||
+  memberIds.includes(acc.created_by_id) ||
+  memberIds.includes(acc.user_id)
   );
   const displayAccounts = balanceMode === 'family' ? familyAccounts : personalAccounts;
   // Общий баланс = только положительные балансы (активы без долгов)
   const totalBalance = displayAccounts.reduce((sum, acc) => sum + Math.max(acc.balance || 0, 0), 0);
-  
-  const memberBalances = familyMembers.map(member => {
-    const memberAccounts = allAccounts.filter(acc =>
-      acc.created_by_id === member.user_id || acc.user_id === member.user_id
+
+  const memberBalances = familyMembers.map((member) => {
+    const memberAccounts = allAccounts.filter((acc) =>
+    acc.created_by_id === member.user_id || acc.user_id === member.user_id
     );
     const balance = memberAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
     return { ...member, balance, accountsCount: memberAccounts.length };
   });
-  
-  // Личный режим: только мои операции. Семейный режим: все операции (моих + членов семьи), как раньше.
-  const personalTransactions = transactions.filter(t =>
-    t.created_by_id === user?.id || t.user_id === user?.id
-  );
-  const modeTransactions = (family && balanceMode === 'family') ? transactions : personalTransactions;
 
-  const monthTransactions = modeTransactions.filter(t => {
+  // Личный режим: только мои операции. Семейный режим: все операции (моих + членов семьи), как раньше.
+  const personalTransactions = transactions.filter((t) =>
+  t.created_by_id === user?.id || t.user_id === user?.id
+  );
+  const modeTransactions = family && balanceMode === 'family' ? transactions : personalTransactions;
+
+  const monthTransactions = modeTransactions.filter((t) => {
     const date = new Date(t.date);
     return date >= currentPeriod.start && date <= currentPeriod.end;
   });
 
   // Quick filters
-  const uniqueCategories = [...new Set(monthTransactions.map(t => t.category).filter(Boolean))].sort();
+  const uniqueCategories = [...new Set(monthTransactions.map((t) => t.category).filter(Boolean))].sort();
 
-  const filteredTransactions = monthTransactions.filter(t => {
+  const filteredTransactions = monthTransactions.filter((t) => {
     if (filterAccount && t.account_id !== filterAccount) return false;
     if (filterCategory && t.category !== filterCategory) return false;
     return true;
@@ -296,35 +296,35 @@ export default function Dashboard() {
     setFilterCategory(null);
   };
 
-  const monthIncome = monthTransactions
-    .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0);
+  const monthIncome = monthTransactions.
+  filter((t) => t.type === 'income').
+  reduce((sum, t) => sum + t.amount, 0);
 
-  const monthExpenses = monthTransactions
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0);
+  const monthExpenses = monthTransactions.
+  filter((t) => t.type === 'expense').
+  reduce((sum, t) => sum + t.amount, 0);
 
   // Личный режим: только мои инвестиции. Семейный режим: все инвестиции (мои + семьи), как раньше.
-  const personalInvestments = investments.filter(inv =>
-    inv.created_by_id === user?.id || inv.user_id === user?.id
+  const personalInvestments = investments.filter((inv) =>
+  inv.created_by_id === user?.id || inv.user_id === user?.id
   );
-  const modeInvestments = (family && balanceMode === 'family') ? investments : personalInvestments;
+  const modeInvestments = family && balanceMode === 'family' ? investments : personalInvestments;
 
-  const investmentValue = modeInvestments.reduce((sum, inv) => 
-    sum + (inv.quantity * (inv.current_price || inv.purchase_price)), 0
+  const investmentValue = modeInvestments.reduce((sum, inv) =>
+  sum + inv.quantity * (inv.current_price || inv.purchase_price), 0
   );
 
-  const investmentProfit = modeInvestments.reduce((sum, inv) => 
-    sum + (inv.quantity * ((inv.current_price || inv.purchase_price) - inv.purchase_price)), 0
+  const investmentProfit = modeInvestments.reduce((sum, inv) =>
+  sum + inv.quantity * ((inv.current_price || inv.purchase_price) - inv.purchase_price), 0
   );
 
   // Личный режим: только мои фиксированные активы. Семейный режим: мои + семьи.
-  const personalFixedAssets = fixedAssets.filter(fa => fa.created_by_id === user?.id);
-  const modeFixedAssets = (family && balanceMode === 'family') ? fixedAssets : personalFixedAssets;
+  const personalFixedAssets = fixedAssets.filter((fa) => fa.created_by_id === user?.id);
+  const modeFixedAssets = family && balanceMode === 'family' ? fixedAssets : personalFixedAssets;
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('ru-RU', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('ru-RU', {
+      style: 'currency',
       currency: 'RUB',
       maximumFractionDigits: 0
     }).format(amount);
@@ -332,25 +332,25 @@ export default function Dashboard() {
 
   const handleRefresh = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['transactions'] }),
-      queryClient.invalidateQueries({ queryKey: ['accounts'] }),
-      queryClient.invalidateQueries({ queryKey: ['budgets'] }),
-      queryClient.invalidateQueries({ queryKey: ['goals'] }),
-      queryClient.invalidateQueries({ queryKey: ['investments'] }),
-    ]);
+    queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+    queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+    queryClient.invalidateQueries({ queryKey: ['budgets'] }),
+    queryClient.invalidateQueries({ queryKey: ['goals'] }),
+    queryClient.invalidateQueries({ queryKey: ['investments'] })]
+    );
   };
 
   const handleUseTemplate = async (template) => {
-    const accountId = template.account_id || (allAccounts[0]?.id);
+    const accountId = template.account_id || allAccounts[0]?.id;
     if (!accountId) return;
-    const account = allAccounts.find(a => a.id === accountId);
+    const account = allAccounts.find((a) => a.id === accountId);
     if (!account) return;
 
     // For expense, check non-credit account balance
     if (template.type === 'expense' && account.type !== 'credit' && (account.balance || 0) - template.amount < 0) {
+
       // Don't block, but could show a warning — for now just proceed
     }
-
     await base44.entities.Transaction.create({
       type: template.type,
       amount: template.amount,
@@ -374,8 +374,8 @@ export default function Dashboard() {
 
   if (user && themePreference === null) {
     return (
-      <ThemeSelector onComplete={(theme) => setThemePreference(theme)} />
-    );
+      <ThemeSelector onComplete={(theme) => setThemePreference(theme)} />);
+
   }
 
   if (themePreference === 'child' && user?.role !== 'admin') {
@@ -383,9 +383,9 @@ export default function Dashboard() {
       <ChildDashboard
         user={user}
         accounts={allAccounts}
-        onTransactionAdded={() => queryClient.invalidateQueries({ queryKey: ['transactions'] })}
-      />
-    );
+        onTransactionAdded={() => queryClient.invalidateQueries({ queryKey: ['transactions'] })} />);
+
+
   }
 
   return (
@@ -393,24 +393,24 @@ export default function Dashboard() {
     <div className="min-h-screen bg-white/40 dark:bg-transparent">
       <BibleVerse />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 sm:pb-6">
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-6 pt-2 lg:pt-0"
-        >
+        <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-between mb-6 pt-2 lg:pt-0">
+            
           <div className="bg-card/70 backdrop-blur-sm rounded-xl px-3 py-2 -mx-3 -my-2">
             <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Дашборд</h1>
             <p className="text-foreground/70 text-sm mt-0.5">
               {format(new Date(), "EEEE, d MMMM", { locale: ru })}
-              {family && (<span className="ml-2 text-foreground/70">· {family.name}</span>)}
+              {family && <span className="ml-2 text-foreground/70">· {family.name}</span>}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <VoiceTransactionButton onTransactionCreated={() => queryClient.invalidateQueries()} />
             <Button
-              onClick={() => { setQuickAddType('expense'); setShowQuickAdd(true); }}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg h-9 px-4 text-sm font-semibold"
-            >
+                onClick={() => {setQuickAddType('expense');setShowQuickAdd(true);}}
+                className="text-primary-foreground hover:bg-primary/90 rounded-lg h-9 px-4 text-sm font-semibold bg-[hsl(var(--sidebar-ring))]">
+                
               <Plus className="w-4 h-4 mr-1.5" />
               <span className="hidden sm:inline">Добавить</span>
             </Button>
@@ -419,7 +419,7 @@ export default function Dashboard() {
 
         <FamilyTierBanner user={user} hasFamily={!!family} />
 
-        {family && (
+        {family &&
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-4">
             <div className="flex gap-1 p-1 bg-muted border border-border rounded-lg w-fit">
              <button onClick={() => setBalanceMode('personal')} className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${balanceMode === 'personal' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
@@ -430,91 +430,91 @@ export default function Dashboard() {
               </button>
             </div>
           </motion.div>
-        )}
+          }
 
         {visibleBlocks.balance && (
-          family ? (
-            <motion.div
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.6}
-              onDragEnd={(event, info) => {
-                if (info.offset.x < -60 || info.velocity.x < -300) {
-                  setBalanceMode('family');
-                } else if (info.offset.x > 60 || info.velocity.x > 300) {
-                  setBalanceMode('personal');
-                }
-              }}
-            >
+          family ?
+          <motion.div
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.6}
+            onDragEnd={(event, info) => {
+              if (info.offset.x < -60 || info.velocity.x < -300) {
+                setBalanceMode('family');
+              } else if (info.offset.x > 60 || info.velocity.x > 300) {
+                setBalanceMode('personal');
+              }
+            }}>
+            
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={balanceMode}
-                  initial={{ opacity: 0, x: balanceMode === 'family' ? 40 : -40 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: balanceMode === 'family' ? -40 : 40 }}
-                  transition={{ duration: 0.2 }}
-                >
+                key={balanceMode}
+                initial={{ opacity: 0, x: balanceMode === 'family' ? 40 : -40 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: balanceMode === 'family' ? -40 : 40 }}
+                transition={{ duration: 0.2 }}>
+                
                   <BalanceCard
-                    totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses}
-                    investmentValue={investmentValue} investmentProfit={investmentProfit}
-                    formatCurrency={formatCurrency}
-                    accounts={displayAccounts} investments={modeInvestments}
-                  />
+                  totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses}
+                  investmentValue={investmentValue} investmentProfit={investmentProfit}
+                  formatCurrency={formatCurrency}
+                  accounts={displayAccounts} investments={modeInvestments} />
+                
                 </motion.div>
               </AnimatePresence>
-            </motion.div>
-          ) : (
-            <BalanceCard 
-              totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses}
-              investmentValue={investmentValue} investmentProfit={investmentProfit}
-              formatCurrency={formatCurrency}
-              accounts={displayAccounts} investments={modeInvestments}
-            />
-          )
-        )}
+            </motion.div> :
+
+          <BalanceCard
+            totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses}
+            investmentValue={investmentValue} investmentProfit={investmentProfit}
+            formatCurrency={formatCurrency}
+            accounts={displayAccounts} investments={modeInvestments} />)
+
+
+          }
 
         {/* Net Worth Card — shows assets vs debts breakdown */}
         <NetWorthCard
-          accounts={displayAccounts}
-          investments={modeInvestments}
-          fixedAssets={modeFixedAssets}
-          formatCurrency={formatCurrency}
-          onFixedAssetAdded={() => queryClient.invalidateQueries({ queryKey: ['fixed-assets'] })}
-        />
+            accounts={displayAccounts}
+            investments={modeInvestments}
+            fixedAssets={modeFixedAssets}
+            formatCurrency={formatCurrency}
+            onFixedAssetAdded={() => queryClient.invalidateQueries({ queryKey: ['fixed-assets'] })} />
+          
 
         {/* Quick Filters — instant account/category filtering */}
-        {!isMobile && (
+        {!isMobile &&
           <QuickFilters
-            accounts={allAccounts.filter(a => (a.balance || 0) !== 0 || a.type === 'credit')}
+            accounts={allAccounts.filter((a) => (a.balance || 0) !== 0 || a.type === 'credit')}
             categories={uniqueCategories}
             selectedAccount={filterAccount}
             selectedCategory={filterCategory}
             onSelectAccount={setFilterAccount}
             onSelectCategory={setFilterCategory}
-            onClear={clearFilters}
-          />
-        )}
+            onClear={clearFilters} />
+
+          }
 
         {/* Quick Templates — one-click transaction creation */}
-        {!isMobile && (
+        {!isMobile &&
           <QuickTemplates
             templates={templates}
             accounts={allAccounts}
             onUseTemplate={handleUseTemplate}
-            onOpenManager={() => setShowTemplatesManager(true)}
-          />
-        )}
+            onOpenManager={() => setShowTemplatesManager(true)} />
 
-        {balanceMode === 'family' && family && memberBalances.length > 0 && (
+          }
+
+        {balanceMode === 'family' && family && memberBalances.length > 0 &&
           <MemberSpendingBreakdown transactions={monthTransactions} familyMembers={familyMembers} formatCurrency={formatCurrency} />
-        )}
+          }
 
-        {balanceMode === 'family' && family && memberBalances.length > 0 && (
+        {balanceMode === 'family' && family && memberBalances.length > 0 &&
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-4">
             <div className="rounded-xl border border-border bg-card divide-y divide-border">
               <div className="px-4 py-3 text-muted-foreground text-xs uppercase tracking-widest font-medium">Баланс по членам семьи</div>
-              {memberBalances.map((member) => (
-                <div key={member.user_id} className="flex items-center justify-between px-4 py-3">
+              {memberBalances.map((member) =>
+              <div key={member.user_id} className="flex items-center justify-between px-4 py-3">
                   <div className="flex items-center gap-3">
                     <MemberAvatar member={member} size="sm" />
                     <div>
@@ -524,13 +524,13 @@ export default function Dashboard() {
                   </div>
                   <div className="text-right">
                     <p className="text-foreground font-semibold text-sm">{formatCurrency(member.balance)}</p>
-                    <p className="text-muted-foreground text-xs">{totalBalance > 0 ? Math.round((member.balance / totalBalance) * 100) : 0}%</p>
+                    <p className="text-muted-foreground text-xs">{totalBalance > 0 ? Math.round(member.balance / totalBalance * 100) : 0}%</p>
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           </motion.div>
-        )}
+          }
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-5 flex items-center gap-3">
           <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -542,11 +542,11 @@ export default function Dashboard() {
           </MobileSelect>
         </motion.div>
 
-        {visibleBlocks.quickStats && (
+        {visibleBlocks.quickStats &&
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
-              className="rounded-2xl border border-border bg-card shadow-sm p-4 cursor-pointer hover:shadow-md transition-all"
-              onClick={() => { setQuickAddType('income'); setShowQuickAdd(true); }}>
+            className="rounded-2xl border border-border bg-card shadow-sm p-4 cursor-pointer hover:shadow-md transition-all"
+            onClick={() => {setQuickAddType('income');setShowQuickAdd(true);}}>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center"><ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" /></div>
                 <span className="text-muted-foreground text-xs">Доходы</span>
@@ -554,8 +554,8 @@ export default function Dashboard() {
               <p className="text-emerald-500 font-bold text-lg">{formatCurrency(monthIncome)}</p>
             </motion.div>
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}
-              className="rounded-2xl border border-border bg-card shadow-sm p-4 cursor-pointer hover:shadow-md transition-all"
-              onClick={() => { setQuickAddType('expense'); setShowQuickAdd(true); }}>
+            className="rounded-2xl border border-border bg-card shadow-sm p-4 cursor-pointer hover:shadow-md transition-all"
+            onClick={() => {setQuickAddType('expense');setShowQuickAdd(true);}}>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center"><ArrowDownRight className="w-3.5 h-3.5 text-rose-500" /></div>
                 <span className="text-muted-foreground text-xs">Расходы</span>
@@ -590,14 +590,14 @@ export default function Dashboard() {
             <SafeDailyLimit budgets={budgets} formatCurrency={formatCurrency} />
             <EmergencyFund totalBalance={totalBalance} transactions={transactions} formatCurrency={formatCurrency} />
           </div>
-        )}
+          }
 
         <BudgetMonthEndBanner
-          budgets={budgets}
-          transactions={transactions}
-          formatCurrency={formatCurrency}
-          onBudgetUpdated={() => queryClient.invalidateQueries({ queryKey: ['budgets'] })}
-        />
+            budgets={budgets}
+            transactions={transactions}
+            formatCurrency={formatCurrency}
+            onBudgetUpdated={() => queryClient.invalidateQueries({ queryKey: ['budgets'] })} />
+          
 
         <MonthForecast transactions={transactions} totalBalance={totalBalance} formatCurrency={formatCurrency} />
 
@@ -605,48 +605,48 @@ export default function Dashboard() {
           <AIInsights transactions={transactions} accounts={displayAccounts} budgets={budgets} investments={investments} formatCurrency={formatCurrency} />
         </motion.div>
 
-        {user?.subscription_tier === 'premium' || user?.subscription_tier === 'family' ? (
+        {user?.subscription_tier === 'premium' || user?.subscription_tier === 'family' ?
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="mb-8">
             <PremiumAIAnalytics />
-          </motion.div>
-        ) : null}
+          </motion.div> :
+          null}
 
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            {visibleBlocks.spendingChart && (
+            {visibleBlocks.spendingChart &&
               <SpendingChart transactions={transactions} formatCurrency={formatCurrency} periodType={periodType} />
-            )}
-            {visibleBlocks.transactions && (
+              }
+            {visibleBlocks.transactions &&
               <RecentTransactions transactions={(filterAccount || filterCategory ? filteredTransactions : transactions).slice(0, 5)} formatCurrency={formatCurrency} />
-            )}
+              }
           </div>
           <div className="space-y-6">
-            {visibleBlocks.budgets && (
+            {visibleBlocks.budgets &&
               <BudgetOverview budgets={budgets} transactions={transactions} formatCurrency={formatCurrency} currentUser={user} />
-            )}
-            {visibleBlocks.goals && (
+              }
+            {visibleBlocks.goals &&
               <AllGoalsProgress goals={goals} formatCurrency={formatCurrency} />
-            )}
+              }
           </div>
         </div>
       </div>
 
       <AnimatePresence>
-        {showQuickAdd && (
+        {showQuickAdd &&
           <QuickAddTransaction onClose={() => setShowQuickAdd(false)} accounts={allAccounts} defaultType={quickAddType} />
-        )}
+          }
       </AnimatePresence>
 
       <TemplatesManager
-        open={showTemplatesManager}
-        onClose={() => {
-          setShowTemplatesManager(false);
-          queryClient.invalidateQueries({ queryKey: ['transaction-templates'] });
-        }}
-        onUseTemplate={handleUseTemplate}
-        accounts={allAccounts}
-      />
+          open={showTemplatesManager}
+          onClose={() => {
+            setShowTemplatesManager(false);
+            queryClient.invalidateQueries({ queryKey: ['transaction-templates'] });
+          }}
+          onUseTemplate={handleUseTemplate}
+          accounts={allAccounts} />
+        
     </div>
-    </PullToRefresh>
-  );
+    </PullToRefresh>);
+
 }
