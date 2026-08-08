@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 const FONT_SCALE_KEY = 'app_font_scale';
 const DEFAULT_SCALE = 100;
 const MIN_SCALE = 85;
-const MAX_SCALE = 150;
+const MAX_SCALE = 130;
 const STEP = 5;
 
 export const FONT_SCALES = [
@@ -12,7 +12,6 @@ export const FONT_SCALES = [
   { value: 100, label: 'M', description: 'Стандартный' },
   { value: 115, label: 'L', description: 'Крупный' },
   { value: 130, label: 'XL', description: 'Большой' },
-  { value: 150, label: 'XXL', description: 'Очень большой' },
 ];
 
 function applyScale(scale) {
