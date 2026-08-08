@@ -94,9 +94,18 @@
   }
 
   /* Prevent text selection on UI elements, not on financial data */
-  button, nav, .no-select, [role="button"], [role="tab"] {
+  button, nav, .no-select, [role="button"], [role="tab"], [role="menuitem"],
+  label, .label, h1, h2, h3, h4, h5, h6, .font-heading, .font-display,
+  th, thead, .sidebar, aside, .card-title, .card-description,
+  .select-none-ui {
     user-select: none;
     -webkit-user-select: none;
+  }
+
+  /* Keep text selectable for data fields, inputs, and content */
+  input, textarea, [contenteditable="true"], [data-selectable="true"] {
+    user-select: text;
+    -webkit-user-select: text;
   }
 
   /* Hide scrollbar for filter chips */
