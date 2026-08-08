@@ -432,6 +432,8 @@ export default function Dashboard() {
           </motion.div>
           }
 
+        {/* ===== Секция: Финансы ===== */}
+        <section className="mb-6 rounded-2xl border border-border bg-card shadow-sm p-4 sm:p-5 space-y-4">
         {visibleBlocks.balance && (
           family ?
           <motion.div
@@ -480,6 +482,7 @@ export default function Dashboard() {
             fixedAssets={modeFixedAssets}
             formatCurrency={formatCurrency}
             onFixedAssetAdded={() => queryClient.invalidateQueries({ queryKey: ['fixed-assets'] })} />
+        </section>
           
 
         {/* Quick Filters — instant account/category filtering */}
@@ -542,8 +545,10 @@ export default function Dashboard() {
           </MobileSelect>
         </motion.div>
 
+        {/* ===== Секция: Быстрая статистика ===== */}
+        <section className="mb-6 rounded-2xl border border-border bg-card shadow-sm p-4 sm:p-5">
         {visibleBlocks.quickStats &&
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
             className="rounded-2xl border border-border bg-card shadow-sm p-4 cursor-pointer hover:shadow-md transition-all"
             onClick={() => {setQuickAddType('income');setShowQuickAdd(true);}}>
@@ -591,7 +596,10 @@ export default function Dashboard() {
             <EmergencyFund totalBalance={totalBalance} transactions={transactions} formatCurrency={formatCurrency} />
           </div>
           }
+        </section>
 
+        {/* ===== Секция: Аналитика и прогнозы ===== */}
+        <section className="mb-6 rounded-2xl border border-border bg-card shadow-sm p-4 sm:p-5 space-y-5">
         <BudgetMonthEndBanner
             budgets={budgets}
             transactions={transactions}
@@ -601,9 +609,10 @@ export default function Dashboard() {
 
         <MonthForecast transactions={transactions} totalBalance={totalBalance} formatCurrency={formatCurrency} />
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <AIInsights transactions={transactions} accounts={displayAccounts} budgets={budgets} investments={investments} formatCurrency={formatCurrency} />
         </motion.div>
+        </section>
 
         {user?.subscription_tier === 'premium' || user?.subscription_tier === 'family' ?
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="mb-8">
@@ -611,7 +620,8 @@ export default function Dashboard() {
           </motion.div> :
           null}
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        {/* ===== Секция: Детали ===== */}
+        <section className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {visibleBlocks.spendingChart &&
               <SpendingChart transactions={transactions} formatCurrency={formatCurrency} periodType={periodType} />
@@ -628,7 +638,7 @@ export default function Dashboard() {
               <AllGoalsProgress goals={goals} formatCurrency={formatCurrency} />
               }
           </div>
-        </div>
+        </section>
       </div>
 
       <AnimatePresence>
