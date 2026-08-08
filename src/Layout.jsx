@@ -66,15 +66,19 @@ export default function Layout({ children, currentPageName }) {
   }, []);
 
   return (
-    <div
-      className="min-h-screen bg-background text-foreground"
-      style={backgroundImageUrl ? {
-        backgroundImage: `url(${backgroundImageUrl})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
-      } : undefined}
-    >
+    <div className="min-h-screen bg-background text-foreground relative">
+      {/* Фиксированный фоновый слой — не двигается при скролле, видно чётко */}
+      {backgroundImageUrl && (
+        <div
+          className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${backgroundImageUrl})` }}
+        />
+      )}
+      {/* Затемнение для читаемости контента поверх фона */}
+      {backgroundImageUrl && (
+        <div className="fixed inset-0 z-0 bg-background/60 dark:bg-background/70" />
+      )}
+      <div className="relative z-10">
       <OfflineBanner />
 
       {/* Desktop Sidebar */}
@@ -205,6 +209,7 @@ export default function Layout({ children, currentPageName }) {
           onTabClick={(index, path) => navigate(path)}
         />
       )}
+      </div>
     </div>);
 
 }
