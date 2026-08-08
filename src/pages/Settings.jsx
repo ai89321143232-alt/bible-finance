@@ -61,6 +61,15 @@ const PRESET_BACKGROUNDS = [
   { name: 'Радуга', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/7c6762446_generated_image.png' },
   { name: 'Золотой блеск', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/9e3710b95_generated_image.png' },
   { name: 'Неоновый город', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/a9f9846a0_generated_image.png' },
+  { name: 'Финанс', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/9c5ace7e2_generated_image.png' },
+  { name: 'Рассвет', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/cc3612eb4_generated_image.png' },
+  { name: 'Изумрудный', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/026567247_generated_image.png' },
+  { name: 'Сеть', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/065e6bfad_generated_image.png' },
+  { name: 'Акварель', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/7f2b0e5a1_generated_image.png' },
+  { name: 'Звёзды', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/ea455f47e_generated_image.png' },
+  { name: 'Океан', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/675e9e371_generated_image.png' },
+  { name: 'Закат', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/38716ae13_generated_image.png' },
+  { name: 'Лес', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/cffd6dae0_generated_image.png' },
 ];
 
 const SUBSCRIPTION_PLANS = [
