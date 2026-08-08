@@ -3,8 +3,9 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
-  Plus, Edit2, Trash2, Check, X, Tag, ChevronRight
+  Plus, Edit2, Trash2, Check, X, Tag, ChevronRight, Link2, AlertCircle
 } from 'lucide-react';
+import BulkBudgetLinkModal from '@/components/categories/BulkBudgetLinkModal';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,6 +75,7 @@ export default function Categories() {
   const [editCategory, setEditCategory] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [selectedCategories, setSelectedCategories] = useState([]);
+  const [showBulkLink, setShowBulkLink] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -283,6 +285,14 @@ export default function Categories() {
               </Button>
             )}
             <Button
+              variant="outline"
+              onClick={() => setShowBulkLink(true)}
+              className="rounded-xl"
+            >
+              <Link2 className="w-4 h-4 mr-2" />
+              Привязать к бюджетам
+            </Button>
+            <Button
               onClick={() => {
                 setFormData({ ...formData, type: activeTab });
                 setShowAddModal(true);
@@ -336,6 +346,9 @@ export default function Categories() {
           <div className="grid sm:grid-cols-2 gap-4">
             {filteredCategories.map((category, index) => {
               const iconEmoji = LUCIDE_ICON_MAP[category.icon] || category.icon || '📦';
+              const isLinked = category.type === 'expense'
+                ? budgets.some(b => (b.categories || (b.category ? [b.category] : [])).includes(category.name))
+                : true;
               
               return (
                 <motion.div
@@ -372,9 +385,22 @@ export default function Categories() {
                           <h3 className="font-semibold text-slate-900 dark:text-white truncate">
                             {category.name}
                           </h3>
-                          <p className="text-sm text-slate-500 dark:text-slate-400">
-                            {category.type === 'expense' ? 'Расход' : 'Доход'}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              {category.type === 'expense' ? 'Расход' : 'Доход'}
+                            </p>
+                            {category.type === 'expense' && (
+                              <span className={`inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full ${
+                                isLinked
+                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                  : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                              }`}>
+                                {isLinked
+                                  ? <><Check className="w-3 h-3" /> Бюджет</>
+                                  : <><AlertCircle className="w-3 h-3" /> Не привязана</>}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button
@@ -534,6 +560,14 @@ export default function Categories() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Budget Link Modal */}
+      <BulkBudgetLinkModal
+        open={showBulkLink}
+        onClose={() => setShowBulkLink(false)}
+        categories={categories}
+        budgets={budgets}
+      />
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
