@@ -41,6 +41,7 @@ import ResetPassword from './pages/ResetPassword';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import SplashScreen from './components/SplashScreen';
 import GlobalCacheSync from './components/GlobalCacheSync';
+import BackgroundLayer from './components/BackgroundLayer';
 import { Toaster as SonnerToaster } from 'sonner';
 
 // Достаём список страниц, компонент Layout и имя главной страницы
@@ -73,6 +74,8 @@ const AuthenticatedApp = () => {
   }
 
   return (
+    <>
+    <BackgroundLayer />
     <AnimatePresence mode="wait">
       <motion.div
         key={location.pathname}
@@ -128,6 +131,7 @@ const AuthenticatedApp = () => {
     </Routes>
       </motion.div>
     </AnimatePresence>
+    </>
   );
 };
 
