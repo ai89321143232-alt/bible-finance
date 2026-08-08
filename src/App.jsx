@@ -42,6 +42,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import SplashScreen from './components/SplashScreen';
 import GlobalCacheSync from './components/GlobalCacheSync';
 import BackgroundLayer from './components/BackgroundLayer';
+import { useFontScale } from '@/hooks/useFontScale';
 import { Toaster as SonnerToaster } from 'sonner';
 
 // Достаём список страниц, компонент Layout и имя главной страницы
@@ -138,6 +139,7 @@ const AuthenticatedApp = () => {
 
 function App() {
   const [splashDone, setSplashDone] = React.useState(false);
+  useFontScale();
 
   return (
     <AuthProvider>

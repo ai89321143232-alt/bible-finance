@@ -46,6 +46,8 @@ import PersonalizationSettings from '@/components/settings/PersonalizationSettin
 import AIModelSettings from '@/components/settings/AIModelSettings';
 import RedeemPromoCode from '@/components/settings/RedeemPromoCode';
 import TelegramBotSettings from '@/components/settings/TelegramBotSettings';
+import TextSizeControl from '@/components/settings/TextSizeControl';
+import { useFontScale } from '@/hooks/useFontScale';
 import { Layout, Bot } from 'lucide-react';
 
 const PRESET_BACKGROUNDS = [
@@ -548,6 +550,8 @@ export default function Settings() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <ThemeToggle />
+                <Separator />
+                <TextSizeControl />
                 <Separator />
                 <div className="flex items-center justify-between">
                   <div>

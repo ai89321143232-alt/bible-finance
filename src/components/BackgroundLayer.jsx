@@ -33,7 +33,7 @@ export default function BackgroundLayer() {
         className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat pointer-events-none"
         style={{ backgroundImage: `url(${backgroundImageUrl})` }}
       />
-      <div className="fixed inset-0 z-0 bg-background/30 dark:bg-black/50 pointer-events-none" />
+      <div className="fixed inset-0 z-0 bg-background/10 dark:bg-black/50 pointer-events-none" />
     </>
   );
 }
