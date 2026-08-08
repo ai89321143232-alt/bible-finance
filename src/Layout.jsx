@@ -66,7 +66,7 @@ export default function Layout({ children, currentPageName }) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background/80 dark:bg-background/60 text-foreground relative">
+    <div className="min-h-screen bg-background/60 dark:bg-background/60 text-foreground relative">
       <div className="relative z-10">
       <OfflineBanner />
 
