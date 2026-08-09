@@ -1,20 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
+import { EDUCATION_MODULES } from '@/data/educationTopics';
 
 // ============================================================
 // useEducationProgress — отслеживание прогресса обучения
 // ============================================================
-// Хранит массив completed_lessons в данных пользователя.
-// Урок считается доступным, если он первый или предыдущий завершён.
+// Хранит массив completed_modules в данных пользователя.
+// Модуль N доступен, если N==0 или модуль N-1 завершён.
+// Модуль считается завершённым после прохождения теста.
 // ============================================================
 
-const STORAGE_KEY = 'education_progress_cache';
+const STORAGE_KEY = 'education_progress_cache_v2';
 
-export function useEducationProgress(lessonOrder) {
-  const [completedLessons, setCompletedLessons] = useState([]);
+const MODULE_ORDER = EDUCATION_MODULES.map(m => m.id);
+
+export function useEducationProgress() {
+  const [completedModules, setCompletedModules] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Загрузка прогресса
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -22,14 +25,13 @@ export function useEducationProgress(lessonOrder) {
         const user = await base44.auth.me();
         const progress = user?.education_progress || {};
         if (mounted) {
-          setCompletedLessons(progress.completed_lessons || []);
+          setCompletedModules(progress.completed_modules || []);
         }
       } catch {
-        // fallback на localStorage
         try {
           const cached = localStorage.getItem(STORAGE_KEY);
           if (cached && mounted) {
-            setCompletedLessons(JSON.parse(cached));
+            setCompletedModules(JSON.parse(cached));
           }
         } catch {}
       } finally {
@@ -39,50 +41,49 @@ export function useEducationProgress(lessonOrder) {
     return () => { mounted = false; };
   }, []);
 
-  const isLessonUnlocked = useCallback((index) => {
+  const isModuleUnlocked = useCallback((index) => {
     if (index === 0) return true;
-    return completedLessons.includes(lessonOrder[index - 1]);
-  }, [completedLessons, lessonOrder]);
+    return completedModules.includes(MODULE_ORDER[index - 1]);
+  }, [completedModules]);
 
-  const isLessonCompleted = useCallback((lessonId) => {
-    return completedLessons.includes(lessonId);
-  }, [completedLessons]);
+  const isModuleCompleted = useCallback((moduleId) => {
+    return completedModules.includes(moduleId);
+  }, [completedModules]);
 
-  const completeLesson = useCallback(async (lessonId) => {
-    if (completedLessons.includes(lessonId)) return;
-    const updated = [...completedLessons, lessonId];
-    setCompletedLessons(updated);
-    // Кэш в localStorage для мгновенного отображения
+  const completeModule = useCallback(async (moduleId) => {
+    if (completedModules.includes(moduleId)) return;
+    const updated = [...completedModules, moduleId];
+    setCompletedModules(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    // Сохранение на сервере
     try {
       await base44.auth.updateMe({
-        education_progress: { completed_lessons: updated },
+        education_progress: { completed_modules: updated },
       });
     } catch {}
-  }, [completedLessons]);
+  }, [completedModules]);
 
   const resetProgress = useCallback(async () => {
-    setCompletedLessons([]);
+    setCompletedModules([]);
     localStorage.removeItem(STORAGE_KEY);
     try {
       await base44.auth.updateMe({
-        education_progress: { completed_lessons: [] },
+        education_progress: { completed_modules: [] },
       });
     } catch {}
   }, []);
 
-  const progressPercent = lessonOrder.length > 0
-    ? Math.round((completedLessons.filter(id => lessonOrder.includes(id)).length / lessonOrder.length) * 100)
+  const progressPercent = MODULE_ORDER.length > 0
+    ? Math.round((completedModules.filter(id => MODULE_ORDER.includes(id)).length / MODULE_ORDER.length) * 100)
     : 0;
 
   return {
-    completedLessons,
+    completedModules,
     loading,
-    isLessonUnlocked,
-    isLessonCompleted,
-    completeLesson,
+    isModuleUnlocked,
+    isModuleCompleted,
+    completeModule,
     resetProgress,
     progressPercent,
+    moduleOrder: MODULE_ORDER,
   };
 }
