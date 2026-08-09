@@ -155,7 +155,7 @@ export default function SplashScreen({ onFinish }) {
               transition={{ delay: 0.4, duration: 0.5 }}
               className="text-white/50 text-base font-medium"
             >
-              Верный в малом — Верен в Большом!
+              Верный в малом — Верный и во многом! Управление финансами — это просто!
             </motion.p>
 
             {/* Animated bar */}
