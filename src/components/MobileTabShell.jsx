@@ -1,55 +1,61 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Dashboard from '@/pages/Dashboard';
 import Transactions from '@/pages/Transactions';
+import Accounts from '@/pages/Accounts';
 import Goals from '@/pages/Goals';
 import Budgets from '@/pages/Budgets';
+import Analytics from '@/pages/Analytics';
 import Settings from '@/pages/Settings';
-import BottomTabBar, { BOTTOM_TABS } from '@/components/BottomTabBar';
+import BottomTabBar from '@/components/BottomTabBar';
+import { useBottomTabs } from '@/components/bottomTabsConfig';
 
 // ============================================================
 // components/MobileTabShell.jsx — MOBILE TAB CONTAINER
 // ============================================================
-// Renders all four main tab pages simultaneously and uses
+// Renders all configured tab pages simultaneously and uses
 // CSS display to show/hide them, preserving scroll position
 // and component state when switching tabs.
 //
-// Tab switching is driven by react-router-dom (useNavigate/useLocation)
-// so the URL, browser history and the native Android hardware back
-// button all stay in sync — no manual pushState/hash manipulation.
+// Tab configuration comes from useBottomTabs() — user can
+// customize order and which tabs are shown in Personalization.
 // ============================================================
-// AI Чат (isCenter) не входит в постоянные вкладки шелла — это отдельная страница
-const TABS = BOTTOM_TABS.filter((tab) => !tab.isCenter).map((tab, index) => ({
-  ...tab,
-  component: [Dashboard, Transactions, Goals, Budgets, Settings][index],
-}));
 
-const getTabIndexForPath = (pathname) => {
-  const index = TABS.findIndex(t => t.path === pathname);
-  return index >= 0 ? index : 0;
+const PAGE_COMPONENT_MAP = {
+  Dashboard: Dashboard,
+  Transactions: Transactions,
+  Accounts: Accounts,
+  Goals: Goals,
+  Budgets: Budgets,
+  Analytics: Analytics,
+  Settings: Settings,
 };
 
 export default function MobileTabShell({ initialTab = 0 }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const allTabs = useBottomTabs();
   const [activeTab, setActiveTab] = useState(initialTab);
 
-  // Keep activeTab in sync with the URL — including native back/forward navigation.
+  // Only regular tabs (non-center) are rendered as tab pages
+  const tabs = allTabs.filter((tab) => !tab.isCenter);
+
+  // Keep activeTab in sync with the URL
   useEffect(() => {
-    setActiveTab(getTabIndexForPath(location.pathname));
-  }, [location.pathname]);
-
-
+    const index = tabs.findIndex((t) => t.path === location.pathname);
+    setActiveTab(index >= 0 ? index : 0);
+  }, [location.pathname, tabs]);
 
   return (
     <div className="flex flex-col min-h-screen">
       {/* Tab Content — all pages mounted, only active is visible */}
       <div className="flex-1 pb-24">
-        {TABS.map((tab, index) => {
-          const PageComponent = tab.component;
+        {tabs.map((tab, index) => {
+          const PageComponent = PAGE_COMPONENT_MAP[tab.page];
+          if (!PageComponent) return null;
           return (
             <div
-              key={tab.label}
+              key={tab.page}
               style={{
                 display: activeTab === index ? 'block' : 'none',
                 minHeight: '100vh',

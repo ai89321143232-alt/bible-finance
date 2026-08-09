@@ -69,6 +69,7 @@ export default function Dashboard() {
     budgets: true,
     goals: true
   });
+  const [blockOrder, setBlockOrder] = useState(['balance', 'quickStats', 'spendingChart', 'transactions', 'budgets', 'goals']);
 
   // Кэшированный запрос пользователя — при переходах между страницами данные
   // берутся мгновенно из кэша, без "мигания" на null и обнуления баланса
@@ -85,6 +86,12 @@ export default function Dashboard() {
     const blocks = user.visible_dashboard_blocks || user.data?.visible_dashboard_blocks;
     if (blocks) {
       setVisibleBlocks((prev) => ({ ...prev, ...blocks }));
+    }
+    const order = user.dashboard_block_order || user.data?.dashboard_block_order;
+    if (order && Array.isArray(order)) {
+      const defaults = ['balance', 'quickStats', 'spendingChart', 'transactions', 'budgets', 'goals'];
+      const merged = [...order, ...defaults.filter((k) => !order.includes(k))];
+      setBlockOrder(merged);
     }
   }, [user]);
 
@@ -392,6 +399,78 @@ export default function Dashboard() {
 
   }
 
+  const renderBlock = (key) => {
+    switch (key) {
+      case 'balance':
+        return (
+          <section key="balance" className="mb-6 rounded-2xl border border-border bg-card shadow-sm p-4 sm:p-5 space-y-4">
+            {family ? (
+              <motion.div drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.6}
+                onDragEnd={(event, info) => {
+                  if (info.offset.x < -60 || info.velocity.x < -300) setBalanceMode('family');
+                  else if (info.offset.x > 60 || info.velocity.x > 300) setBalanceMode('personal');
+                }}>
+                <AnimatePresence mode="wait">
+                  <motion.div key={balanceMode} initial={{ opacity: 0, x: balanceMode === 'family' ? 40 : -40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: balanceMode === 'family' ? -40 : 40 }} transition={{ duration: 0.2 }}>
+                    <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} />
+                  </motion.div>
+                </AnimatePresence>
+              </motion.div>
+            ) : (
+              <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} />
+            )}
+            <NetWorthCard accounts={displayAccounts} investments={modeInvestments} fixedAssets={modeFixedAssets} formatCurrency={formatCurrency} onFixedAssetAdded={() => queryClient.invalidateQueries({ queryKey: ['fixed-assets'] })} />
+          </section>
+        );
+      case 'quickStats':
+        return (
+          <section key="quickStats" className="mb-6 rounded-2xl border border-border bg-card shadow-sm p-4 sm:p-5">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="rounded-2xl border border-border bg-card shadow-sm p-4 cursor-pointer hover:shadow-md transition-all" onClick={() => { setQuickAddType('income'); setShowQuickAdd(true); }}>
+                <div className="flex items-center gap-2 mb-3"><div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center"><ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" /></div><span className="text-muted-foreground text-xs">Доходы</span></div>
+                <p className="text-emerald-500 font-bold text-lg">{formatCurrency(monthIncome)}</p>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }} className="rounded-2xl border border-border bg-card shadow-sm p-4 cursor-pointer hover:shadow-md transition-all" onClick={() => { setQuickAddType('expense'); setShowQuickAdd(true); }}>
+                <div className="flex items-center gap-2 mb-3"><div className="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center"><ArrowDownRight className="w-3.5 h-3.5 text-rose-500" /></div><span className="text-muted-foreground text-xs">Расходы</span></div>
+                <p className="text-rose-500 font-bold text-lg">{formatCurrency(monthExpenses)}</p>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                <Link to={createPageUrl('Investments')}>
+                  <div className="rounded-2xl border border-border bg-card shadow-sm p-4 hover:shadow-md transition-all h-full">
+                    <div className="flex items-center gap-2 mb-3"><div className="w-7 h-7 rounded-lg bg-cyan-500/15 flex items-center justify-center"><TrendingUp className="w-3.5 h-3.5 text-cyan-500" /></div><span className="text-muted-foreground text-xs">Инвестиции</span></div>
+                    <p className="text-cyan-500 font-bold text-lg">{formatCurrency(investmentValue)}</p>
+                  </div>
+                </Link>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24 }}>
+                <Link to={createPageUrl('AIAssistant')}>
+                  <div className="rounded-2xl border border-border bg-card shadow-sm p-4 hover:shadow-md transition-all h-full flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-3"><div className="w-7 h-7 rounded-lg bg-violet-500/15 flex items-center justify-center"><Sparkles className="w-3.5 h-3.5 text-violet-500" /></div><span className="text-muted-foreground text-xs">AI</span></div>
+                      <p className="text-foreground font-bold">Спросить</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                </Link>
+              </motion.div>
+              <SafeDailyLimit budgets={budgets} formatCurrency={formatCurrency} />
+              <EmergencyFund totalBalance={totalBalance} transactions={transactions} formatCurrency={formatCurrency} />
+            </div>
+          </section>
+        );
+      case 'spendingChart':
+        return <SpendingChart key="spendingChart" transactions={transactions} formatCurrency={formatCurrency} periodType={periodType} />;
+      case 'transactions':
+        return <RecentTransactions key="transactions" transactions={(filterAccount || filterCategory ? filteredTransactions : transactions).slice(0, 5)} formatCurrency={formatCurrency} />;
+      case 'budgets':
+        return <BudgetOverview key="budgets" budgets={budgets} transactions={transactions} formatCurrency={formatCurrency} currentUser={user} />;
+      case 'goals':
+        return <AllGoalsProgress key="goals" goals={goals} formatCurrency={formatCurrency} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <PullToRefresh onRefresh={handleRefresh}>
     <div className="min-h-screen">
@@ -436,57 +515,8 @@ export default function Dashboard() {
           </motion.div>
           }
 
-        {/* ===== Секция: Финансы ===== */}
-        <section className="mb-6 rounded-2xl border border-border bg-card shadow-sm p-4 sm:p-5 space-y-4">
-        {visibleBlocks.balance && (
-          family ?
-          <motion.div
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.6}
-            onDragEnd={(event, info) => {
-              if (info.offset.x < -60 || info.velocity.x < -300) {
-                setBalanceMode('family');
-              } else if (info.offset.x > 60 || info.velocity.x > 300) {
-                setBalanceMode('personal');
-              }
-            }}>
-            
-              <AnimatePresence mode="wait">
-                <motion.div
-                key={balanceMode}
-                initial={{ opacity: 0, x: balanceMode === 'family' ? 40 : -40 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: balanceMode === 'family' ? -40 : 40 }}
-                transition={{ duration: 0.2 }}>
-                
-                  <BalanceCard
-                  totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses}
-                  investmentValue={investmentValue} investmentProfit={investmentProfit}
-                  formatCurrency={formatCurrency}
-                  accounts={displayAccounts} investments={modeInvestments} />
-                
-                </motion.div>
-              </AnimatePresence>
-            </motion.div> :
-
-          <BalanceCard
-            totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses}
-            investmentValue={investmentValue} investmentProfit={investmentProfit}
-            formatCurrency={formatCurrency}
-            accounts={displayAccounts} investments={modeInvestments} />)
-
-
-          }
-
-        {/* Net Worth Card — shows assets vs debts breakdown */}
-        <NetWorthCard
-            accounts={displayAccounts}
-            investments={modeInvestments}
-            fixedAssets={modeFixedAssets}
-            formatCurrency={formatCurrency}
-            onFixedAssetAdded={() => queryClient.invalidateQueries({ queryKey: ['fixed-assets'] })} />
-        </section>
+        {/* ===== Блоки дашборда (порядок настраивается) ===== */}
+        {blockOrder.filter((k) => visibleBlocks[k]).map((k) => renderBlock(k))}
           
 
         {/* Quick Filters — instant account/category filtering */}
@@ -549,59 +579,6 @@ export default function Dashboard() {
           </MobileSelect>
         </motion.div>
 
-        {/* ===== Секция: Быстрая статистика ===== */}
-        <section className="mb-6 rounded-2xl border border-border bg-card shadow-sm p-4 sm:p-5">
-        {visibleBlocks.quickStats &&
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
-            className="rounded-2xl border border-border bg-card shadow-sm p-4 cursor-pointer hover:shadow-md transition-all"
-            onClick={() => {setQuickAddType('income');setShowQuickAdd(true);}}>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center"><ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" /></div>
-                <span className="text-muted-foreground text-xs">Доходы</span>
-              </div>
-              <p className="text-emerald-500 font-bold text-lg">{formatCurrency(monthIncome)}</p>
-            </motion.div>
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}
-            className="rounded-2xl border border-border bg-card shadow-sm p-4 cursor-pointer hover:shadow-md transition-all"
-            onClick={() => {setQuickAddType('expense');setShowQuickAdd(true);}}>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center"><ArrowDownRight className="w-3.5 h-3.5 text-rose-500" /></div>
-                <span className="text-muted-foreground text-xs">Расходы</span>
-              </div>
-              <p className="text-rose-500 font-bold text-lg">{formatCurrency(monthExpenses)}</p>
-            </motion.div>
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-              <Link to={createPageUrl('Investments')}>
-                <div className="rounded-2xl border border-border bg-card shadow-sm p-4 hover:shadow-md transition-all h-full">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-7 h-7 rounded-lg bg-cyan-500/15 flex items-center justify-center"><TrendingUp className="w-3.5 h-3.5 text-cyan-500" /></div>
-                    <span className="text-muted-foreground text-xs">Инвестиции</span>
-                  </div>
-                  <p className="text-cyan-500 font-bold text-lg">{formatCurrency(investmentValue)}</p>
-                </div>
-              </Link>
-            </motion.div>
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24 }}>
-              <Link to={createPageUrl('AIAssistant')}>
-                <div className="rounded-2xl border border-border bg-card shadow-sm p-4 hover:shadow-md transition-all h-full flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-7 h-7 rounded-lg bg-violet-500/15 flex items-center justify-center"><Sparkles className="w-3.5 h-3.5 text-violet-500" /></div>
-                      <span className="text-muted-foreground text-xs">AI</span>
-                    </div>
-                    <p className="text-foreground font-bold">Спросить</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </div>
-              </Link>
-            </motion.div>
-            <SafeDailyLimit budgets={budgets} formatCurrency={formatCurrency} />
-            <EmergencyFund totalBalance={totalBalance} transactions={transactions} formatCurrency={formatCurrency} />
-          </div>
-          }
-        </section>
-
         {/* ===== Секция: Аналитика и прогнозы ===== */}
         <section className="mb-6 rounded-2xl border border-border bg-card shadow-sm p-4 sm:p-5 space-y-5">
         <BudgetMonthEndBanner
@@ -624,25 +601,6 @@ export default function Dashboard() {
           </motion.div> :
           null}
 
-        {/* ===== Секция: Детали ===== */}
-        <section className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            {visibleBlocks.spendingChart &&
-              <SpendingChart transactions={transactions} formatCurrency={formatCurrency} periodType={periodType} />
-              }
-            {visibleBlocks.transactions &&
-              <RecentTransactions transactions={(filterAccount || filterCategory ? filteredTransactions : transactions).slice(0, 5)} formatCurrency={formatCurrency} />
-              }
-          </div>
-          <div className="space-y-6">
-            {visibleBlocks.budgets &&
-              <BudgetOverview budgets={budgets} transactions={transactions} formatCurrency={formatCurrency} currentUser={user} />
-              }
-            {visibleBlocks.goals &&
-              <AllGoalsProgress goals={goals} formatCurrency={formatCurrency} />
-              }
-          </div>
-        </section>
       </div>
 
       <AnimatePresence>

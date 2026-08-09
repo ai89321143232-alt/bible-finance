@@ -8,7 +8,8 @@ import NavigationMenu from '@/components/Navigation/NavigationMenu';
 import NotificationBell from '@/components/NotificationBell';
 import ThemeIconToggle from '@/components/ThemeIconToggle';
 import MobileTabShell from '@/components/MobileTabShell';
-import BottomTabBar, { BOTTOM_TABS } from '@/components/BottomTabBar';
+import BottomTabBar from '@/components/BottomTabBar';
+import { useBottomTabs } from '@/components/bottomTabsConfig';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { base44 } from '@/api/base44Client';
 import OfflineBanner from '@/components/OfflineBanner';
@@ -44,7 +45,9 @@ export default function Layout({ children, currentPageName }) {
   const [themePreference, setThemePreference] = useState(null);
   const [backgroundImageUrl, setBackgroundImageUrl] = useState(null);
   const isMobile = useIsMobile();
-  const isTabPage = ['Dashboard', 'Transactions', 'Goals', 'Budgets', 'Settings'].includes(currentPageName);
+  const bottomTabs = useBottomTabs();
+  const tabPages = bottomTabs.filter((t) => !t.isCenter).map((t) => t.page);
+  const isTabPage = tabPages.includes(currentPageName);
   const navigate = useNavigate();
 
   // Этап 1 Workspace-миграции: единожды на пользователя создаёт Personal/Family
@@ -194,7 +197,7 @@ export default function Layout({ children, currentPageName }) {
       {/* Mobile Bottom Tab Bar — only on non-tab pages, same look as main screen (desktop never shows) */}
       {isMobile && !isTabPage && (
         <BottomTabBar
-          activeIndex={BOTTOM_TABS.findIndex((t) => t.page === currentPageName)}
+          activeIndex={bottomTabs.findIndex((t) => t.page === currentPageName)}
           onTabClick={(index, path) => navigate(path)}
         />
       )}
