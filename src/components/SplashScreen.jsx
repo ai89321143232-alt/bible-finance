@@ -23,14 +23,14 @@ function AnimatedBook() {
   const pages = Array.from({ length: pageCount });
 
   return (
-    <div className="relative w-56 h-36" style={{ perspective: '1000px' }}>
+    <div className="relative w-40 h-24" style={{ perspective: '1000px' }}>
       {/* Тень под книгой */}
-      <div className="absolute -bottom-3 left-6 right-6 h-3 bg-black/40 blur-md rounded-full" />
+      <div className="absolute -bottom-2 left-4 right-4 h-2 bg-black/40 blur-md rounded-full" />
 
-      {/* Книга с наклоном (лежит на горизонте) */}
+      {/* Книга анфас (вид прямо) */}
       <div
         className="absolute inset-0"
-        style={{ transform: 'rotateX(28deg)', transformStyle: 'preserve-3d' }}
+        style={{ transformStyle: 'preserve-3d' }}
       >
         {/* Базовый разворот (открытая книга) */}
         <div className="absolute inset-0 flex rounded-md overflow-hidden shadow-2xl ring-1 ring-stone-300">
