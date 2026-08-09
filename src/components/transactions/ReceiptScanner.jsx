@@ -5,6 +5,7 @@ import { Camera, Upload, Loader2, Check, X, ScanLine } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
+import { compressImage } from '@/lib/compressImage';
 
 // Проверка: если дата старше 7 дней — предупреждаем и сбрасываем на сегодня
 const validateReceiptDate = (dateStr) => {
@@ -36,12 +37,9 @@ export default function ReceiptScanner({ onDataExtracted }) {
     setIsScanning(true);
 
     try {
-      // Гарантируем правильное расширение файла — без него сервис распознавания
-      // не может определить тип и падает с ошибкой "Unsupported file type"
-      const extByType = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' };
-      const ext = extByType[file.type] || (file.name?.split('.').pop() || 'jpg');
-      const namedFile = new File([file], `receipt.${ext}`, { type: file.type });
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: namedFile });
+      // Сжимаем фото перед загрузкой — ускоряет загрузку и AI-распознавание
+      const compressed = await compressImage(file);
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: compressed });
       
       // Extract data from receipt using AI
       const result = await base44.integrations.Core.ExtractDataFromUploadedFile({

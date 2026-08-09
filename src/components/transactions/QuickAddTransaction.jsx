@@ -8,6 +8,7 @@ import { createPageUrl } from '@/utils';
 import { X, ArrowUpRight, ArrowDownRight, Check, Calendar, Camera, Loader2, Upload, Plus, QrCode } from 'lucide-react';
 import ReceiptReviewModal from './ReceiptReviewModal';
 import { parseFlexibleDate } from '@/lib/parseDate';
+import { compressImage } from '@/lib/compressImage';
 import QRReceiptScanner from './QRReceiptScanner';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -268,12 +269,10 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     setIsScanning(true);
     setScanError(null);
     try {
-      // Гарантируем правильное расширение файла — без него сервис распознавания
-      // не может определить тип и падает с ошибкой "Unsupported file type"
-      const extByType = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' };
-      const ext = extByType[file.type] || (file.name?.split('.').pop() || 'jpg');
-      const namedFile = new File([file], `receipt.${ext}`, { type: file.type });
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: namedFile });
+      // Сжимаем фото перед загрузкой — ускоряет загрузку и AI-распознавание
+      const compressed = await compressImage(file);
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: compressed });
+      const allCategoryNames = categories.map(c => c.name);
       const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
         file_url,
         json_schema: {
@@ -284,6 +283,12 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
             date: { type: 'string', description: 'Дата операции строго в формате YYYY-MM-DD (например 2025-08-09). Сегодня: 2026-08-09. Если дата на чеке старше 7 дней от сегодня или год не виден — используй сегодняшнюю дату 2026-08-09.' },
             merchant: { type: 'string' },
             card_hint: { type: 'string', description: 'Название карты или счёта, если видно на скриншоте (например "Карта Пэй", "Visa Classic")' },
+            available_categories: { type: 'array', description: `Доступные категории пользователя: ${allCategoryNames.join(', ')}. Для каждого товара/операции выбери наиболее подходящую из этого списка.`, items: { type: 'string' } },
+            available_categories: {
+              type: 'array',
+              description: 'Список доступных категорий пользователя (заполняется автоматически)',
+              items: { type: 'string' }
+            },
             items: {
               type: 'array',
               description: 'Товары ОДНОГО чека из магазина (позиции одной покупки на одну дату).',
@@ -291,7 +296,8 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                 type: 'object',
                 properties: {
                   name: { type: 'string' },
-                  price: { type: 'number' }
+                  price: { type: 'number' },
+                  category: { type: 'string', description: 'Категория из списка available_categories, наиболее подходящая для этого товара' }
                 }
               }
             },
@@ -304,7 +310,8 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                   merchant: { type: 'string', description: 'Название операции/получателя/магазина' },
                   amount: { type: 'number', description: 'Сумма операции по модулю' },
                   date: { type: 'string', description: 'Дата операции строго в формате YYYY-MM-DD (например 2025-08-09). Сегодня: 2026-08-09. Если дата старше 7 дней от сегодня или год не виден — используй сегодняшнюю дату 2026-08-09.' },
-                  operation_type: { type: 'string', enum: ['expense', 'income'] }
+                  operation_type: { type: 'string', enum: ['expense', 'income'] },
+                  category: { type: 'string', description: 'Категория из списка available_categories, наиболее подходящая для этой операции' }
                 }
               }
             }
@@ -341,41 +348,23 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         const operations = result.output.operations || [];
         if (operations.length > 1) {
           // Скриншот из банка со списком операций — у каждой своя дата/тип/сумма
-          let suggestedCats = [];
-          try {
-            const catList = categories.map(c => `${c.name} (${c.type === 'income' ? 'доход' : 'расход'})`);
-            const catResult = await base44.integrations.Core.InvokeLLM({
-              prompt: `Для каждой банковской операции определи наиболее подходящую категорию с учётом её типа (доход/расход).\n\nОперации:\n${operations.map((op, i) => `${i + 1}. ${op.merchant || 'Операция'} — ${op.amount}₽ (${op.operation_type === 'income' ? 'доход' : 'расход'})`).join('\n')}\n\nДоступные категории: ${catList.join(', ')}\n\nВерни категорию для каждой операции в том же порядке, точное название категории соответствующего типа.`,
-              response_json_schema: { type: 'object', properties: { categories: { type: 'array', items: { type: 'string' } } } }
-            });
-            suggestedCats = catResult?.categories || [];
-          } catch (e) { /* оставим категории пустыми, пользователь выберет вручную */ }
-
+          // Категории уже определены AI в первом запросе — второй запрос не нужен
           setIsBankOperations(true);
-          setScannedItems(operations.map((op, i) => ({
+          setScannedItems(operations.map((op) => ({
             name: op.merchant || 'Операция',
             price: op.amount || 0,
             type: op.operation_type === 'income' ? 'income' : 'expense',
             date: op.date || null,
-            category: suggestedCats[i] || ''
+            category: op.category || ''
           })));
           setShowReviewModal(true);
         } else if (items.length > 1) {
-          let suggestedCats = [];
-          try {
-            const categoryNames = categories.filter(c => c.type === 'expense').map(c => c.name);
-            const catResult = await base44.integrations.Core.InvokeLLM({
-              prompt: `Для каждого расхода определи наиболее подходящую категорию.\n\nРасходы:\n${items.map((it, i) => `${i + 1}. ${it.name} — ${it.price}₽`).join('\n')}\n\nДоступные категории: ${categoryNames.join(', ')}\n\nВерни категорию для каждого расхода в том же порядке, точное название из списка.`,
-              response_json_schema: { type: 'object', properties: { categories: { type: 'array', items: { type: 'string' } } } }
-            });
-            suggestedCats = catResult?.categories || [];
-          } catch (e) { /* оставим категории пустыми, пользователь выберет вручную */ }
-
+          // Категории уже определены AI в первом запросе — второй запрос не нужен
           setIsBankOperations(false);
-          setScannedItems(items.map((item, i) => ({
+          setScannedItems(items.map((item) => ({
             name: item.name || 'Товар',
             price: item.price || 0,
-            category: suggestedCats[i] || ''
+            category: item.category || ''
           })));
           setDescription(result.output.merchant || '');
           const parsedDate = validateReceiptDate(parseFlexibleDate(result.output.date));
