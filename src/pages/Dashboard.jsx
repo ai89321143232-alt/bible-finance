@@ -55,7 +55,7 @@ export default function Dashboard() {
     end: endOfMonth(new Date())
   });
 
-  const [themePreference, setThemePreference] = useState(null);
+  const [localThemeOverride, setLocalThemeOverride] = useState(null);
   const [balanceMode, setBalanceMode] = useState('personal');
 
   const isMobile = useIsMobile();
@@ -78,9 +78,10 @@ export default function Dashboard() {
     staleTime: 5 * 60 * 1000
   });
 
+  const themePreference = localThemeOverride ?? user?.theme_preference ?? null;
+
   useEffect(() => {
     if (!user) return;
-    setThemePreference(user.theme_preference || null);
     const blocks = user.visible_dashboard_blocks || user.data?.visible_dashboard_blocks;
     if (blocks) {
       setVisibleBlocks((prev) => ({ ...prev, ...blocks }));
@@ -372,9 +373,12 @@ export default function Dashboard() {
     queryClient.invalidateQueries();
   };
 
-  if (user && themePreference === null) {
+  if (user && !themePreference) {
     return (
-      <ThemeSelector onComplete={(theme) => setThemePreference(theme)} />);
+      <ThemeSelector onComplete={(theme) => {
+        setLocalThemeOverride(theme);
+        window.dispatchEvent(new Event('personalization-saved'));
+      }} />);
 
   }
 
