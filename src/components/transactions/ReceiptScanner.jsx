@@ -6,6 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 
+// Проверка: если дата старше 7 дней — предупреждаем и сбрасываем на сегодня
+const validateReceiptDate = (dateStr) => {
+  if (!dateStr) return new Date();
+  const parsed = new Date(dateStr);
+  if (isNaN(parsed.getTime())) return new Date();
+  const diffDays = (new Date() - parsed) / (1000 * 60 * 60 * 24);
+  if (diffDays > 7) {
+    toast.warning(`Дата из чека (${parsed.toLocaleDateString('ru-RU')}) слишком старая. Использована сегодняшняя дата.`);
+    return new Date();
+  }
+  return parsed;
+};
+
 export default function ReceiptScanner({ onDataExtracted }) {
   const [isScanning, setIsScanning] = useState(false);
   const [preview, setPreview] = useState(null);
@@ -37,7 +50,7 @@ export default function ReceiptScanner({ onDataExtracted }) {
           type: 'object',
           properties: {
             total_amount: { type: 'number', description: 'Total amount on receipt' },
-            date: { type: 'string', description: 'Date of purchase in YYYY-MM-DD format' },
+            date: { type: 'string', description: 'Date of purchase in YYYY-MM-DD format. Today is 2026-08-09. If the date on receipt is older than 7 days from today, use today date 2026-08-09.' },
             merchant_name: { type: 'string', description: 'Name of the store/merchant' },
             category: { 
               type: 'string', 
@@ -62,9 +75,10 @@ export default function ReceiptScanner({ onDataExtracted }) {
       });
 
       if (result.status === 'success' && result.output) {
+        const validatedDate = validateReceiptDate(result.output.date);
         onDataExtracted({
           amount: result.output.total_amount,
-          date: result.output.date,
+          date: validatedDate.toISOString(),
           description: result.output.merchant_name || 'Покупка',
           category: result.output.category || 'Другое',
           attachment_url: file_url

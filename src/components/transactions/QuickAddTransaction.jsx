@@ -250,6 +250,18 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     onClose();
   };
 
+  // Проверка: если дата старше 7 дней — предупреждаем и сбрасываем на сегодня
+  const validateReceiptDate = (parsedDate, source = 'чека') => {
+    if (!parsedDate) return new Date();
+    const now = new Date();
+    const diffDays = (now - parsedDate) / (1000 * 60 * 60 * 24);
+    if (diffDays > 7) {
+      toast.warning(`Дата из ${source} (${parsedDate.toLocaleDateString('ru-RU')}) слишком старая. Использована сегодняшняя дата.`);
+      return new Date();
+    }
+    return parsedDate;
+  };
+
   // Scan receipt using camera or file
   const handleReceiptScan = async (file) => {
     if (!file) return;
@@ -269,7 +281,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           properties: {
             amount: { type: 'number', description: 'Итоговая сумма операции (по модулю, без знака минус). Это может быть чек из магазина ИЛИ скриншот из банковского приложения (перевод, списание, пополнение).' },
             operation_type: { type: 'string', enum: ['expense', 'income'], description: 'Тип операции: "expense" если это списание/оплата/расход/перевод другому человеку, "income" если это пополнение/зачисление/поступление денег' },
-            date: { type: 'string', description: 'Дата операции строго в формате YYYY-MM-DD (например 2025-07-18). Если год не виден на фото, используй текущий год.' },
+            date: { type: 'string', description: 'Дата операции строго в формате YYYY-MM-DD (например 2025-08-09). Сегодня: 2026-08-09. Если дата на чеке старше 7 дней от сегодня или год не виден — используй сегодняшнюю дату 2026-08-09.' },
             merchant: { type: 'string' },
             card_hint: { type: 'string', description: 'Название карты или счёта, если видно на скриншоте (например "Карта Пэй", "Visa Classic")' },
             items: {
@@ -291,7 +303,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                 properties: {
                   merchant: { type: 'string', description: 'Название операции/получателя/магазина' },
                   amount: { type: 'number', description: 'Сумма операции по модулю' },
-                  date: { type: 'string', description: 'Дата операции строго в формате YYYY-MM-DD (например 2025-07-18). Если год не виден на фото, используй текущий год.' },
+                  date: { type: 'string', description: 'Дата операции строго в формате YYYY-MM-DD (например 2025-08-09). Сегодня: 2026-08-09. Если дата старше 7 дней от сегодня или год не виден — используй сегодняшнюю дату 2026-08-09.' },
                   operation_type: { type: 'string', enum: ['expense', 'income'] }
                 }
               }
@@ -366,8 +378,8 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
             category: suggestedCats[i] || ''
           })));
           setDescription(result.output.merchant || '');
-          const parsedDate = parseFlexibleDate(result.output.date);
-          if (parsedDate) setDate(parsedDate);
+          const parsedDate = validateReceiptDate(parseFlexibleDate(result.output.date));
+          setDate(parsedDate);
           setShowReviewModal(true);
         } else if (items.length === 1 && result.output.operation_type !== 'income') {
           await categorizeAndAddSingleItem(items[0], result.output, matchedAccountId);
@@ -400,7 +412,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
         add_context_from_internet: false
       });
       const cat = response.trim();
-      const parsedDate = parseFlexibleDate(receiptData.date) || new Date();
+      const parsedDate = validateReceiptDate(parseFlexibleDate(receiptData.date));
 
       // Если счёт определён — сохраняем автоматически
       if (matchedAccountId) {
@@ -442,7 +454,10 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   const handleQRDataExtracted = (data) => {
     setAmount(data.amount?.toString() || '');
     if (data.date) {
-      try { setDate(new Date(data.date)); } catch (e) {}
+      try {
+        const parsed = new Date(data.date);
+        setDate(validateReceiptDate(parsed, 'QR-кода'));
+      } catch (e) {}
     }
     setDescription(data.description || '');
     setActiveTab('manual');
