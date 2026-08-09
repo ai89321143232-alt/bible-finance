@@ -1,6 +1,7 @@
 import { CreditCard, MessageCircleQuestion, ShieldCheck, HandHeart, Hammer, PiggyBank, Infinity, Compass } from 'lucide-react';
 
 // Темы обучения — соответствуют секторам "колеса Верного распорядителя"
+// Поля video_url и cover_image_url заполняются позже.
 export const EDUCATION_TOPICS = [
   {
     id: 'debts',
@@ -9,6 +10,9 @@ export const EDUCATION_TOPICS = [
     description: 'Библейские принципы управления кредитами и как выйти из долговой зависимости.',
     icon: CreditCard,
     color: '#DC2626',
+    video_url: null,
+    cover_image_url: null,
+    duration_min: 8,
   },
   {
     id: 'advice',
@@ -17,6 +21,9 @@ export const EDUCATION_TOPICS = [
     description: 'Важность мудрых финансовых решений и поиска наставников на пути к финансовой свободе.',
     icon: MessageCircleQuestion,
     color: '#2563EB',
+    video_url: null,
+    cover_image_url: null,
+    duration_min: 7,
   },
   {
     id: 'honesty',
@@ -25,6 +32,9 @@ export const EDUCATION_TOPICS = [
     description: 'Библейский взгляд на прозрачность и порядочность во всех финансовых делах.',
     icon: ShieldCheck,
     color: '#7C3AED',
+    video_url: null,
+    cover_image_url: null,
+    duration_min: 6,
   },
   {
     id: 'giving',
@@ -33,6 +43,9 @@ export const EDUCATION_TOPICS = [
     description: 'Радость щедрой отдачи и практика десятины как проявление доверия Богу.',
     icon: HandHeart,
     color: '#DB2777',
+    video_url: null,
+    cover_image_url: null,
+    duration_min: 9,
   },
   {
     id: 'work',
@@ -41,6 +54,9 @@ export const EDUCATION_TOPICS = [
     description: 'Отношение к труду как к служению и источнику Божьего благословения.',
     icon: Hammer,
     color: '#D97706',
+    video_url: null,
+    cover_image_url: null,
+    duration_min: 7,
   },
   {
     id: 'savings',
@@ -49,6 +65,9 @@ export const EDUCATION_TOPICS = [
     description: 'Важность создания резервов и регулярного накопления для будущего.',
     icon: PiggyBank,
     color: '#059669',
+    video_url: null,
+    cover_image_url: null,
+    duration_min: 8,
   },
   {
     id: 'eternity',
@@ -57,6 +76,9 @@ export const EDUCATION_TOPICS = [
     description: 'Философия накопления «сокровищ на небесах» вместо земных богатств.',
     icon: Infinity,
     color: '#0891B2',
+    video_url: null,
+    cover_image_url: null,
+    duration_min: 6,
   },
   {
     id: 'perspective',
@@ -65,6 +87,9 @@ export const EDUCATION_TOPICS = [
     description: 'Как видеть Божью перспективу в ежедневных тратах и решениях.',
     icon: Compass,
     color: '#4F46E5',
+    video_url: null,
+    cover_image_url: null,
+    duration_min: 7,
   },
 ];
 
