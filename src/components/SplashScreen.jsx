@@ -1,64 +1,84 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-function AnimatedBook() {
-  // Книга с открывающимися страницами, анимация зациклена на 5 секунд
+function PageLines({ side }) {
+  // side: 'right' | 'left'
+  const left = side === 'left' ? 6 : 6;
   return (
-    <div className="relative w-40 h-32 flex items-center justify-center">
-      <svg viewBox="0 0 200 160" className="w-full h-full">
-        {/* Тень книги */}
-        <ellipse cx="100" cy="150" rx="70" ry="6" fill="rgba(0,0,0,0.3)" />
-
-        {/* Нижняя обложка книги */}
-        <rect x="30" y="100" width="140" height="14" rx="3" fill="#5b21b6" />
-        <rect x="30" y="100" width="140" height="14" rx="3" fill="url(#coverGrad)" opacity="0.6" />
-
-        {/* Корешок книги */}
-        <rect x="96" y="40" width="8" height="74" fill="#4c1d95" />
-
-        {/* Левая страница (открывается) */}
-        <motion.g
-          style={{ originX: '100px', originY: '100px' }}
-          initial={{ rotateY: 0 }}
-          animate={{ rotateY: [0, -160, -160, 0] }}
-          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          <rect x="32" y="42" width="66" height="60" rx="2" fill="#fafaf9" stroke="#e7e5e4" strokeWidth="1" />
-          {/* Строки текста */}
-          {[48, 56, 64, 72, 80, 88].map((y, i) => (
-            <line key={i} x1="38" y1={y} x2={i % 2 ? 86 : 82} y2={y} stroke="#d6d3d1" strokeWidth="1.2" strokeLinecap="round" />
-          ))}
-        </motion.g>
-
-        {/* Правая страница (открывается) */}
-        <motion.g
-          style={{ originX: '100px', originY: '100px' }}
-          initial={{ rotateY: 0 }}
-          animate={{ rotateY: [0, 160, 160, 0] }}
-          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          <rect x="102" y="42" width="66" height="60" rx="2" fill="#fafaf9" stroke="#e7e5e4" strokeWidth="1" />
-          {[48, 56, 64, 72, 80, 88].map((y, i) => (
-            <line key={i} x1="108" y1={y} x2={i % 2 ? 156 : 160} y2={y} stroke="#d6d3d1" strokeWidth="1.2" strokeLinecap="round" />
-          ))}
-        </motion.g>
-
-        {/* Светящийся символ на корешке */}
-        <motion.circle
-          cx="100" cy="76" r="4"
-          fill="#fbbf24"
-          animate={{ opacity: [0.4, 1, 0.4] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+    <div className="absolute inset-0 p-2 flex flex-col gap-1.5">
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <div
+          key={i}
+          className="h-0.5 rounded-full bg-stone-300"
+          style={{ width: i % 2 ? '70%' : '90%', marginLeft: side === 'left' ? left : 0 }}
         />
+      ))}
+    </div>
+  );
+}
 
-        {/* Градиенты */}
-        <defs>
-          <linearGradient id="coverGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#7c3aed" />
-            <stop offset="100%" stopColor="#4c1d95" />
-          </linearGradient>
-        </defs>
-      </svg>
+function AnimatedBook() {
+  // Книга лежит горизонтально (вид сверху с наклоном), страницы перелистываются по очереди
+  const pageCount = 5;
+  const pages = Array.from({ length: pageCount });
+
+  return (
+    <div className="relative w-56 h-36" style={{ perspective: '1000px' }}>
+      {/* Тень под книгой */}
+      <div className="absolute -bottom-3 left-6 right-6 h-3 bg-black/40 blur-md rounded-full" />
+
+      {/* Книга с наклоном (лежит на горизонте) */}
+      <div
+        className="absolute inset-0"
+        style={{ transform: 'rotateX(28deg)', transformStyle: 'preserve-3d' }}
+      >
+        {/* Базовый разворот (открытая книга) */}
+        <div className="absolute inset-0 flex rounded-md overflow-hidden shadow-2xl ring-1 ring-stone-300">
+          {/* Левая страница */}
+          <div className="relative flex-1 bg-gradient-to-br from-stone-50 to-stone-200 border-r border-stone-300">
+            <PageLines side="left" />
+          </div>
+          {/* Правая страница */}
+          <div className="relative flex-1 bg-gradient-to-bl from-stone-50 to-stone-200">
+            <PageLines side="right" />
+          </div>
+        </div>
+
+        {/* Корешок (центральная линия) */}
+        <div className="absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2 bg-gradient-to-r from-transparent via-stone-400 to-transparent" />
+
+        {/* Перелистываемые страницы */}
+        {pages.map((_, i) => {
+          const start = 0.08 + i * 0.14;
+          const end = start + 0.1;
+          return (
+            <motion.div
+              key={i}
+              className="absolute top-0 right-0 h-full bg-white rounded-r-md shadow-md ring-1 ring-stone-200"
+              style={{
+                width: '50%',
+                transformOrigin: 'left center',
+                transformStyle: 'preserve-3d',
+                backfaceVisibility: 'hidden',
+              }}
+              initial={{ rotateY: 0 }}
+              animate={{ rotateY: [0, 0, -180, -180, 0] }}
+              transition={{
+                duration: 5,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                times: [0, start, end, 0.92, 1],
+              }}
+            >
+              <PageLines side="right" />
+              {/* Номер страницы */}
+              <span className="absolute bottom-1 right-2 text-[8px] text-stone-400 font-serif">
+                {i + 1}
+              </span>
+            </motion.div>
+          );
+        })}
+      </div>
     </div>
   );
 }
