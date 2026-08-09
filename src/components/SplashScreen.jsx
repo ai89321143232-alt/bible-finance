@@ -1,86 +1,63 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-function RatInWheel() {
+function AnimatedBook() {
+  // Книга с открывающимися страницами, анимация зациклена на 5 секунд
   return (
-    <div className="relative w-32 h-32 flex items-center justify-center">
-      <svg viewBox="0 0 200 200" className="w-full h-full">
-        {/* Wheel */}
+    <div className="relative w-40 h-32 flex items-center justify-center">
+      <svg viewBox="0 0 200 160" className="w-full h-full">
+        {/* Тень книги */}
+        <ellipse cx="100" cy="150" rx="70" ry="6" fill="rgba(0,0,0,0.3)" />
+
+        {/* Нижняя обложка книги */}
+        <rect x="30" y="100" width="140" height="14" rx="3" fill="#5b21b6" />
+        <rect x="30" y="100" width="140" height="14" rx="3" fill="url(#coverGrad)" opacity="0.6" />
+
+        {/* Корешок книги */}
+        <rect x="96" y="40" width="8" height="74" fill="#4c1d95" />
+
+        {/* Левая страница (открывается) */}
         <motion.g
-          animate={{ rotate: 360 }}
-          transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
           style={{ originX: '100px', originY: '100px' }}
+          initial={{ rotateY: 0 }}
+          animate={{ rotateY: [0, -160, -160, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
         >
-          <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="4" />
-          <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" strokeDasharray="8 12" />
-          <line x1="100" y1="20" x2="100" y2="180" stroke="rgba(255,255,255,0.15)" strokeWidth="2" />
-          <line x1="20" y1="100" x2="180" y2="100" stroke="rgba(255,255,255,0.15)" strokeWidth="2" />
-          <line x1="43" y1="43" x2="157" y2="157" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
-          <line x1="157" y1="43" x2="43" y2="157" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
-          <circle cx="100" cy="100" r="6" fill="rgba(255,255,255,0.4)" />
+          <rect x="32" y="42" width="66" height="60" rx="2" fill="#fafaf9" stroke="#e7e5e4" strokeWidth="1" />
+          {/* Строки текста */}
+          {[48, 56, 64, 72, 80, 88].map((y, i) => (
+            <line key={i} x1="38" y1={y} x2={i % 2 ? 86 : 82} y2={y} stroke="#d6d3d1" strokeWidth="1.2" strokeLinecap="round" />
+          ))}
         </motion.g>
 
-        {/* Rat body (bouncing slightly to simulate running) */}
+        {/* Правая страница (открывается) */}
         <motion.g
-          animate={{ y: [0, -3, 0] }}
-          transition={{ duration: 0.25, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ originX: '100px', originY: '100px' }}
+          initial={{ rotateY: 0 }}
+          animate={{ rotateY: [0, 160, 160, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
         >
-          {/* Tail */}
-          <motion.path
-            d="M 70 120 Q 55 115 50 105 Q 48 100 52 98"
-            fill="none"
-            stroke="#c4b5a0"
-            strokeWidth="3"
-            strokeLinecap="round"
-            animate={{ d: ["M 70 120 Q 55 115 50 105 Q 48 100 52 98", "M 70 120 Q 52 118 48 108 Q 46 103 50 100", "M 70 120 Q 55 115 50 105 Q 48 100 52 98"] }}
-            transition={{ duration: 0.25, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          {/* Body */}
-          <ellipse cx="100" cy="120" rx="32" ry="22" fill="#8b7355" />
-          {/* Belly */}
-          <ellipse cx="100" cy="128" rx="24" ry="14" fill="#c4a882" />
-          {/* Head */}
-          <ellipse cx="128" cy="112" rx="18" ry="15" fill="#9b8466" />
-          {/* Ears */}
-          <ellipse cx="122" cy="98" rx="7" ry="9" fill="#7a6b54" />
-          <ellipse cx="136" cy="98" rx="7" ry="9" fill="#7a6b54" />
-          <ellipse cx="122" cy="99" rx="3" ry="5" fill="#d4a0a0" />
-          <ellipse cx="136" cy="99" rx="3" ry="5" fill="#d4a0a0" />
-          {/* Eye */}
-          <circle cx="134" cy="110" r="2.5" fill="#1a1a1a" />
-          {/* Nose */}
-          <circle cx="146" cy="114" r="2" fill="#e0a0a0" />
-          {/* Whiskers */}
-          <line x1="146" y1="116" x2="158" y2="114" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8" />
-          <line x1="146" y1="118" x2="158" y2="120" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8" />
-
-          {/* Front legs (running animation) */}
-          <motion.ellipse
-            cx="108" cy="140" rx="4" ry="8"
-            fill="#7a6b54"
-            animate={{ cy: [140, 136, 140], cx: [108, 110, 108] }}
-            transition={{ duration: 0.25, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          <motion.ellipse
-            cx="118" cy="142" rx="4" ry="8"
-            fill="#6b5d48"
-            animate={{ cy: [142, 138, 142], cx: [118, 116, 118] }}
-            transition={{ duration: 0.25, repeat: Infinity, ease: 'easeInOut', delay: 0.12 }}
-          />
-          {/* Back legs */}
-          <motion.ellipse
-            cx="82" cy="140" rx="4" ry="8"
-            fill="#7a6b54"
-            animate={{ cy: [140, 136, 140], cx: [82, 84, 82] }}
-            transition={{ duration: 0.25, repeat: Infinity, ease: 'easeInOut', delay: 0.12 }}
-          />
-          <motion.ellipse
-            cx="92" cy="142" rx="4" ry="8"
-            fill="#6b5d48"
-            animate={{ cy: [142, 138, 142], cx: [92, 90, 92] }}
-            transition={{ duration: 0.25, repeat: Infinity, ease: 'easeInOut' }}
-          />
+          <rect x="102" y="42" width="66" height="60" rx="2" fill="#fafaf9" stroke="#e7e5e4" strokeWidth="1" />
+          {[48, 56, 64, 72, 80, 88].map((y, i) => (
+            <line key={i} x1="108" y1={y} x2={i % 2 ? 156 : 160} y2={y} stroke="#d6d3d1" strokeWidth="1.2" strokeLinecap="round" />
+          ))}
         </motion.g>
+
+        {/* Светящийся символ на корешке */}
+        <motion.circle
+          cx="100" cy="76" r="4"
+          fill="#fbbf24"
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        />
+
+        {/* Градиенты */}
+        <defs>
+          <linearGradient id="coverGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#7c3aed" />
+            <stop offset="100%" stopColor="#4c1d95" />
+          </linearGradient>
+        </defs>
       </svg>
     </div>
   );
@@ -128,14 +105,14 @@ export default function SplashScreen({ onFinish }) {
 
           {/* Content */}
           <div className="relative z-10 flex flex-col items-center text-center px-8">
-            {/* Logo — Rat running in a wheel */}
+            {/* Logo — Animated book */}
             <motion.div
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.5, ease: 'backOut' }}
               className="mb-6"
             >
-              <RatInWheel />
+              <AnimatedBook />
             </motion.div>
 
             {/* App name */}
