@@ -64,8 +64,8 @@ ${itemsWithCategories.map((item, i) => `${i + 1}. ${item.name || 'Товар'} -
 
   const handleConfirm = async () => {
     if (isSaving) return;
-    if (isBank && !accountId) {
-      toast.error('Выберите счёт');
+    if (!accountId) {
+      toast.error('Выберите счёт списания');
       return;
     }
     // Проверяем что все товары имеют категории
@@ -116,11 +116,11 @@ ${itemsWithCategories.map((item, i) => `${i + 1}. ${item.name || 'Товар'} -
           </div>
         ) : (
           <>
-            {/* Account selector — для операций из банковской выписки */}
-            {isBank && accounts.length > 0 && (
+            {/* Account selector — для операций из выписки и для чека */}
+            {accounts.length > 0 && (
               <div className="mb-4">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-2">
-                  Счёт списания/зачисления
+                  {isBank ? 'Счёт списания/зачисления' : 'Счёт списания'}
                 </label>
                 <Select value={accountId} onValueChange={onAccountChange}>
                   <SelectTrigger className="h-10">
@@ -128,7 +128,9 @@ ${itemsWithCategories.map((item, i) => `${i + 1}. ${item.name || 'Товар'} -
                   </SelectTrigger>
                   <SelectContent>
                     {accounts.map((acc) => (
-                      <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                      <SelectItem key={acc.id} value={acc.id}>
+                        {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance || 0)})
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

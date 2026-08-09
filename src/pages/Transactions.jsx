@@ -85,7 +85,8 @@ export default function Transactions() {
       );
       return filterByWorkspace(mine, activeWorkspaceId);
     },
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 0
   });
 
   const { data: accounts = [] } = useQuery({
