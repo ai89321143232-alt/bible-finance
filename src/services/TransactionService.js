@@ -175,6 +175,7 @@ export const TransactionService = {
    * @returns {Promise<{ok:boolean, count:number}>}
    */
   async addReceiptItems({ items = [], description, date, account_id, accounts = [] }) {
+    if (!account_id) return { ok: false, error: 'Сначала создайте счёт — без счёта сохранить операцию нельзя' };
     const user = await getCurrentUser();
     const account = accounts.find((a) => a.id === account_id);
     const createdTx = [];
@@ -218,6 +219,7 @@ export const TransactionService = {
    * @returns {Promise<{ok:boolean, count:number}>}
    */
   async addBankOperations({ items = [], account_id, accounts = [] }) {
+    if (!account_id) return { ok: false, error: 'Сначала создайте счёт — без счёта сохранить операцию нельзя' };
     const user = await getCurrentUser();
     const account = accounts.find((a) => a.id === account_id);
     let netDelta = 0;
