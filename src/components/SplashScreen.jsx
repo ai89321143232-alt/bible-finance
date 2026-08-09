@@ -153,9 +153,17 @@ export default function SplashScreen({ onFinish }) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.5 }}
-              className="text-white/50 text-base font-medium"
+              className="text-white/70 text-base font-medium whitespace-nowrap"
             >
-              Верный в малом — Верный и во многом! Управление финансами — это просто!
+              Верный в малом — Верен и в большем!
+            </motion.p>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.5 }}
+              className="text-white/50 text-sm font-medium mt-1"
+            >
+              Инструмент верного управителя!
             </motion.p>
 
             {/* Animated bar */}
