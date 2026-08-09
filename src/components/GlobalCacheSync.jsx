@@ -59,6 +59,28 @@ export default function GlobalCacheSync() {
             }
             return old;
           });
+
+          // Оптимистичное обновление баланса счёта — мгновенно, без ожидания refetch
+          if (tx.account_id && (payload.action === 'create' || payload.action === 'update') && tx.type !== 'transfer') {
+            const delta = tx.type === 'income' ? (tx.amount || 0) : -(tx.amount || 0);
+            queryClient.setQueriesData({ queryKey: ['accounts'] }, (old = []) =>
+              old.map((acc) =>
+                acc.id === tx.account_id
+                  ? { ...acc, balance: (acc.balance || 0) + delta }
+                  : acc
+              )
+            );
+          }
+          if (tx.account_id && payload.action === 'delete' && tx.type !== 'transfer') {
+            const delta = tx.type === 'income' ? -(tx.amount || 0) : (tx.amount || 0);
+            queryClient.setQueriesData({ queryKey: ['accounts'] }, (old = []) =>
+              old.map((acc) =>
+                acc.id === tx.account_id
+                  ? { ...acc, balance: (acc.balance || 0) + delta }
+                  : acc
+              )
+            );
+          }
         }
 
         // Инвалидация для фонового обновления (сверка с сервером)
