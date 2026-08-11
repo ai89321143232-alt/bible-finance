@@ -4,7 +4,7 @@ import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { ChevronRight, ArrowLeftRight } from 'lucide-react';
+import { ChevronRight, ArrowLeftRight, Edit2 } from 'lucide-react';
 
 const CATEGORY_ICONS = {
   'Еда': '🍔', 'Транспорт': '🚗', 'Жильё': '🏠', 'Развлечения': '🎮',
@@ -12,7 +12,7 @@ const CATEGORY_ICONS = {
   'Зарплата': '💰', 'Фриланс': '💻', 'Инвестиции': '📈', 'Подарки': '🎁', 'Другое': '📦'
 };
 
-export default function RecentTransactions({ transactions, formatCurrency }) {
+export default function RecentTransactions({ transactions, formatCurrency, onEdit }) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
       <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
@@ -33,9 +33,9 @@ export default function RecentTransactions({ transactions, formatCurrency }) {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.05 * idx }}
-                className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/50 transition-colors"
+                className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/50 transition-colors group"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-base ${
                     tx.type === 'income'
                       ? 'bg-emerald-500/10'
@@ -45,23 +45,33 @@ export default function RecentTransactions({ transactions, formatCurrency }) {
                   }`}>
                     {CATEGORY_ICONS[tx.category] || '📦'}
                   </div>
-                  <div>
-                    <p className="text-foreground text-sm font-medium">{tx.category || 'Без категории'}</p>
-                    <p className="text-muted-foreground/70 text-xs">
+                  <div className="min-w-0">
+                    <p className="text-foreground text-sm font-medium truncate">{tx.category || 'Без категории'}</p>
+                    <p className="text-muted-foreground/70 text-xs truncate">
                       {tx.description || format(new Date(tx.date), 'd MMM', { locale: ru })}
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className={`text-sm font-semibold ${
-                    tx.type === 'income' ? 'text-emerald-500' : tx.type === 'expense' ? 'text-rose-500' : 'text-foreground'
-                  }`}>
-                    {tx.type === 'income' ? '+' : tx.type === 'expense' ? '−' : ''}
-                    {formatCurrency(tx.amount)}
-                  </p>
-                  <p className="text-muted-foreground/70 text-xs mt-0.5">
-                    {format(new Date(tx.date), 'd MMM', { locale: ru })}
-                  </p>
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="text-right">
+                    <p className={`text-sm font-semibold ${
+                      tx.type === 'income' ? 'text-emerald-500' : tx.type === 'expense' ? 'text-rose-500' : 'text-foreground'
+                    }`}>
+                      {tx.type === 'income' ? '+' : tx.type === 'expense' ? '−' : ''}
+                      {formatCurrency(tx.amount)}
+                    </p>
+                    <p className="text-muted-foreground/70 text-xs mt-0.5">
+                      {format(new Date(tx.date), 'd MMM', { locale: ru })}
+                    </p>
+                  </div>
+                  {onEdit && (
+                    <button
+                      onClick={() => onEdit(tx)}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground/50 hover:text-violet-600 hover:bg-muted transition-colors"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </motion.div>
             ))}

@@ -45,6 +45,7 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
 
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [editTransaction, setEditTransaction] = useState(null);
   const [quickAddType, setQuickAddType] = useState('expense');
   const [showTemplatesManager, setShowTemplatesManager] = useState(false);
   const [filterAccount, setFilterAccount] = useState(null);
@@ -461,7 +462,7 @@ export default function Dashboard() {
       case 'spendingChart':
         return <div key="spendingChart" className="mb-6"><SpendingChart transactions={transactions} formatCurrency={formatCurrency} periodType={periodType} /></div>;
       case 'transactions':
-        return <div key="transactions" className="mb-6"><RecentTransactions transactions={(filterAccount || filterCategory ? filteredTransactions : transactions).slice(0, 5)} formatCurrency={formatCurrency} /></div>;
+        return <div key="transactions" className="mb-6"><RecentTransactions transactions={(filterAccount || filterCategory ? filteredTransactions : transactions).slice(0, 5)} formatCurrency={formatCurrency} onEdit={(t) => { setEditTransaction(t); setShowQuickAdd(true); }} /></div>;
       case 'budgets':
         return <div key="budgets" className="mb-6"><BudgetOverview budgets={budgets} transactions={transactions} formatCurrency={formatCurrency} currentUser={user} /></div>;
       case 'goals':
@@ -606,8 +607,8 @@ export default function Dashboard() {
 
       <AnimatePresence>
         {showQuickAdd &&
-          <QuickAddTransaction onClose={() => setShowQuickAdd(false)} accounts={allAccounts} defaultType={quickAddType} />
-          }
+          <QuickAddTransaction transaction={editTransaction} onClose={() => { setShowQuickAdd(false); setEditTransaction(null); }} accounts={allAccounts} defaultType={quickAddType} />
+        }
       </AnimatePresence>
 
       <TemplatesManager
