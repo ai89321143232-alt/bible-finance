@@ -235,8 +235,17 @@ export default function Categories() {
   const handleSubmit = async () => {
     if (!formData.name) return;
 
+    const trimmedName = formData.name.trim();
+
+    // Защита от дубликатов: проверяем, существует ли уже категория с таким же именем
+    const existing = categories.find(c => c.name.trim().toLowerCase() === trimmedName.toLowerCase() && c.type === formData.type);
+    if (existing && !editCategory) {
+      alert('Категория с таким названием уже существует');
+      return;
+    }
+
     const data = {
-      name: formData.name,
+      name: trimmedName,
       type: formData.type,
       icon: formData.icon,
       color: formData.color,
