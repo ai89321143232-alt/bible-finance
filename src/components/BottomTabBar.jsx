@@ -1,20 +1,21 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { useBottomTabs } from '@/components/bottomTabsConfig';
 
 // ============================================================
 // components/BottomTabBar.jsx — ЕДИНОЕ НИЖНЕЕ МЕНЮ (мобильные)
 // ============================================================
-// Вкладки берутся из хука useBottomTabs() — порядок настраивается
-// в персонализации. AI Чат (isCenter) рендерится приподнятой
-// кнопкой по центру.
+// Рендерится через портал в document.body, чтобы позиционирование
+// fixed не ломалось из-за祖先ов с opacity/transform/will-change
+// (например, motion.div с анимацией перехода страниц в App.jsx).
 // ============================================================
 export default function BottomTabBar({ activeIndex, onTabClick }) {
   const tabs = useBottomTabs();
 
-  return (
+  return createPortal(
     <div
-      className="lg:hidden fixed left-4 right-4 z-40"
-      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)', transform: 'translateZ(0)', willChange: 'transform' }}
+      className="lg:hidden fixed left-4 right-4 z-50"
+      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)', transform: 'translateZ(0)' }}
     >
       <div className="flex items-end justify-around py-2 px-1 rounded-2xl bg-card/95 backdrop-blur-xl border border-border shadow-2xl">
         {tabs.map((tab, index) => {
@@ -55,6 +56,7 @@ export default function BottomTabBar({ activeIndex, onTabClick }) {
           );
         })}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
