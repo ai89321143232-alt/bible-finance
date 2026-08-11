@@ -170,6 +170,13 @@ export default function Budgets() {
     staleTime: 30000
   });
 
+  // Все категории расходов пользователя (включая непривязанные к бюджетам)
+  const { data: expenseCategories = [] } = useQuery({
+    queryKey: ['categories', 'expense'],
+    queryFn: () => base44.entities.Category.filter({ type: 'expense' }),
+    staleTime: 30000
+  });
+
   // Фильтрация по активному пространству — как на дашборде
   const transactions = filterByWorkspace(rawTransactions, activeWorkspaceId);
 
@@ -502,9 +509,38 @@ export default function Budgets() {
               />
             </div>
             <div>
-              <Label>Категории (можно выбрать несколько)</Label>
-              <div className="grid grid-cols-3 gap-2 mt-2">
-                {BUDGET_CATEGORIES.map(cat => {
+              <Label>Категории расходов (можно выбрать несколько)</Label>
+              <div className="grid grid-cols-3 gap-2 mt-2 max-h-60 overflow-y-auto">
+                {expenseCategories.length > 0 ? expenseCategories.map(cat => {
+                  const isSelected = formData.categories.includes(cat.name);
+                  return (
+                    <button
+                      key={cat.id || cat.name}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          setFormData({ 
+                            ...formData, 
+                            categories: formData.categories.filter(c => c !== cat.name) 
+                          });
+                        } else {
+                          setFormData({ 
+                            ...formData, 
+                            categories: [...formData.categories, cat.name] 
+                          });
+                        }
+                      }}
+                      className={`h-auto py-3 flex flex-col items-center gap-1 rounded-xl border-2 transition-all ${
+                        isSelected 
+                          ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20' 
+                          : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                      }`}
+                    >
+                      <span className="text-xl drop-shadow-sm">{cat.icon || '📦'}</span>
+                      <span className="text-xs font-medium truncate w-full text-center">{cat.name}</span>
+                    </button>
+                  );
+                }) : BUDGET_CATEGORIES.map(cat => {
                   const isSelected = formData.categories.includes(cat.value);
                   return (
                     <button

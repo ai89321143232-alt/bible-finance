@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ChevronDown, ChevronRight, BookOpen, CreditCard, PieChart, Target, Users, TrendingUp, Bell, Settings, HelpCircle } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Search, ChevronDown, ChevronRight, HelpCircle } from 'lucide-react';
 
 const ARTICLES = [
   {
     category: 'Начало работы',
     icon: '🚀',
-    color: 'text-blue-400',
+    color: 'text-blue-500 dark:text-blue-400',
     items: [
       {
         title: 'Как добавить счёт или кошелёк',
@@ -26,7 +25,7 @@ const ARTICLES = [
   {
     category: 'Транзакции',
     icon: '💳',
-    color: 'text-purple-400',
+    color: 'text-purple-500 dark:text-purple-400',
     items: [
       {
         title: 'Перенос между счетами',
@@ -45,7 +44,7 @@ const ARTICLES = [
   {
     category: 'Бюджеты',
     icon: '📊',
-    color: 'text-green-400',
+    color: 'text-green-500 dark:text-green-400',
     items: [
       {
         title: 'Создание бюджета',
@@ -64,7 +63,7 @@ const ARTICLES = [
   {
     category: 'Цели накопления',
     icon: '🎯',
-    color: 'text-yellow-400',
+    color: 'text-yellow-500 dark:text-yellow-400',
     items: [
       {
         title: 'Создание цели',
@@ -83,7 +82,7 @@ const ARTICLES = [
   {
     category: 'Семья',
     icon: '👨‍👩‍👧',
-    color: 'text-pink-400',
+    color: 'text-pink-500 dark:text-pink-400',
     items: [
       {
         title: 'Создание семейной группы',
@@ -102,7 +101,7 @@ const ARTICLES = [
   {
     category: 'Аналитика',
     icon: '📈',
-    color: 'text-cyan-400',
+    color: 'text-cyan-500 dark:text-cyan-400',
     items: [
       {
         title: 'Главная страница — обзор',
@@ -121,7 +120,7 @@ const ARTICLES = [
   {
     category: 'Долги и кредиты',
     icon: '💳',
-    color: 'text-rose-400',
+    color: 'text-rose-500 dark:text-rose-400',
     items: [
       {
         title: 'Как добавить долг или кредит',
@@ -148,7 +147,7 @@ const ARTICLES = [
   {
     category: 'Виджеты главной страницы',
     icon: '🧩',
-    color: 'text-violet-400',
+    color: 'text-violet-500 dark:text-violet-400',
     items: [
       {
         title: 'Общий баланс',
@@ -195,7 +194,7 @@ const ARTICLES = [
   {
     category: 'Настройки',
     icon: '⚙️',
-    color: 'text-slate-400',
+    color: 'text-slate-500 dark:text-slate-400',
     items: [
       {
         title: 'Резервное копирование',
@@ -239,45 +238,45 @@ export default function HelpCenter() {
     : ARTICLES;
 
   return (
-    <div className="min-h-screen bg-[#0f1117] p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-              <HelpCircle className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
+              <HelpCircle className="w-5 h-5 text-foreground" />
             </div>
-            <h1 className="text-2xl font-bold text-white">База знаний</h1>
+            <h1 className="text-2xl font-bold text-foreground">База знаний</h1>
           </div>
-          <p className="text-white/40 text-sm ml-13">Ответы на частые вопросы по работе с приложением</p>
+          <p className="text-muted-foreground text-sm ml-13">Ответы на частые вопросы по работе с приложением</p>
         </div>
 
         {/* Search */}
         <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Поиск по статьям..."
-            className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder:text-white/30 text-sm outline-none focus:border-white/25 transition-colors"
+            className="w-full bg-muted border border-border rounded-xl pl-10 pr-4 py-3 text-foreground placeholder:text-muted-foreground text-sm outline-none focus:border-ring transition-colors"
           />
         </div>
 
         {/* Articles */}
         <div className="space-y-3">
           {filteredArticles.map((cat, catIdx) => (
-            <div key={catIdx} className="bg-white/3 border border-white/8 rounded-2xl overflow-hidden">
+            <div key={catIdx} className="bg-card border border-border rounded-2xl overflow-hidden">
               {/* Category Header */}
               <button
                 onClick={() => toggleCategory(catIdx)}
-                className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors"
+                className="w-full flex items-center justify-between px-5 py-4 hover:bg-accent transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <span className="text-xl">{cat.icon}</span>
                   <span className={`font-semibold text-sm ${cat.color}`}>{cat.category}</span>
-                  <span className="text-white/20 text-xs">{cat.items.length} статей</span>
+                  <span className="text-muted-foreground text-xs">{cat.items.length} статей</span>
                 </div>
-                <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${openCategories[catIdx] ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${openCategories[catIdx] ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Items */}
@@ -290,18 +289,18 @@ export default function HelpCenter() {
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden"
                   >
-                    <div className="border-t border-white/5">
+                    <div className="border-t border-border">
                       {cat.items.map((item, itemIdx) => {
                         const key = `${catIdx}-${itemIdx}`;
                         const isOpen = openItems[key];
                         return (
-                          <div key={itemIdx} className="border-b border-white/5 last:border-0">
+                          <div key={itemIdx} className="border-b border-border last:border-0">
                             <button
                               onClick={() => toggleItem(catIdx, itemIdx)}
-                              className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-white/5 transition-colors text-left"
+                              className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-accent transition-colors text-left"
                             >
-                              <span className="text-white/80 text-sm font-medium">{item.title}</span>
-                              <ChevronRight className={`w-4 h-4 text-white/25 flex-shrink-0 transition-transform ml-3 ${isOpen ? 'rotate-90' : ''}`} />
+                              <span className="text-foreground text-sm font-medium">{item.title}</span>
+                              <ChevronRight className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform ml-3 ${isOpen ? 'rotate-90' : ''}`} />
                             </button>
                             <AnimatePresence>
                               {isOpen && (
@@ -313,7 +312,7 @@ export default function HelpCenter() {
                                   className="overflow-hidden"
                                 >
                                   <div className="px-5 pb-4">
-                                    <p className="text-white/50 text-sm leading-relaxed">{item.content}</p>
+                                    <p className="text-muted-foreground text-sm leading-relaxed">{item.content}</p>
                                   </div>
                                 </motion.div>
                               )}
@@ -330,7 +329,7 @@ export default function HelpCenter() {
 
           {filteredArticles.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-white/30 text-sm">По запросу «{searchQuery}» ничего не найдено</p>
+              <p className="text-muted-foreground text-sm">По запросу «{searchQuery}» ничего не найдено</p>
             </div>
           )}
         </div>
