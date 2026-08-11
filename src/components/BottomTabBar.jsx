@@ -14,7 +14,7 @@ export default function BottomTabBar({ activeIndex, onTabClick }) {
   return (
     <div
       className="lg:hidden fixed left-4 right-4 z-40"
-      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
+      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)', transform: 'translateZ(0)', willChange: 'transform' }}
     >
       <div className="flex items-end justify-around py-2 px-1 rounded-2xl bg-card/95 backdrop-blur-xl border border-border shadow-2xl">
         {tabs.map((tab, index) => {

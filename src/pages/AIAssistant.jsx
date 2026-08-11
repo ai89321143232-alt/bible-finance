@@ -69,7 +69,7 @@ export default function AIAssistant() {
     const userData = await base44.auth.me();
     setUser(userData);
     // AI доступен только администратору (владельцу) или пользователям с премиум подпиской
-    const access = userData.role === 'admin' || userData.subscription_plan === 'premium' || userData.subscription_plan === 'family';
+    const access = userData.role === 'admin' || userData.subscription === 'premium' || userData.subscription === 'family';
     setHasAccess(access);
   };
 
