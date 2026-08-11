@@ -45,6 +45,7 @@ const DASHBOARD_BLOCKS = [
   { key: 'transactions',  label: 'Последние операции',  icon: ArrowLeftRight },
   { key: 'budgets',       label: 'Обзор бюджетов',      icon: PieChart },
   { key: 'goals',         label: 'Прогресс целей',      icon: Target },
+  { key: 'aiInsights',    label: 'AI-рекомендации',     icon: Sparkles },
 ];
 
 const DEFAULT_BLOCK_ORDER = DASHBOARD_BLOCKS.map((b) => b.key);
@@ -56,6 +57,7 @@ const DEFAULT_DASHBOARD_BLOCKS = {
   transactions: true,
   budgets: true,
   goals: true,
+  aiInsights: true,
 };
 
 export default function PersonalizationSettings({ open, onOpenChange, onSaved }) {

@@ -466,6 +466,12 @@ export default function Dashboard() {
         return <div key="budgets" className="mb-6"><BudgetOverview budgets={budgets} transactions={transactions} formatCurrency={formatCurrency} currentUser={user} /></div>;
       case 'goals':
         return <div key="goals" className="mb-6"><AllGoalsProgress goals={goals} formatCurrency={formatCurrency} /></div>;
+      case 'aiInsights':
+        return (
+          <motion.div key="aiInsights" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mb-6">
+            <AIInsights transactions={transactions} accounts={displayAccounts} budgets={budgets} investments={investments} formatCurrency={formatCurrency} />
+          </motion.div>
+        );
       default:
         return null;
     }
@@ -589,10 +595,6 @@ export default function Dashboard() {
           
 
         <MonthForecast transactions={transactions} totalBalance={totalBalance} formatCurrency={formatCurrency} />
-
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <AIInsights transactions={transactions} accounts={displayAccounts} budgets={budgets} investments={investments} formatCurrency={formatCurrency} />
-        </motion.div>
         </section>
 
         {user?.subscription_tier === 'premium' || user?.subscription_tier === 'family' ?
