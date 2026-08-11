@@ -543,11 +543,11 @@ export default function Dashboard() {
           }
 
         {balanceMode === 'family' && family && memberBalances.length > 0 &&
-          <MemberSpendingBreakdown transactions={monthTransactions} familyMembers={familyMembers} formatCurrency={formatCurrency} />
+          <div className="mb-6"><MemberSpendingBreakdown transactions={monthTransactions} familyMembers={familyMembers} formatCurrency={formatCurrency} /></div>
           }
 
         {balanceMode === 'family' && family && memberBalances.length > 0 &&
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-4">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-6">
             <div className="rounded-xl border border-border bg-card divide-y divide-border">
               <div className="px-4 py-3 text-muted-foreground text-xs uppercase tracking-widest font-medium">Баланс по членам семьи</div>
               {memberBalances.map((member) =>
@@ -569,7 +569,7 @@ export default function Dashboard() {
           </motion.div>
           }
 
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-5 flex items-center gap-3">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-6 flex items-center gap-3">
           <Calendar className="w-4 h-4 text-muted-foreground" />
           <MobileSelect value={periodType} onValueChange={updatePeriod} placeholder="Период" title="Выберите период" triggerClassName="w-36 h-8 text-sm rounded-lg border-border bg-muted text-muted-foreground">
             <option value="week">Неделя</option>
@@ -596,7 +596,7 @@ export default function Dashboard() {
         </section>
 
         {user?.subscription_tier === 'premium' || user?.subscription_tier === 'family' ?
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="mb-8">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="mb-6">
             <PremiumAIAnalytics />
           </motion.div> :
           null}
