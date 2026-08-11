@@ -459,13 +459,13 @@ export default function Dashboard() {
           </section>
         );
       case 'spendingChart':
-        return <SpendingChart key="spendingChart" transactions={transactions} formatCurrency={formatCurrency} periodType={periodType} />;
+        return <div key="spendingChart" className="mb-6"><SpendingChart transactions={transactions} formatCurrency={formatCurrency} periodType={periodType} /></div>;
       case 'transactions':
-        return <RecentTransactions key="transactions" transactions={(filterAccount || filterCategory ? filteredTransactions : transactions).slice(0, 5)} formatCurrency={formatCurrency} />;
+        return <div key="transactions" className="mb-6"><RecentTransactions transactions={(filterAccount || filterCategory ? filteredTransactions : transactions).slice(0, 5)} formatCurrency={formatCurrency} /></div>;
       case 'budgets':
-        return <BudgetOverview key="budgets" budgets={budgets} transactions={transactions} formatCurrency={formatCurrency} currentUser={user} />;
+        return <div key="budgets" className="mb-6"><BudgetOverview budgets={budgets} transactions={transactions} formatCurrency={formatCurrency} currentUser={user} /></div>;
       case 'goals':
-        return <AllGoalsProgress key="goals" goals={goals} formatCurrency={formatCurrency} />;
+        return <div key="goals" className="mb-6"><AllGoalsProgress goals={goals} formatCurrency={formatCurrency} /></div>;
       default:
         return null;
     }
@@ -516,6 +516,16 @@ export default function Dashboard() {
           }
 
         {/* ===== Блоки дашборда (порядок настраивается) ===== */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-6 flex items-center gap-3">
+          <Calendar className="w-4 h-4 text-muted-foreground" />
+          <MobileSelect value={periodType} onValueChange={updatePeriod} placeholder="Период" title="Выберите период" triggerClassName="w-36 h-8 text-sm rounded-lg border-border bg-muted text-muted-foreground">
+            <option value="week">Неделя</option>
+            <option value="month">Месяц</option>
+            <option value="year">Год</option>
+            <option value="all">Всё время</option>
+          </MobileSelect>
+        </motion.div>
+
         {blockOrder.filter((k) => visibleBlocks[k]).map((k) => renderBlock(k))}
           
 
@@ -568,16 +578,6 @@ export default function Dashboard() {
             </div>
           </motion.div>
           }
-
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-6 flex items-center gap-3">
-          <Calendar className="w-4 h-4 text-muted-foreground" />
-          <MobileSelect value={periodType} onValueChange={updatePeriod} placeholder="Период" title="Выберите период" triggerClassName="w-36 h-8 text-sm rounded-lg border-border bg-muted text-muted-foreground">
-            <option value="week">Неделя</option>
-            <option value="month">Месяц</option>
-            <option value="year">Год</option>
-            <option value="all">Всё время</option>
-          </MobileSelect>
-        </motion.div>
 
         {/* ===== Секция: Аналитика и прогнозы ===== */}
         <section className="mb-6 rounded-2xl border border-border bg-card shadow-sm p-4 sm:p-5 space-y-5">
