@@ -21,17 +21,17 @@ export default function QuickFilters({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.09 }}
-      className="mb-5"
+      className="mb-6"
     >
       <div className="flex items-center gap-2 mb-2">
         <div className="flex items-center gap-1.5">
-          <Filter className="w-3.5 h-3.5 text-white/30" />
-          <span className="text-white/35 text-xs font-medium">Быстрые фильтры</span>
+          <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-muted-foreground text-xs font-medium">Быстрые фильтры</span>
         </div>
         {hasFilter && (
           <button
             onClick={onClear}
-            className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/15 text-white/50 hover:text-white/70 text-xs transition-colors"
+            className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted hover:bg-accent text-muted-foreground hover:text-foreground text-xs transition-colors"
           >
             <X className="w-3 h-3" />
             Сбросить
@@ -50,8 +50,8 @@ export default function QuickFilters({
                 onClick={() => onSelectAccount(isActive ? null : acc.id)}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 ${
                   isActive
-                    ? 'bg-white text-black shadow-sm'
-                    : 'bg-white/5 text-white/40 hover:text-white/70 hover:bg-white/8 border border-white/5'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-accent border border-border'
                 }`}
               >
                 <span
@@ -59,7 +59,7 @@ export default function QuickFilters({
                   style={{ backgroundColor: acc.color || '#6b7280' }}
                 />
                 {acc.name}
-                {isActive && <X className="w-3 h-3 text-black/50" />}
+                {isActive && <X className="w-3 h-3 text-primary-foreground/70" />}
               </button>
             );
           })}
@@ -77,12 +77,12 @@ export default function QuickFilters({
                 onClick={() => onSelectCategory(isActive ? null : cat)}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 ${
                   isActive
-                    ? 'bg-white text-black shadow-sm'
-                    : 'bg-white/5 text-white/40 hover:text-white/70 hover:bg-white/8 border border-white/5'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-accent border border-border'
                 }`}
               >
                 {cat}
-                {isActive && <X className="w-3 h-3 text-black/50" />}
+                {isActive && <X className="w-3 h-3 text-primary-foreground/70" />}
               </button>
             );
           })}

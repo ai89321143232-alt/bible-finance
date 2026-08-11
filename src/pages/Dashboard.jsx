@@ -532,9 +532,6 @@ export default function Dashboard() {
           </MobileSelect>
         </motion.div>
 
-        {blockOrder.filter((k) => visibleBlocks[k]).map((k) => renderBlock(k))}
-          
-
         {/* Quick Filters — instant account/category filtering */}
         {!isMobile &&
           <QuickFilters
@@ -547,6 +544,8 @@ export default function Dashboard() {
             onClear={clearFilters} />
 
           }
+
+        {blockOrder.filter((k) => visibleBlocks[k]).map((k) => renderBlock(k))}
 
         {/* Quick Templates — one-click transaction creation */}
         {!isMobile &&
