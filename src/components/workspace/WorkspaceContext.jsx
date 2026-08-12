@@ -71,7 +71,10 @@ export const useActiveWorkspaceId = () => {
 // записи без workspace_id НЕ отсекаются (проходят по старой family_id-логике выше).
 export const filterByWorkspace = (records, activeWorkspaceId) => {
   if (!activeWorkspaceId) return records;
-  return records.filter((r) => !r.workspace_id || r.workspace_id === activeWorkspaceId);
+  const filtered = records.filter((r) => !r.workspace_id || r.workspace_id === activeWorkspaceId);
+  // Страховка: если фильтр убрал всё (устаревший workspace_id в localStorage),
+  // возвращаем исходный список, чтобы не обнулить баланс
+  return filtered.length > 0 ? filtered : records;
 };
 
 export const useWorkspaces = () => {
