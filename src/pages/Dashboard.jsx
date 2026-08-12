@@ -460,7 +460,20 @@ export default function Dashboard() {
           </section>
         );
       case 'spendingChart':
-        return <div key="spendingChart" className="mb-6"><SpendingChart transactions={transactions} formatCurrency={formatCurrency} periodType={periodType} /></div>;
+        return (
+          <div key="spendingChart" className="mb-6">
+            <div className="flex items-center gap-3 mb-3">
+              <Calendar className="w-4 h-4 text-muted-foreground" />
+              <MobileSelect value={periodType} onValueChange={updatePeriod} placeholder="Период" title="Выберите период" triggerClassName="w-36 h-8 text-sm rounded-lg border-border bg-muted text-muted-foreground">
+                <option value="week">Неделя</option>
+                <option value="month">Месяц</option>
+                <option value="year">Год</option>
+                <option value="all">Всё время</option>
+              </MobileSelect>
+            </div>
+            <SpendingChart transactions={transactions} formatCurrency={formatCurrency} periodType={periodType} />
+          </div>
+        );
       case 'transactions':
         return <div key="transactions" className="mb-6"><RecentTransactions transactions={(filterAccount || filterCategory ? filteredTransactions : transactions).slice(0, 5)} formatCurrency={formatCurrency} onEdit={(t) => { setEditTransaction(t); setShowQuickAdd(true); }} /></div>;
       case 'budgets':
@@ -521,17 +534,6 @@ export default function Dashboard() {
             </div>
           </motion.div>
           }
-
-        {/* ===== Блоки дашборда (порядок настраивается) ===== */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-6 flex items-center gap-3">
-          <Calendar className="w-4 h-4 text-muted-foreground" />
-          <MobileSelect value={periodType} onValueChange={updatePeriod} placeholder="Период" title="Выберите период" triggerClassName="w-36 h-8 text-sm rounded-lg border-border bg-muted text-muted-foreground">
-            <option value="week">Неделя</option>
-            <option value="month">Месяц</option>
-            <option value="year">Год</option>
-            <option value="all">Всё время</option>
-          </MobileSelect>
-        </motion.div>
 
         {/* Quick Filters — instant account/category filtering */}
         {!isMobile &&
