@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { TransactionService } from '@/services';
@@ -734,7 +735,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     </>
   );
 
-  return (
+  return createPortal(
     <>
       {showQRScanner && (
         <QRReceiptScanner
@@ -779,7 +780,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
               {transaction ? 'Редактировать операцию' : 'Новая операция'}
             </h2>
           </div>
-          <div className="p-4">
+          <div className="p-4 pb-32">
             {formContent}
           </div>
         </motion.div>
@@ -803,6 +804,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           </motion.div>
         </motion.div>
       )}
-    </>
+    </>,
+    document.body
   );
 }
