@@ -765,7 +765,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           animate={{ x: 0 }}
           exit={{ x: '100%' }}
           transition={{ type: 'tween', duration: 0.25 }}
-          className="fixed inset-0 bg-[#0f1117] z-50 overflow-y-auto"
+          className="fixed inset-0 bg-[#0f1117] z-[60] overflow-y-auto"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
           <div
@@ -788,7 +788,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-end sm:items-center justify-center p-4"
           onClick={onClose}
         >
           <motion.div
