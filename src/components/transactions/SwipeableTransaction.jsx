@@ -33,7 +33,7 @@ export default function SwipeableTransaction({
   isOpen = false,
   onOpenChange = () => {}
 }) {
-  const isOwner = !currentUser || transaction.created_by_id === currentUser.id;
+  const isOwner = !currentUser || transaction.created_by_id === currentUser.id || transaction.user_id === currentUser.id;
 
   // Переводы (transfer) бывают двух видов: списание у плательщика и зачисление у получателя.
   // Направление определяем по subcategory (новые записи) или по тексту описания (старые записи).
