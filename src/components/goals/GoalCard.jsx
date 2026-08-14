@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
-import { Edit2, Trash2, Coins, MinusCircle, AlertCircle, Lock } from 'lucide-react';
+import { Edit2, Trash2, Coins, MinusCircle, AlertCircle, Lock, TrendingDown } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -16,24 +16,25 @@ const GOAL_TYPES = [
   { value: 'other', label: 'Другое', icon: '🎯', color: '#64748B' },
 ];
 
-export default function GoalCard({ 
-  goal, 
-  index, 
+export default function GoalCard({
+  goal,
+  index,
   isEditable,
-  onEdit, 
-  onDelete, 
-  onAddFunds, 
+  onEdit,
+  onDelete,
+  onAddFunds,
   onSpend,
   formatCurrency,
   family,
-  currentUser
+  currentUser,
+  accounts = []
 }) {
   const typeInfo = GOAL_TYPES.find(t => t.value === goal.type) || GOAL_TYPES[5];
-  const progress = goal.target_amount > 0 
+  const progress = goal.target_amount > 0
     ? Math.min((goal.current_amount / goal.target_amount) * 100, 100)
     : 0;
-  
-  const daysLeft = goal.deadline 
+
+  const daysLeft = goal.deadline
     ? differenceInDays(new Date(goal.deadline), new Date())
     : null;
 
@@ -56,25 +57,38 @@ export default function GoalCard({
     high: 'Высокий'
   };
 
+  // --- Разбивка: сколько откладывать в день и в месяц ---
+  const remainingAmount = Math.max(0, (goal.target_amount || 0) - (goal.current_amount || 0));
+  const hasDeadline = daysLeft !== null && daysLeft > 0 && remainingAmount > 0;
+  const dailyAmount = hasDeadline ? remainingAmount / daysLeft : 0;
+  const monthsLeft = hasDeadline ? Math.max(1, daysLeft / 30) : 0;
+  const monthlyAmount = hasDeadline ? remainingAmount / monthsLeft : 0;
+
+  // --- Проверка баланса связанного счёта ---
+  const linkedAccount = goal.linked_account_id
+    ? accounts.find(a => a.id === goal.linked_account_id)
+    : null;
+  const isBalanceInsufficient = linkedAccount && (linkedAccount.balance || 0) < (goal.current_amount || 0);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
     >
-      <Card 
+      <Card
         className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-all overflow-hidden group"
       >
-        <div 
+        <div
           className="h-1"
-          style={{ 
+          style={{
             background: `linear-gradient(to right, ${typeInfo.color} ${progress}%, transparent ${progress}%)`
           }}
         />
         <CardContent className="p-5">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3 flex-1">
-              <div 
+              <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm"
                 style={{ backgroundColor: `${typeInfo.color}20` }}
               >
@@ -98,7 +112,7 @@ export default function GoalCard({
                   <p className="text-sm text-slate-500 dark:text-slate-400">
                     {typeInfo.label}
                   </p>
-                  <div 
+                  <div
                     className="px-2 py-0.5 rounded text-xs font-medium text-white"
                     style={{ backgroundColor: priorityColors[goal.priority] }}
                   >
@@ -137,8 +151,8 @@ export default function GoalCard({
                   {formatCurrency(goal.current_amount || 0)}
                 </p>
                 <p className="text-sm text-slate-500">
-                  {goal.type === 'debt_payoff' 
-                    ? `осталось ${formatCurrency(goal.target_amount - (goal.current_amount || 0))}`
+                  {goal.type === 'debt_payoff'
+                    ? `осталось ${formatCurrency(remainingAmount)}`
                     : `из ${formatCurrency(goal.target_amount)}`
                   }
                 </p>
@@ -153,7 +167,7 @@ export default function GoalCard({
                     isDeadlineNear ? 'text-amber-600' :
                     daysLeft <= 0 ? 'text-slate-500' : 'text-slate-500'
                   }`}>
-                    {isDeadlineOverdue 
+                    {isDeadlineOverdue
                       ? `Просрочено ${Math.abs(daysLeft)} дн.`
                       : `${daysLeft} дн. осталось`
                     }
@@ -161,6 +175,42 @@ export default function GoalCard({
                 )}
               </div>
             </div>
+
+            {/* Разбивка: сколько откладывать в день / месяц */}
+            {hasDeadline && (
+              <div className="grid grid-cols-2 gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/30">
+                <div className="text-center">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">В день</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {formatCurrency(Math.ceil(dailyAmount))}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">В месяц</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {formatCurrency(Math.ceil(monthlyAmount))}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Предупреждение: баланс счёта меньше накопленного */}
+            {isBalanceInsufficient && (
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-rose-50 dark:bg-rose-900/20">
+                <TrendingDown className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                <span className="text-xs text-rose-700 dark:text-rose-300">
+                  Баланс счёта «{linkedAccount.name}» ({formatCurrency(linkedAccount.balance || 0)}) меньше накопленной суммы. Часть средств потрачена!
+                </span>
+              </div>
+            )}
+
+            {/* Связанный счёт */}
+            {linkedAccount && !isBalanceInsufficient && (
+              <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                <Coins className="w-3.5 h-3.5" />
+                <span>Счёт: {linkedAccount.name} ({formatCurrency(linkedAccount.balance || 0)})</span>
+              </div>
+            )}
 
             {isDeadlineNear && (
               <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20">
@@ -171,8 +221,8 @@ export default function GoalCard({
               </div>
             )}
 
-            <Progress 
-              value={progress} 
+            <Progress
+              value={progress}
               className="h-2"
             />
 

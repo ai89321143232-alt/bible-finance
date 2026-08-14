@@ -68,7 +68,8 @@ export default function Goals() {
 
   const [formData, setFormData] = useState({
     title: '', type: 'savings', target_amount: '', current_amount: '0',
-    deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: []
+    deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: [],
+    linked_account_id: ''
   });
 
   const { data: family } = useQuery({
@@ -154,7 +155,7 @@ export default function Goals() {
   });
 
   const resetForm = () => {
-    setFormData({ title: '', type: 'savings', target_amount: '', current_amount: '0', deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: [] });
+    setFormData({ title: '', type: 'savings', target_amount: '', current_amount: '0', deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: [], linked_account_id: '' });
     setShowAddModal(false);
     setEditGoal(null);
     setShareWithUsers([]);
@@ -166,7 +167,8 @@ export default function Goals() {
       title: goal.title, type: goal.type, target_amount: goal.target_amount.toString(),
       current_amount: (goal.current_amount || 0).toString(), deadline: goal.deadline ? new Date(goal.deadline) : null,
       priority: goal.priority || 'medium', is_family_goal: goal.is_family_goal || false,
-      share_with: goal.share_with || [], subgoals: goal.subgoals || []
+      share_with: goal.share_with || [], subgoals: goal.subgoals || [],
+      linked_account_id: goal.linked_account_id || ''
     });
     setShareWithUsers(goal.share_with || []);
     setShowAddModal(true);
@@ -177,7 +179,8 @@ export default function Goals() {
       ...formData, target_amount: parseFloat(formData.target_amount),
       current_amount: parseFloat(formData.current_amount) || 0,
       deadline: formData.deadline ? format(formData.deadline, 'yyyy-MM-dd') : null,
-      status: 'active', share_with: shareWithUsers
+      status: 'active', share_with: shareWithUsers,
+      linked_account_id: parseFloat(formData.current_amount) > 0 ? formData.linked_account_id : ''
     };
     if (editGoal) updateMutation.mutate({ id: editGoal.id, data });
     else createMutation.mutate(data);
@@ -297,7 +300,8 @@ export default function Goals() {
                   isEditable={viewMode === 'personal' || goal.created_by_id === user?.id}
                   onEdit={handleEdit} onDelete={(id) => setDeleteId(id)}
                   onAddFunds={setShowAddFundsModal} onSpend={setShowSpendModal}
-                  formatCurrency={formatCurrency} family={family} currentUser={user} />
+                  formatCurrency={formatCurrency} family={family} currentUser={user}
+                  accounts={accounts} />
               ))}
             </div>
           </div>
@@ -379,6 +383,18 @@ export default function Goals() {
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
               </div>
             </div>
+            {parseFloat(formData.current_amount) > 0 && (
+              <div>
+                <Label>Где хранятся эти деньги?</Label>
+                <MobileSelect value={formData.linked_account_id} onValueChange={(v) => setFormData({ ...formData, linked_account_id: v })} placeholder="Выберите счёт" title="Счёт накоплений" triggerClassName="rounded-xl mt-1 w-full">
+                  <option value="">— Не указано —</option>
+                  {accounts.map(account => (
+                    <option key={account.id} value={account.id}>{account.name} ({formatCurrency(account.balance || 0)})</option>
+                  ))}
+                </MobileSelect>
+                <p className="text-xs text-slate-400 mt-1">Позволяет следить, что баланс счёта не упал ниже накопленной суммы</p>
+              </div>
+            )}
             <div>
               <Label>Дедлайн</Label>
               <MobilePopover title="Выберите дату"
