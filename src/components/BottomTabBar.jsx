@@ -11,11 +11,33 @@ import { useBottomTabs } from '@/components/bottomTabsConfig';
 // ============================================================
 export default function BottomTabBar({ activeIndex, onTabClick }) {
   const tabs = useBottomTabs();
+  const barRef = React.useRef(null);
+
+  // На iOS Safari fixed-элементы могут «уезжать» при скролле (особенно с transform).
+  // Принудительно возвращаем бар на место при каждом scroll/resize.
+  const reposition = React.useCallback(() => {
+    if (barRef.current) {
+      barRef.current.style.bottom = '';
+      barRef.current.style.bottom = 'calc(env(safe-area-inset-bottom, 0px) + 12px)';
+    }
+  }, []);
+
+  React.useEffect(() => {
+    window.addEventListener('scroll', reposition, { passive: true });
+    window.addEventListener('resize', reposition);
+    window.addEventListener('touchend', reposition);
+    return () => {
+      window.removeEventListener('scroll', reposition);
+      window.removeEventListener('resize', reposition);
+      window.removeEventListener('touchend', reposition);
+    };
+  }, [reposition]);
 
   return createPortal(
     <div
+      ref={barRef}
       className="lg:hidden fixed left-4 right-4 z-50"
-      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)', transform: 'translateZ(0)' }}
+      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
     >
       <div className="flex items-end justify-around py-2 px-1 rounded-2xl bg-card/95 backdrop-blur-xl border border-border shadow-2xl">
         {tabs.map((tab, index) => {
