@@ -57,18 +57,15 @@ export default function GoalCard({
     high: 'Высокий'
   };
 
-  // --- Разбивка: сколько откладывать в день и в месяц ---
-  const remainingAmount = Math.max(0, (goal.target_amount || 0) - (goal.current_amount || 0));
-  const hasDeadline = daysLeft !== null && daysLeft > 0 && remainingAmount > 0;
-  const dailyAmount = hasDeadline ? remainingAmount / daysLeft : 0;
-  const monthsLeft = hasDeadline ? Math.max(1, daysLeft / 30) : 0;
-  const monthlyAmount = hasDeadline ? remainingAmount / monthsLeft : 0;
-
-  // --- Проверка баланса связанного счёта ---
-  const linkedAccount = goal.linked_account_id
-    ? accounts.find(a => a.id === goal.linked_account_id)
-    : null;
-  const isBalanceInsufficient = linkedAccount && (linkedAccount.balance || 0) < (goal.current_amount || 0);
+  // --- Связанные счета (поддержка нескольких) ---
+  const linkedAccountIds = goal.linked_account_ids?.length
+    ? goal.linked_account_ids
+    : (goal.linked_account_id ? [goal.linked_account_id] : []);
+  const linkedAccounts = linkedAccountIds
+    .map(id => accounts.find(a => a.id === id))
+    .filter(Boolean);
+  const linkedBalance = linkedAccounts.reduce((sum, a) => sum + (a.balance || 0), 0);
+  const isBalanceInsufficient = linkedAccounts.length > 0 && linkedBalance < (goal.current_amount || 0);
 
   return (
     <motion.div
@@ -152,7 +149,7 @@ export default function GoalCard({
                 </p>
                 <p className="text-sm text-slate-500">
                   {goal.type === 'debt_payoff'
-                    ? `осталось ${formatCurrency(remainingAmount)}`
+                    ? `осталось ${formatCurrency(Math.max(0, (goal.target_amount || 0) - (goal.current_amount || 0)))}`
                     : `из ${formatCurrency(goal.target_amount)}`
                   }
                 </p>
@@ -176,39 +173,23 @@ export default function GoalCard({
               </div>
             </div>
 
-            {/* Разбивка: сколько откладывать в день / месяц */}
-            {hasDeadline && (
-              <div className="grid grid-cols-2 gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/30">
-                <div className="text-center">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">В день</p>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {formatCurrency(Math.ceil(dailyAmount))}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">В месяц</p>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {formatCurrency(Math.ceil(monthlyAmount))}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Предупреждение: баланс счёта меньше накопленного */}
+            {/* Предупреждение: суммарный баланс счетов меньше накопленного */}
             {isBalanceInsufficient && (
               <div className="flex items-center gap-2 p-2 rounded-lg bg-rose-50 dark:bg-rose-900/20">
                 <TrendingDown className="w-4 h-4 text-rose-600 flex-shrink-0" />
                 <span className="text-xs text-rose-700 dark:text-rose-300">
-                  Баланс счёта «{linkedAccount.name}» ({formatCurrency(linkedAccount.balance || 0)}) меньше накопленной суммы. Часть средств потрачена!
+                  Суммарный баланс счетов ({formatCurrency(linkedBalance)}) меньше накопленной суммы. Часть средств потрачена!
                 </span>
               </div>
             )}
 
-            {/* Связанный счёт */}
-            {linkedAccount && !isBalanceInsufficient && (
-              <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                <Coins className="w-3.5 h-3.5" />
-                <span>Счёт: {linkedAccount.name} ({formatCurrency(linkedAccount.balance || 0)})</span>
+            {/* Связанные счета */}
+            {linkedAccounts.length > 0 && !isBalanceInsufficient && (
+              <div className="flex items-start gap-2 text-xs text-slate-500 dark:text-slate-400">
+                <Coins className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                <span>
+                  {linkedAccounts.map(a => `«${a.name}» (${formatCurrency(a.balance || 0)})`).join(' + ')}
+                </span>
               </div>
             )}
 

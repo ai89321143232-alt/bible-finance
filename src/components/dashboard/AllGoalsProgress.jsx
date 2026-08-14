@@ -2,7 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { ChevronRight, Plus, Target } from 'lucide-react';
+import { differenceInDays } from 'date-fns';
+import { ChevronRight, Plus, Target, TrendingUp } from 'lucide-react';
 
 const GOAL_COLORS = {
   savings:        { bar: 'from-emerald-500 to-teal-400', dot: '#10b981' },
@@ -54,6 +55,14 @@ export default function AllGoalsProgress({ goals, formatCurrency }) {
               : 0;
             const scheme = GOAL_COLORS[goal.type] || GOAL_COLORS.other;
 
+            // --- Разбивка: сколько откладывать в день и в месяц ---
+            const remainingAmount = Math.max(0, (goal.target_amount || 0) - (goal.current_amount || 0));
+            const daysLeft = goal.deadline ? differenceInDays(new Date(goal.deadline), new Date()) : null;
+            const hasDeadline = daysLeft !== null && daysLeft > 0 && remainingAmount > 0;
+            const dailyAmount = hasDeadline ? remainingAmount / daysLeft : 0;
+            const monthsLeft = hasDeadline ? Math.max(1, daysLeft / 30) : 0;
+            const monthlyAmount = hasDeadline ? remainingAmount / monthsLeft : 0;
+
             return (
               <motion.div
                 key={goal.id}
@@ -80,6 +89,30 @@ export default function AllGoalsProgress({ goals, formatCurrency }) {
                   <span className="text-muted-foreground/70 text-xs">{formatCurrency(goal.current_amount || 0)}</span>
                   <span className="text-muted-foreground/70 text-xs">{formatCurrency(goal.target_amount)}</span>
                 </div>
+
+                {/* Разбивка: сколько откладывать в день / месяц */}
+                {hasDeadline && (
+                  <div className="grid grid-cols-2 gap-2 mt-2 p-2 rounded-lg bg-muted/50">
+                    <div className="flex items-center gap-1.5">
+                      <TrendingUp className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground leading-none">В день</p>
+                        <p className="text-xs font-semibold text-foreground mt-0.5">
+                          {formatCurrency(Math.ceil(dailyAmount))}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <TrendingUp className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground leading-none">В месяц</p>
+                        <p className="text-xs font-semibold text-foreground mt-0.5">
+                          {formatCurrency(Math.ceil(monthlyAmount))}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </motion.div>
             );
           })}

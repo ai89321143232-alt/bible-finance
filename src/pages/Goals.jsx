@@ -69,7 +69,7 @@ export default function Goals() {
   const [formData, setFormData] = useState({
     title: '', type: 'savings', target_amount: '', current_amount: '0',
     deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: [],
-    linked_account_id: ''
+    linked_account_ids: []
   });
 
   const { data: family } = useQuery({
@@ -155,7 +155,7 @@ export default function Goals() {
   });
 
   const resetForm = () => {
-    setFormData({ title: '', type: 'savings', target_amount: '', current_amount: '0', deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: [], linked_account_id: '' });
+    setFormData({ title: '', type: 'savings', target_amount: '', current_amount: '0', deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: [], linked_account_ids: [] });
     setShowAddModal(false);
     setEditGoal(null);
     setShareWithUsers([]);
@@ -168,7 +168,7 @@ export default function Goals() {
       current_amount: (goal.current_amount || 0).toString(), deadline: goal.deadline ? new Date(goal.deadline) : null,
       priority: goal.priority || 'medium', is_family_goal: goal.is_family_goal || false,
       share_with: goal.share_with || [], subgoals: goal.subgoals || [],
-      linked_account_id: goal.linked_account_id || ''
+      linked_account_ids: goal.linked_account_ids?.length ? goal.linked_account_ids : (goal.linked_account_id ? [goal.linked_account_id] : [])
     });
     setShareWithUsers(goal.share_with || []);
     setShowAddModal(true);
@@ -180,7 +180,7 @@ export default function Goals() {
       current_amount: parseFloat(formData.current_amount) || 0,
       deadline: formData.deadline ? format(formData.deadline, 'yyyy-MM-dd') : null,
       status: 'active', share_with: shareWithUsers,
-      linked_account_id: parseFloat(formData.current_amount) > 0 ? formData.linked_account_id : ''
+      linked_account_ids: parseFloat(formData.current_amount) > 0 ? formData.linked_account_ids : []
     };
     if (editGoal) updateMutation.mutate({ id: editGoal.id, data });
     else createMutation.mutate(data);
@@ -386,13 +386,23 @@ export default function Goals() {
             {parseFloat(formData.current_amount) > 0 && (
               <div>
                 <Label>Где хранятся эти деньги?</Label>
-                <MobileSelect value={formData.linked_account_id} onValueChange={(v) => setFormData({ ...formData, linked_account_id: v })} placeholder="Выберите счёт" title="Счёт накоплений" triggerClassName="rounded-xl mt-1 w-full">
-                  <option value="">— Не указано —</option>
+                <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
+                  {accounts.length === 0 && (
+                    <p className="text-sm text-slate-400">Нет доступных счетов</p>
+                  )}
                   {accounts.map(account => (
-                    <option key={account.id} value={account.id}>{account.name} ({formatCurrency(account.balance || 0)})</option>
+                    <label key={account.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                      <input type="checkbox" checked={formData.linked_account_ids.includes(account.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) setFormData({ ...formData, linked_account_ids: [...formData.linked_account_ids, account.id] });
+                          else setFormData({ ...formData, linked_account_ids: formData.linked_account_ids.filter(id => id !== account.id) });
+                        }} className="rounded" />
+                      <span className="text-sm text-slate-700 dark:text-slate-300 flex-1">{account.name}</span>
+                      <span className="text-xs text-slate-400">{formatCurrency(account.balance || 0)}</span>
+                    </label>
                   ))}
-                </MobileSelect>
-                <p className="text-xs text-slate-400 mt-1">Позволяет следить, что баланс счёта не упал ниже накопленной суммы</p>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">Можно выбрать несколько счетов. Позволяет следить, что суммарный баланс не упал ниже накопленной суммы</p>
               </div>
             )}
             <div>
