@@ -60,7 +60,7 @@ export default function AIAssistant() {
   }, [user]);
 
   const availableModels = [
-  { key: 'default', name: 'Base44' },
+  { key: 'default', name: 'Токены платформы' },
   ...(user?.ai_deepseek_key ? [{ key: 'deepseek', name: 'DeepSeek' }] : []),
   ...(user?.ai_openai_key ? [{ key: 'openai', name: 'ChatGPT' }] : [])];
 
