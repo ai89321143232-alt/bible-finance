@@ -14,12 +14,12 @@ export const useTrialActivation = () => {
         if (user.role === 'admin') return;
 
         // Проверяем, нужно ли активировать пробный период
-        if (!user.trial_end_date && !user.subscription_plan) {
+        if (!user.trial_end_date && !user.subscription) {
           const trialEndDate = new Date();
           trialEndDate.setDate(trialEndDate.getDate() + 14);
           
           await base44.auth.updateMe({
-            subscription_plan: 'premium',
+            subscription: 'premium',
             trial_end_date: trialEndDate.toISOString(),
             is_trial_active: true
           });
@@ -56,17 +56,17 @@ export const getSubscriptionStatus = (user) => {
     } else {
       // Пробный период истек
       return {
-        plan: user.subscription_plan || 'free',
-        isActive: user.subscription_plan && user.subscription_plan !== 'free',
+        plan: user.subscription || 'free',
+        isActive: user.subscription && user.subscription !== 'free',
         isTrial: false,
         daysLeft: 0,
-        displayName: getPlanName(user.subscription_plan || 'free')
+        displayName: getPlanName(user.subscription || 'free')
       };
     }
   }
   
   // Проверяем платную подписку
-  const plan = user.subscription_plan || 'free';
+  const plan = user.subscription || 'free';
   return {
     plan,
     isActive: plan !== 'free',
