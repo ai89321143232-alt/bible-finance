@@ -351,33 +351,14 @@ Deno.serve(async (req) => {
       const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file: audioFile });
       const transcript = await base44.asServiceRole.integrations.Core.TranscribeAudio({ audio_url: file_url });
 
-      if (!transcript) {
-        await sendMessage(botToken, chatId, 'Не удалось распознать голосовое сообщение.');
+      if (!transcript || !transcript.trim()) {
+        await sendMessage(botToken, chatId, 'Не удалось распознать голосовое сообщение. Попробуйте записать ещё раз или напишите текстом.');
         return Response.json({ ok: true });
       }
 
-      const today = localDateString(config.timezone || 'Europe/Moscow');
-      const parsed = await base44.asServiceRole.integrations.Core.InvokeLLM({
-        prompt: `Ты финансовый ассистент. Извлеки данные о транзакции из текста на русском языке.\n\nТекст: "${transcript}"\nСегодняшняя дата: ${today}\n\nПравила:\n- type: "expense" если это расход/потратил/купил/заплатил, "income" если доход/получил/заработал/пришло\n- amount: только число\n- category: выбери наиболее подходящую из списка: ${EXPENSE_CATEGORIES}\n- description: краткое описание (1-5 слов)\n- date: дата в формате YYYY-MM-DD (сегодня, если не указана другая)\n\nЕсли не удалось распознать сумму — верни error: "Не удалось распознать сумму"`,
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            type: { type: 'string', enum: ['expense', 'income'] },
-            amount: { type: 'number' },
-            category: { type: 'string' },
-            description: { type: 'string' },
-            date: { type: 'string' },
-            error: { type: 'string' }
-          }
-        }
-      });
-
-      if (parsed.error || !parsed.amount) {
-        await sendMessage(botToken, chatId, `Не удалось распознать операцию: ${parsed.error || 'сумма не найдена'}`);
-        return Response.json({ ok: true });
-      }
-
-      await finalizeOrAskAccount({ entities, config, accounts, transactions: [parsed], ownerId, botToken, chatId });
+      // Голос обрабатывается через полный AI-ассистент — тот же, что и текстовые сообщения.
+      // Это даёт более надёжное распознавание суммы/категории и поддерживает правку/удаление/вопросы.
+      await handleTextMessage({ base44, config, account, accounts, ownerId, botToken, chatId, text: transcript.trim() });
       return Response.json({ ok: true });
     }
 
