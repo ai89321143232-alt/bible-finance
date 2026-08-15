@@ -104,7 +104,7 @@ export const TransactionService = {
    * Перенос: между счетами или на цель (toAccountId начинается с "goal_").
    * @returns {Promise<{ok:boolean, error?:string}>}
    */
-  async transfer({ amount, description, date, account_id, toAccountId, accounts = [], goals = [] }) {
+  async transfer({ amount, description, date, account_id, toAccountId, accounts = [], goals = [], existingId = null }) {
     const valid = validateTransactionInput({ type: 'transfer', amount, account_id, toAccountId });
     if (!valid.ok) return { ok: false, error: valid.error };
 
@@ -114,18 +114,54 @@ export const TransactionService = {
 
     const own = validateAccountOwnership(source, user);
     if (!own.ok) return { ok: false, error: own.error };
-    const funds = validateSufficientFunds(source, amountNum);
+
+    // При редактировании — откатываем старые эффекты переноса, чтобы не задваивать
+    let prev = null;
+    if (existingId) {
+      prev = await repo().get(existingId).catch(() => null);
+    }
+    if (prev && prev.type === 'transfer') {
+      const prevAmount = prev.amount || 0;
+      const prevSource = await AccountService.get(prev.account_id).catch(() => null);
+      if (prevSource) {
+        if (prev.to_account_id?.startsWith('goal_')) {
+          // Старый перенос был на цель — разморозить на источнике
+          await AccountService.freezeAmount(prevSource.id, (prevSource.frozen_amount || 0) - prevAmount);
+        } else {
+          // Старый перенос был на счёт — вернуть сумму на источник
+          await AccountService.setBalance(prevSource.id, (prevSource.balance || 0) + prevAmount);
+        }
+      }
+      if (prev.to_account_id?.startsWith('goal_')) {
+        const oldGoalId = prev.to_account_id.replace('goal_', '');
+        const oldGoal = await goalRepo().get(oldGoalId).catch(() => null);
+        if (oldGoal) {
+          await goalRepo().update(oldGoalId, {
+            current_amount: Math.max((oldGoal.current_amount || 0) - prevAmount, 0),
+          });
+          eventBus.emit(EVENTS.GOAL_CHANGED, { id: oldGoalId });
+        }
+      } else if (prev.to_account_id) {
+        const oldDest = await AccountService.get(prev.to_account_id).catch(() => null);
+        if (oldDest) {
+          await AccountService.setBalance(oldDest.id, (oldDest.balance || 0) - prevAmount);
+        }
+      }
+    }
+
+    // Перезагружаем источник после отката
+    const refreshedSource = existingId && prev ? await AccountService.get(account_id).catch(() => source) : source;
+    const funds = validateSufficientFunds(refreshedSource, amountNum);
     if (!funds.ok) return { ok: false, error: funds.error };
 
     const isDestGoal = toAccountId.startsWith('goal_');
     let destName = '';
 
-    if (source) {
+    if (refreshedSource) {
       if (isDestGoal) {
-        // Перевод на цель: замораживаем средства, не списываем с баланса
-        await AccountService.freezeAmount(source.id, (source.frozen_amount || 0) + amountNum);
+        await AccountService.freezeAmount(refreshedSource.id, (refreshedSource.frozen_amount || 0) + amountNum);
       } else {
-        await AccountService.setBalance(source.id, (source.balance || 0) - amountNum);
+        await AccountService.setBalance(refreshedSource.id, (refreshedSource.balance || 0) - amountNum);
       }
     }
 
@@ -154,24 +190,31 @@ export const TransactionService = {
         type: 'transfer',
         amount: amountNum,
         category: isDestGoal ? 'Перенос на цель' : 'Перенос между счетами',
-        description: `${source?.name} → ${destName}${description ? ': ' + description : ''}`,
+        description: `${refreshedSource?.name} → ${destName}${description ? ': ' + description : ''}`,
         date: date instanceof Date ? date.toISOString() : date,
         account_id,
+        to_account_id: toAccountId,
       },
       user
     );
-    let created;
-    try {
-      created = await repo().create(data);
-    } catch (e) {
-      if (!navigator.onLine) {
-        const entry = offlineQueue.enqueue(data);
-        notifyChanged({ action: 'create', transaction: { ...data, id: entry.id, _pending: true } });
-        return { ok: true, offline: true };
+
+    if (existingId) {
+      await repo().update(existingId, data);
+      notifyChanged({ action: 'update', transaction: { id: existingId, ...data } });
+    } else {
+      let created;
+      try {
+        created = await repo().create(data);
+      } catch (e) {
+        if (!navigator.onLine) {
+          const entry = offlineQueue.enqueue(data);
+          notifyChanged({ action: 'create', transaction: { ...data, id: entry.id, _pending: true } });
+          return { ok: true, offline: true };
+        }
+        throw e;
       }
-      throw e;
+      notifyChanged({ action: 'create', transaction: created });
     }
-    notifyChanged({ action: 'create', transaction: created });
     return { ok: true };
   },
 

@@ -96,7 +96,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   };
   const [date, setDate] = useState(transaction?.date ? new Date(transaction.date) : new Date());
   const [accountId, setAccountId] = useState(transaction?.account_id || '');
-  const [toAccountId, setToAccountId] = useState('');
+  const [toAccountId, setToAccountId] = useState(transaction?.to_account_id || '');
   const [isScanning, setIsScanning] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -246,9 +246,10 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     if (type === 'transfer') {
       const res = await TransactionService.transfer({
         amount, description, date, account_id: accountId, toAccountId, accounts, goals,
+        existingId: transaction?.id || null,
       });
       if (!res.ok) { toast.error(res.error); return; }
-      toast.success('Перенос выполнен');
+      toast.success(transaction ? 'Перенос обновлён' : 'Перенос выполнен');
       onClose();
       return;
     }
