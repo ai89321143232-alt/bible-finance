@@ -33,11 +33,21 @@ export default function GoalCard({
   const typeInfo = GOAL_TYPES.find(t => t.value === goal.type) || GOAL_TYPES[5];
 
   // --- Связанные инвестиции и вклады ---
+  const investmentAmountMap = {};
+  (goal.linked_investment_amounts || []).forEach(item => {
+    if (item.investment_id) investmentAmountMap[item.investment_id] = item.amount;
+  });
   const linkedInvestments = (goal.linked_investment_ids || [])
     .map(id => investments.find(i => i.id === id))
     .filter(Boolean);
+  const getInvestmentValue = (inv) => {
+    if (investmentAmountMap[inv.id] != null) return investmentAmountMap[inv.id];
+    return inv.type === 'deposit'
+      ? (inv.current_price || inv.purchase_price)
+      : inv.quantity * (inv.current_price || inv.purchase_price);
+  };
   const linkedInvestmentsValue = linkedInvestments.reduce((sum, inv) =>
-    sum + (inv.quantity * (inv.current_price || inv.purchase_price)), 0);
+    sum + getInvestmentValue(inv), 0);
 
   // Эффективная сумма: накопления + связанные инвестиции/вклады
   const effectiveAmount = (goal.current_amount || 0) + linkedInvestmentsValue;
@@ -217,15 +227,15 @@ export default function GoalCard({
                 <TrendingUp className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
                   {linkedInvestments.map(inv => {
-                    const invValue = inv.quantity * (inv.current_price || inv.purchase_price);
-                    const isDeposit = inv.type === 'deposit';
-                    return (
-                      <div key={inv.id} className="flex items-center justify-between">
-                        <span>{isDeposit ? '🏦' : '📈'} {inv.name}</span>
-                        <span>{formatCurrency(invValue)}</span>
-                      </div>
-                    );
-                  })}
+                     const invValue = getInvestmentValue(inv);
+                     const isDeposit = inv.type === 'deposit';
+                     return (
+                       <div key={inv.id} className="flex items-center justify-between">
+                         <span>{isDeposit ? '🏦' : '📈'} {inv.name}</span>
+                         <span>{formatCurrency(invValue)}</span>
+                       </div>
+                     );
+                   })}
                   <div className="flex items-center justify-between font-medium mt-0.5 pt-0.5 border-t border-slate-200 dark:border-slate-600">
                     <span>Итого по инвестициям:</span>
                     <span>{formatCurrency(linkedInvestmentsValue)}</span>

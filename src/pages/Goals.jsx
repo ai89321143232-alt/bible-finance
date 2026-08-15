@@ -70,8 +70,9 @@ export default function Goals() {
   const [formData, setFormData] = useState({
     title: '', type: 'savings', target_amount: '', current_amount: '0',
     deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: [],
-    linked_account_ids: [], linked_investment_ids: []
+    linked_account_ids: [], linked_investment_ids: [], linked_investment_amounts: []
   });
+  const [investmentAmounts, setInvestmentAmounts] = useState({});
 
   const { data: family } = useQuery({
     queryKey: ['my-family', user?.id],
@@ -162,10 +163,11 @@ export default function Goals() {
   });
 
   const resetForm = () => {
-    setFormData({ title: '', type: 'savings', target_amount: '', current_amount: '0', deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: [], linked_account_ids: [], linked_investment_ids: [] });
+    setFormData({ title: '', type: 'savings', target_amount: '', current_amount: '0', deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: [], linked_account_ids: [], linked_investment_ids: [], linked_investment_amounts: [] });
     setShowAddModal(false);
     setEditGoal(null);
     setShareWithUsers([]);
+    setInvestmentAmounts({});
   };
 
   const handleEdit = (goal) => {
@@ -176,9 +178,15 @@ export default function Goals() {
       priority: goal.priority || 'medium', is_family_goal: goal.is_family_goal || false,
       share_with: goal.share_with || [], subgoals: goal.subgoals || [],
       linked_account_ids: goal.linked_account_ids?.length ? goal.linked_account_ids : (goal.linked_account_id ? [goal.linked_account_id] : []),
-      linked_investment_ids: goal.linked_investment_ids || []
+      linked_investment_ids: goal.linked_investment_ids || [],
+      linked_investment_amounts: goal.linked_investment_amounts || []
     });
     setShareWithUsers(goal.share_with || []);
+    const amountsMap = {};
+    (goal.linked_investment_amounts || []).forEach(item => {
+      amountsMap[item.investment_id] = item.amount?.toString() || '';
+    });
+    setInvestmentAmounts(amountsMap);
     setShowAddModal(true);
   };
 
@@ -189,7 +197,13 @@ export default function Goals() {
       deadline: formData.deadline ? format(formData.deadline, 'yyyy-MM-dd') : null,
       status: 'active', share_with: shareWithUsers,
       linked_account_ids: parseFloat(formData.current_amount) > 0 ? formData.linked_account_ids : [],
-      linked_investment_ids: formData.linked_investment_ids || []
+      linked_investment_ids: formData.linked_investment_ids || [],
+      linked_investment_amounts: (formData.linked_investment_ids || []).map(id => ({
+        investment_id: id,
+        amount: parseFloat(investmentAmounts[id]) || (investments.find(i => i.id === id)?.type === 'deposit'
+          ? (investments.find(i => i.id === id)?.current_price || investments.find(i => i.id === id)?.purchase_price || 0)
+          : (investments.find(i => i.id === id)?.quantity || 0) * (investments.find(i => i.id === id)?.current_price || investments.find(i => i.id === id)?.purchase_price || 0))
+      })).filter(item => item.amount > 0)
     };
     if (editGoal) updateMutation.mutate({ id: editGoal.id, data });
     else createMutation.mutate(data);
@@ -426,17 +440,34 @@ export default function Goals() {
                 <Label>Инвестиции и вклады под эту цель</Label>
                 <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
                   {investments.map(inv => {
-                    const invValue = inv.quantity * (inv.current_price || inv.purchase_price);
+                    const isDeposit = inv.type === 'deposit';
+                    const invValue = isDeposit ? (inv.current_price || inv.purchase_price) : inv.quantity * (inv.current_price || inv.purchase_price);
+                    const isChecked = formData.linked_investment_ids.includes(inv.id);
                     return (
-                      <label key={inv.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30">
-                        <input type="checkbox" checked={formData.linked_investment_ids.includes(inv.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) setFormData({ ...formData, linked_investment_ids: [...formData.linked_investment_ids, inv.id] });
-                            else setFormData({ ...formData, linked_investment_ids: formData.linked_investment_ids.filter(id => id !== inv.id) });
-                          }} className="rounded" />
-                        <span className="text-sm text-slate-700 dark:text-slate-300 flex-1">{inv.name}</span>
-                        <span className="text-xs text-slate-400">{formatCurrency(invValue)}</span>
-                      </label>
+                      <div key={inv.id} className="p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) setFormData({ ...formData, linked_investment_ids: [...formData.linked_investment_ids, inv.id] });
+                              else {
+                                const newAmounts = { ...investmentAmounts };
+                                delete newAmounts[inv.id];
+                                setInvestmentAmounts(newAmounts);
+                                setFormData({ ...formData, linked_investment_ids: formData.linked_investment_ids.filter(id => id !== inv.id) });
+                              }
+                            }} className="rounded" />
+                          <span className="text-sm text-slate-700 dark:text-slate-300 flex-1">{inv.name}</span>
+                          <span className="text-xs text-slate-400">{formatCurrency(invValue)}</span>
+                        </label>
+                        {isChecked && (
+                          <div className="flex items-center gap-2 mt-2 pl-6">
+                            <span className="text-xs text-slate-500 whitespace-nowrap">Считать для цели:</span>
+                            <Input type="number" value={investmentAmounts[inv.id] || ''} onChange={(e) => setInvestmentAmounts({ ...investmentAmounts, [inv.id]: e.target.value })}
+                              placeholder={invValue.toFixed(0)} className="h-8 text-sm rounded-lg max-w-32" />
+                            <span className="text-xs text-slate-400">₽</span>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
