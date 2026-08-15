@@ -4,11 +4,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { InvestmentService } from '@/services';
 import CreatorTag from '@/components/shared/CreatorTag';
 import { motion } from 'framer-motion';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
   Plus, TrendingUp, TrendingDown, Edit2, Trash2, Check, 
-  PieChart, BarChart2, Bitcoin, Building2, Landmark, Gem, Lock
+  PieChart, BarChart2, Bitcoin, Building2, Landmark, Gem, Lock, Wallet
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,52 +44,27 @@ const INVESTMENT_TYPES = [
   { value: 'crypto', label: 'Криптовалюта', icon: '₿', color: '#F59E0B' },
   { value: 'etf', label: 'ETF', icon: '📊', color: '#3B82F6' },
   { value: 'bonds', label: 'Облигации', icon: '📜', color: '#10B981' },
-  { value: 'deposit', label: 'Депозит', icon: '🏦', color: '#6366F1' },
+  { value: 'deposit', label: 'Вклад', icon: '🏦', color: '#6366F1' },
   { value: 'real_estate', label: 'Недвижимость', icon: '🏠', color: '#EC4899' },
   { value: 'precious_metals', label: 'Драг. металлы', icon: '🥇', color: '#EAB308' },
   { value: 'other', label: 'Другое', icon: '💼', color: '#64748B' },
 ];
 
-// ============================================================
-// pages/Investments.jsx — СТРАНИЦА ИНВЕСТИЦИЙ
-// ============================================================
-// Маршрут: "/Investments"
-//
-// ФУНКЦИИ:
-//   - Портфель инвестиций с расчётом прибыли/убытка
-//   - Добавление / редактирование / удаление актива
-//   - Pie-chart разбивки портфеля по типам активов
-//
-// ДАННЫЕ:
-//   ['investments'] → все инвестиции пользователя/семьи
-//
-// ТИПЫ АКТИВОВ (INVESTMENT_TYPES):
-//   stocks, crypto, etf, bonds, deposit, real_estate, precious_metals, other
-//
-// РАСЧЁТЫ:
-//   totalValue   = Σ (quantity × current_price)
-//   totalCost    = Σ (quantity × purchase_price)
-//   totalProfit  = totalValue - totalCost
-//   profitPercent = (totalProfit / totalCost) × 100
-//
-// ⚠️ Цены обновляются ВРУЧНУЮ (нет автоматического фида котировок)
-//    current_price хранится в сущности и меняется пользователем
-// ============================================================
+const INITIAL_FORM = {
+  name: '', type: 'stocks', ticker: '', quantity: '', purchase_price: '',
+  current_price: '', broker: '', interest_rate: '', maturity_date: null,
+  allows_top_up: false
+};
+
 export default function Investments() {
   const queryClient = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editInvestment, setEditInvestment] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+  const [topUpInvestment, setTopUpInvestment] = useState(null);
+  const [topUpAmount, setTopUpAmount] = useState('');
 
-  const [formData, setFormData] = useState({
-    name: '',
-    type: 'stocks',
-    ticker: '',
-    quantity: '',
-    purchase_price: '',
-    current_price: '',
-    broker: ''
-  });
+  const [formData, setFormData] = useState({ ...INITIAL_FORM });
 
   const { data: investments = [], isLoading } = useQuery({
     queryKey: ['investments'],
@@ -139,16 +114,17 @@ export default function Investments() {
     }
   });
 
+  const topUpMutation = useMutation({
+    mutationFn: ({ id, data }) => InvestmentService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['investments'] });
+      setTopUpInvestment(null);
+      setTopUpAmount('');
+    }
+  });
+
   const resetForm = () => {
-    setFormData({
-      name: '',
-      type: 'stocks',
-      ticker: '',
-      quantity: '',
-      purchase_price: '',
-      current_price: '',
-      broker: ''
-    });
+    setFormData({ ...INITIAL_FORM });
     setShowAddModal(false);
     setEditInvestment(null);
   };
@@ -162,18 +138,51 @@ export default function Investments() {
       quantity: investment.quantity.toString(),
       purchase_price: investment.purchase_price.toString(),
       current_price: (investment.current_price || investment.purchase_price).toString(),
-      broker: investment.broker || ''
+      broker: investment.broker || '',
+      interest_rate: investment.interest_rate?.toString() || '',
+      maturity_date: investment.maturity_date ? new Date(investment.maturity_date) : null,
+      allows_top_up: investment.allows_top_up || false
     });
     setShowAddModal(true);
   };
 
   const handleSubmit = async () => {
+    const payload = {
+      ...formData,
+      quantity: parseFloat(formData.quantity),
+      purchase_price: parseFloat(formData.purchase_price),
+      current_price: parseFloat(formData.current_price) || parseFloat(formData.purchase_price),
+      interest_rate: formData.type === 'deposit' ? parseFloat(formData.interest_rate) || 0 : undefined,
+      maturity_date: formData.type === 'deposit' && formData.maturity_date
+        ? format(formData.maturity_date, 'yyyy-MM-dd') : null,
+      allows_top_up: formData.type === 'deposit' ? formData.allows_top_up : false
+    };
     if (editInvestment) {
-      await updateMutation.mutateAsync({ id: editInvestment.id, data: { ...formData } });
+      await updateMutation.mutateAsync({ id: editInvestment.id, data: payload });
     } else {
-      await createMutation.mutateAsync({ ...formData });
+      await createMutation.mutateAsync(payload);
     }
     resetForm();
+  };
+
+  const handleTopUp = async () => {
+    if (!topUpInvestment || !topUpAmount) return;
+    const amount = parseFloat(topUpAmount);
+    if (amount <= 0) return;
+    // Пополнение вклада: увеличиваем количество по текущей цене
+    const currentPrice = topUpInvestment.current_price || topUpInvestment.purchase_price;
+    const addedQty = amount / currentPrice;
+    const newQuantity = topUpInvestment.quantity + addedQty;
+    // Обновляем среднюю цену покупки
+    const newPurchasePrice = (topUpInvestment.quantity * topUpInvestment.purchase_price + amount) / newQuantity;
+    await topUpMutation.mutateAsync({
+      id: topUpInvestment.id,
+      data: {
+        quantity: newQuantity,
+        purchase_price: newPurchasePrice,
+        current_price: currentPrice
+      }
+    });
   };
 
   const formatCurrency = (amount) => {
@@ -184,7 +193,6 @@ export default function Investments() {
     }).format(amount);
   };
 
-  // Calculate portfolio stats
   const totalValue = investments.reduce((sum, inv) => 
     sum + (inv.quantity * (inv.current_price || inv.purchase_price)), 0
   );
@@ -194,12 +202,10 @@ export default function Investments() {
   const totalProfit = totalValue - totalCost;
   const profitPercent = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
 
-  // Group by type for chart
   const portfolioByType = investments.reduce((acc, inv) => {
     const type = inv.type;
     const value = inv.quantity * (inv.current_price || inv.purchase_price);
     const typeInfo = INVESTMENT_TYPES.find(t => t.value === type) || INVESTMENT_TYPES[7];
-    
     if (!acc[type]) {
       acc[type] = { name: typeInfo.label, value: 0, color: typeInfo.color, icon: typeInfo.icon };
     }
@@ -297,7 +303,6 @@ export default function Investments() {
                 )}
               </div>
 
-              {/* Type breakdown */}
               {chartData.length > 0 && (
                 <div className="flex flex-wrap gap-3 mt-4">
                   {chartData.map((item) => (
@@ -332,6 +337,8 @@ export default function Investments() {
               const profit = value - cost;
               const profitPct = cost > 0 ? (profit / cost) * 100 : 0;
               const isEditable = investment.created_by_id === currentUser?.id;
+              const isDeposit = investment.type === 'deposit';
+              const daysToMaturity = investment.maturity_date ? differenceInDays(new Date(investment.maturity_date), new Date()) : null;
 
               return (
                 <motion.div
@@ -368,7 +375,7 @@ export default function Investments() {
                               )}
                             </div>
                             <p className="text-sm text-slate-500 dark:text-slate-400">
-                              {investment.quantity} шт. × {formatCurrency(currentPrice)}
+                              {investment.quantity.toFixed(isDeposit ? 2 : 0)} {isDeposit ? '₽' : 'шт.'} × {formatCurrency(currentPrice)}
                             </p>
                             <CreatorTag creatorId={investment.created_by_id} family={family} currentUser={currentUser} className="mt-0.5" />
                           </div>
@@ -417,6 +424,47 @@ export default function Investments() {
                           )}
                         </div>
                       </div>
+
+                      {/* Deposit-specific info */}
+                      {isDeposit && (investment.interest_rate || investment.maturity_date || investment.allows_top_up) && (
+                        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 flex flex-wrap items-center gap-2">
+                          {investment.interest_rate != null && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-xs font-medium">
+                              <TrendingUp className="w-3 h-3" /> {investment.interest_rate}% годовых
+                            </span>
+                          )}
+                          {investment.maturity_date && (
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium ${
+                              daysToMaturity !== null && daysToMaturity <= 0
+                                ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400'
+                                : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                            }`}>
+                              {daysToMaturity !== null && daysToMaturity <= 0
+                                ? 'Срок истёк'
+                                : `Срок: ${format(new Date(investment.maturity_date), 'dd.MM.yyyy')}`}
+                            </span>
+                          )}
+                          {investment.allows_top_up && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 text-xs font-medium">
+                              <Wallet className="w-3 h-3" /> Пополняемый
+                            </span>
+                          )}
+                          {isEditable && investment.allows_top_up && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setTopUpInvestment(investment);
+                                setTopUpAmount('');
+                              }}
+                              className="ml-auto h-7 rounded-lg text-xs border-violet-200 text-violet-700 dark:text-violet-400"
+                            >
+                              <Plus className="w-3 h-3 mr-1" />Пополнить вклад
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -481,28 +529,35 @@ export default function Investments() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Тикер (опционально)</Label>
-              <Input
-                value={formData.ticker}
-                onChange={(e) => setFormData({ ...formData, ticker: e.target.value.toUpperCase() })}
-                placeholder="AAPL"
-                className="rounded-xl mt-1 font-mono"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+            {formData.type !== 'deposit' && (
               <div>
-                <Label>Количество</Label>
+                <Label>Тикер (опционально)</Label>
                 <Input
-                  type="number"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                  placeholder="0"
-                  className="rounded-xl mt-1"
+                  value={formData.ticker}
+                  onChange={(e) => setFormData({ ...formData, ticker: e.target.value.toUpperCase() })}
+                  placeholder="AAPL"
+                  className="rounded-xl mt-1 font-mono"
                 />
               </div>
+            )}
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Цена покупки</Label>
+                <Label>{formData.type === 'deposit' ? 'Сумма вклада' : 'Количество'}</Label>
+                <div className="relative mt-1">
+                  <Input
+                    type="number"
+                    value={formData.quantity}
+                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                    placeholder="0"
+                    className="rounded-xl pr-8"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                    {formData.type === 'deposit' ? '₽' : 'шт.'}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <Label>{formData.type === 'deposit' ? 'Стартовая сумма' : 'Цена покупки'}</Label>
                 <div className="relative mt-1">
                   <Input
                     type="number"
@@ -515,8 +570,49 @@ export default function Investments() {
                 </div>
               </div>
             </div>
+
+            {/* Deposit-specific fields */}
+            {formData.type === 'deposit' && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Процентная ставка (% годовых)</Label>
+                    <div className="relative mt-1">
+                      <Input
+                        type="number"
+                        value={formData.interest_rate}
+                        onChange={(e) => setFormData({ ...formData, interest_rate: e.target.value })}
+                        placeholder="8.5"
+                        className="rounded-xl pr-8"
+                        step="0.1"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Срок вывода</Label>
+                    <Input
+                      type="date"
+                      value={formData.maturity_date ? format(formData.maturity_date, 'yyyy-MM-dd') : ''}
+                      onChange={(e) => setFormData({ ...formData, maturity_date: e.target.value ? new Date(e.target.value) : null })}
+                      className="rounded-xl mt-1"
+                    />
+                  </div>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                  <input
+                    type="checkbox"
+                    checked={formData.allows_top_up}
+                    onChange={(e) => setFormData({ ...formData, allows_top_up: e.target.checked })}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Разрешить пополнение вклада</span>
+                </label>
+              </>
+            )}
+
             <div>
-              <Label>Текущая цена</Label>
+              <Label>{formData.type === 'deposit' ? 'Текущая сумма (с процентами)' : 'Текущая цена'}</Label>
               <div className="relative mt-1">
                 <Input
                   type="number"
@@ -529,11 +625,11 @@ export default function Investments() {
               </div>
             </div>
             <div>
-              <Label>Брокер (опционально)</Label>
+              <Label>{formData.type === 'deposit' ? 'Банк' : 'Брокер'} (опционально)</Label>
               <Input
                 value={formData.broker}
                 onChange={(e) => setFormData({ ...formData, broker: e.target.value })}
-                placeholder="Например: Тинькофф"
+                placeholder={formData.type === 'deposit' ? 'Например: Сбер' : 'Например: Тинькофф'}
                 className="rounded-xl mt-1"
               />
             </div>
@@ -544,6 +640,42 @@ export default function Investments() {
             >
               <Check className="w-4 h-4 mr-2" />
               {editInvestment ? 'Сохранить' : 'Добавить'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Top-up Deposit Modal */}
+      <Dialog open={!!topUpInvestment} onOpenChange={() => { setTopUpInvestment(null); setTopUpAmount(''); }}>
+        <DialogContent className="rounded-2xl max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Пополнить вклад</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {topUpInvestment && (
+              <p className="text-slate-500 text-sm">
+                {topUpInvestment.name} · Текущая сумма: {formatCurrency(topUpInvestment.quantity * (topUpInvestment.current_price || topUpInvestment.purchase_price))}
+              </p>
+            )}
+            <div>
+              <Label>Сумма пополнения</Label>
+              <div className="relative mt-1">
+                <Input
+                  type="number"
+                  value={topUpAmount}
+                  onChange={(e) => setTopUpAmount(e.target.value)}
+                  placeholder="0"
+                  className="rounded-xl pr-8 text-xl font-semibold h-14"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
+              </div>
+            </div>
+            <Button
+              onClick={handleTopUp}
+              disabled={!topUpAmount || topUpMutation.isPending}
+              className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600"
+            >
+              <Wallet className="w-4 h-4 mr-2" />Пополнить
             </Button>
           </div>
         </DialogContent>

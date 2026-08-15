@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
-import { Edit2, Trash2, Coins, MinusCircle, AlertCircle, Lock, TrendingDown } from 'lucide-react';
+import { Edit2, Trash2, Coins, MinusCircle, AlertCircle, Lock, TrendingDown, TrendingUp } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -27,7 +27,8 @@ export default function GoalCard({
   formatCurrency,
   family,
   currentUser,
-  accounts = []
+  accounts = [],
+  investments = []
 }) {
   const typeInfo = GOAL_TYPES.find(t => t.value === goal.type) || GOAL_TYPES[5];
   const progress = goal.target_amount > 0
@@ -65,6 +66,14 @@ export default function GoalCard({
     .map(id => accounts.find(a => a.id === id))
     .filter(Boolean);
   const linkedBalance = linkedAccounts.reduce((sum, a) => sum + (a.balance || 0), 0);
+
+  // --- Связанные инвестиции и вклады ---
+  const linkedInvestments = (goal.linked_investment_ids || [])
+    .map(id => investments.find(i => i.id === id))
+    .filter(Boolean);
+  const linkedInvestmentsValue = linkedInvestments.reduce((sum, inv) =>
+    sum + (inv.quantity * (inv.current_price || inv.purchase_price)), 0);
+
   const isBalanceInsufficient = linkedAccounts.length > 0 && linkedBalance < (goal.current_amount || 0);
 
   return (
@@ -190,6 +199,29 @@ export default function GoalCard({
                 <span>
                   {linkedAccounts.map(a => `«${a.name}» (${formatCurrency(a.balance || 0)})`).join(' + ')}
                 </span>
+              </div>
+            )}
+
+            {/* Связанные инвестиции и вклады */}
+            {linkedInvestments.length > 0 && (
+              <div className="flex items-start gap-2 text-xs text-slate-500 dark:text-slate-400">
+                <TrendingUp className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  {linkedInvestments.map(inv => {
+                    const invValue = inv.quantity * (inv.current_price || inv.purchase_price);
+                    const isDeposit = inv.type === 'deposit';
+                    return (
+                      <div key={inv.id} className="flex items-center justify-between">
+                        <span>{isDeposit ? '🏦' : '📈'} {inv.name}</span>
+                        <span>{formatCurrency(invValue)}</span>
+                      </div>
+                    );
+                  })}
+                  <div className="flex items-center justify-between font-medium mt-0.5 pt-0.5 border-t border-slate-200 dark:border-slate-600">
+                    <span>Итого по инвестициям:</span>
+                    <span>{formatCurrency(linkedInvestmentsValue)}</span>
+                  </div>
+                </div>
               </div>
             )}
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { GoalService } from '@/services';
+import { GoalService, InvestmentService } from '@/services';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -69,7 +69,7 @@ export default function Goals() {
   const [formData, setFormData] = useState({
     title: '', type: 'savings', target_amount: '', current_amount: '0',
     deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: [],
-    linked_account_ids: []
+    linked_account_ids: [], linked_investment_ids: []
   });
 
   const { data: family } = useQuery({
@@ -125,6 +125,12 @@ export default function Goals() {
     staleTime: 300000
   });
 
+  const { data: investments = [] } = useQuery({
+    queryKey: ['investments'],
+    queryFn: () => InvestmentService.list(),
+    staleTime: 30000
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => GoalService.create(data),
     onSuccess: () => {
@@ -155,7 +161,7 @@ export default function Goals() {
   });
 
   const resetForm = () => {
-    setFormData({ title: '', type: 'savings', target_amount: '', current_amount: '0', deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: [], linked_account_ids: [] });
+    setFormData({ title: '', type: 'savings', target_amount: '', current_amount: '0', deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: [], linked_account_ids: [], linked_investment_ids: [] });
     setShowAddModal(false);
     setEditGoal(null);
     setShareWithUsers([]);
@@ -168,7 +174,8 @@ export default function Goals() {
       current_amount: (goal.current_amount || 0).toString(), deadline: goal.deadline ? new Date(goal.deadline) : null,
       priority: goal.priority || 'medium', is_family_goal: goal.is_family_goal || false,
       share_with: goal.share_with || [], subgoals: goal.subgoals || [],
-      linked_account_ids: goal.linked_account_ids?.length ? goal.linked_account_ids : (goal.linked_account_id ? [goal.linked_account_id] : [])
+      linked_account_ids: goal.linked_account_ids?.length ? goal.linked_account_ids : (goal.linked_account_id ? [goal.linked_account_id] : []),
+      linked_investment_ids: goal.linked_investment_ids || []
     });
     setShareWithUsers(goal.share_with || []);
     setShowAddModal(true);
@@ -180,7 +187,8 @@ export default function Goals() {
       current_amount: parseFloat(formData.current_amount) || 0,
       deadline: formData.deadline ? format(formData.deadline, 'yyyy-MM-dd') : null,
       status: 'active', share_with: shareWithUsers,
-      linked_account_ids: parseFloat(formData.current_amount) > 0 ? formData.linked_account_ids : []
+      linked_account_ids: parseFloat(formData.current_amount) > 0 ? formData.linked_account_ids : [],
+      linked_investment_ids: formData.linked_investment_ids || []
     };
     if (editGoal) updateMutation.mutate({ id: editGoal.id, data });
     else createMutation.mutate(data);
@@ -301,7 +309,7 @@ export default function Goals() {
                   onEdit={handleEdit} onDelete={(id) => setDeleteId(id)}
                   onAddFunds={setShowAddFundsModal} onSpend={setShowSpendModal}
                   formatCurrency={formatCurrency} family={family} currentUser={user}
-                  accounts={accounts} />
+                  accounts={accounts} investments={investments} />
               ))}
             </div>
           </div>
@@ -403,6 +411,30 @@ export default function Goals() {
                   ))}
                 </div>
                 <p className="text-xs text-slate-400 mt-1">Можно выбрать несколько счетов. Позволяет следить, что суммарный баланс не упал ниже накопленной суммы</p>
+              </div>
+            )}
+
+            {/* Привязка инвестиций и вкладов к цели */}
+            {investments.length > 0 && (
+              <div>
+                <Label>Инвестиции и вклады под эту цель</Label>
+                <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
+                  {investments.map(inv => {
+                    const invValue = inv.quantity * (inv.current_price || inv.purchase_price);
+                    return (
+                      <label key={inv.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                        <input type="checkbox" checked={formData.linked_investment_ids.includes(inv.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) setFormData({ ...formData, linked_investment_ids: [...formData.linked_investment_ids, inv.id] });
+                            else setFormData({ ...formData, linked_investment_ids: formData.linked_investment_ids.filter(id => id !== inv.id) });
+                          }} className="rounded" />
+                        <span className="text-sm text-slate-700 dark:text-slate-300 flex-1">{inv.name}</span>
+                        <span className="text-xs text-slate-400">{formatCurrency(invValue)}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-slate-400 mt-1">Вклады и инвестиции, которые работают на эту цель</p>
               </div>
             )}
             <div>
