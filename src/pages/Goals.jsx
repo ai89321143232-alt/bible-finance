@@ -75,6 +75,7 @@ export default function Goals() {
     linked_account_ids: [], linked_investment_ids: [], linked_investment_amounts: []
   });
   const [investmentAmounts, setInvestmentAmounts] = useState({});
+  const [investmentErrors, setInvestmentErrors] = useState({});
 
   const { data: family } = useQuery({
     queryKey: ['my-family', user?.id],
@@ -170,6 +171,7 @@ export default function Goals() {
     setEditGoal(null);
     setShareWithUsers([]);
     setInvestmentAmounts({});
+    setInvestmentErrors({});
   };
 
   const handleEdit = (goal) => {
@@ -189,10 +191,25 @@ export default function Goals() {
       amountsMap[item.investment_id] = item.amount?.toString() || '';
     });
     setInvestmentAmounts(amountsMap);
+    const errs = {};
+    Object.keys(amountsMap).forEach(id => {
+      const e = validateInvestmentAmount(id, amountsMap[id]);
+      if (e) errs[id] = e;
+    });
+    setInvestmentErrors(errs);
     setShowAddModal(true);
   };
 
   const handleSubmit = () => {
+    // Проверяем ошибки распределения инвестиций
+    const newErrors = {};
+    (formData.linked_investment_ids || []).forEach(id => {
+      const err = validateInvestmentAmount(id, investmentAmounts[id] || '');
+      if (err) newErrors[id] = err;
+    });
+    setInvestmentErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
     const data = {
       ...formData, target_amount: parseFloat(formData.target_amount),
       current_amount: parseFloat(formData.current_amount) || 0,
@@ -270,6 +287,34 @@ export default function Goals() {
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(amount);
+  };
+
+  // Сколько каждой инвестиции уже распределено по ДРУГИМ целям
+  const allGoals = [...myGoals, ...sharedGoals];
+  const investmentAllocatedMap = {};
+  allGoals.forEach(g => {
+    if (editGoal && g.id === editGoal.id) return; // не считаем текущую редактируемую цель
+    (g.linked_investment_amounts || []).forEach(item => {
+      if (!item.investment_id) return;
+      investmentAllocatedMap[item.investment_id] = (investmentAllocatedMap[item.investment_id] || 0) + (item.amount || 0);
+    });
+  });
+  const getInvestmentValue = (inv) =>
+    inv.type === 'deposit'
+      ? (inv.current_price || inv.purchase_price)
+      : (inv.quantity || 0) * (inv.current_price || inv.purchase_price);
+
+  const validateInvestmentAmount = (invId, amountStr) => {
+    const inv = investments.find(i => i.id === invId);
+    if (!inv) return '';
+    const entered = parseFloat(amountStr) || 0;
+    const fullValue = getInvestmentValue(inv);
+    const allocatedElsewhere = investmentAllocatedMap[invId] || 0;
+    const maxAvailable = Math.max(0, fullValue - allocatedElsewhere);
+    if (entered > maxAvailable) {
+      return `Максимум ${maxAvailable.toFixed(0)} ₽ — остальное уже распределено по другим целям`;
+    }
+    return '';
   };
 
   const rawDisplayGoals = viewMode === 'personal' ? myGoals : sharedGoals;
@@ -468,11 +513,23 @@ export default function Goals() {
                           <span className="text-xs text-slate-400">{formatCurrency(invValue)}</span>
                         </label>
                         {isChecked && (
-                          <div className="flex items-center gap-2 mt-2 pl-6">
-                            <span className="text-xs text-slate-500 whitespace-nowrap">Считать для цели:</span>
-                            <Input type="number" value={investmentAmounts[inv.id] || ''} onChange={(e) => setInvestmentAmounts({ ...investmentAmounts, [inv.id]: e.target.value })}
-                              placeholder={invValue.toFixed(0)} className="h-8 text-sm rounded-lg max-w-32" />
-                            <span className="text-xs text-slate-400">₽</span>
+                          <div className="mt-2 pl-6">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-slate-500 whitespace-nowrap">Считать для цели:</span>
+                              <Input type="number" value={investmentAmounts[inv.id] || ''} onChange={(e) => {
+                                const val = e.target.value;
+                                setInvestmentAmounts({ ...investmentAmounts, [inv.id]: val });
+                                setInvestmentErrors({ ...investmentErrors, [inv.id]: validateInvestmentAmount(inv.id, val) });
+                              }}
+                                placeholder={invValue.toFixed(0)} className="h-8 text-sm rounded-lg max-w-32" />
+                              <span className="text-xs text-slate-400">₽</span>
+                            </div>
+                            {investmentErrors[inv.id] && (
+                              <p className="text-xs text-rose-500 mt-1">{investmentErrors[inv.id]}</p>
+                            )}
+                            {(investmentAllocatedMap[inv.id] || 0) > 0 && !investmentErrors[inv.id] && (
+                              <p className="text-xs text-slate-400 mt-0.5">Уже в других целях: {(investmentAllocatedMap[inv.id]).toFixed(0)} ₽</p>
+                            )}
                           </div>
                         )}
                       </div>
