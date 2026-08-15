@@ -38,6 +38,8 @@ export default function GoalsPieChart({ goals, formatCurrency }) {
               ))}
             </Pie>
             <Tooltip
+              offset={20}
+              wrapperStyle={{ zIndex: 1000 }}
               formatter={(value, name, props) => [
                 `${formatCurrency(value)} из ${formatCurrency(props.payload.target)}`,
                 name
@@ -49,6 +51,8 @@ export default function GoalsPieChart({ goals, formatCurrency }) {
                 color: 'hsl(var(--popover-foreground))',
                 fontSize: '12px',
                 padding: '8px 12px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+                opacity: 1,
               }}
               labelStyle={{
                 color: 'hsl(var(--popover-foreground))',
