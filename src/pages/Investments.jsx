@@ -198,20 +198,34 @@ export default function Investments() {
     if (!topUpInvestment || !topUpAmount) return;
     const amount = parseFloat(topUpAmount);
     if (amount <= 0) return;
-    // Пополнение вклада: увеличиваем количество по текущей цене
+    const isDeposit = topUpInvestment.type === 'deposit';
     const currentPrice = topUpInvestment.current_price || topUpInvestment.purchase_price;
-    const addedQty = amount / currentPrice;
-    const newQuantity = topUpInvestment.quantity + addedQty;
-    // Обновляем среднюю цену покупки
-    const newPurchasePrice = (topUpInvestment.quantity * topUpInvestment.purchase_price + amount) / newQuantity;
-    await topUpMutation.mutateAsync({
-      id: topUpInvestment.id,
-      data: {
-        quantity: newQuantity,
-        purchase_price: newPurchasePrice,
-        current_price: currentPrice
-      }
-    });
+    if (isDeposit) {
+      // Для вкладов: current_price = текущая сумма, purchase_price = стартовая сумма
+      const newCurrent = (topUpInvestment.current_price || topUpInvestment.purchase_price) + amount;
+      const newPurchase = topUpInvestment.purchase_price + amount;
+      await topUpMutation.mutateAsync({
+        id: topUpInvestment.id,
+        data: {
+          quantity: newPurchase,
+          purchase_price: newPurchase,
+          current_price: newCurrent
+        }
+      });
+    } else {
+      // Для обычных активов: пересчёт количества и средней цены
+      const addedQty = amount / currentPrice;
+      const newQuantity = topUpInvestment.quantity + addedQty;
+      const newPurchasePrice = (topUpInvestment.quantity * topUpInvestment.purchase_price + amount) / newQuantity;
+      await topUpMutation.mutateAsync({
+        id: topUpInvestment.id,
+        data: {
+          quantity: newQuantity,
+          purchase_price: newPurchasePrice,
+          current_price: currentPrice
+        }
+      });
+    }
   };
 
   const formatCurrency = (amount) => {
@@ -228,17 +242,17 @@ export default function Investments() {
     : investments;
 
   const totalValue = displayedInvestments.reduce((sum, inv) => 
-    sum + (inv.quantity * (inv.current_price || inv.purchase_price)), 0
+    sum + (inv.type === 'deposit' ? (inv.current_price || inv.purchase_price) : inv.quantity * (inv.current_price || inv.purchase_price)), 0
   );
   const totalCost = displayedInvestments.reduce((sum, inv) => 
-    sum + (inv.quantity * inv.purchase_price), 0
+    sum + (inv.type === 'deposit' ? inv.purchase_price : inv.quantity * inv.purchase_price), 0
   );
   const totalProfit = totalValue - totalCost;
   const profitPercent = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
 
   const portfolioByType = displayedInvestments.reduce((acc, inv) => {
     const type = inv.type;
-    const value = inv.quantity * (inv.current_price || inv.purchase_price);
+    const value = inv.type === 'deposit' ? (inv.current_price || inv.purchase_price) : inv.quantity * (inv.current_price || inv.purchase_price);
     const typeInfo = INVESTMENT_TYPES.find(t => t.value === type) || INVESTMENT_TYPES[7];
     if (!acc[type]) {
       acc[type] = { name: typeInfo.label, value: 0, color: typeInfo.color, icon: typeInfo.icon };
@@ -373,9 +387,10 @@ export default function Investments() {
           <div className="space-y-4">
             {displayedInvestments.map((investment, index) => {
               const typeInfo = INVESTMENT_TYPES.find(t => t.value === investment.type) || INVESTMENT_TYPES[7];
+              const isDepositItem = investment.type === 'deposit';
               const currentPrice = investment.current_price || investment.purchase_price;
-              const value = investment.quantity * currentPrice;
-              const cost = investment.quantity * investment.purchase_price;
+              const value = isDepositItem ? currentPrice : investment.quantity * currentPrice;
+              const cost = isDepositItem ? investment.purchase_price : investment.quantity * investment.purchase_price;
               const profit = value - cost;
               const profitPct = cost > 0 ? (profit / cost) * 100 : 0;
               const isEditable = investment.created_by_id === currentUser?.id;
@@ -417,7 +432,10 @@ export default function Investments() {
                               )}
                             </div>
                             <p className="text-sm text-slate-500 dark:text-slate-400">
-                              {investment.quantity.toFixed(isDeposit ? 2 : 0)} {isDeposit ? '₽' : 'шт.'} × {formatCurrency(currentPrice)}
+                              {isDepositItem
+                                ? `Вклад: ${formatCurrency(investment.purchase_price)}`
+                                : `${investment.quantity.toFixed(0)} шт. × ${formatCurrency(currentPrice)}`
+                              }
                             </p>
                             <CreatorTag creatorId={investment.created_by_id} family={family} currentUser={currentUser} className="mt-0.5" />
                           </div>
