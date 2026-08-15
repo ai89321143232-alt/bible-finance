@@ -51,6 +51,7 @@ export default function Transactions() {
   const [user, setUser] = useState(null);
   const [openSwipeId, setOpenSwipeId] = useState(null);
   const [showOnlyMine, setShowOnlyMine] = useState(false);
+  const [ownerFilter, setOwnerFilter] = useState('all');
   const activeWorkspaceId = useActiveWorkspaceId();
 
   useEffect(() => {
@@ -126,9 +127,16 @@ export default function Transactions() {
   };
 
   const isFamilyTier = family?.subscription_tier === 'family' || family?.subscription_tier === 'premium';
-  const displayedTransactions = (showOnlyMine && isFamilyTier)
-    ? transactions.filter(t => t.created_by_id === user?.id || t.user_id === user?.id)
-    : transactions;
+  const familyMemberIds = (family?.members || []).map(m => m.user_id).filter(id => id && id !== user?.id);
+  const displayedTransactions = transactions.filter(t => {
+    if (showOnlyMine && isFamilyTier) {
+      return t.created_by_id === user?.id || t.user_id === user?.id;
+    }
+    if (ownerFilter === 'mine') return t.created_by_id === user?.id || t.user_id === user?.id;
+    if (ownerFilter === 'family') return t.family_id && family?.id && t.family_id === family.id && (t.created_by_id === user?.id || t.user_id === user?.id);
+    if (ownerFilter === 'others') return familyMemberIds.includes(t.created_by_id || t.user_id);
+    return true;
+  });
 
   const filteredTransactions = displayedTransactions.filter(t => {
     const date = new Date(t.date);
@@ -214,6 +222,14 @@ export default function Transactions() {
               <option key={cat} value={cat}>{CATEGORY_ICONS[cat]} {cat}</option>
             ))}
           </MobileSelect>
+          {family && (
+            <MobileSelect value={ownerFilter} onValueChange={setOwnerFilter} placeholder="Чьи" title="Чьи операции" triggerClassName="w-36 rounded-xl text-slate-900 dark:text-white">
+              <option value="all">Все операции</option>
+              <option value="mine">Только мои</option>
+              <option value="family">Семейные</option>
+              <option value="others">Другие члены</option>
+            </MobileSelect>
+          )}
         </div>
 
         <div className="space-y-6" onClick={() => setOpenSwipeId(null)}>

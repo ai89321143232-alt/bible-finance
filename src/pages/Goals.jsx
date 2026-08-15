@@ -40,6 +40,7 @@ import PullToRefresh from '@/components/PullToRefresh';
 import MobileSelect from '@/components/mobile/MobileSelect';
 import MobilePopover from '@/components/mobile/MobilePopover';
 import { useAuth } from '@/lib/AuthContext';
+import FamilyVisibilityToggle from '@/components/shared/FamilyVisibilityToggle';
 
 const GOAL_TYPES = [
   { value: 'savings', label: 'Накопления', icon: '💰', color: '#10B981' },
@@ -65,6 +66,7 @@ export default function Goals() {
   const [spendDescription, setSpendDescription] = useState('');
   const [selectedAccount, setSelectedAccount] = useState('');
   const [viewMode, setViewMode] = useState('personal');
+  const [showOnlyMine, setShowOnlyMine] = useState(false);
   const [shareWithUsers, setShareWithUsers] = useState([]);
 
   const [formData, setFormData] = useState({
@@ -270,7 +272,10 @@ export default function Goals() {
     return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(amount);
   };
 
-  const displayGoals = viewMode === 'personal' ? myGoals : sharedGoals;
+  const rawDisplayGoals = viewMode === 'personal' ? myGoals : sharedGoals;
+  const displayGoals = (showOnlyMine && viewMode === 'family')
+    ? rawDisplayGoals.filter(g => g.created_by_id === user?.id)
+    : rawDisplayGoals;
   const activeGoals = displayGoals.filter(g => g.status === 'active');
   const completedGoals = displayGoals.filter(g => g.status === 'completed');
   const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
@@ -291,6 +296,9 @@ export default function Goals() {
           <div className="flex items-center justify-between gap-2">
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Цели</h1>
             <div className="flex items-center gap-2">
+              {family && viewMode === 'family' && (
+                <FamilyVisibilityToggle showOnlyMine={showOnlyMine} onToggle={() => setShowOnlyMine(v => !v)} />
+              )}
               <span className="hidden sm:block"><CalendarExport budgets={[]} goals={myGoals} accounts={accounts} /></span>
               <Button onClick={() => setShowAddModal(true)} size="sm" className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl">
                 <Plus className="w-4 h-4" /><span className="ml-1">Создать</span>
