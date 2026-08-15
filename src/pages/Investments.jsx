@@ -38,6 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { INVESTMENT_CATEGORY } from '@/lib/investmentConstants';
 
 const INVESTMENT_TYPES = [
   { value: 'stocks', label: 'Акции', icon: '📈', color: '#8B5CF6' },
@@ -53,7 +54,8 @@ const INVESTMENT_TYPES = [
 const INITIAL_FORM = {
   name: '', type: 'stocks', ticker: '', quantity: '', purchase_price: '',
   current_price: '', broker: '', interest_rate: '', maturity_date: null,
-  allows_top_up: false
+  allows_top_up: false,
+  account_id: '', deduct_from_account: false
 };
 
 export default function Investments() {
@@ -69,6 +71,12 @@ export default function Investments() {
   const { data: investments = [], isLoading } = useQuery({
     queryKey: ['investments'],
     queryFn: () => InvestmentService.list()
+  });
+
+  const { data: accounts = [] } = useQuery({
+    queryKey: ['accounts'],
+    queryFn: () => base44.entities.Account.list(),
+    enabled: !!currentUser
   });
 
   const [currentUser, setCurrentUser] = useState(null);
@@ -91,9 +99,17 @@ export default function Investments() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => InvestmentService.create(data),
+    mutationFn: (data) => {
+      const { account_id, deduct_from_account, ...investmentData } = data;
+      return InvestmentService.createWithTransaction(investmentData, {
+        account_id,
+        create_transaction: deduct_from_account && !!account_id
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['investments'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       resetForm();
     }
   });
@@ -148,17 +164,28 @@ export default function Investments() {
 
   const handleSubmit = async () => {
     const payload = {
-      ...formData,
+      name: formData.name,
+      type: formData.type,
+      ticker: formData.ticker || undefined,
       quantity: parseFloat(formData.quantity),
       purchase_price: parseFloat(formData.purchase_price),
       current_price: parseFloat(formData.current_price) || parseFloat(formData.purchase_price),
+      broker: formData.broker || undefined,
       interest_rate: formData.type === 'deposit' ? parseFloat(formData.interest_rate) || 0 : undefined,
       maturity_date: formData.type === 'deposit' && formData.maturity_date
         ? format(formData.maturity_date, 'yyyy-MM-dd') : null,
-      allows_top_up: formData.type === 'deposit' ? formData.allows_top_up : false
+      allows_top_up: formData.type === 'deposit' ? formData.allows_top_up : false,
+      account_id: formData.account_id || undefined,
+      deduct_from_account: formData.deduct_from_account
     };
     if (editInvestment) {
-      await updateMutation.mutateAsync({ id: editInvestment.id, data: payload });
+      await updateMutation.mutateAsync({ id: editInvestment.id, data: {
+        name: payload.name, type: payload.type, ticker: payload.ticker,
+        quantity: payload.quantity, purchase_price: payload.purchase_price,
+        current_price: payload.current_price, broker: payload.broker,
+        interest_rate: payload.interest_rate, maturity_date: payload.maturity_date,
+        allows_top_up: payload.allows_top_up
+      }});
     } else {
       await createMutation.mutateAsync(payload);
     }
@@ -633,6 +660,45 @@ export default function Investments() {
                 className="rounded-xl mt-1"
               />
             </div>
+            {/* Account selection for deducting purchase cost */}
+            {!editInvestment && accounts.length > 0 && (
+              <div className="space-y-2 p-3 rounded-xl bg-violet-50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-900/20">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.deduct_from_account}
+                    onChange={(e) => setFormData({ ...formData, deduct_from_account: e.target.checked })}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-slate-700 dark:text-slate-300">
+                    Списать стоимость покупки со счёта
+                  </span>
+                </label>
+                {formData.deduct_from_account && (
+                  <div>
+                    <Label>Счёт списания</Label>
+                    <Select
+                      value={formData.account_id}
+                      onValueChange={(v) => setFormData({ ...formData, account_id: v })}
+                    >
+                      <SelectTrigger className="rounded-xl mt-1">
+                        <SelectValue placeholder="Выберите счёт" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accounts.map(acc => (
+                          <SelectItem key={acc.id} value={acc.id}>
+                            {acc.name} · {formatCurrency(acc.balance || 0)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Будет создана транзакция-расход в категории «{INVESTMENT_CATEGORY}», которая не влияет на статистику повседневных трат.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
             <Button
               onClick={handleSubmit}
               disabled={!formData.name || !formData.quantity || !formData.purchase_price || createMutation.isPending || updateMutation.isPending}

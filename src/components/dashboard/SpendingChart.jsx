@@ -5,6 +5,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 import { PieChart as PieIcon, BarChart2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, addWeeks, subWeeks, addMonths, subMonths, addYears, subYears } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { INVESTMENT_CATEGORY } from '@/lib/investmentConstants';
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#e11d48', '#d946ef', '#0ea5e9', '#f97316'];
 
@@ -78,7 +79,7 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
   };
 
   const expensesByCategory = periodTransactions
-    .filter(t => t.type === 'expense')
+    .filter(t => t.type === 'expense' && t.category !== INVESTMENT_CATEGORY)
     .reduce((acc, t) => {
       const cat = t.category || 'Другое';
       acc[cat] = (acc[cat] || 0) + t.amount;

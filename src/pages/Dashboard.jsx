@@ -40,6 +40,7 @@ import PullToRefresh from '@/components/PullToRefresh';
 import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/WorkspaceContext';
 import MemberAvatar from '@/components/family/MemberAvatar';
 import MemberSpendingBreakdown from '@/components/dashboard/MemberSpendingBreakdown';
+import { INVESTMENT_CATEGORY } from '@/lib/investmentConstants';
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -310,7 +311,7 @@ export default function Dashboard() {
   reduce((sum, t) => sum + t.amount, 0);
 
   const monthExpenses = monthTransactions.
-  filter((t) => t.type === 'expense').
+  filter((t) => t.type === 'expense' && t.category !== INVESTMENT_CATEGORY).
   reduce((sum, t) => sum + t.amount, 0);
 
   // Личный режим: только мои инвестиции. Семейный режим: все инвестиции (мои + семьи), как раньше.
