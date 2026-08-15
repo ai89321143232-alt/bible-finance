@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { INVESTMENT_CATEGORY } from '@/lib/investmentConstants';
+import FamilyVisibilityToggle from '@/components/shared/FamilyVisibilityToggle';
 
 const INVESTMENT_TYPES = [
   { value: 'stocks', label: 'Акции', icon: '📈', color: '#8B5CF6' },
@@ -65,6 +66,7 @@ export default function Investments() {
   const [deleteId, setDeleteId] = useState(null);
   const [topUpInvestment, setTopUpInvestment] = useState(null);
   const [topUpAmount, setTopUpAmount] = useState('');
+  const [showOnlyMine, setShowOnlyMine] = useState(false);
 
   const [formData, setFormData] = useState({ ...INITIAL_FORM });
 
@@ -220,16 +222,21 @@ export default function Investments() {
     }).format(amount);
   };
 
-  const totalValue = investments.reduce((sum, inv) => 
+  const isFamilyTier = family?.subscription_tier === 'family' || family?.subscription_tier === 'premium';
+  const displayedInvestments = (showOnlyMine && isFamilyTier && currentUser)
+    ? investments.filter(inv => inv.created_by_id === currentUser.id || inv.user_id === currentUser.id)
+    : investments;
+
+  const totalValue = displayedInvestments.reduce((sum, inv) => 
     sum + (inv.quantity * (inv.current_price || inv.purchase_price)), 0
   );
-  const totalCost = investments.reduce((sum, inv) => 
+  const totalCost = displayedInvestments.reduce((sum, inv) => 
     sum + (inv.quantity * inv.purchase_price), 0
   );
   const totalProfit = totalValue - totalCost;
   const profitPercent = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
 
-  const portfolioByType = investments.reduce((acc, inv) => {
+  const portfolioByType = displayedInvestments.reduce((acc, inv) => {
     const type = inv.type;
     const value = inv.quantity * (inv.current_price || inv.purchase_price);
     const typeInfo = INVESTMENT_TYPES.find(t => t.value === type) || INVESTMENT_TYPES[7];
@@ -251,16 +258,24 @@ export default function Investments() {
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-between mb-6 relative z-10"
         >
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-            Инвестиции
-          </h1>
-          <Button
-            onClick={() => setShowAddModal(true)}
-            className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Добавить
-          </Button>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+              Инвестиции
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{displayedInvestments.length} {displayedInvestments.length === 1 ? 'актив' : 'активов'}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {isFamilyTier && (
+              <FamilyVisibilityToggle showOnlyMine={showOnlyMine} onToggle={() => setShowOnlyMine(v => !v)} />
+            )}
+            <Button
+              onClick={() => setShowAddModal(true)}
+              className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Добавить
+            </Button>
+          </div>
         </motion.div>
 
         {/* Portfolio Overview */}
@@ -354,9 +369,9 @@ export default function Investments() {
         </motion.div>
 
         {/* Investments List */}
-        {investments.length > 0 ? (
+        {displayedInvestments.length > 0 ? (
           <div className="space-y-4">
-            {investments.map((investment, index) => {
+            {displayedInvestments.map((investment, index) => {
               const typeInfo = INVESTMENT_TYPES.find(t => t.value === investment.type) || INVESTMENT_TYPES[7];
               const currentPrice = investment.current_price || investment.purchase_price;
               const value = investment.quantity * currentPrice;

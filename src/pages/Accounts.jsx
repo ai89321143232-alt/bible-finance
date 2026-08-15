@@ -291,15 +291,21 @@ export default function Accounts() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
         {/* Header */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-between mb-6"
         >
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-            Счета
-          </h1>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+              Счета
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{displayedAccounts.length} {displayedAccounts.length === 1 ? 'счёт' : 'счёта'}</p>
+          </div>
           <div className="flex items-center gap-2">
+            {isFamilyTier && (
+              <FamilyVisibilityToggle showOnlyMine={showOnlyMine} onToggle={() => setShowOnlyMine(v => !v)} />
+            )}
             {isFamilyTier && (
               <FamilyVisibilityToggle showOnlyMine={showOnlyMine} onToggle={() => setShowOnlyMine(v => !v)} />
             )}
