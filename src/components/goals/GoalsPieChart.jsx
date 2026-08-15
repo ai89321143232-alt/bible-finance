@@ -48,6 +48,16 @@ export default function GoalsPieChart({ goals, formatCurrency }) {
                 background: 'hsl(var(--popover))',
                 color: 'hsl(var(--popover-foreground))',
                 fontSize: '12px',
+                padding: '8px 12px',
+              }}
+              labelStyle={{
+                color: 'hsl(var(--popover-foreground))',
+                fontSize: '12px',
+                fontWeight: 600,
+              }}
+              itemStyle={{
+                color: 'hsl(var(--popover-foreground))',
+                fontSize: '11px',
               }}
             />
           </PieChart>
