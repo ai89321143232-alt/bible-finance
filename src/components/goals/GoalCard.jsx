@@ -31,8 +31,18 @@ export default function GoalCard({
   investments = []
 }) {
   const typeInfo = GOAL_TYPES.find(t => t.value === goal.type) || GOAL_TYPES[5];
+
+  // --- Связанные инвестиции и вклады ---
+  const linkedInvestments = (goal.linked_investment_ids || [])
+    .map(id => investments.find(i => i.id === id))
+    .filter(Boolean);
+  const linkedInvestmentsValue = linkedInvestments.reduce((sum, inv) =>
+    sum + (inv.quantity * (inv.current_price || inv.purchase_price)), 0);
+
+  // Эффективная сумма: накопления + связанные инвестиции/вклады
+  const effectiveAmount = (goal.current_amount || 0) + linkedInvestmentsValue;
   const progress = goal.target_amount > 0
-    ? Math.min((goal.current_amount / goal.target_amount) * 100, 100)
+    ? Math.min((effectiveAmount / goal.target_amount) * 100, 100)
     : 0;
 
   const daysLeft = goal.deadline
@@ -66,13 +76,6 @@ export default function GoalCard({
     .map(id => accounts.find(a => a.id === id))
     .filter(Boolean);
   const linkedBalance = linkedAccounts.reduce((sum, a) => sum + (a.balance || 0), 0);
-
-  // --- Связанные инвестиции и вклады ---
-  const linkedInvestments = (goal.linked_investment_ids || [])
-    .map(id => investments.find(i => i.id === id))
-    .filter(Boolean);
-  const linkedInvestmentsValue = linkedInvestments.reduce((sum, inv) =>
-    sum + (inv.quantity * (inv.current_price || inv.purchase_price)), 0);
 
   const isBalanceInsufficient = linkedAccounts.length > 0 && linkedBalance < (goal.current_amount || 0);
 
@@ -154,14 +157,20 @@ export default function GoalCard({
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {formatCurrency(goal.current_amount || 0)}
+                  {formatCurrency(effectiveAmount)}
                 </p>
-                <p className="text-sm text-slate-500">
-                  {goal.type === 'debt_payoff'
-                    ? `осталось ${formatCurrency(Math.max(0, (goal.target_amount || 0) - (goal.current_amount || 0)))}`
-                    : `из ${formatCurrency(goal.target_amount)}`
-                  }
-                </p>
+                {linkedInvestmentsValue > 0 ? (
+                  <p className="text-sm text-slate-500">
+                    {formatCurrency(goal.current_amount || 0)} накоплено + {formatCurrency(linkedInvestmentsValue)} во вкладах
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-500">
+                    {goal.type === 'debt_payoff'
+                      ? `осталось ${formatCurrency(Math.max(0, (goal.target_amount || 0) - effectiveAmount))}`
+                      : `из ${formatCurrency(goal.target_amount)}`
+                    }
+                  </p>
+                )}
               </div>
               <div className="text-right">
                 <p className="text-lg font-semibold" style={{ color: typeInfo.color }}>

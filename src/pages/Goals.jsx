@@ -33,6 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import GoalCard from '@/components/goals/GoalCard';
+import GoalsPieChart from '@/components/goals/GoalsPieChart';
 import AutoDistributeModal from '@/components/goals/AutoDistributeModal';
 import SubgoalsManager from '@/components/goals/SubgoalsManager';
 import PullToRefresh from '@/components/PullToRefresh';
@@ -300,6 +301,10 @@ export default function Goals() {
         )}
 
         {activeGoals.length > 0 && (
+          <>
+          <div className="mb-6">
+            <GoalsPieChart goals={activeGoals} formatCurrency={formatCurrency} />
+          </div>
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Активные цели</h2>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -313,6 +318,7 @@ export default function Goals() {
               ))}
             </div>
           </div>
+          </>
         )}
 
         {completedGoals.length > 0 && (
