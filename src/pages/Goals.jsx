@@ -64,6 +64,7 @@ export default function Goals() {
   const [spendAmount, setSpendAmount] = useState('');
   const [spendCategory, setSpendCategory] = useState('');
   const [spendDescription, setSpendDescription] = useState('');
+  const [spendAccountId, setSpendAccountId] = useState('');
   const [selectedAccount, setSelectedAccount] = useState('');
   const [viewMode, setViewMode] = useState('personal');
   const [showOnlyMine, setShowOnlyMine] = useState(false);
@@ -257,11 +258,12 @@ export default function Goals() {
 
   const handleSpendFromGoal = async () => {
     if (!showSpendModal || !spendAmount || !spendCategory) return;
-    await GoalService.spend(showSpendModal, { amount: spendAmount, category: spendCategory, description: spendDescription });
+    await GoalService.spend(showSpendModal, { amount: spendAmount, category: spendCategory, description: spendDescription, account_id: spendAccountId || undefined });
     queryClient.invalidateQueries({ queryKey: ['my-goals'] });
     queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
-    setShowSpendModal(null); setSpendAmount(''); setSpendCategory(''); setSpendDescription('');
+    queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    setShowSpendModal(null); setSpendAmount(''); setSpendCategory(''); setSpendDescription(''); setSpendAccountId('');
   };
 
   useEffect(() => {
@@ -620,12 +622,21 @@ export default function Goals() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!showSpendModal} onOpenChange={() => { setShowSpendModal(null); setSpendAmount(''); setSpendCategory(''); setSpendDescription(''); }}>
+      <Dialog open={!!showSpendModal} onOpenChange={() => { setShowSpendModal(null); setSpendAmount(''); setSpendCategory(''); setSpendDescription(''); setSpendAccountId(''); }}>
         <DialogContent className="rounded-2xl max-w-sm">
           <DialogHeader><DialogTitle>Потратить из цели</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <p className="text-slate-500">{showSpendModal?.title}</p>
             <p className="text-sm text-slate-600">Доступно: {formatCurrency(showSpendModal?.current_amount || 0)}</p>
+            <div>
+              <Label>Счёт списания</Label>
+              <MobileSelect value={spendAccountId} onValueChange={setSpendAccountId} placeholder="Выберите счёт" title="Счёт списания" triggerClassName="rounded-xl mt-1 w-full">
+                {accounts.map(account => (
+                  <option key={account.id} value={account.id}>{account.name} — заморожено: {formatCurrency(account.frozen_amount || 0)}</option>
+                ))}
+              </MobileSelect>
+              <p className="text-xs text-slate-400 mt-1">Средства будут списаны с баланса и разморожены</p>
+            </div>
             <div>
               <Label>Сумма</Label>
               <div className="relative mt-1">

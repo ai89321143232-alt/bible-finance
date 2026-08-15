@@ -427,6 +427,12 @@ export default function Accounts() {
                       <p className={`text-2xl font-bold mb-1 ${(account.balance || 0) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
                         {formatCurrency(account.balance || 0)}
                       </p>
+                      {(account.frozen_amount || 0) > 0 && (
+                        <p className="text-xs text-amber-500 dark:text-amber-400 mb-1 flex items-center gap-1">
+                          <Lock className="w-3 h-3" />
+                          Заморожено: {formatCurrency(account.frozen_amount || 0)} • Доступно: {formatCurrency((account.balance || 0) - (account.frozen_amount || 0))}
+                        </p>
+                      )}
                       {account.type === 'credit' && account.credit_limit > 0 && (
                         <p className="text-xs text-slate-400 mb-2">
                           Лимит: {formatCurrency(account.credit_limit)} • 

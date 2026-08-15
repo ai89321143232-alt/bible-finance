@@ -19,6 +19,7 @@ export default function BalanceCard({
   const netFlow = monthIncome - monthExpenses;
   const isPositive = netFlow >= 0;
 
+  const totalFrozen = accounts.reduce((sum, a) => sum + (a.frozen_amount || 0), 0);
   const totalDebt = accounts
     .filter(a => (a.balance || 0) < 0)
     .reduce((sum, a) => sum + Math.abs(a.balance || 0), 0);
@@ -58,6 +59,11 @@ export default function BalanceCard({
           <h2 className="text-4xl sm:text-5xl font-bold text-foreground tracking-tight">
             {showBalance ? formatCurrency(totalBalance + investmentValue) : '••••••'}
           </h2>
+          {totalFrozen > 0 && (
+            <p className="text-xs text-amber-500 mt-1">
+              Заморожено под цели: {showBalance ? formatCurrency(totalFrozen) : '••••'} • Доступно: {showBalance ? formatCurrency(totalBalance - totalFrozen) : '••••'}
+            </p>
+          )}
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
               isPositive
@@ -79,7 +85,7 @@ export default function BalanceCard({
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Счета', value: formatCurrency(totalBalance), icon: Wallet, color: 'text-violet-500', bg: 'bg-violet-500/10', link: 'Accounts' },
+            { label: 'Счета', value: formatCurrency(totalBalance - totalFrozen), icon: Wallet, color: 'text-violet-500', bg: 'bg-violet-500/10', link: 'Accounts' },
             { label: 'Инвестиции', value: formatCurrency(investmentValue), icon: BarChart2, color: 'text-cyan-500', bg: 'bg-cyan-500/10', link: 'Investments' },
             { label: 'Доходы', value: formatCurrency(monthIncome), icon: ArrowUpRight, color: 'text-emerald-500', bg: 'bg-emerald-500/10', link: 'Transactions' },
             { label: 'Расходы', value: formatCurrency(monthExpenses), icon: ArrowDownRight, color: 'text-rose-500', bg: 'bg-rose-500/10', link: 'Transactions' },

@@ -71,6 +71,20 @@ export const AccountService = {
     return repo().update(accountId, { balance });
   },
 
+  /** Заморозить средства на счёте (резерв под цель, без списания с баланса). */
+  freezeAmount(accountId, frozenAmount) {
+    return repo().update(accountId, { frozen_amount: Math.max(frozenAmount, 0) });
+  },
+
+  /** Разморозить средства (при трате из цели — списываем с баланса и размораживаем). */
+  async unfreezeAndDeduct(accountId, amount) {
+    const account = await repo().get(accountId);
+    if (!account) return null;
+    const newFrozen = Math.max((account.frozen_amount || 0) - amount, 0);
+    const newBalance = (account.balance || 0) - amount;
+    return repo().update(accountId, { frozen_amount: newFrozen, balance: newBalance });
+  },
+
   /** Удалить счёт вместе со связанными транзакциями (с проверкой прав). */
   async remove(id) {
     const user = await getCurrentUser();

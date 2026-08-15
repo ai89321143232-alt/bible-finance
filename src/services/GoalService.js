@@ -58,8 +58,8 @@ export const GoalService = {
   },
 
   /**
-   * Пополнить цель: списать со счёта, увеличить накопления,
-   * создать операцию-перенос. Возвращает обновлённую цель.
+   * Пополнить цель: заморозить средства на счёте (без списания!),
+   * увеличить накопления, создать операцию-перенос для истории.
    */
   async addFunds(goal, account, amount) {
     const amt = parseFloat(amount);
@@ -67,7 +67,7 @@ export const GoalService = {
     const isCompleted = newAmount >= goal.target_amount;
 
     if (account) {
-      await AccountService.setBalance(account.id, (account.balance || 0) - amt);
+      await AccountService.freezeAmount(account.id, (account.frozen_amount || 0) + amt);
     }
     await TransactionService.createRaw({
       type: 'transfer',
@@ -87,17 +87,25 @@ export const GoalService = {
   },
 
   /**
-   * Потратить из цели: уменьшить накопления, создать операцию-расход.
+   * Потратить из цели: списать замороженные средства с баланса счёта,
+   * разморозить, уменьшить накопления, создать операцию-расход.
    */
-  async spend(goal, { amount, category, description }) {
+  async spend(goal, { amount, category, description, account_id }) {
     const amt = parseFloat(amount);
     const newAmount = Math.max((goal.current_amount || 0) - amt, 0);
+
+    if (account_id) {
+      await AccountService.unfreezeAndDeduct(account_id, amt);
+      eventBus.emit(EVENTS.ACCOUNT_CHANGED, { id: account_id, action: 'update' });
+    }
+
     await TransactionService.createRaw({
       type: 'expense',
       amount: amt,
       category,
       description: `${description || ''} (из цели: ${goal.title})`,
       date: new Date().toISOString(),
+      account_id,
     });
     return this.update(goal.id, { current_amount: newAmount }, { enrich: false });
   },

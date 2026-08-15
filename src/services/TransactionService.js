@@ -117,12 +117,17 @@ export const TransactionService = {
     const funds = validateSufficientFunds(source, amountNum);
     if (!funds.ok) return { ok: false, error: funds.error };
 
-    if (source) {
-      await AccountService.setBalance(source.id, (source.balance || 0) - amountNum);
-    }
-
     const isDestGoal = toAccountId.startsWith('goal_');
     let destName = '';
+
+    if (source) {
+      if (isDestGoal) {
+        // Перевод на цель: замораживаем средства, не списываем с баланса
+        await AccountService.freezeAmount(source.id, (source.frozen_amount || 0) + amountNum);
+      } else {
+        await AccountService.setBalance(source.id, (source.balance || 0) - amountNum);
+      }
+    }
 
     if (isDestGoal) {
       const goalId = toAccountId.replace('goal_', '');
