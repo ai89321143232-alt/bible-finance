@@ -303,10 +303,7 @@ export default function Accounts() {
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{displayedAccounts.length} {displayedAccounts.length === 1 ? 'счёт' : 'счёта'}</p>
           </div>
           <div className="flex items-center gap-2">
-            {isFamilyTier && (
-              <FamilyVisibilityToggle showOnlyMine={showOnlyMine} onToggle={() => setShowOnlyMine(v => !v)} />
-            )}
-            {isFamilyTier && (
+            {family && (
               <FamilyVisibilityToggle showOnlyMine={showOnlyMine} onToggle={() => setShowOnlyMine(v => !v)} />
             )}
             <Button

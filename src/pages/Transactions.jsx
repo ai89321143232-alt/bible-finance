@@ -166,7 +166,7 @@ export default function Transactions() {
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Операции</h1>
           <div className="flex items-center gap-2">
-            {isFamilyTier && (
+            {family && (
               <FamilyVisibilityToggle showOnlyMine={showOnlyMine} onToggle={() => setShowOnlyMine(v => !v)} />
             )}
             <Button onClick={() => setShowExportModal(true)} variant="outline" className="rounded-xl hidden sm:flex">

@@ -265,7 +265,7 @@ export default function Investments() {
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{displayedInvestments.length} {displayedInvestments.length === 1 ? 'актив' : 'активов'}</p>
           </div>
           <div className="flex items-center gap-2">
-            {isFamilyTier && (
+            {family && (
               <FamilyVisibilityToggle showOnlyMine={showOnlyMine} onToggle={() => setShowOnlyMine(v => !v)} />
             )}
             <Button
