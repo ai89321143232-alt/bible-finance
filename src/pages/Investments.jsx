@@ -73,16 +73,16 @@ export default function Investments() {
     queryFn: () => InvestmentService.list()
   });
 
+  const [currentUser, setCurrentUser] = useState(null);
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
+
   const { data: accounts = [] } = useQuery({
     queryKey: ['accounts'],
     queryFn: () => base44.entities.Account.list(),
     enabled: !!currentUser
   });
-
-  const [currentUser, setCurrentUser] = useState(null);
-  useEffect(() => {
-    base44.auth.me().then(setCurrentUser).catch(() => {});
-  }, []);
 
   const { data: family } = useQuery({
     queryKey: ['my-family', currentUser?.id],
