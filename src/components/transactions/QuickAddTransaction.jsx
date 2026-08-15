@@ -185,6 +185,17 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
     queryFn: () => base44.entities.Goal.filter({ status: 'active' })
   });
 
+  const { data: family = null } = useQuery({
+    queryKey: ['family'],
+    queryFn: async () => {
+      const user = await base44.auth.me();
+      if (!user?.family_id) return null;
+      const families = await base44.entities.Family.list();
+      return families.find(f => f.id === user.family_id) || null;
+    },
+    enabled: !!currentUser?.family_id,
+  });
+
   const { data: budgets = [] } = useQuery({
     queryKey: ['budgets'],
     queryFn: () => base44.entities.Budget.filter({ is_active: true })
@@ -601,6 +612,17 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                           {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
                         </option>
                       ))}
+                      {(accounts || []).filter(a => a.id !== accountId && !myAccounts.find(ma => ma.id === a.id) && a.family_id).map((acc) => {
+                        const memberName = acc.user_id === currentUser?.id ? 'Вы' :
+                          family?.members?.find(m => m.user_id === acc.user_id)?.display_name ||
+                          family?.members?.find(m => m.user_id === acc.user_id)?.name ||
+                          'Член семьи';
+                        return (
+                          <option key={acc.id} value={acc.id}>
+                            👤 {memberName}: {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
+                          </option>
+                        );
+                      })}
                       {goals?.length > 0 && goals.map((goal) => {
                         const progress = goal.target_amount > 0 ? Math.min((goal.current_amount / goal.target_amount) * 100, 100) : 0;
                         return (
