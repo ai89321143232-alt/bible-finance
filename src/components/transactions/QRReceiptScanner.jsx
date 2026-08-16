@@ -31,7 +31,13 @@ function parseReceiptQR(text) {
 export default function QRReceiptScanner({ onDataExtracted, onClose }) {
   const videoRef = useRef(null);
   const scannerRef = useRef(null);
+  const callbackRef = useRef(onDataExtracted);
   const [error, setError] = useState('');
+
+  // Обновляем ref-колбэк без перезапуска камеры
+  useEffect(() => {
+    callbackRef.current = onDataExtracted;
+  }, [onDataExtracted]);
 
   useEffect(() => {
     if (!videoRef.current) return;
@@ -43,7 +49,7 @@ export default function QRReceiptScanner({ onDataExtracted, onClose }) {
         const parsed = parseReceiptQR(raw);
         if (parsed) {
           scanner.stop();
-          onDataExtracted({
+          callbackRef.current({
             amount: parsed.amount,
             date: parsed.date ? parsed.date.toISOString() : undefined,
             description: 'Чек по QR-коду',
@@ -62,7 +68,7 @@ export default function QRReceiptScanner({ onDataExtracted, onClose }) {
       scanner.stop();
       scanner.destroy();
     };
-  }, [onDataExtracted]);
+  }, []);
 
   return (
     <div className="fixed inset-0 bg-black z-[60] flex flex-col">
