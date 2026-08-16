@@ -41,6 +41,9 @@ import MobileSelect from '@/components/mobile/MobileSelect';
 import MobilePopover from '@/components/mobile/MobilePopover';
 import { useAuth } from '@/lib/AuthContext';
 import FamilyVisibilityToggle from '@/components/shared/FamilyVisibilityToggle';
+import { getCategoryEmoji } from '@/lib/categoryIcon';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 
 const GOAL_TYPES = [
   { value: 'savings', label: 'Накопления', icon: '💰', color: '#10B981' },
@@ -645,10 +648,15 @@ export default function Goals() {
               </div>
             </div>
             <div>
-              <Label>Категория расхода</Label>
+              <div className="flex items-center justify-between">
+                <Label>Категория расхода</Label>
+                <Link to={createPageUrl('Categories')} className="text-xs text-violet-600 hover:underline">
+                  + Добавить категорию
+                </Link>
+              </div>
               <MobileSelect value={spendCategory} onValueChange={setSpendCategory} placeholder="Выберите категорию" title="Категория" triggerClassName="rounded-xl mt-1 w-full">
                 {categories.map(cat => (
-                  <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  <option key={cat.id} value={cat.name}>{getCategoryEmoji(cat.icon)} {cat.name}</option>
                 ))}
               </MobileSelect>
             </div>
