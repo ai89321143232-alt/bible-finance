@@ -23,6 +23,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import MobileSelect from '@/components/mobile/MobileSelect';
+import PullToRefresh from '@/components/PullToRefresh';
 import {
   Dialog,
   DialogContent,
@@ -350,6 +352,11 @@ export default function Budgets() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <PullToRefresh onRefresh={async () => {
+        await queryClient.invalidateQueries({ queryKey: ['my-budgets'] });
+        await queryClient.invalidateQueries({ queryKey: ['shared-budgets'] });
+        await queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
         {/* Header */}
         <motion.div 
@@ -489,6 +496,7 @@ export default function Budgets() {
           </div>
         )}
       </div>
+      </PullToRefresh>
 
       {/* Add/Edit Modal */}
       <Dialog open={showAddModal} onOpenChange={() => resetForm()}>
@@ -558,20 +566,17 @@ export default function Budgets() {
             </div>
             <div>
               <Label>Период</Label>
-              <Select 
-                value={formData.period} 
+              <MobileSelect
+                value={formData.period}
                 onValueChange={(v) => setFormData({ ...formData, period: v })}
+                triggerClassName="w-full h-12 rounded-xl mt-1"
+                title="Период"
               >
-                <SelectTrigger className="rounded-xl mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="weekly">Неделя</SelectItem>
-                  <SelectItem value="monthly">Месяц</SelectItem>
-                  <SelectItem value="quarterly">Квартал</SelectItem>
-                  <SelectItem value="yearly">Год</SelectItem>
-                </SelectContent>
-              </Select>
+                <SelectItem value="weekly">Неделя</SelectItem>
+                <SelectItem value="monthly">Месяц</SelectItem>
+                <SelectItem value="quarterly">Квартал</SelectItem>
+                <SelectItem value="yearly">Год</SelectItem>
+              </MobileSelect>
             </div>
 
             {family && (

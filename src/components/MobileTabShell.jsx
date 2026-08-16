@@ -68,7 +68,12 @@ export default function MobileTabShell({ initialTab = 0 }) {
       </div>
 
       {/* Bottom Tab Bar — floating, shared across all pages */}
-      <BottomTabBar activeIndex={activeTab} onTabClick={(index, path) => navigate(path)} />
+      <BottomTabBar activeIndex={activeTab} onTabClick={(index, path) => {
+        if (index === activeTab) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        navigate(path);
+      }} />
     </div>
   );
 }

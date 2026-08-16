@@ -16,7 +16,7 @@
 //    отдельным <Route> в этом файле (loop из pagesConfig не подхватит их автоматически).
 // ============================================================
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -26,19 +26,19 @@ import { BrowserRouter as Router, Route, Routes, Navigate, useNavigate, useLocat
 import { AnimatePresence, motion } from 'framer-motion';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import Onboarding from './pages/Onboarding';
-import HelpCenter from './pages/HelpCenter';
-import DebtAnalytics from './pages/DebtAnalytics';
-import Education from './pages/Education';
-import EducationLesson from './pages/EducationLesson';
-import FamilyChat from './pages/FamilyChat';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import PrivacyPolicy from './pages/PrivacyPolicy';
+const Login = React.lazy(() => import('./pages/Login'));
+const Register = React.lazy(() => import('./pages/Register'));
+const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = React.lazy(() => import('./pages/ResetPassword'));
+const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
+const Onboarding = React.lazy(() => import('./pages/Onboarding'));
+const HelpCenter = React.lazy(() => import('./pages/HelpCenter'));
+const DebtAnalytics = React.lazy(() => import('./pages/DebtAnalytics'));
+const Education = React.lazy(() => import('./pages/Education'));
+const EducationLesson = React.lazy(() => import('./pages/EducationLesson'));
+const FamilyChat = React.lazy(() => import('./pages/FamilyChat'));
 import SplashScreen from './components/SplashScreen';
 import GlobalCacheSync from './components/GlobalCacheSync';
 import BackgroundLayer from './components/BackgroundLayer';
@@ -80,11 +80,12 @@ const AuthenticatedApp = () => {
     <AnimatePresence mode="wait">
       <motion.div
         key={location.pathname}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -20 }}
         transition={{ duration: 0.2, ease: 'easeInOut' }}
       >
+    <Suspense fallback={<div className="fixed inset-0 flex items-center justify-center"><div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div></div>}>
     <Routes location={location}>
       {/* Auth routes — public */}
       <Route path="/login" element={<Login />} />
@@ -130,6 +131,7 @@ const AuthenticatedApp = () => {
       {/* 404 */}
       <Route path="*" element={<PageNotFound />} />
     </Routes>
+    </Suspense>
       </motion.div>
     </AnimatePresence>
     </>

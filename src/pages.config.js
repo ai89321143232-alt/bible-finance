@@ -47,29 +47,30 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
-import AIAdvisors from './pages/AIAdvisors';
-import AIAssistant from './pages/AIAssistant';
-import Accounts from './pages/Accounts';
-import Admin from './pages/Admin';
-import Analytics from './pages/Analytics';
-import Backup from './pages/Backup';
-import BackupReports from './pages/BackupReports';
-import Budgets from './pages/Budgets';
-import Categories from './pages/Categories';
-import ChildExpenses from './pages/ChildExpenses';
-import CleanupDuplicates from './pages/CleanupDuplicates';
-import Dashboard from './pages/Dashboard';
-import Family from './pages/Family';
-import FamilyFinances from './pages/FamilyFinances';
-import FinancialPlanning from './pages/FinancialPlanning';
-import Goals from './pages/Goals';
-import Investments from './pages/Investments';
-import Notes from './pages/Notes';
-import Referral from './pages/Referral';
-import Settings from './pages/Settings';
-import Subscription from './pages/Subscription';
-import Tasks from './pages/Tasks';
-import Transactions from './pages/Transactions';
+import React from 'react';
+const AIAdvisors = React.lazy(() => import('./pages/AIAdvisors'));
+const AIAssistant = React.lazy(() => import('./pages/AIAssistant'));
+const Accounts = React.lazy(() => import('./pages/Accounts'));
+const Admin = React.lazy(() => import('./pages/Admin'));
+const Analytics = React.lazy(() => import('./pages/Analytics'));
+const Backup = React.lazy(() => import('./pages/Backup'));
+const BackupReports = React.lazy(() => import('./pages/BackupReports'));
+const Budgets = React.lazy(() => import('./pages/Budgets'));
+const Categories = React.lazy(() => import('./pages/Categories'));
+const ChildExpenses = React.lazy(() => import('./pages/ChildExpenses'));
+const CleanupDuplicates = React.lazy(() => import('./pages/CleanupDuplicates'));
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Family = React.lazy(() => import('./pages/Family'));
+const FamilyFinances = React.lazy(() => import('./pages/FamilyFinances'));
+const FinancialPlanning = React.lazy(() => import('./pages/FinancialPlanning'));
+const Goals = React.lazy(() => import('./pages/Goals'));
+const Investments = React.lazy(() => import('./pages/Investments'));
+const Notes = React.lazy(() => import('./pages/Notes'));
+const Referral = React.lazy(() => import('./pages/Referral'));
+const Settings = React.lazy(() => import('./pages/Settings'));
+const Subscription = React.lazy(() => import('./pages/Subscription'));
+const Tasks = React.lazy(() => import('./pages/Tasks'));
+const Transactions = React.lazy(() => import('./pages/Transactions'));
 import __Layout from './Layout.jsx';
 
 
