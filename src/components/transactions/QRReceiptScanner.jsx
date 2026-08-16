@@ -80,7 +80,7 @@ export default function QRReceiptScanner({ onDataExtracted, onClose }) {
         </button>
       </div>
       <div className="flex-1 relative overflow-hidden">
-        <video ref={videoRef} className="w-full h-full object-cover" />
+        <video ref={videoRef} className="w-full h-full object-cover" playsInline muted autoPlay />
       </div>
       {error && (
         <div className="p-4 bg-black">
