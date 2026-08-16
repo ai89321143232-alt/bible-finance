@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { sendPushToUser } from '../../shared/webPush.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -51,6 +52,14 @@ Deno.serve(async (req) => {
       to: owner.email,
       subject: `⚠️ Бюджет "${data.name}" — использовано ${Math.round(pct)}%`,
       body
+    });
+
+    // Push-уведомление: Web Push (PWA — Safari/Chrome) + нативный push (APK)
+    await sendPushToUser(base44, ownerId, {
+      title: `⚠️ Бюджет "${data.name}"`,
+      body: `Использовано ${Math.round(pct)}% по категории "${categories}" (${spent.toLocaleString('ru-RU')} из ${limit.toLocaleString('ru-RU')} ${data.currency || 'RUB'})`,
+      tag: `budget-${data.id}`,
+      data: { url: '/Budgets' }
     });
 
     await base44.asServiceRole.entities.Budget.update(data.id, { notification_sent: true });

@@ -40,6 +40,7 @@ const Education = React.lazy(() => import('./pages/Education'));
 const EducationLesson = React.lazy(() => import('./pages/EducationLesson'));
 const FamilyChat = React.lazy(() => import('./pages/FamilyChat'));
 import SplashScreen from './components/SplashScreen';
+import PushNotificationManager from '@/components/PushNotificationManager';
 import GlobalCacheSync from './components/GlobalCacheSync';
 import BackgroundLayer from './components/BackgroundLayer';
 import { useFontScale } from '@/hooks/useFontScale';
@@ -148,6 +149,7 @@ function App() {
       <QueryClientProvider client={queryClientInstance}>
         <GlobalCacheSync />
         <SplashScreen onFinish={() => setSplashDone(true)} />
+        <PushNotificationManager />
         {splashDone && (
           <Router>
             <NavigationTracker />
