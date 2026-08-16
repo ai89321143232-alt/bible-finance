@@ -501,7 +501,7 @@ export default function Budgets() {
             </div>
             <div>
               <Label>Категории расходов (можно выбрать несколько)</Label>
-              <div className="grid grid-cols-3 gap-2 mt-2 max-h-60 overflow-y-auto">
+              <div className="grid grid-cols-3 gap-2 mt-2 max-h-[50vh] overflow-y-auto">
                 {expenseCategories.length > 0 ? expenseCategories.map(cat => {
                   const isSelected = formData.categories.includes(cat.name);
                   return (
