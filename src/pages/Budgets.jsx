@@ -162,11 +162,20 @@ export default function Budgets() {
   });
 
   // Все категории расходов пользователя (включая непривязанные к бюджетам)
-  const { data: expenseCategories = [] } = useQuery({
+  const { data: dbCategories = [] } = useQuery({
     queryKey: ['categories', 'expense'],
     queryFn: () => base44.entities.Category.filter({ type: 'expense' }),
     staleTime: 30000
   });
+
+  // Объединяем встроенный список (одинаков для всех) с пользовательскими категориями из БД.
+  // Это устраняет разницу между админом (видит все) и обычным пользователем (видит только свои + системные).
+  const expenseCategories = [
+    ...BUDGET_CATEGORIES.map(c => ({ name: c.value, icon: c.icon, color: c.color, id: `builtin-${c.value}` })),
+    ...dbCategories
+      .filter(c => c.name && !BUDGET_CATEGORIES.some(bc => bc.value === c.name))
+      .map(c => ({ name: c.name, icon: c.icon, color: c.color, id: c.id }))
+  ];
 
   // Фильтрация по активному пространству — как на дашборде
   const transactions = filterByWorkspace(rawTransactions, activeWorkspaceId);
@@ -502,7 +511,7 @@ export default function Budgets() {
             <div>
               <Label>Категории расходов (можно выбрать несколько)</Label>
               <div className="grid grid-cols-3 gap-2 mt-2 max-h-[50vh] overflow-y-auto">
-                {expenseCategories.length > 0 ? expenseCategories.map(cat => {
+                {expenseCategories.map(cat => {
                   const isSelected = formData.categories.includes(cat.name);
                   return (
                     <button
@@ -529,35 +538,6 @@ export default function Budgets() {
                     >
                       <span className="text-xl drop-shadow-sm">{getCategoryEmoji(cat.icon)}</span>
                       <span className="text-xs font-medium truncate w-full text-center">{cat.name}</span>
-                    </button>
-                  );
-                }) : BUDGET_CATEGORIES.map(cat => {
-                  const isSelected = formData.categories.includes(cat.value);
-                  return (
-                    <button
-                      key={cat.value}
-                      type="button"
-                      onClick={() => {
-                        if (isSelected) {
-                          setFormData({ 
-                            ...formData, 
-                            categories: formData.categories.filter(c => c !== cat.value) 
-                          });
-                        } else {
-                          setFormData({ 
-                            ...formData, 
-                            categories: [...formData.categories, cat.value] 
-                          });
-                        }
-                      }}
-                      className={`h-auto py-3 flex flex-col items-center gap-1 rounded-xl border-2 transition-all ${
-                        isSelected 
-                          ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20' 
-                          : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
-                      }`}
-                    >
-                      <span className="text-xl drop-shadow-sm">{cat.icon}</span>
-                      <span className="text-xs font-medium">{cat.value}</span>
                     </button>
                   );
                 })}
