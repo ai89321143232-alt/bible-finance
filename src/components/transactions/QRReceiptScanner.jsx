@@ -7,7 +7,8 @@ import { toast } from "sonner";
 // Разбирает строку QR-кода российского чека вида:
 // t=20240115T1230&s=1234.56&fn=...&i=...&fp=...&n=1
 function parseReceiptQR(text) {
-  const query = text.includes('?') ? text.split('?')[1] : text;
+  const str = typeof text === 'string' ? text : String(text ?? '');
+  const query = str.includes('?') ? str.split('?')[1] : str;
   const params = new URLSearchParams(query);
   const amountStr = params.get('s');
   const tStr = params.get('t');
