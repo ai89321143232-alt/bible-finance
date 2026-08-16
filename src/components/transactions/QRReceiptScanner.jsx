@@ -72,7 +72,7 @@ export default function QRReceiptScanner({ onDataExtracted, onClose }) {
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-black z-[60] flex flex-col">
+    <div className="fixed inset-0 bg-black z-[80] flex flex-col">
       <div className="flex items-center justify-between p-4">
         <h3 className="text-white font-semibold">Сканирование QR-кода чека</h3>
         <button onClick={onClose} className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white">
