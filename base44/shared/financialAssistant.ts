@@ -6,7 +6,7 @@ export const ASSISTANT_RESPONSE_SCHEMA = {
   type: 'object',
   properties: {
     reply: { type: 'string' },
-    action: { type: 'string', enum: ['create_transaction', 'create_investment', 'update_transaction', 'delete_transaction', 'none'] },
+    action: { type: 'string', enum: ['create_transaction', 'create_investment', 'create_goal', 'create_budget', 'update_transaction', 'delete_transaction', 'none'] },
     transaction: {
       type: 'object',
       properties: {
@@ -30,6 +30,27 @@ export const ASSISTANT_RESPONSE_SCHEMA = {
         account_hint: { type: 'string' }
       }
     },
+    goal: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        type: { type: 'string', enum: ['savings', 'debt_payoff', 'investment', 'purchase', 'emergency_fund', 'other'] },
+        target_amount: { type: 'number' },
+        currency: { type: 'string' },
+        deadline: { type: 'string' },
+        priority: { type: 'string', enum: ['low', 'medium', 'high'] }
+      }
+    },
+    budget: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        categories: { type: 'array', items: { type: 'string' } },
+        limit_amount: { type: 'number' },
+        period: { type: 'string', enum: ['weekly', 'monthly', 'quarterly', 'yearly'] },
+        currency: { type: 'string' }
+      }
+    },
     transaction_id: { type: 'string' },
     updates: {
       type: 'object',
@@ -50,9 +71,11 @@ export function buildAssistantSystemPrompt({ categoryNames, accountNames, recent
 2) Добавлять новую транзакцию (расход/доход), когда пользователь описывает покупку/доход.
 3) Записывать покупку инвестиции (акции, крипта, ETF, облигации, вклад, драгметаллы, недвижимость как актив), когда пользователь пишет, что купил/приобрёл/вложился в такой актив. Это НЕ обычный расход — используй action="create_investment" и заполни investment (не transaction). Деньги списываются со счёта, но операция не попадает в категории расходов и бюджеты — это инвестиционный актив.
    ПРИОРИТЕТ: если в сообщении есть слова/названия активов — акции, акций, крипта, криптовалюта, биткоин, bitcoin, ETF, облигации, вклад, депозит, золото, драгметаллы, инвестиция, инвестировал, портфель, тикер компании (например Apple, Tesla, Сбербанк) — ВСЕГДА выбирай action="create_investment", а НЕ create_transaction, даже если фраза звучит как "потратил"/"купил на Х рублей". Пример: "купил акции Apple на 10000 руб" → action="create_investment", investment={name:"Apple", type:"stocks", quantity:1, purchase_price:10000}. Обычным расходом (create_transaction) считай только покупку товаров/услуг для потребления, а не покупку финансового актива.
-4) Редактировать существующую транзакцию (сумму, категорию, описание, дату), если пользователь просит что-то исправить.
-5) Удалять существующую транзакцию, если пользователь просит её убрать/отменить.
-6) Если в данных ниже есть раздел "РАСХОДЫ ЧЛЕНОВ СЕМЬИ" — используй его, чтобы отвечать на вопросы о том, кто из членов семьи и куда (на какие категории) тратит деньги, и кто тратит больше/меньше.
+4) Создавать финансовую цель (накопить на отпуск, на машину, на подушку безопасности, погасить долг и т.д.), когда пользователь говорит "создай цель", "хочу накопить на", "поставь цель" и т.п. Используй action="create_goal" и заполни goal.
+5) Создавать бюджет (лимит на категорию расходов), когда пользователь говорит "создай бюджет на продукты", "установи лимит", "бюджет на транспорт" и т.п. Используй action="create_budget" и заполни budget. Категории выбирай из доступных категорий пользователя.
+6) Редактировать существующую транзакцию (сумму, категорию, описание, дату), если пользователь просит что-то исправить.
+7) Удалять существующую транзакцию, если пользователь просит её убрать/отменить.
+8) Если в данных ниже есть раздел "РАСХОДЫ ЧЛЕНОВ СЕМЬИ" — используй его, чтобы отвечать на вопросы о том, кто из членов семьи и куда (на какие категории) тратит деньги, и кто тратит больше/меньше.
 
 Доступные категории: ${categoryNames}
 Доступные счета пользователя: ${accountNames}
@@ -70,6 +93,8 @@ ${financial_context || ''}
   "action": "create_transaction" | "create_investment" | "update_transaction" | "delete_transaction" | "none",
   "transaction": null или { "type": "expense"|"income", "amount": число, "currency": "RUB", "category": "одна из доступных категорий", "description": "краткое описание", "date": "YYYY-MM-DDT00:00:00.000Z", "account_hint": "название счёта, если упомянуто, иначе пустая строка" },
   "investment": null или { "name": "название актива, например Apple или Bitcoin", "type": "stocks"|"crypto"|"etf"|"bonds"|"deposit"|"real_estate"|"precious_metals"|"other", "quantity": число (1, если не указано), "purchase_price": цена за единицу (если куплено на общую сумму X штук 1 — вся сумма), "currency": "RUB", "account_hint": "название счёта, если упомянуто, иначе пустая строка" },
+  "goal": null или { "title": "название цели", "type": "savings"|"debt_payoff"|"investment"|"purchase"|"emergency_fund"|"other", "target_amount": число, "currency": "RUB", "deadline": "YYYY-MM-DD или null", "priority": "low"|"medium"|"high" },
+  "budget": null или { "name": "название бюджета", "categories": ["категория1", "категория2"], "limit_amount": число, "period": "weekly"|"monthly"|"quarterly"|"yearly", "currency": "RUB" },
   "transaction_id": null или "id операции из списка выше" (для update_transaction/delete_transaction),
   "updates": null или { "amount": число, "category": "...", "description": "...", "date": "...", "type": "expense"|"income" } (только изменённые поля, для update_transaction)
 }
@@ -77,6 +102,8 @@ ${financial_context || ''}
 Если это вопрос/отчёт — action="none", transaction=null, а в reply дай содержательный ответ на основе данных.
 Если описывается новая покупка/доход (обычная, не инвестиционная) — action="create_transaction" и заполни transaction.
 Если описывается покупка инвестиционного актива — action="create_investment" и заполни investment, transaction оставь null.
+Если просят создать финансовую цель — action="create_goal" и заполни goal, transaction оставь null. Тип цели: savings (накопление), debt_payoff (погашение долга), investment (инвестиционная цель), purchase (покупка), emergency_fund (подушка безопасности), other. Priority по умолчанию "medium".
+Если просят создать бюджет — action="create_budget" и заполни budget, transaction оставь null. Категории выбирай из доступных категорий, period по умолчанию "monthly".
 Если просят исправить/поменять существующую операцию — action="update_transaction", укажи transaction_id и только изменённые поля в updates.
 Если просят удалить/отменить операцию — action="delete_transaction" и укажи transaction_id.
 Если не можешь однозначно определить, какую операцию редактировать/удалять — action="none" и в reply уточни у пользователя.`;
@@ -218,10 +245,10 @@ ${accounts.map(a => `- ${a.name}: ${(a.balance || 0).toLocaleString()} ₽`).joi
 ${Object.entries(expensesByCategory).map(([cat, amount]) => `- ${cat}: ${amount.toLocaleString()} ₽`).join('\n') || '- Нет данных'}
 
 БЮДЖЕТЫ:
-${budgets.map(b => `- ${b.name}: потрачено ${(b.spent_amount || 0).toLocaleString()} из ${b.limit_amount.toLocaleString()} ₽`).join('\n') || '- Нет бюджетов'}
+${budgets.map(b => `- id=${b.id} | ${b.name}: потрачено ${(b.spent_amount || 0).toLocaleString()} из ${b.limit_amount.toLocaleString()} ₽`).join('\n') || '- Нет бюджетов'}
 
 ФИНАНСОВЫЕ ЦЕЛИ:
-${goals.map(g => `- ${g.title}: накоплено ${(g.current_amount || 0).toLocaleString()} из ${g.target_amount.toLocaleString()} ₽`).join('\n') || '- Нет целей'}
+${goals.map(g => `- id=${g.id} | ${g.title}: накоплено ${(g.current_amount || 0).toLocaleString()} из ${g.target_amount.toLocaleString()} ₽`).join('\n') || '- Нет целей'}
 
 ИНВЕСТИЦИОННЫЙ ПОРТФЕЛЬ:
 - Общая стоимость: ${investmentValue.toLocaleString()} ₽

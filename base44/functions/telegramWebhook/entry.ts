@@ -234,6 +234,46 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         replyText = replyText || `✅ Записал покупку инвестиции: ${inv.name} на ${totalCost.toLocaleString()} ₽ (счёт: ${targetAccount.name})`;
       }
     }
+  } else if (action === 'create_goal' && parsed.goal) {
+    const g = parsed.goal;
+    if (!g.title || !g.target_amount) {
+      replyText = replyText || 'Не удалось распознать название или сумму цели.';
+    } else {
+      await entities.Goal.create({
+        title: g.title,
+        type: g.type || 'savings',
+        target_amount: g.target_amount,
+        current_amount: 0,
+        currency: g.currency || 'RUB',
+        deadline: g.deadline || undefined,
+        priority: g.priority || 'medium',
+        user_id: ownerId,
+        family_id: owner?.family_id || undefined,
+        visibility: 'private',
+        status: 'active'
+      });
+      replyText = replyText || `✅ Создал цель: ${g.title} — накопить ${g.target_amount.toLocaleString()} ₽`;
+    }
+  } else if (action === 'create_budget' && parsed.budget) {
+    const b = parsed.budget;
+    if (!b.name || !b.limit_amount) {
+      replyText = replyText || 'Не удалось распознать название или лимит бюджета.';
+    } else {
+      await entities.Budget.create({
+        name: b.name,
+        categories: b.categories || [],
+        limit_amount: b.limit_amount,
+        spent_amount: 0,
+        period: b.period || 'monthly',
+        currency: b.currency || 'RUB',
+        user_id: ownerId,
+        family_id: owner?.family_id || undefined,
+        visibility: 'private',
+        is_active: true,
+        start_date: new Date().toISOString().split('T')[0]
+      });
+      replyText = replyText || `✅ Создал бюджет: ${b.name} — лимит ${b.limit_amount.toLocaleString()} ₽`;
+    }
   } else if (action === 'update_transaction' && parsed.transaction_id && parsed.updates) {
     const existing = recentTx.find(t => t.id === parsed.transaction_id);
     if (!existing) {

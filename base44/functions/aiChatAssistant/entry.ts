@@ -159,6 +159,48 @@ Deno.serve(async (req) => {
       return Response.json({ reply: parsed.reply || `✅ Записал покупку инвестиции: ${inv.name} на ${totalCost.toLocaleString()} ₽`, action: 'created_investment', investment });
     }
 
+    // === Create goal ===
+    if (action === 'create_goal' && parsed.goal) {
+      const g = parsed.goal;
+      if (!g.title || !g.target_amount) {
+        return Response.json({ reply: parsed.reply || 'Не удалось распознать название или сумму цели' });
+      }
+      const goal = await base44.entities.Goal.create({
+        title: g.title,
+        type: g.type || 'savings',
+        target_amount: g.target_amount,
+        current_amount: 0,
+        currency: g.currency || 'RUB',
+        deadline: g.deadline || undefined,
+        priority: g.priority || 'medium',
+        user_id: user.id,
+        visibility: 'private',
+        status: 'active'
+      });
+      return Response.json({ reply: parsed.reply || `✅ Создал цель: ${g.title} — накопить ${g.target_amount.toLocaleString()} ₽`, action: 'created_goal', goal });
+    }
+
+    // === Create budget ===
+    if (action === 'create_budget' && parsed.budget) {
+      const b = parsed.budget;
+      if (!b.name || !b.limit_amount) {
+        return Response.json({ reply: parsed.reply || 'Не удалось распознать название или лимит бюджета' });
+      }
+      const budget = await base44.entities.Budget.create({
+        name: b.name,
+        categories: b.categories || [],
+        limit_amount: b.limit_amount,
+        spent_amount: 0,
+        period: b.period || 'monthly',
+        currency: b.currency || 'RUB',
+        user_id: user.id,
+        visibility: 'private',
+        is_active: true,
+        start_date: new Date().toISOString().split('T')[0]
+      });
+      return Response.json({ reply: parsed.reply || `✅ Создал бюджет: ${b.name} — лимит ${b.limit_amount.toLocaleString()} ₽`, action: 'created_budget', budget });
+    }
+
     // === Update ===
     if (action === 'update_transaction' && parsed.transaction_id && parsed.updates) {
       const existing = recentTx.find(t => t.id === parsed.transaction_id);
