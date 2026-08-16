@@ -40,17 +40,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const BUDGET_CATEGORIES = [
-  { value: 'Еда', icon: '🍔', color: '#F59E0B' },
-  { value: 'Транспорт', icon: '🚗', color: '#3B82F6' },
-  { value: 'Жильё', icon: '🏠', color: '#8B5CF6' },
-  { value: 'Развлечения', icon: '🎮', color: '#EC4899' },
-  { value: 'Здоровье', icon: '💊', color: '#10B981' },
-  { value: 'Одежда', icon: '👕', color: '#6366F1' },
-  { value: 'Подписки', icon: '📱', color: '#EF4444' },
-  { value: 'Образование', icon: '📚', color: '#14B8A6' },
-  { value: 'Другое', icon: '📦', color: '#64748B' },
-];
+import { BUDGET_CATEGORIES, findBudgetCategory } from '@/lib/budgetCategories';
+import { getCategoryEmoji } from '@/lib/categoryIcon';
 
 // ============================================================
 // pages/Budgets.jsx — СТРАНИЦА БЮДЖЕТОВ
@@ -536,7 +527,7 @@ export default function Budgets() {
                           : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
                       }`}
                     >
-                      <span className="text-xl drop-shadow-sm">{cat.icon || '📦'}</span>
+                      <span className="text-xl drop-shadow-sm">{getCategoryEmoji(cat.icon)}</span>
                       <span className="text-xs font-medium truncate w-full text-center">{cat.name}</span>
                     </button>
                   );

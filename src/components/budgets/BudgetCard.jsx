@@ -5,18 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import CreatorTag from '@/components/shared/CreatorTag';
-
-const BUDGET_CATEGORIES = [
-  { value: 'Еда', icon: '🍔', color: '#F59E0B' },
-  { value: 'Транспорт', icon: '🚗', color: '#3B82F6' },
-  { value: 'Жильё', icon: '🏠', color: '#8B5CF6' },
-  { value: 'Развлечения', icon: '🎮', color: '#EC4899' },
-  { value: 'Здоровье', icon: '💊', color: '#10B981' },
-  { value: 'Одежда', icon: '👕', color: '#6366F1' },
-  { value: 'Подписки', icon: '📱', color: '#EF4444' },
-  { value: 'Образование', icon: '📚', color: '#14B8A6' },
-  { value: 'Другое', icon: '📦', color: '#64748B' },
-];
+import { findBudgetCategory } from '@/lib/budgetCategories';
 
 export default function BudgetCard({ 
   budget, 
@@ -33,7 +22,7 @@ export default function BudgetCard({
   const isOverBudget = progress > 100;
   const isWarning = progress >= (budget.notify_at_percent || 80) && !isOverBudget;
   const budgetCategories = budget.categories || (budget.category ? [budget.category] : []);
-  const catInfo = BUDGET_CATEGORIES.find(c => c.value === budgetCategories[0]) || BUDGET_CATEGORIES[8];
+  const catInfo = findBudgetCategory(budgetCategories[0]);
 
   return (
     <motion.div
