@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, startOfMonth, endOfMonth, subMonths, addMonths } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
-  Plus, Search, ChevronLeft, ChevronRight, Calendar, Download
+  Plus, Search, ChevronLeft, ChevronRight, Calendar, Download, Upload
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import QuickAddTransaction from '@/components/transactions/QuickAddTransaction';
 import ExportRangeModal from '@/components/transactions/ExportRangeModal';
+import TransactionImport from '@/components/transactions/TransactionImport';
 import SwipeableTransaction from '@/components/transactions/SwipeableTransaction';
 import PullToRefresh from '@/components/PullToRefresh';
 import MobileSelect from '@/components/mobile/MobileSelect';
@@ -48,6 +49,7 @@ export default function Transactions() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [deleteId, setDeleteId] = useState(null);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [user, setUser] = useState(null);
   const [openSwipeId, setOpenSwipeId] = useState(null);
   const [showOnlyMine, setShowOnlyMine] = useState(false);
@@ -177,6 +179,9 @@ export default function Transactions() {
             {family && (
               <FamilyVisibilityToggle showOnlyMine={showOnlyMine} onToggle={() => setShowOnlyMine(v => !v)} />
             )}
+            <Button onClick={() => setShowImportModal(true)} variant="outline" className="rounded-xl hidden sm:flex">
+              <Upload className="w-4 h-4 mr-2" />Импорт
+            </Button>
             <Button onClick={() => setShowExportModal(true)} variant="outline" className="rounded-xl hidden sm:flex">
               <Download className="w-4 h-4 mr-2" />Экспорт
             </Button>
@@ -274,6 +279,11 @@ export default function Transactions() {
         {showExportModal && user && (
           <ExportRangeModal user={user} activeWorkspaceId={activeWorkspaceId} onClose={() => setShowExportModal(false)} />
         )}
+        <TransactionImport
+          open={showImportModal}
+          onClose={() => setShowImportModal(false)}
+          onImported={() => queryClient.invalidateQueries(['transactions'])}
+        />
       </AnimatePresence>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
