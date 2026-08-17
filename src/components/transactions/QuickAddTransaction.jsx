@@ -10,6 +10,7 @@ import { X, ArrowUpRight, ArrowDownRight, Check, Calendar, Camera, Loader2, Uplo
 import ReceiptReviewModal from './ReceiptReviewModal';
 import { parseFlexibleDate } from '@/lib/parseDate';
 import { compressImage } from '@/lib/compressImage';
+import { getCategoryEmoji } from '@/lib/categoryIcon';
 import QRReceiptScanner from './QRReceiptScanner';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -669,7 +670,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                       <Button key={cat.id} variant={category === cat.name ? 'default' : 'outline'} onClick={() => setCategory(cat.name)}
                         className={cn('h-auto py-3 flex-col gap-1 rounded-xl transition-all', category === cat.name ? 'bg-violet-500 hover:bg-violet-600 border-0 text-white' : 'text-slate-800 dark:text-slate-200')}>
                         <span className="text-xl drop-shadow-sm">
-                          {cat.icon === 'Utensils' ? '🍔' : cat.icon === 'Car' ? '🚗' : cat.icon === 'Home' ? '🏠' : cat.icon === 'Gamepad2' ? '🎮' : cat.icon === 'Heart' ? '💊' : cat.icon === 'Shirt' ? '👕' : cat.icon === 'CreditCard' ? '💳' : cat.icon === 'BookOpen' ? '📚' : cat.icon === 'Wallet' ? '💰' : cat.icon === 'Laptop' ? '💻' : cat.icon === 'TrendingUp' ? '📈' : cat.icon === 'Gift' ? '🎁' : '📦'}
+                          {getCategoryEmoji(cat.icon)}
                         </span>
                         <span className="text-xs">{cat.name}</span>
                       </Button>
