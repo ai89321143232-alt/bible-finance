@@ -1,0 +1,200 @@
+{
+  "name": "DebtAccount",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u043a\u0440\u0435\u0434\u0438\u0442\u0430/\u0434\u043e\u043b\u0433\u0430"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "credit_card",
+        "consumer_loan",
+        "mortgage",
+        "microloan",
+        "auto_loan",
+        "other"
+      ],
+      "description": "\u0422\u0438\u043f \u0434\u043e\u043b\u0433\u0430: \u043a\u0440\u0435\u0434\u0438\u0442\u043d\u0430\u044f \u043a\u0430\u0440\u0442\u0430, \u043f\u043e\u0442\u0440\u0435\u0431\u043a\u0440\u0435\u0434\u0438\u0442, \u0438\u043f\u043e\u0442\u0435\u043a\u0430, \u043c\u0438\u043a\u0440\u043e\u0437\u0430\u0439\u043c, \u0430\u0432\u0442\u043e\u043a\u0440\u0435\u0434\u0438\u0442"
+    },
+    "creditor": {
+      "type": "string",
+      "description": "\u0411\u0430\u043d\u043a \u0438\u043b\u0438 \u043a\u0440\u0435\u0434\u0438\u0442\u043d\u0430\u044f \u043e\u0440\u0433\u0430\u043d\u0438\u0437\u0430\u0446\u0438\u044f (\u0421\u0431\u0435\u0440\u0431\u0430\u043d\u043a, \u0422\u0438\u043d\u044c\u043a\u043e\u0444\u0444, \u041c\u0424\u041e \u0438 \u0442.\u0434.)"
+    },
+    "total_amount": {
+      "type": "number",
+      "description": "\u041f\u0435\u0440\u0432\u043e\u043d\u0430\u0447\u0430\u043b\u044c\u043d\u0430\u044f \u0441\u0443\u043c\u043c\u0430 \u043a\u0440\u0435\u0434\u0438\u0442\u0430"
+    },
+    "remaining_amount": {
+      "type": "number",
+      "description": "\u041e\u0441\u0442\u0430\u0442\u043e\u043a \u043e\u0441\u043d\u043e\u0432\u043d\u043e\u0433\u043e \u0434\u043e\u043b\u0433\u0430 \u043d\u0430 \u0442\u0435\u043a\u0443\u0449\u0438\u0439 \u043c\u043e\u043c\u0435\u043d\u0442"
+    },
+    "interest_rate": {
+      "type": "number",
+      "description": "\u0413\u043e\u0434\u043e\u0432\u0430\u044f \u043f\u0440\u043e\u0446\u0435\u043d\u0442\u043d\u0430\u044f \u0441\u0442\u0430\u0432\u043a\u0430 (%)"
+    },
+    "monthly_payment": {
+      "type": "number",
+      "description": "\u0415\u0436\u0435\u043c\u0435\u0441\u044f\u0447\u043d\u044b\u0439 \u043f\u043b\u0430\u0442\u0451\u0436 (\u0430\u043d\u043d\u0443\u0438\u0442\u0435\u0442\u043d\u044b\u0439 \u0438\u043b\u0438 \u043c\u0438\u043d\u0438\u043c\u0430\u043b\u044c\u043d\u044b\u0439 \u0434\u043b\u044f \u043a\u0440\u0435\u0434\u0438\u0442\u043d\u044b\u0445 \u043a\u0430\u0440\u0442)"
+    },
+    "min_payment_percent": {
+      "type": "number",
+      "description": "\u041c\u0438\u043d\u0438\u043c\u0430\u043b\u044c\u043d\u044b\u0439 \u043f\u043b\u0430\u0442\u0451\u0436 \u0432 % \u043e\u0442 \u043e\u0441\u0442\u0430\u0442\u043a\u0430 (\u0434\u043b\u044f \u043a\u0440\u0435\u0434\u0438\u0442\u043d\u044b\u0445 \u043a\u0430\u0440\u0442, \u043e\u0431\u044b\u0447\u043d\u043e 3-5%)"
+    },
+    "payment_day": {
+      "type": "number",
+      "description": "\u0414\u0435\u043d\u044c \u043c\u0435\u0441\u044f\u0446\u0430 \u0434\u043b\u044f \u043f\u043b\u0430\u0442\u0435\u0436\u0430 (1-31)"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "\u0414\u0430\u0442\u0430 \u043e\u0442\u043a\u0440\u044b\u0442\u0438\u044f \u043a\u0440\u0435\u0434\u0438\u0442\u0430"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "\u041f\u043b\u0430\u043d\u0438\u0440\u0443\u0435\u043c\u0430\u044f \u0434\u0430\u0442\u0430 \u043e\u043a\u043e\u043d\u0447\u0430\u043d\u0438\u044f (\u043f\u043e \u0433\u0440\u0430\u0444\u0438\u043a\u0443 \u0431\u0430\u043d\u043a\u0430)"
+    },
+    "grace_period_end": {
+      "type": "string",
+      "format": "date",
+      "description": "\u041e\u043a\u043e\u043d\u0447\u0430\u043d\u0438\u0435 \u043b\u044c\u0433\u043e\u0442\u043d\u043e\u0433\u043e \u043f\u0435\u0440\u0438\u043e\u0434\u0430 (\u0434\u043b\u044f \u043a\u0440\u0435\u0434\u0438\u0442\u043d\u044b\u0445 \u043a\u0430\u0440\u0442)"
+    },
+    "payment_type": {
+      "type": "string",
+      "enum": [
+        "annuity",
+        "differentiated",
+        "interest_only"
+      ],
+      "default": "annuity",
+      "description": "\u0422\u0438\u043f \u043f\u043b\u0430\u0442\u0435\u0436\u0430: \u0430\u043d\u043d\u0443\u0438\u0442\u0435\u0442\u043d\u044b\u0439, \u0434\u0438\u0444\u0444\u0435\u0440\u0435\u043d\u0446\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0439, \u0442\u043e\u043b\u044c\u043a\u043e \u043f\u0440\u043e\u0446\u0435\u043d\u0442\u044b"
+    },
+    "linked_account_id": {
+      "type": "string",
+      "description": "ID \u0441\u0432\u044f\u0437\u0430\u043d\u043d\u043e\u0433\u043e \u0441\u0447\u0451\u0442\u0430 (\u043a\u0440\u0435\u0434\u0438\u0442\u043d\u0430\u044f \u043a\u0430\u0440\u0442\u0430 \u0432 Accounts)"
+    },
+    "strategy_order": {
+      "type": "number",
+      "default": 0,
+      "description": "\u041f\u0440\u0438\u043e\u0440\u0438\u0442\u0435\u0442 \u043f\u043e\u0433\u0430\u0448\u0435\u043d\u0438\u044f (\u043f\u043e\u0440\u044f\u0434\u043e\u043a \u0432 \u0441\u0442\u0440\u0430\u0442\u0435\u0433\u0438\u0438 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paid_off",
+        "restructured",
+        "in_grace"
+      ],
+      "default": "active",
+      "description": "\u0421\u0442\u0430\u0442\u0443\u0441 \u0434\u043e\u043b\u0433\u0430"
+    },
+    "notes": {
+      "type": "string",
+      "description": "\u0417\u0430\u043c\u0435\u0442\u043a\u0438 (\u0443\u0441\u043b\u043e\u0432\u0438\u044f \u0434\u043e\u0441\u0440\u043e\u0447\u043d\u043e\u0433\u043e \u043f\u043e\u0433\u0430\u0448\u0435\u043d\u0438\u044f, \u043a\u043e\u043c\u0438\u0441\u0441\u0438\u0438 \u0438 \u0442.\u0434.)"
+    },
+    "family_id": {
+      "type": "string",
+      "description": "ID \u0441\u0435\u043c\u044c\u0438"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f-\u0432\u043b\u0430\u0434\u0435\u043b\u044c\u0446\u0430"
+    },
+    "workspace_id": {
+      "type": "string",
+      "description": "ID \u0440\u0430\u0431\u043e\u0447\u0435\u0433\u043e \u043f\u0440\u043e\u0441\u0442\u0440\u0430\u043d\u0441\u0442\u0432\u0430"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "private",
+        "shared"
+      ],
+      "default": "private",
+      "description": "\u0412\u0438\u0434\u0438\u043c\u043e\u0441\u0442\u044c: \u043b\u0438\u0447\u043d\u0430\u044f \u0438\u043b\u0438 \u043e\u0431\u0449\u0430\u044f"
+    }
+  },
+  "required": [
+    "name",
+    "type",
+    "remaining_amount",
+    "interest_rate"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "$and": [
+            {
+              "data.family_id": {
+                "$ne": null
+              }
+            },
+            {
+              "data.family_id": "{{user.data.family_id}}"
+            }
+          ]
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "$and": [
+            {
+              "data.family_id": {
+                "$ne": null
+              }
+            },
+            {
+              "data.family_id": "{{user.data.family_id}}"
+            }
+          ]
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
