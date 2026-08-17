@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
 
         const { event, data, old_data } = payload;
 
-        // Обрабатываем только расходы
+        // Обрабатываем только расходы (включая transfer, т.к. старая логика тоже их фильтровала)
         if (!data || data.type !== 'expense') {
             return Response.json({ message: 'Not an expense, skipping' });
         }
@@ -68,28 +68,39 @@ Deno.serve(async (req) => {
             }
         }
 
+        // Идемпотентный пересчёт: вместо инкрементального обновления (которое
+        // даёт задвоение при повторном срабатывании автоматизации), полностью
+        // пересчитываем spent_amount из реальных транзакций текущего периода.
+        const now = new Date();
+        const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
         for (const budget of matchingBudgets) {
-            let delta = 0;
+            const budgetCategories = budget.categories || (budget.category ? [budget.category] : []);
 
-            if (event.type === 'create') {
-                delta = data.amount || 0;
-            } else if (event.type === 'update') {
-                const oldAmount = (old_data && old_data.type === 'expense') ? (old_data.amount || 0) : 0;
-                const newAmount = data.amount || 0;
-                delta = newAmount - oldAmount;
-            } else if (event.type === 'delete') {
-                delta = -(data.amount || 0);
-            }
+            // Загружаем все транзакции владельца бюджета за текущий период
+            const ownerId = budget.user_id || budget.created_by_id;
+            const allTransactions = await base44.asServiceRole.entities.Transaction.filter({
+                user_id: ownerId
+            });
 
-            if (delta !== 0) {
-                const currentSpent = budget.spent_amount || 0;
-                await base44.asServiceRole.entities.Budget.update(budget.id, {
-                    spent_amount: Math.max(0, currentSpent + delta)
-                });
-            }
+            const realSpent = allTransactions
+                .filter(t => {
+                    if (t.type !== 'expense') return false;
+                    if (budgetCategories.length > 0 && !budgetCategories.includes(t.category)) return false;
+                    if (new Date(t.date) < periodStart) return false;
+                    if (budget.is_family_budget) {
+                        return t.budget_scope !== 'personal';
+                    }
+                    return t.budget_scope !== 'family';
+                })
+                .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+            await base44.asServiceRole.entities.Budget.update(budget.id, {
+                spent_amount: realSpent
+            });
         }
 
-        return Response.json({ message: `Updated ${matchingBudgets.length} budget(s)` });
+        return Response.json({ message: `Recalculated ${matchingBudgets.length} budget(s)` });
     } catch (error) {
         console.error('Error:', error);
         return Response.json({ error: error.message }, { status: 500 });
