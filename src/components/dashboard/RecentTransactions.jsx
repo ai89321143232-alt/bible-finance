@@ -5,14 +5,10 @@ import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { ChevronRight, ArrowLeftRight, Edit2 } from 'lucide-react';
-
-const CATEGORY_ICONS = {
-  'Еда': '🍔', 'Транспорт': '🚗', 'Жильё': '🏠', 'Развлечения': '🎮',
-  'Здоровье': '💊', 'Одежда': '👕', 'Подписки': '📱', 'Образование': '📚',
-  'Зарплата': '💰', 'Фриланс': '💻', 'Инвестиции': '📈', 'Подарки': '🎁', 'Другое': '📦'
-};
+import { useCategoryIconMap } from '@/hooks/useCategoryIcons';
 
 export default function RecentTransactions({ transactions, formatCurrency, onEdit }) {
+  const getCategoryIcon = useCategoryIconMap();
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
       <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
@@ -43,7 +39,7 @@ export default function RecentTransactions({ transactions, formatCurrency, onEdi
                         ? 'bg-rose-500/10'
                         : 'bg-muted'
                   }`}>
-                    {CATEGORY_ICONS[tx.category] || '📦'}
+                    {getCategoryIcon(tx.category)}
                   </div>
                   <div className="min-w-0">
                     <p className="text-foreground text-sm font-medium truncate">{tx.category || 'Без категории'}</p>

@@ -3,22 +3,7 @@ import { motion } from 'framer-motion';
 import { Trash2, Edit2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import CreatorTag from '@/components/shared/CreatorTag';
-
-const CATEGORY_ICONS = {
-  'Еда': '🍔',
-  'Транспорт': '🚗',
-  'Жильё': '🏠',
-  'Развлечения': '🎮',
-  'Здоровье': '💊',
-  'Одежда': '👕',
-  'Подписки': '📱',
-  'Образование': '📚',
-  'Зарплата': '💰',
-  'Фриланс': '💻',
-  'Инвестиции': '📈',
-  'Подарки': '🎁',
-  'Другое': '📦'
-};
+import { useCategoryIconMap } from '@/hooks/useCategoryIcons';
 
 const DELETE_WIDTH = 88;
 
@@ -33,6 +18,7 @@ export default function SwipeableTransaction({
   isOpen = false,
   onOpenChange = () => {}
 }) {
+  const getCategoryIcon = useCategoryIconMap();
   const isOwner = !currentUser || transaction.created_by_id === currentUser.id || transaction.user_id === currentUser.id;
 
   // Переводы (transfer) бывают двух видов: списание у плательщика и зачисление у получателя.
@@ -83,7 +69,7 @@ export default function SwipeableTransaction({
               ? 'bg-emerald-100 dark:bg-emerald-900/30'
               : 'bg-rose-100 dark:bg-rose-900/30'
           }`}>
-            {CATEGORY_ICONS[transaction.category] || '📦'}
+            {getCategoryIcon(transaction.category)}
           </div>
           <div className="min-w-0">
             <p className="font-medium text-slate-900 dark:text-white truncate">

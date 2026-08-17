@@ -58,10 +58,10 @@ export default function MonthForecast({ transactions, totalBalance, formatCurren
   const isNeutral = Math.abs(forecast.netFlow) < 100;
 
   const Icon = isNeutral ? Minus : isPositive ? TrendingUp : TrendingDown;
-  const accentColor = isNeutral ? 'text-white/50' : isPositive ? 'text-emerald-400' : 'text-rose-400';
-  const borderColor = isNeutral ? 'border-white/8' : isPositive ? 'border-emerald-500/20' : 'border-rose-500/20';
-  const bgColor = isNeutral ? 'bg-white/3' : isPositive ? 'bg-emerald-500/5' : 'bg-rose-500/5';
-  const iconBg = isNeutral ? 'bg-white/8' : isPositive ? 'bg-emerald-500/15' : 'bg-rose-500/15';
+  const accentColor = isNeutral ? 'text-muted-foreground' : isPositive ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400';
+  const borderColor = isNeutral ? 'border-border' : isPositive ? 'border-emerald-500/20' : 'border-rose-500/20';
+  const bgColor = isNeutral ? 'bg-muted/50' : isPositive ? 'bg-emerald-500/5' : 'bg-rose-500/5';
+  const iconBg = isNeutral ? 'bg-muted' : isPositive ? 'bg-emerald-500/15' : 'bg-rose-500/15';
 
   if (!forecast.hasPastData) return null;
 
@@ -76,19 +76,19 @@ export default function MonthForecast({ transactions, totalBalance, formatCurren
         <div className={`w-7 h-7 rounded-lg ${iconBg} flex items-center justify-center`}>
           <Icon className={`w-3.5 h-3.5 ${accentColor}`} />
         </div>
-        <span className="text-white/50 text-xs font-medium">Прогноз на конец месяца</span>
-        <span className="text-white/20 text-xs ml-auto">осталось {forecast.daysLeft} дн.</span>
+        <span className="text-muted-foreground text-xs font-medium">Прогноз на конец месяца</span>
+        <span className="text-muted-foreground/60 text-xs ml-auto">осталось {forecast.daysLeft} дн.</span>
       </div>
 
       <div className="flex items-end justify-between mb-4">
         <div>
-          <p className="text-white/30 text-xs mb-0.5">Ожидаемый баланс</p>
-          <p className={`text-2xl font-bold ${forecast.forecastedBalance >= 0 ? 'text-white' : 'text-rose-400'}`}>
+          <p className="text-muted-foreground/70 text-xs mb-0.5">Ожидаемый баланс</p>
+          <p className={`text-2xl font-bold ${forecast.forecastedBalance >= 0 ? 'text-foreground' : 'text-rose-500 dark:text-rose-400'}`}>
             {formatCurrency(forecast.forecastedBalance)}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-white/30 text-xs mb-0.5">Чистый поток</p>
+          <p className="text-muted-foreground/70 text-xs mb-0.5">Чистый поток</p>
           <p className={`text-sm font-semibold ${accentColor}`}>
             {forecast.netFlow >= 0 ? '+' : ''}{formatCurrency(forecast.netFlow)}
           </p>
@@ -96,18 +96,18 @@ export default function MonthForecast({ transactions, totalBalance, formatCurren
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <div className="bg-white/5 rounded-xl px-3 py-2">
-          <p className="text-white/30 text-xs mb-0.5">Доходы</p>
-          <p className="text-emerald-400 text-sm font-semibold">{formatCurrency(forecast.forecastedIncome)}</p>
-          <p className="text-white/20 text-xs">≈ {formatCurrency(forecast.avgDailyIncome)}/день</p>
+        <div className="bg-muted/50 rounded-xl px-3 py-2">
+          <p className="text-muted-foreground/70 text-xs mb-0.5">Доходы</p>
+          <p className="text-emerald-500 dark:text-emerald-400 text-sm font-semibold">{formatCurrency(forecast.forecastedIncome)}</p>
+          <p className="text-muted-foreground/50 text-xs">≈ {formatCurrency(forecast.avgDailyIncome)}/день</p>
         </div>
-        <div className="bg-white/5 rounded-xl px-3 py-2">
-          <p className="text-white/30 text-xs mb-0.5">Расходы</p>
-          <p className="text-rose-400 text-sm font-semibold">{formatCurrency(forecast.forecastedExpenses)}</p>
-          <p className="text-white/20 text-xs">≈ {formatCurrency(forecast.avgDailyExpense)}/день</p>
+        <div className="bg-muted/50 rounded-xl px-3 py-2">
+          <p className="text-muted-foreground/70 text-xs mb-0.5">Расходы</p>
+          <p className="text-rose-500 dark:text-rose-400 text-sm font-semibold">{formatCurrency(forecast.forecastedExpenses)}</p>
+          <p className="text-muted-foreground/50 text-xs">≈ {formatCurrency(forecast.avgDailyExpense)}/день</p>
         </div>
       </div>
-      <p className="text-white/20 text-xs mt-2 text-center">На основе среднего за последние 3 месяца</p>
+      <p className="text-muted-foreground/50 text-xs mt-2 text-center">На основе среднего за последние 3 месяца</p>
     </motion.div>
   );
 }
