@@ -28,6 +28,18 @@ async function answerCallbackQuery(botToken, callbackQueryId, text) {
   }
 }
 
+async function removeInlineKeyboard(botToken, chatId, messageId) {
+  try {
+    await fetch(`https://api.telegram.org/bot${botToken}/editMessageReplyMarkup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, message_id: messageId, reply_markup: { inline_keyboard: [] } })
+    });
+  } catch (e) {
+    // best-effort
+  }
+}
+
 // Дата "YYYY-MM-DD" в часовом поясе пользователя (а не сервера/VPN) — чтобы операции,
 // отправленные ночью по местному времени, попадали на правильный день.
 function localDateString(timezone) {
@@ -108,11 +120,12 @@ async function finalizeOrAskAccount({ entities, config, accounts, transactions, 
 }
 
 // Обработка нажатия кнопки выбора счёта
-async function handleAccountCallback({ base44, config, accounts, ownerId, botToken, chatId, callbackQueryId, accountId }) {
+async function handleAccountCallback({ base44, config, accounts, ownerId, botToken, chatId, callbackQueryId, accountId, messageId }) {
   const entities = base44.asServiceRole.entities;
   const pending = config.pending_transactions || [];
   if (pending.length === 0) {
     await answerCallbackQuery(botToken, callbackQueryId, 'Операция уже обработана');
+    await removeInlineKeyboard(botToken, chatId, messageId);
     return;
   }
   const account = accounts.find(a => a.id === accountId);
@@ -126,6 +139,7 @@ async function handleAccountCallback({ base44, config, accounts, ownerId, botTok
   }
   await entities.TelegramBotConfig.update(config.id, { pending_transactions: [] });
   await answerCallbackQuery(botToken, callbackQueryId, 'Записано ✅');
+  await removeInlineKeyboard(botToken, chatId, messageId);
 
   const total = pending.reduce((s, t) => s + (t.amount || 0), 0);
   const label = pending.length === 1
@@ -350,7 +364,8 @@ Deno.serve(async (req) => {
         const ownerId = config.created_by_id;
         const allAccounts = await base44.asServiceRole.entities.Account.filter({ user_id: ownerId });
         const accounts = allAccounts.length > 0 ? allAccounts : await base44.asServiceRole.entities.Account.filter({ created_by_id: ownerId });
-        await handleAccountCallback({ base44, config, accounts, ownerId, botToken, chatId, callbackQueryId: cq.id, accountId });
+        const messageId = cq.message?.message_id;
+        await handleAccountCallback({ base44, config, accounts, ownerId, botToken, chatId, callbackQueryId: cq.id, accountId, messageId });
       }
       return Response.json({ ok: true });
     }
