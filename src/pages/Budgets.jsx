@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import BudgetCard from '@/components/budgets/BudgetCard';
+import BudgetTransactionsModal from '@/components/budgets/BudgetTransactionsModal';
 import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/WorkspaceContext';
 import {
   Select,
@@ -82,6 +83,7 @@ export default function Budgets() {
   const [deleteId, setDeleteId] = useState(null);
   const [viewMode, setViewMode] = useState('personal');
   const [shareWithUsers, setShareWithUsers] = useState([]);
+  const [selectedBudget, setSelectedBudget] = useState(null);
   const activeWorkspaceId = useActiveWorkspaceId();
 
   const [formData, setFormData] = useState({
@@ -464,6 +466,7 @@ export default function Budgets() {
                 isEditable={viewMode === 'personal' || budget.created_by_id === user?.id}
                 onEdit={handleEdit}
                 onDelete={(id) => setDeleteId(id)}
+                onClick={() => setSelectedBudget(budget)}
                 formatCurrency={formatCurrency}
                 family={family}
                 currentUser={user}
@@ -636,6 +639,15 @@ export default function Budgets() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Budget Transactions Modal */}
+      <BudgetTransactionsModal
+        budget={selectedBudget}
+        transactions={transactions}
+        isOpen={!!selectedBudget}
+        onClose={() => setSelectedBudget(null)}
+        formatCurrency={formatCurrency}
+      />
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

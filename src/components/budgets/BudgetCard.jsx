@@ -14,6 +14,7 @@ export default function BudgetCard({
   isEditable,
   onEdit, 
   onDelete,
+  onClick,
   formatCurrency,
   family,
   currentUser
@@ -31,8 +32,9 @@ export default function BudgetCard({
       transition={{ delay: index * 0.1 }}
     >
       <Card 
+        onClick={onClick}
         className={`border-0 shadow-sm backdrop-blur-sm hover:shadow-md transition-all group ${
-          isEditable ? 'cursor-pointer' : ''
+          onClick ? 'cursor-pointer' : ''
         } ${
           isEditable 
             ? 'bg-white/80 dark:bg-slate-800/80' 
