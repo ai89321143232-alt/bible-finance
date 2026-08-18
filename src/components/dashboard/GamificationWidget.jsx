@@ -1,11 +1,156 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Flame, Star, ChevronRight, Award } from 'lucide-react';
+import { Flame, Star, Award } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TITLES, FAMILY_TITLES, ACHIEVEMENTS, getTitleForPoints, getNextTitle, getFamilyTitleForPoints, getNextFamilyTitle } from '@/lib/gamification';
 import AchievementsModal from '@/components/dashboard/AchievementsModal';
 import { eventBus, EVENTS } from '@/lib/eventBus';
+
+const PersonalTitleCard = ({ p, currentTitle, nextTitle, progressToNext, unlockedCount, totalCount, hasPrayedToday, onPray, onShowAchievements }) => (
+  <div className="rounded-2xl border border-border bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 shadow-lg overflow-hidden">
+    <div className="p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-2xl backdrop-blur-sm">
+            {currentTitle.icon}
+          </div>
+          <div>
+            <p className="text-violet-200 text-xs font-medium">Духовный титул</p>
+            <h3 className="text-white font-bold text-base leading-tight">
+              {p.current_title || currentTitle.title}
+            </h3>
+          </div>
+        </div>
+        <button
+          onClick={onShowAchievements}
+          className="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 transition-colors text-white text-xs font-medium flex items-center gap-1.5"
+        >
+          <Award className="w-3.5 h-3.5" />
+          {unlockedCount}/{totalCount}
+        </button>
+      </div>
+
+      {nextTitle ? (
+        <div>
+          <div className="flex justify-between text-xs text-violet-200 mb-1.5">
+            <span>{currentTitle.icon} {currentTitle.min} оч.</span>
+            <span>{nextTitle.icon} {nextTitle.min} оч.</span>
+          </div>
+          <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${progressToNext}%` }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+              className="h-full bg-white rounded-full"
+            />
+          </div>
+          <p className="text-violet-200 text-xs mt-2 italic">
+            «{nextTitle.verse}»
+          </p>
+        </div>
+      ) : (
+        <div className="text-center py-2">
+          <p className="text-white font-semibold text-sm">
+            👑 Высший титул достигнут!
+          </p>
+          <p className="text-violet-200 text-xs mt-1 italic">
+            «{currentTitle.verse}»
+          </p>
+        </div>
+      )}
+
+      <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/20">
+        <div className="flex items-center gap-1.5">
+          <Flame className="w-4 h-4 text-orange-300" />
+          <span className="text-white text-sm font-semibold">{p.streak_days || 0}</span>
+          <span className="text-violet-200 text-xs">дней</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Star className="w-4 h-4 text-yellow-300" />
+          <span className="text-white text-sm font-semibold">{p.total_points || 0}</span>
+          <span className="text-violet-200 text-xs">оч.</span>
+        </div>
+        <button
+          onClick={onPray}
+          className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors min-h-[36px] ${
+            hasPrayedToday
+              ? 'bg-white/10 text-violet-200'
+              : 'bg-amber-400 hover:bg-amber-300 text-amber-900 animate-pulse'
+          }`}
+        >
+          🙏 {hasPrayedToday ? 'Благодарю' : 'Помолиться'}
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+const FamilyTitleCard = ({ p, familyCurrentTitle, familyNextTitle, familyProgress, hasFamilyPrayedToday, onPray }) => (
+  <div className="rounded-2xl border border-border bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 shadow-lg overflow-hidden">
+    <div className="p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-2xl backdrop-blur-sm">
+            {familyCurrentTitle.icon}
+          </div>
+          <div>
+            <p className="text-emerald-200 text-xs font-medium">Семейный титул</p>
+            <h3 className="text-white font-bold text-base leading-tight">
+              {p.family_title || familyCurrentTitle.title}
+            </h3>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15">
+          <span className="text-white text-sm font-semibold">{p.family_points || 0}</span>
+          <span className="text-emerald-200 text-xs">оч.</span>
+        </div>
+      </div>
+
+      {familyNextTitle ? (
+        <div>
+          <div className="flex justify-between text-xs text-emerald-200 mb-1.5">
+            <span>{familyCurrentTitle.icon} {familyCurrentTitle.min} оч.</span>
+            <span>{familyNextTitle.icon} {familyNextTitle.min} оч.</span>
+          </div>
+          <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${familyProgress}%` }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+              className="h-full bg-white rounded-full"
+            />
+          </div>
+          <p className="text-emerald-200 text-xs mt-2 italic">
+            «{familyNextTitle.verse}»
+          </p>
+        </div>
+      ) : (
+        <div className="text-center py-2">
+          <p className="text-white font-semibold text-sm">
+            👑 Высший семейный титул!
+          </p>
+          <p className="text-emerald-200 text-xs mt-1 italic">
+            «{familyCurrentTitle.verse}»
+          </p>
+        </div>
+      )}
+
+      <div className="flex items-center justify-end mt-4 pt-4 border-t border-white/20">
+        <button
+          onClick={onPray}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors min-h-[36px] ${
+            hasFamilyPrayedToday
+              ? 'bg-white/10 text-emerald-200'
+              : 'bg-amber-400 hover:bg-amber-300 text-amber-900 animate-pulse'
+          }`}
+        >
+          🙏 {hasFamilyPrayedToday ? 'Благодарим' : 'Семейная молитва'}
+        </button>
+      </div>
+    </div>
+  </div>
+);
 
 export default function GamificationWidget() {
   const queryClient = useQueryClient();
@@ -14,6 +159,7 @@ export default function GamificationWidget() {
   const [showPrayer, setShowPrayer] = useState(false);
   const [praying, setPraying] = useState(false);
   const [prayerContext, setPrayerContext] = useState(null); // null | 'family'
+  const [activeIndex, setActiveIndex] = useState(0); // 0 = personal, 1 = family
 
   const { data: profile } = useQuery({
     queryKey: ['gamification'],
@@ -54,12 +200,12 @@ export default function GamificationWidget() {
     const today = new Date().toISOString().slice(0, 10);
     if (p.last_daily_login === today && p.last_prayer_date !== today) {
       const timer = setTimeout(() => {
-        setPrayerContext(null);
+        setPrayerContext(activeIndex === 1 ? 'family' : null);
         setShowPrayer(true);
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [profile]);
+  }, [profile, activeIndex]);
 
   const handlePray = async () => {
     setPraying(true);
@@ -100,6 +246,54 @@ export default function GamificationWidget() {
 
   const activePrayerTitle = prayerContext === 'family' ? familyCurrentTitle : currentTitle;
 
+  const handleDragEnd = (event, info) => {
+    const threshold = 50;
+    if (info.offset.x < -threshold && activeIndex === 0 && hasFamily) {
+      setActiveIndex(1);
+    } else if (info.offset.x > threshold && activeIndex === 1) {
+      setActiveIndex(0);
+    }
+  };
+
+  const cards = [
+    {
+      key: 'personal',
+      node: (
+        <PersonalTitleCard
+          p={p}
+          currentTitle={currentTitle}
+          nextTitle={nextTitle}
+          progressToNext={progressToNext}
+          unlockedCount={unlockedCount}
+          totalCount={totalCount}
+          hasPrayedToday={hasPrayedToday}
+          onPray={() => { setPrayerContext(null); setShowPrayer(true); }}
+          onShowAchievements={() => setShowAchievements(true)}
+        />
+      ),
+      dotColor: 'bg-violet-500',
+    },
+  ];
+
+  if (hasFamily) {
+    cards.push({
+      key: 'family',
+      node: (
+        <FamilyTitleCard
+          p={p}
+          familyCurrentTitle={familyCurrentTitle}
+          familyNextTitle={familyNextTitle}
+          familyProgress={familyProgress}
+          hasFamilyPrayedToday={hasFamilyPrayedToday}
+          onPray={() => { setPrayerContext('family'); setShowPrayer(true); }}
+        />
+      ),
+      dotColor: 'bg-emerald-500',
+    });
+  }
+
+  const useCarousel = cards.length > 1;
+
   return (
     <>
       <motion.div
@@ -108,157 +302,42 @@ export default function GamificationWidget() {
         transition={{ delay: 0.05 }}
         className="mb-6"
       >
-        <div className="rounded-2xl border border-border bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 shadow-lg overflow-hidden">
-          <div className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-2xl backdrop-blur-sm">
-                  {currentTitle.icon}
+        {useCarousel ? (
+          <div className="overflow-hidden">
+            <motion.div
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.2}
+              onDragEnd={handleDragEnd}
+              animate={{ x: `-${activeIndex * 100}%` }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
+              className="flex cursor-grab active:cursor-grabbing"
+            >
+              {cards.map((card) => (
+                <div key={card.key} className="w-full shrink-0 px-0.5 min-h-[44px]">
+                  {card.node}
                 </div>
-                <div>
-                  <p className="text-violet-200 text-xs font-medium">Духовный титул</p>
-                  <h3 className="text-white font-bold text-base leading-tight">
-                    {p.current_title || currentTitle.title}
-                  </h3>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowAchievements(true)}
-                className="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 transition-colors text-white text-xs font-medium flex items-center gap-1.5"
-              >
-                <Award className="w-3.5 h-3.5" />
-                {unlockedCount}/{totalCount}
-              </button>
-            </div>
+              ))}
+            </motion.div>
 
-            {nextTitle ? (
-              <div>
-                <div className="flex justify-between text-xs text-violet-200 mb-1.5">
-                  <span>{currentTitle.icon} {currentTitle.min} оч.</span>
-                  <span>{nextTitle.icon} {nextTitle.min} оч.</span>
-                </div>
-                <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progressToNext}%` }}
-                    transition={{ duration: 0.8, ease: 'easeOut' }}
-                    className="h-full bg-white rounded-full"
-                  />
-                </div>
-                <p className="text-violet-200 text-xs mt-2 italic">
-                  «{nextTitle.verse}»
-                </p>
-              </div>
-            ) : (
-              <div className="text-center py-2">
-                <p className="text-white font-semibold text-sm">
-                  👑 Высший титул достигнут!
-                </p>
-                <p className="text-violet-200 text-xs mt-1 italic">
-                  «{currentTitle.verse}»
-                </p>
-              </div>
-            )}
-
-            <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/20">
-              <div className="flex items-center gap-1.5">
-                <Flame className="w-4 h-4 text-orange-300" />
-                <span className="text-white text-sm font-semibold">{p.streak_days || 0}</span>
-                <span className="text-violet-200 text-xs">дней</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Star className="w-4 h-4 text-yellow-300" />
-                <span className="text-white text-sm font-semibold">{p.total_points || 0}</span>
-                <span className="text-violet-200 text-xs">оч.</span>
-              </div>
-              <button
-                onClick={() => { setPrayerContext(null); setShowPrayer(true); }}
-                className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  hasPrayedToday
-                    ? 'bg-white/10 text-violet-200'
-                    : 'bg-amber-400 hover:bg-amber-300 text-amber-900 animate-pulse'
-                }`}
-              >
-                🙏 {hasPrayedToday ? 'Благодарю' : 'Помолиться'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Family title track */}
-      {hasFamily && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="mb-6"
-        >
-          <div className="rounded-2xl border border-border bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 shadow-lg overflow-hidden">
-            <div className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-2xl backdrop-blur-sm">
-                    {familyCurrentTitle.icon}
-                  </div>
-                  <div>
-                    <p className="text-emerald-200 text-xs font-medium">Семейный титул</p>
-                    <h3 className="text-white font-bold text-base leading-tight">
-                      {p.family_title || familyCurrentTitle.title}
-                    </h3>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15">
-                  <span className="text-white text-sm font-semibold">{p.family_points || 0}</span>
-                  <span className="text-emerald-200 text-xs">оч.</span>
-                </div>
-              </div>
-
-              {familyNextTitle ? (
-                <div>
-                  <div className="flex justify-between text-xs text-emerald-200 mb-1.5">
-                    <span>{familyCurrentTitle.icon} {familyCurrentTitle.min} оч.</span>
-                    <span>{familyNextTitle.icon} {familyNextTitle.min} оч.</span>
-                  </div>
-                  <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${familyProgress}%` }}
-                      transition={{ duration: 0.8, ease: 'easeOut' }}
-                      className="h-full bg-white rounded-full"
-                    />
-                  </div>
-                  <p className="text-emerald-200 text-xs mt-2 italic">
-                    «{familyNextTitle.verse}»
-                  </p>
-                </div>
-              ) : (
-                <div className="text-center py-2">
-                  <p className="text-white font-semibold text-sm">
-                    👑 Высший семейный титул!
-                  </p>
-                  <p className="text-emerald-200 text-xs mt-1 italic">
-                    «{familyCurrentTitle.verse}»
-                  </p>
-                </div>
-              )}
-
-              <div className="flex items-center justify-end mt-4 pt-4 border-t border-white/20">
+            {/* Dot indicators */}
+            <div className="flex items-center justify-center gap-2 mt-3">
+              {cards.map((card, idx) => (
                 <button
-                  onClick={() => { setPrayerContext('family'); setShowPrayer(true); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    hasFamilyPrayedToday
-                      ? 'bg-white/10 text-emerald-200'
-                      : 'bg-amber-400 hover:bg-amber-300 text-amber-900 animate-pulse'
+                  key={card.key}
+                  onClick={() => setActiveIndex(idx)}
+                  className={`transition-all rounded-full ${card.dotColor} ${
+                    activeIndex === idx ? 'w-6 h-2.5' : 'w-2.5 h-2.5 opacity-40'
                   }`}
-                >
-                  🙏 {hasFamilyPrayedToday ? 'Благодарим' : 'Семейная молитва'}
-                </button>
-              </div>
+                  aria-label={`Титул ${idx + 1}`}
+                />
+              ))}
             </div>
           </div>
-        </motion.div>
-      )}
+        ) : (
+          cards[0].node
+        )}
+      </motion.div>
 
       {/* Daily prayer reminder */}
       <AnimatePresence>
