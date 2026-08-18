@@ -20,6 +20,7 @@ import {
 import { eventBus, EVENTS } from '@/lib/eventBus';
 import { parseFlexibleDate } from '@/lib/parseDate';
 import { offlineQueue } from '@/lib/offlineQueue';
+import { base44 } from '@/api/base44Client';
 
 const repo = () => getRepository('Transaction');
 const goalRepo = () => getRepository('Goal');
@@ -96,6 +97,10 @@ export const TransactionService = {
         throw e;
       }
       notifyChanged({ action: 'create', transaction: created });
+      // Награда за транзакцию в системе духовного роста
+      base44.functions.invoke('gamificationDailyCheckin', { action: 'transaction' })
+        .then(() => eventBus.emit(EVENTS.GAMIFICATION_UPDATED))
+        .catch(() => {});
     }
     return { ok: true };
   },

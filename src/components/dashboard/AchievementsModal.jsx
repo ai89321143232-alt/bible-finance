@@ -1,0 +1,126 @@
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Flame, Star, Trophy } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ACHIEVEMENTS, TITLES, getTitleForPoints } from '@/lib/gamification';
+
+export default function AchievementsModal({
+  open,
+  onClose,
+  achievements,
+  totalPoints,
+  streakDays,
+  maxStreak,
+}) {
+  const currentTitle = getTitleForPoints(totalPoints);
+  const unlocked = new Set(achievements);
+  const allKeys = Object.keys(ACHIEVEMENTS);
+  const unlockedCount = unlocked.size;
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="rounded-2xl max-w-md max-h-[85vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-violet-600" />
+            Достижения
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* Summary */}
+        <div className="bg-gradient-to-br from-violet-600 to-indigo-700 rounded-xl p-4 mb-4">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-3xl">{currentTitle.icon}</span>
+            <div>
+              <p className="text-violet-200 text-xs">Текущий титул</p>
+              <p className="text-white font-bold">{currentTitle.title}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="bg-white/15 rounded-lg p-2">
+              <Star className="w-4 h-4 text-yellow-300 mx-auto mb-1" />
+              <p className="text-white font-bold text-sm">{totalPoints}</p>
+              <p className="text-violet-200 text-xs">очков</p>
+            </div>
+            <div className="bg-white/15 rounded-lg p-2">
+              <Flame className="w-4 h-4 text-orange-300 mx-auto mb-1" />
+              <p className="text-white font-bold text-sm">{streakDays}</p>
+              <p className="text-violet-200 text-xs">серия</p>
+            </div>
+            <div className="bg-white/15 rounded-lg p-2">
+              <Trophy className="w-4 h-4 text-yellow-300 mx-auto mb-1" />
+              <p className="text-white font-bold text-sm">{unlockedCount}/{allKeys.length}</p>
+              <p className="text-violet-200 text-xs">наград</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Title progression */}
+        <div className="mb-4">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Путь титулов</p>
+          <div className="space-y-1.5">
+            {TITLES.map((t, i) => {
+              const isUnlocked = totalPoints >= t.min;
+              const isCurrent = currentTitle.title === t.title;
+              return (
+                <div
+                  key={i}
+                  className={`flex items-center gap-2 p-2 rounded-lg ${
+                    isCurrent
+                      ? 'bg-violet-100 dark:bg-violet-900/30 border border-violet-300 dark:border-violet-700'
+                      : isUnlocked
+                      ? 'bg-slate-50 dark:bg-slate-800/50'
+                      : 'opacity-40'
+                  }`}
+                >
+                  <span className="text-lg">{t.icon}</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">{t.title}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t.min} оч. мудрости</p>
+                  </div>
+                  {isCurrent && (
+                    <span className="text-xs font-bold text-violet-600 dark:text-violet-400">★</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Achievements grid */}
+        <div className="flex-1 overflow-y-auto">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Награды</p>
+          <div className="grid grid-cols-2 gap-2">
+            {allKeys.map(key => {
+              const a = ACHIEVEMENTS[key];
+              const isUnlocked = unlocked.has(key);
+              return (
+                <motion.div
+                  key={key}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className={`p-3 rounded-xl text-center ${
+                    isUnlocked
+                      ? 'bg-gradient-to-br from-amber-50 to-yellow-100 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-800'
+                      : 'bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 opacity-50'
+                  }`}
+                >
+                  <span className={`text-2xl block mb-1 ${isUnlocked ? '' : 'grayscale'}`}>
+                    {isUnlocked ? a.icon : '🔒'}
+                  </span>
+                  <p className="text-xs font-semibold text-slate-900 dark:text-white">{a.title}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{a.description}</p>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

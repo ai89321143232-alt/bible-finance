@@ -15,6 +15,7 @@ import { validateGoalInput } from '@/domain/validators';
 import { eventBus, EVENTS } from '@/lib/eventBus';
 import { AccountService } from './AccountService';
 import { TransactionService } from './TransactionService';
+import { base44 } from '@/api/base44Client';
 
 const repo = () => getRepository('Goal');
 
@@ -83,6 +84,12 @@ export const GoalService = {
       { enrich: false }
     );
     eventBus.emit(EVENTS.ACCOUNT_CHANGED, { id: account?.id, action: 'update' });
+
+    if (isCompleted) {
+      base44.functions.invoke('gamificationDailyCheckin', { action: 'goal_completed' })
+        .then(() => eventBus.emit(EVENTS.GAMIFICATION_UPDATED))
+        .catch(() => {});
+    }
     return updated;
   },
 

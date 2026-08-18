@@ -24,6 +24,7 @@ export const EVENTS = {
   GOAL_CHANGED: 'goal-changed',
   PERSONALIZATION_SAVED: 'personalization-saved',
   BACKGROUND_CHANGED: 'background-changed',
+  GAMIFICATION_UPDATED: 'gamification-updated',
 };
 
 class EventBus {
