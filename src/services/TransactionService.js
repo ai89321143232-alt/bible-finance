@@ -98,7 +98,7 @@ export const TransactionService = {
       }
       notifyChanged({ action: 'create', transaction: created });
       // Награда за транзакцию в системе духовного роста
-      base44.functions.invoke('gamificationDailyCheckin', { action: 'transaction' })
+      base44.functions.invoke('gamificationDailyCheckin', { action: 'transaction', context: data.family_id ? 'family' : undefined })
         .then(() => eventBus.emit(EVENTS.GAMIFICATION_UPDATED))
         .catch(() => {});
     }

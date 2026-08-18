@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ACHIEVEMENTS, TITLES, getTitleForPoints } from '@/lib/gamification';
+import { ACHIEVEMENTS, TITLES, FAMILY_TITLES, getTitleForPoints, getFamilyTitleForPoints } from '@/lib/gamification';
 
 export default function AchievementsModal({
   open,
@@ -16,11 +16,75 @@ export default function AchievementsModal({
   totalPoints,
   streakDays,
   maxStreak,
+  familyPoints,
+  hasFamily,
 }) {
   const currentTitle = getTitleForPoints(totalPoints);
+  const familyCurrentTitle = getFamilyTitleForPoints(familyPoints || 0);
   const unlocked = new Set(achievements);
   const allKeys = Object.keys(ACHIEVEMENTS);
   const unlockedCount = unlocked.size;
+
+  const renderTitleTrack = (titles, points, currentT, label, accentColor) => (
+    <div className="mb-4">
+      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">{label}</p>
+      <div className="space-y-2">
+        {titles.map((t, i) => {
+          const isUnlocked = points >= t.min;
+          const isCurrent = currentT.title === t.title;
+          const rangeMin = t.min;
+          const rangeMax = i < titles.length - 1 ? titles[i + 1].min : t.min;
+          const rangeSize = rangeMax - rangeMin || 1;
+          const fillPct = isUnlocked
+            ? Math.min(100, Math.round(((points - rangeMin) / rangeSize) * 100))
+            : 0;
+
+          return (
+            <div
+              key={i}
+              className={`p-2.5 rounded-lg transition-colors ${
+                isCurrent
+                  ? accentColor === 'emerald'
+                    ? 'bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700'
+                    : 'bg-violet-100 dark:bg-violet-900/30 border border-violet-300 dark:border-violet-700'
+                  : isUnlocked
+                  ? 'bg-slate-50 dark:bg-slate-800/50 border border-transparent'
+                  : 'opacity-50 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-lg">{t.icon}</span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">{t.title}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{t.min} оч.</p>
+                </div>
+                {isCurrent && (
+                  <span className={`text-xs font-bold ${accentColor === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' : 'text-violet-600 dark:text-violet-400'}`}>★ Вы здесь</span>
+                )}
+                {isUnlocked && !isCurrent && (
+                  <span className="text-xs text-green-500">✓</span>
+                )}
+              </div>
+              <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${fillPct}%` }}
+                  transition={{ duration: 0.5 }}
+                  className={`h-full rounded-full ${
+                    isCurrent
+                      ? accentColor === 'emerald' ? 'bg-emerald-500' : 'bg-violet-500'
+                      : isUnlocked
+                      ? 'bg-green-400'
+                      : 'bg-slate-300 dark:bg-slate-600'
+                  }`}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -60,65 +124,11 @@ export default function AchievementsModal({
           </div>
         </div>
 
-        {/* Title progression with progress bars */}
-        <div className="mb-4">
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Путь титулов</p>
-          <div className="space-y-2">
-            {TITLES.map((t, i) => {
-              const isUnlocked = totalPoints >= t.min;
-              const isCurrent = currentTitle.title === t.title;
-              const prevMin = i > 0 ? TITLES[i - 1].min : 0;
-              const rangeMin = t.min;
-              const rangeMax = i < TITLES.length - 1 ? TITLES[i + 1].min : t.min;
-              const rangeSize = rangeMax - rangeMin || 1;
-              const fillPct = isUnlocked
-                ? Math.min(100, Math.round(((totalPoints - rangeMin) / rangeSize) * 100))
-                : 0;
+        {/* Personal title track */}
+        {renderTitleTrack(TITLES, totalPoints, currentTitle, 'Путь личных титулов', 'violet')}
 
-              return (
-                <div
-                  key={i}
-                  className={`p-2.5 rounded-lg transition-colors ${
-                    isCurrent
-                      ? 'bg-violet-100 dark:bg-violet-900/30 border border-violet-300 dark:border-violet-700'
-                      : isUnlocked
-                      ? 'bg-slate-50 dark:bg-slate-800/50 border border-transparent'
-                      : 'opacity-50 border border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-lg">{t.icon}</span>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">{t.title}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{t.min} оч. мудрости</p>
-                    </div>
-                    {isCurrent && (
-                      <span className="text-xs font-bold text-violet-600 dark:text-violet-400">★ Вы здесь</span>
-                    )}
-                    {isUnlocked && !isCurrent && (
-                      <span className="text-xs text-green-500">✓</span>
-                    )}
-                  </div>
-                  {/* Progress bar within this title's range */}
-                  <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${fillPct}%` }}
-                      transition={{ duration: 0.5 }}
-                      className={`h-full rounded-full ${
-                        isCurrent
-                          ? 'bg-violet-500'
-                          : isUnlocked
-                          ? 'bg-green-400'
-                          : 'bg-slate-300 dark:bg-slate-600'
-                      }`}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        {/* Family title track */}
+        {hasFamily && renderTitleTrack(FAMILY_TITLES, familyPoints || 0, familyCurrentTitle, 'Путь семейных титулов', 'emerald')}
 
         {/* Achievements grid */}
         <div className="flex-1 overflow-y-auto">

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Flame, Star, ChevronRight, Award } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { TITLES, ACHIEVEMENTS, getTitleForPoints, getNextTitle } from '@/lib/gamification';
+import { TITLES, FAMILY_TITLES, ACHIEVEMENTS, getTitleForPoints, getNextTitle, getFamilyTitleForPoints, getNextFamilyTitle } from '@/lib/gamification';
 import AchievementsModal from '@/components/dashboard/AchievementsModal';
 import { eventBus, EVENTS } from '@/lib/eventBus';
 
@@ -13,6 +13,7 @@ export default function GamificationWidget() {
   const [toast, setToast] = useState(null);
   const [showPrayer, setShowPrayer] = useState(false);
   const [praying, setPraying] = useState(false);
+  const [prayerContext, setPrayerContext] = useState(null); // null | 'family'
 
   const { data: profile } = useQuery({
     queryKey: ['gamification'],
@@ -38,6 +39,8 @@ export default function GamificationWidget() {
         achievements: profile.newAchievements || [],
         titleChanged: profile.titleChanged,
         newTitle: profile.newTitle,
+        familyTitleChanged: profile.familyTitleChanged,
+        newFamilyTitle: profile.newFamilyTitle,
       });
       const timer = setTimeout(() => setToast(null), 5000);
       return () => clearTimeout(timer);
@@ -50,7 +53,10 @@ export default function GamificationWidget() {
     const p = profile.profile;
     const today = new Date().toISOString().slice(0, 10);
     if (p.last_daily_login === today && p.last_prayer_date !== today) {
-      const timer = setTimeout(() => setShowPrayer(true), 1500);
+      const timer = setTimeout(() => {
+        setPrayerContext(null);
+        setShowPrayer(true);
+      }, 1500);
       return () => clearTimeout(timer);
     }
   }, [profile]);
@@ -58,7 +64,10 @@ export default function GamificationWidget() {
   const handlePray = async () => {
     setPraying(true);
     try {
-      await base44.functions.invoke('gamificationDailyCheckin', { action: 'pray' });
+      await base44.functions.invoke('gamificationDailyCheckin', {
+        action: 'pray',
+        context: prayerContext === 'family' ? 'family' : undefined,
+      });
       eventBus.emit(EVENTS.GAMIFICATION_UPDATED);
       setShowPrayer(false);
     } catch (e) {
@@ -70,6 +79,7 @@ export default function GamificationWidget() {
 
   if (!profile || !profile.profile) return null;
   const p = profile.profile;
+  const hasFamily = profile.hasFamily;
   const currentTitle = getTitleForPoints(p.total_points || 0);
   const nextTitle = getNextTitle(p.total_points || 0);
   const progressToNext = nextTitle
@@ -79,6 +89,16 @@ export default function GamificationWidget() {
   const totalCount = Object.keys(ACHIEVEMENTS).length;
   const today = new Date().toISOString().slice(0, 10);
   const hasPrayedToday = p.last_prayer_date === today;
+
+  // Family track
+  const familyCurrentTitle = getFamilyTitleForPoints(p.family_points || 0);
+  const familyNextTitle = getNextFamilyTitle(p.family_points || 0);
+  const familyProgress = familyNextTitle
+    ? Math.round(((p.family_points - familyCurrentTitle.min) / (familyNextTitle.min - familyCurrentTitle.min)) * 100)
+    : 100;
+  const hasFamilyPrayedToday = p.last_family_prayer_date === today;
+
+  const activePrayerTitle = prayerContext === 'family' ? familyCurrentTitle : currentTitle;
 
   return (
     <>
@@ -152,7 +172,7 @@ export default function GamificationWidget() {
                 <span className="text-violet-200 text-xs">оч.</span>
               </div>
               <button
-                onClick={() => setShowPrayer(true)}
+                onClick={() => { setPrayerContext(null); setShowPrayer(true); }}
                 className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                   hasPrayedToday
                     ? 'bg-white/10 text-violet-200'
@@ -166,9 +186,83 @@ export default function GamificationWidget() {
         </div>
       </motion.div>
 
+      {/* Family title track */}
+      {hasFamily && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="mb-6"
+        >
+          <div className="rounded-2xl border border-border bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 shadow-lg overflow-hidden">
+            <div className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-2xl backdrop-blur-sm">
+                    {familyCurrentTitle.icon}
+                  </div>
+                  <div>
+                    <p className="text-emerald-200 text-xs font-medium">Семейный титул</p>
+                    <h3 className="text-white font-bold text-base leading-tight">
+                      {p.family_title || familyCurrentTitle.title}
+                    </h3>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15">
+                  <span className="text-white text-sm font-semibold">{p.family_points || 0}</span>
+                  <span className="text-emerald-200 text-xs">оч.</span>
+                </div>
+              </div>
+
+              {familyNextTitle ? (
+                <div>
+                  <div className="flex justify-between text-xs text-emerald-200 mb-1.5">
+                    <span>{familyCurrentTitle.icon} {familyCurrentTitle.min} оч.</span>
+                    <span>{familyNextTitle.icon} {familyNextTitle.min} оч.</span>
+                  </div>
+                  <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${familyProgress}%` }}
+                      transition={{ duration: 0.8, ease: 'easeOut' }}
+                      className="h-full bg-white rounded-full"
+                    />
+                  </div>
+                  <p className="text-emerald-200 text-xs mt-2 italic">
+                    «{familyNextTitle.verse}»
+                  </p>
+                </div>
+              ) : (
+                <div className="text-center py-2">
+                  <p className="text-white font-semibold text-sm">
+                    👑 Высший семейный титул!
+                  </p>
+                  <p className="text-emerald-200 text-xs mt-1 italic">
+                    «{familyCurrentTitle.verse}»
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end mt-4 pt-4 border-t border-white/20">
+                <button
+                  onClick={() => { setPrayerContext('family'); setShowPrayer(true); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    hasFamilyPrayedToday
+                      ? 'bg-white/10 text-emerald-200'
+                      : 'bg-amber-400 hover:bg-amber-300 text-amber-900 animate-pulse'
+                  }`}
+                >
+                  🙏 {hasFamilyPrayedToday ? 'Благодарим' : 'Семейная молитва'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Daily prayer reminder */}
       <AnimatePresence>
-        {showPrayer && !hasPrayedToday && (
+        {showPrayer && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -185,20 +279,30 @@ export default function GamificationWidget() {
             >
               <div className="text-4xl mb-3">🙏</div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                Благодарение дня
+                {prayerContext === 'family' ? 'Семейная молитва дня' : 'Благодарение дня'}
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-300 mb-4 leading-relaxed">
-                Не забудьте поблагодарить Бога за этот день, за жизнь и за ресурсы, которые Он вам вверил.
+                {prayerContext === 'family'
+                  ? 'Поблагодарите Бога за вашу семью, за дом и за ресурсы, которые Он вверил вашей семье.'
+                  : 'Поблагодарите Бога за этот день, за жизнь и за ресурсы, которые Он вам вверил.'}
               </p>
-              <div className="bg-violet-50 dark:bg-violet-900/20 rounded-xl p-4 mb-4">
+              <div className={`rounded-xl p-4 mb-4 ${
+                prayerContext === 'family'
+                  ? 'bg-emerald-50 dark:bg-emerald-900/20'
+                  : 'bg-violet-50 dark:bg-violet-900/20'
+              }`}>
                 <p className="text-sm text-slate-700 dark:text-slate-200 italic leading-relaxed">
-                  «{currentTitle.prayer}»
+                  «{activePrayerTitle.prayer}»
                 </p>
               </div>
               <button
                 onClick={handlePray}
                 disabled={praying}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+                className={`w-full py-3 rounded-xl text-white font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 ${
+                  prayerContext === 'family'
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600'
+                    : 'bg-gradient-to-r from-violet-600 to-indigo-600'
+                }`}
               >
                 {praying ? '...' : '🙏 Благодарю, Господи!'}
               </button>
@@ -230,9 +334,17 @@ export default function GamificationWidget() {
                   </p>
                 </div>
               ) : null}
+              {toast.familyTitleChanged && toast.newFamilyTitle ? (
+                <div className="text-center mb-2">
+                  <p className="text-2xl mb-1">{toast.newFamilyTitle.icon}</p>
+                  <p className="text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                    Новый семейный титул: {toast.newFamilyTitle.title}!
+                  </p>
+                </div>
+              ) : null}
               {toast.points > 0 && (
                 <p className="text-center text-slate-700 dark:text-slate-200 text-sm">
-                  +{toast.points} оч. мудрости
+                  +{toast.points} оч.
                 </p>
               )}
               {toast.achievements && toast.achievements.length > 0 && (
@@ -264,6 +376,8 @@ export default function GamificationWidget() {
         totalPoints={p.total_points || 0}
         streakDays={p.streak_days || 0}
         maxStreak={p.max_streak || 0}
+        familyPoints={p.family_points || 0}
+        hasFamily={hasFamily}
       />
     </>
   );

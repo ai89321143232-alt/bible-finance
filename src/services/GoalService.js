@@ -86,7 +86,7 @@ export const GoalService = {
     eventBus.emit(EVENTS.ACCOUNT_CHANGED, { id: account?.id, action: 'update' });
 
     if (isCompleted) {
-      base44.functions.invoke('gamificationDailyCheckin', { action: 'goal_completed' })
+      base44.functions.invoke('gamificationDailyCheckin', { action: 'goal_completed', context: goal.family_id ? 'family' : undefined })
         .then(() => eventBus.emit(EVENTS.GAMIFICATION_UPDATED))
         .catch(() => {});
     }
