@@ -60,32 +60,60 @@ export default function AchievementsModal({
           </div>
         </div>
 
-        {/* Title progression */}
+        {/* Title progression with progress bars */}
         <div className="mb-4">
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Путь титулов</p>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {TITLES.map((t, i) => {
               const isUnlocked = totalPoints >= t.min;
               const isCurrent = currentTitle.title === t.title;
+              const prevMin = i > 0 ? TITLES[i - 1].min : 0;
+              const rangeMin = t.min;
+              const rangeMax = i < TITLES.length - 1 ? TITLES[i + 1].min : t.min;
+              const rangeSize = rangeMax - rangeMin || 1;
+              const fillPct = isUnlocked
+                ? Math.min(100, Math.round(((totalPoints - rangeMin) / rangeSize) * 100))
+                : 0;
+
               return (
                 <div
                   key={i}
-                  className={`flex items-center gap-2 p-2 rounded-lg ${
+                  className={`p-2.5 rounded-lg transition-colors ${
                     isCurrent
                       ? 'bg-violet-100 dark:bg-violet-900/30 border border-violet-300 dark:border-violet-700'
                       : isUnlocked
-                      ? 'bg-slate-50 dark:bg-slate-800/50'
-                      : 'opacity-40'
+                      ? 'bg-slate-50 dark:bg-slate-800/50 border border-transparent'
+                      : 'opacity-50 border border-transparent'
                   }`}
                 >
-                  <span className="text-lg">{t.icon}</span>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">{t.title}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{t.min} оч. мудрости</p>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-lg">{t.icon}</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-slate-900 dark:text-white">{t.title}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{t.min} оч. мудрости</p>
+                    </div>
+                    {isCurrent && (
+                      <span className="text-xs font-bold text-violet-600 dark:text-violet-400">★ Вы здесь</span>
+                    )}
+                    {isUnlocked && !isCurrent && (
+                      <span className="text-xs text-green-500">✓</span>
+                    )}
                   </div>
-                  {isCurrent && (
-                    <span className="text-xs font-bold text-violet-600 dark:text-violet-400">★</span>
-                  )}
+                  {/* Progress bar within this title's range */}
+                  <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${fillPct}%` }}
+                      transition={{ duration: 0.5 }}
+                      className={`h-full rounded-full ${
+                        isCurrent
+                          ? 'bg-violet-500'
+                          : isUnlocked
+                          ? 'bg-green-400'
+                          : 'bg-slate-300 dark:bg-slate-600'
+                      }`}
+                    />
+                  </div>
                 </div>
               );
             })}

@@ -2,8 +2,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
 // ============================================================
 // gamificationDailyCheckin — серверная логика духовного роста.
-// Обрабатывает: ежедневный вход, транзакции, достижения, титулы.
-// Payload: { action: "daily_login" | "transaction" | "goal_completed" | "budget_kept" }
+// Обрабатывает: ежедневный вход, транзакции, достижения, титулы,
+// молитву благодарности.
+// Payload: { action: "daily_login" | "transaction" | "goal_completed" | "budget_kept" | "pray" }
 // ============================================================
 
 const DAILY_LOGIN_POINTS = 5;
@@ -11,13 +12,15 @@ const TRANSACTION_POINTS = 10;
 const MAX_DAILY_TX_REWARDS = 5;
 const GOAL_COMPLETED_POINTS = 50;
 const BUDGET_KEPT_POINTS = 30;
+const PRAYER_POINTS = 3;
 
 const TITLES = [
-  { min: 0, title: "Верный в малом", icon: "🌱" },
-  { min: 100, title: "Усердный управитель", icon: "⚖️" },
-  { min: 300, title: "Мудрый распорядитель", icon: "📖" },
-  { min: 700, title: "Доверенный хранитель", icon: "🏛️" },
-  { min: 1500, title: "Верный во многом", icon: "👑" },
+  { min: 0, title: "Младенец", icon: "🍼" },
+  { min: 50, title: "Верный в малом", icon: "🌱" },
+  { min: 150, title: "Усердный управитель", icon: "⚖️" },
+  { min: 400, title: "Мудрый распорядитель", icon: "📖" },
+  { min: 900, title: "Доверенный хранитель", icon: "🏛️" },
+  { min: 1800, title: "Верный во многом", icon: "👑" },
 ];
 
 const ALL_ACHIEVEMENTS = {
@@ -31,6 +34,8 @@ const ALL_ACHIEVEMENTS = {
   first_investment: { title: "Инвестор", description: "Создать первую инвестицию", icon: "📈" },
   tithe_fulfilled: { title: "Верный десятине", description: "Записать десятину", icon: "⛪" },
   steward_level: { title: "Верный управитель", description: "Достичь 2-го титула", icon: "✨" },
+  first_prayer: { title: "Благодарное сердце", description: "Прочитать первую молитву благодарности", icon: "🙏" },
+  prayer_week: { title: "Постоянство духа", description: "7 дней молитвы подряд", icon: "🕊️" },
 };
 
 function getTitleForPoints(points) {
@@ -60,9 +65,15 @@ function checkNewAchievements(profile, action, context = {}) {
   if (action === "budget_kept" && !achievements.includes("budget_kept")) {
     newAchievements.push("budget_kept");
   }
+  if (action === "pray" && !achievements.includes("first_prayer")) {
+    newAchievements.push("first_prayer");
+  }
+  if ((profile.prayer_streak || 0) >= 7 && !achievements.includes("prayer_week")) {
+    newAchievements.push("prayer_week");
+  }
 
   const newTitle = getTitleForPoints(profile.total_points || 0);
-  if ((profile.total_points || 0) >= 100 && !achievements.includes("steward_level")) {
+  if ((profile.total_points || 0) >= 50 && !achievements.includes("steward_level")) {
     newAchievements.push("steward_level");
   }
 
@@ -76,7 +87,7 @@ export default async function(req) {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { action, category } = await req.json().catch(() => ({ action: null }));
-    if (!['daily_login', 'transaction', 'goal_completed', 'budget_kept'].includes(action)) {
+    if (!['daily_login', 'transaction', 'goal_completed', 'budget_kept', 'pray'].includes(action)) {
       return Response.json({ error: 'Invalid action' }, { status: 400 });
     }
 
@@ -90,6 +101,8 @@ export default async function(req) {
         max_streak: 0,
         current_title: TITLES[0].title,
         last_daily_login: null,
+        last_prayer_date: null,
+        prayer_streak: 0,
         daily_transactions_count: 0,
         last_transaction_date: null,
         achievements: [],
@@ -132,6 +145,53 @@ export default async function(req) {
       });
 
       const tempProfile = { ...updated, total_points: newPoints, streak_days: newStreak };
+      newAchievements = checkNewAchievements(tempProfile, action);
+
+      if (newAchievements.length > 0) {
+        const allAchievements = [...(updated.achievements || []), ...newAchievements];
+        const finalProfile = await base44.asServiceRole.entities.UserGamification.update(updated.id, {
+          achievements: allAchievements,
+        });
+        return Response.json({
+          profile: finalProfile,
+          awarded: true,
+          points: pointsAwarded,
+          newAchievements,
+          titleChanged,
+          newTitle: titleChanged ? newTitle : null,
+        });
+      }
+
+      return Response.json({ profile: updated, awarded: true, points: pointsAwarded, newAchievements: [], titleChanged, newTitle: titleChanged ? newTitle : null });
+    }
+
+    if (action === 'pray') {
+      if (profile.last_prayer_date === today) {
+        return Response.json({ profile, awarded: false });
+      }
+
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+      let newPrayerStreak = 1;
+      if (profile.last_prayer_date === yesterdayStr) {
+        newPrayerStreak = (profile.prayer_streak || 0) + 1;
+      }
+
+      pointsAwarded = PRAYER_POINTS;
+      const newPoints = (profile.total_points || 0) + pointsAwarded;
+      const newTitle = getTitleForPoints(newPoints);
+      titleChanged = newTitle.title !== profile.current_title;
+
+      const updated = await base44.asServiceRole.entities.UserGamification.update(profile.id, {
+        total_points: newPoints,
+        last_prayer_date: today,
+        prayer_streak: newPrayerStreak,
+        current_title: newTitle.title,
+      });
+
+      const tempProfile = { ...updated, total_points: newPoints, prayer_streak: newPrayerStreak };
       newAchievements = checkNewAchievements(tempProfile, action);
 
       if (newAchievements.length > 0) {

@@ -11,6 +11,8 @@ export default function GamificationWidget() {
   const queryClient = useQueryClient();
   const [showAchievements, setShowAchievements] = useState(false);
   const [toast, setToast] = useState(null);
+  const [showPrayer, setShowPrayer] = useState(false);
+  const [praying, setPraying] = useState(false);
 
   const { data: profile } = useQuery({
     queryKey: ['gamification'],
@@ -42,6 +44,30 @@ export default function GamificationWidget() {
     }
   }, [profile]);
 
+  // Reminder to pray on first daily entry
+  useEffect(() => {
+    if (!profile || !profile.profile) return;
+    const p = profile.profile;
+    const today = new Date().toISOString().slice(0, 10);
+    if (p.last_daily_login === today && p.last_prayer_date !== today) {
+      const timer = setTimeout(() => setShowPrayer(true), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [profile]);
+
+  const handlePray = async () => {
+    setPraying(true);
+    try {
+      await base44.functions.invoke('gamificationDailyCheckin', { action: 'pray' });
+      eventBus.emit(EVENTS.GAMIFICATION_UPDATED);
+      setShowPrayer(false);
+    } catch (e) {
+      // ignore
+    } finally {
+      setPraying(false);
+    }
+  };
+
   if (!profile || !profile.profile) return null;
   const p = profile.profile;
   const currentTitle = getTitleForPoints(p.total_points || 0);
@@ -51,6 +77,8 @@ export default function GamificationWidget() {
     : 100;
   const unlockedCount = (p.achievements || []).length;
   const totalCount = Object.keys(ACHIEVEMENTS).length;
+  const today = new Date().toISOString().slice(0, 10);
+  const hasPrayedToday = p.last_prayer_date === today;
 
   return (
     <>
@@ -116,17 +144,74 @@ export default function GamificationWidget() {
               <div className="flex items-center gap-1.5">
                 <Flame className="w-4 h-4 text-orange-300" />
                 <span className="text-white text-sm font-semibold">{p.streak_days || 0}</span>
-                <span className="text-violet-200 text-xs">дней подряд</span>
+                <span className="text-violet-200 text-xs">дней</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Star className="w-4 h-4 text-yellow-300" />
                 <span className="text-white text-sm font-semibold">{p.total_points || 0}</span>
-                <span className="text-violet-200 text-xs">оч. мудрости</span>
+                <span className="text-violet-200 text-xs">оч.</span>
               </div>
+              <button
+                onClick={() => setShowPrayer(true)}
+                className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  hasPrayedToday
+                    ? 'bg-white/10 text-violet-200'
+                    : 'bg-amber-400 hover:bg-amber-300 text-amber-900 animate-pulse'
+                }`}
+              >
+                🙏 {hasPrayedToday ? 'Благодарю' : 'Помолиться'}
+              </button>
             </div>
           </div>
         </div>
       </motion.div>
+
+      {/* Daily prayer reminder */}
+      <AnimatePresence>
+        {showPrayer && !hasPrayedToday && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowPrayer(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center"
+            >
+              <div className="text-4xl mb-3">🙏</div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                Благодарение дня
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-300 mb-4 leading-relaxed">
+                Не забудьте поблагодарить Бога за этот день, за жизнь и за ресурсы, которые Он вам вверил.
+              </p>
+              <div className="bg-violet-50 dark:bg-violet-900/20 rounded-xl p-4 mb-4">
+                <p className="text-sm text-slate-700 dark:text-slate-200 italic leading-relaxed">
+                  «{currentTitle.prayer}»
+                </p>
+              </div>
+              <button
+                onClick={handlePray}
+                disabled={praying}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {praying ? '...' : '🙏 Благодарю, Господи!'}
+              </button>
+              <button
+                onClick={() => setShowPrayer(false)}
+                className="w-full mt-2 py-2 text-slate-500 dark:text-slate-400 text-xs"
+              >
+                Позже
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {toast && (
