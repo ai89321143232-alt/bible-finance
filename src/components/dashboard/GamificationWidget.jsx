@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Flame, Star, Award } from 'lucide-react';
+import { Flame, Star, Award, Sparkles } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TITLES, FAMILY_TITLES, ACHIEVEMENTS, getTitleForPoints, getNextTitle, getFamilyTitleForPoints, getNextFamilyTitle } from '@/lib/gamification';
@@ -177,9 +178,35 @@ export default function GamificationWidget() {
     return off;
   }, [queryClient]);
 
+  const fireConfetti = () => {
+    const colors = ['#8b5cf6', '#6366f1', '#a855f7', '#10b981', '#14b8a6', '#f59e0b'];
+    const end = Date.now() + 1500;
+    const frame = () => {
+      confetti({
+        particleCount: 4,
+        angle: 60,
+        spread: 70,
+        origin: { x: 0 },
+        colors,
+        zIndex: 100,
+      });
+      confetti({
+        particleCount: 4,
+        angle: 120,
+        spread: 70,
+        origin: { x: 1 },
+        colors,
+        zIndex: 100,
+      });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    };
+    frame();
+  };
+
   useEffect(() => {
     if (!profile) return;
     if (profile.awarded) {
+      const hasTitleChange = profile.titleChanged || profile.familyTitleChanged;
       setToast({
         points: profile.points,
         achievements: profile.newAchievements || [],
@@ -187,8 +214,12 @@ export default function GamificationWidget() {
         newTitle: profile.newTitle,
         familyTitleChanged: profile.familyTitleChanged,
         newFamilyTitle: profile.newFamilyTitle,
+        isTitleUp: hasTitleChange,
       });
-      const timer = setTimeout(() => setToast(null), 5000);
+      if (hasTitleChange) {
+        setTimeout(fireConfetti, 100);
+      }
+      const timer = setTimeout(() => setToast(null), hasTitleChange ? 7000 : 5000);
       return () => clearTimeout(timer);
     }
   }, [profile]);
@@ -399,51 +430,76 @@ export default function GamificationWidget() {
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            initial={{ opacity: 0, y: -30, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            className="fixed top-20 left-1/2 -translate-x-1/2 z-50 max-w-sm w-full px-4"
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] max-w-sm w-full px-4"
           >
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-violet-200 dark:border-violet-800 p-4">
-              {toast.titleChanged && toast.newTitle ? (
-                <div className="text-center mb-2">
-                  <p className="text-2xl mb-1">{toast.newTitle.icon}</p>
-                  <p className="text-violet-600 dark:text-violet-400 font-bold text-sm">
-                    Новый титул: {toast.newTitle.title}!
+            {toast.isTitleUp ? (
+              <div className={`relative rounded-2xl shadow-2xl overflow-hidden p-5 text-center ${
+                toast.familyTitleChanged
+                  ? 'bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600'
+                  : 'bg-gradient-to-br from-violet-500 via-indigo-500 to-purple-600'
+              }`}>
+                {/* Glow shimmer */}
+                <motion.div
+                  className="absolute inset-0 bg-white/20"
+                  initial={{ x: '-100%' }}
+                  animate={{ x: '100%' }}
+                  transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 0.5 }}
+                />
+                <motion.div
+                  animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.15, 1] }}
+                  transition={{ duration: 0.6, repeat: 2 }}
+                  className="text-5xl mb-2 relative"
+                >
+                  {toast.familyTitleChanged
+                    ? (toast.newFamilyTitle?.icon || '👑')
+                    : (toast.newTitle?.icon || '👑')}
+                </motion.div>
+                <div className="flex items-center justify-center gap-1.5 mb-1 relative">
+                  <Sparkles className="w-4 h-4 text-yellow-300" />
+                  <p className="text-white/90 text-xs font-semibold uppercase tracking-wide">
+                    {toast.familyTitleChanged ? 'Новый семейный титул!' : 'Новый титул!'}
                   </p>
+                  <Sparkles className="w-4 h-4 text-yellow-300" />
                 </div>
-              ) : null}
-              {toast.familyTitleChanged && toast.newFamilyTitle ? (
-                <div className="text-center mb-2">
-                  <p className="text-2xl mb-1">{toast.newFamilyTitle.icon}</p>
-                  <p className="text-emerald-600 dark:text-emerald-400 font-bold text-sm">
-                    Новый семейный титул: {toast.newFamilyTitle.title}!
-                  </p>
-                </div>
-              ) : null}
-              {toast.points > 0 && (
-                <p className="text-center text-slate-700 dark:text-slate-200 text-sm">
-                  +{toast.points} оч.
+                <p className="text-white font-bold text-lg relative">
+                  {toast.familyTitleChanged
+                    ? toast.newFamilyTitle?.title
+                    : toast.newTitle?.title}
                 </p>
-              )}
-              {toast.achievements && toast.achievements.length > 0 && (
-                <div className="mt-2 space-y-1">
-                  {toast.achievements.map(code => {
-                    const a = ACHIEVEMENTS[code];
-                    if (!a) return null;
-                    return (
-                      <div key={code} className="flex items-center gap-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg p-2">
-                        <span className="text-lg">{a.icon}</span>
-                        <div>
-                          <p className="text-xs font-semibold text-slate-900 dark:text-white">{a.title}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">{a.description}</p>
+                {toast.points > 0 && (
+                  <p className="text-white/80 text-sm mt-2 relative">+{toast.points} оч. мудрости</p>
+                )}
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-violet-200 dark:border-violet-800 p-4">
+                {toast.points > 0 && (
+                  <p className="text-center text-slate-700 dark:text-slate-200 text-sm">
+                    +{toast.points} оч.
+                  </p>
+                )}
+                {toast.achievements && toast.achievements.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {toast.achievements.map(code => {
+                      const a = ACHIEVEMENTS[code];
+                      if (!a) return null;
+                      return (
+                        <div key={code} className="flex items-center gap-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg p-2">
+                          <span className="text-lg">{a.icon}</span>
+                          <div>
+                            <p className="text-xs font-semibold text-slate-900 dark:text-white">{a.title}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">{a.description}</p>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
