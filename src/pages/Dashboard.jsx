@@ -246,6 +246,21 @@ export default function Dashboard() {
     enabled: !!user
   });
 
+  const { data: rawSubscriptions = [] } = useQuery({
+    queryKey: ['recurring-payments', user?.id, family?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const all = await base44.entities.RecurringPayment.list();
+      return all.filter(
+        (s) =>
+        s.created_by_id === user.id ||
+        s.user_id === user.id ||
+        family?.id && s.family_id === family.id
+      );
+    },
+    enabled: !!user
+  });
+
   // Этап 3: фильтрация по активному пространству (безопасна к старым записям без workspace_id)
   const transactions = filterByWorkspace(rawTransactions, activeWorkspaceId);
   const allAccounts = filterByWorkspace(rawAllAccounts, activeWorkspaceId);
@@ -253,6 +268,7 @@ export default function Dashboard() {
   const goals = filterByWorkspace(rawGoals, activeWorkspaceId);
   const investments = filterByWorkspace(rawInvestments, activeWorkspaceId);
   const fixedAssets = filterByWorkspace(rawFixedAssets, activeWorkspaceId);
+  const subscriptions = filterByWorkspace(rawSubscriptions, activeWorkspaceId);
 
   const familyMembers = family?.members || [];
   const memberIds = familyMembers.map((m) => m.user_id);
@@ -456,7 +472,7 @@ export default function Dashboard() {
                   </div>
                 </Link>
               </motion.div>
-              <SafeDailyLimit budgets={budgets} formatCurrency={formatCurrency} />
+              <SafeDailyLimit budgets={budgets} accounts={displayAccounts} subscriptions={subscriptions} formatCurrency={formatCurrency} />
               <EmergencyFund totalBalance={totalBalance} transactions={transactions} formatCurrency={formatCurrency} />
             </div>
           </section>

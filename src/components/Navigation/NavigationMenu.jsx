@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import {
-  Home, Wallet, ArrowLeftRight, CreditCard, BarChart2, PieChart,
+  Home, Wallet, ArrowLeftRight, CreditCard, BarChart2, PieChart, Repeat,
   Target, Lightbulb, AlertTriangle, TrendingUp, TrendingDown, Users, Baby, MessageSquare,
   Bot, MessageCircle, Sparkles, CheckSquare, ListTodo, FileText,
   GraduationCap, Library, Settings, ChevronDown
@@ -22,6 +22,7 @@ const MENU_STRUCTURE = [
       { name: 'Accounts', label: 'Счета', icon: CreditCard },
       { name: 'Categories', label: 'Категории', icon: BarChart2 },
       { name: 'Budgets', label: 'Бюджеты', icon: PieChart },
+      { name: 'Subscriptions', label: 'Подписки', icon: Repeat },
     ],
   },
   {

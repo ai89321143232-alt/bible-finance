@@ -40,6 +40,7 @@ const DebtPlanner = React.lazy(() => import('./pages/DebtPlanner'));
 const Education = React.lazy(() => import('./pages/Education'));
 const EducationLesson = React.lazy(() => import('./pages/EducationLesson'));
 const FamilyChat = React.lazy(() => import('./pages/FamilyChat'));
+const Subscriptions = React.lazy(() => import('./pages/Subscriptions'));
 import SplashScreen from './components/SplashScreen';
 import PushNotificationManager from '@/components/PushNotificationManager';
 import GlobalCacheSync from './components/GlobalCacheSync';
@@ -130,6 +131,8 @@ const AuthenticatedApp = () => {
         <Route path="/PrivacyPolicy" element={<LayoutWrapper currentPageName="PrivacyPolicy"><PrivacyPolicy /></LayoutWrapper>} />
         {/* Семейный чат */}
         <Route path="/FamilyChat" element={<LayoutWrapper currentPageName="FamilyChat"><FamilyChat /></LayoutWrapper>} />
+        {/* Подписки и регулярные платежи */}
+        <Route path="/Subscriptions" element={<LayoutWrapper currentPageName="Subscriptions"><Subscriptions /></LayoutWrapper>} />
       </Route>
 
       {/* 404 */}
