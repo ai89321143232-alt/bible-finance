@@ -46,6 +46,7 @@ import PushNotificationManager from '@/components/PushNotificationManager';
 import GlobalCacheSync from './components/GlobalCacheSync';
 import BackgroundLayer from './components/BackgroundLayer';
 import { useFontScale } from '@/hooks/useFontScale';
+import { useLiquidGlass } from '@/hooks/useLiquidGlass';
 import { Toaster as SonnerToaster } from 'sonner';
 
 // Достаём список страниц, компонент Layout и имя главной страницы
@@ -149,6 +150,7 @@ const AuthenticatedApp = () => {
 function App() {
   const [splashDone, setSplashDone] = React.useState(false);
   useFontScale();
+  useLiquidGlass();
 
   return (
     <AuthProvider>
