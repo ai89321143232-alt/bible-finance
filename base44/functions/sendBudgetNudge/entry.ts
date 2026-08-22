@@ -6,7 +6,18 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const budgets = await base44.asServiceRole.entities.Budget.filter({ is_active: true });
+    // Загружаем только бюджеты текущего пользователя и его семьи —
+    // чужие бюджеты не должны попадать в уведомление админу.
+    const allBudgets = await base44.asServiceRole.entities.Budget.filter({ is_active: true });
+    const userFamilyId = (user as any)?.data?.family_id || (user as any)?.family_id || null;
+    const budgets = allBudgets.filter(b => {
+      if (b.user_id === user.id || b.created_by_id === user.id) return true;
+      if (userFamilyId && b.family_id && b.family_id === userFamilyId) return true;
+      // Семейные бюджеты, где пользователь состоит в share_with
+      if (Array.isArray(b.share_with) && b.share_with.includes(user.id)) return true;
+      return false;
+    });
+
     const now = new Date();
     const dayOfMonth = now.getDate();
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
