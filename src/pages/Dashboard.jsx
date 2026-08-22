@@ -192,7 +192,7 @@ export default function Dashboard() {
       if (!user) return [];
       const all = await base44.entities.Budget.filter({ is_active: true });
       return all.filter((b) =>
-      b.created_by_id === user.id ||
+      b.created_by_id === user.id || b.user_id === user.id ||
       family?.id && b.is_family_budget && b.family_id === family.id ||
       family?.id && b.share_with?.includes(user.id)
       );

@@ -126,7 +126,7 @@ export default function Budgets() {
       // Синхронно с дашбордом: только активные бюджеты, созданные пользователем.
       // Семейные бюджеты (is_family_budget) исключаем — они показываются во вкладке "Общие", чтобы не дублировались.
       const budgets = await base44.entities.Budget.filter({ is_active: true });
-      return budgets.filter(b => b.created_by_id === user?.id && !b.is_family_budget);
+      return budgets.filter(b => (b.created_by_id === user?.id || b.user_id === user?.id) && !b.is_family_budget);
     },
     enabled: !!user,
     staleTime: 30000

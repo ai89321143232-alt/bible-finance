@@ -75,6 +75,7 @@ async function createTransactionRecord({ entities, parsed, account, ownerId }) {
     date: txDate.toISOString(),
     account_id: account.id,
     user_id: ownerId,
+    created_by_id: ownerId,
     family_id: owner?.family_id || undefined,
     source: 'telegram_bot'
   });
@@ -211,6 +212,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
           date: t.date || new Date().toISOString(),
           account_id: targetAccount.id,
           user_id: ownerId,
+          created_by_id: ownerId,
           family_id: owner?.family_id || undefined,
           source: 'telegram_bot'
         });
@@ -244,6 +246,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
           family_id: owner?.family_id || undefined,
           created_by_id: ownerId
         });
+        // Явно дублируем created_by_id — платформа может перезаписать его при service-role create.
         await applyBalanceDelta(entities, targetAccount.id, -totalCost, ownerId);
         replyText = replyText || `✅ Записал покупку инвестиции: ${inv.name} на ${totalCost.toLocaleString()} ₽ (счёт: ${targetAccount.name})`;
       }
@@ -262,6 +265,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         deadline: g.deadline || undefined,
         priority: g.priority || 'medium',
         user_id: ownerId,
+        created_by_id: ownerId,
         family_id: owner?.family_id || undefined,
         visibility: 'private',
         status: 'active'
@@ -281,6 +285,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         period: b.period || 'monthly',
         currency: b.currency || 'RUB',
         user_id: ownerId,
+        created_by_id: ownerId,
         family_id: owner?.family_id || undefined,
         visibility: 'private',
         is_active: true,
