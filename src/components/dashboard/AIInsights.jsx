@@ -121,20 +121,20 @@ ${budgetAlerts || '- Все бюджеты в норме'}
 
   if (error) {
     return (
-      <div className="rounded-xl border border-white/8 bg-[#141820] p-4 text-white/40 text-sm text-center">{error}</div>
+      <div className="glass-card rounded-xl p-4 text-muted-foreground text-sm text-center">{error}</div>
     );
   }
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="space-y-3">
       {insightBlocks.length > 0 && (
-        <div className="rounded-xl border border-white/8 bg-[#141820] divide-y divide-white/5">
+        <div className="glass-card rounded-xl divide-y divide-border/50">
           <div className="px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-white/50 text-xs uppercase tracking-widest font-medium">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-widest font-medium">
               <Sparkles className="w-3.5 h-3.5" /> AI Инсайты
             </div>
             <Button onClick={() => { localStorage.removeItem('ai_insights_cache'); generateInsights(); }} disabled={loading}
-              variant="ghost" size="sm" className="text-white/30 hover:text-white/70 hover:bg-white/5 h-7 px-2 text-xs">
+              variant="ghost" size="sm" className="text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 h-7 px-2 text-xs">
               <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
               {loading ? 'Загрузка...' : 'Обновить'}
             </Button>
@@ -145,23 +145,23 @@ ${budgetAlerts || '- Все бюджеты в норме'}
                 {block.icon}
                 <span className="uppercase tracking-wide font-medium">{block.label}</span>
               </div>
-              <p className="text-white/75 text-sm leading-relaxed">{block.text}</p>
+              <p className="text-foreground/80 text-sm leading-relaxed">{block.text}</p>
             </div>
           ))}
         </div>
       )}
 
       {!insights && !loading && (
-        <div className="rounded-xl border border-white/8 bg-[#141820] p-4 text-center">
+        <div className="glass-card rounded-xl p-4 text-center">
           <Button onClick={() => generateInsights()} variant="ghost"
-            className="text-white/50 hover:text-white hover:bg-white/5 text-sm">
+            className="text-muted-foreground hover:text-foreground hover:bg-muted/50 text-sm">
             <Sparkles className="w-4 h-4 mr-2" /> Получить AI-рекомендации
           </Button>
         </div>
       )}
 
       {loading && !insights && (
-        <div className="rounded-xl border border-white/8 bg-[#141820] p-4 text-center text-white/40 text-sm">
+        <div className="glass-card rounded-xl p-4 text-center text-muted-foreground text-sm">
           <RefreshCw className="w-4 h-4 animate-spin inline mr-2" /> Анализирую данные...
         </div>
       )}

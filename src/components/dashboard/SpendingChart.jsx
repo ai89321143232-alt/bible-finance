@@ -113,7 +113,7 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
       <div
-        className="rounded-xl border border-border bg-card shadow-sm overflow-hidden"
+        className="glass-card rounded-xl overflow-hidden"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >

@@ -18,7 +18,7 @@ export default function AllGoalsProgress({ goals, formatCurrency }) {
   if (goals.length === 0) {
     return (
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-        <div className="rounded-2xl border border-border bg-card shadow-sm p-6 text-center">
+        <div className="glass-card rounded-2xl p-6 text-center">
           <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
             <Target className="w-6 h-6 text-muted-foreground/50" />
           </div>
@@ -38,7 +38,7 @@ export default function AllGoalsProgress({ goals, formatCurrency }) {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-      <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+      <div className="glass-card rounded-2xl overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
           <span className="text-muted-foreground text-xs uppercase tracking-widest font-semibold">Цели</span>
           <Link to={createPageUrl('Goals')}>

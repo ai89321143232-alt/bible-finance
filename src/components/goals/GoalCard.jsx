@@ -96,7 +96,7 @@ export default function GoalCard({
       transition={{ delay: index * 0.1 }}
     >
       <Card
-        className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-md transition-all overflow-hidden group"
+        className="glass-card border-0 hover:shadow-md transition-all overflow-hidden group"
       >
         <div
           className="h-1"

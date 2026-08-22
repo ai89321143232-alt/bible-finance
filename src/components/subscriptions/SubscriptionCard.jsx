@@ -29,8 +29,8 @@ export default function SubscriptionCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className={`rounded-2xl border bg-card shadow-sm p-4 transition-opacity ${
-        isActive ? 'border-border' : 'border-border opacity-60'
+      className={`glass-card rounded-2xl p-4 transition-opacity ${
+        isActive ? '' : 'opacity-60'
       }`}
     >
       <div className="flex items-start gap-3">

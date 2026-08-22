@@ -32,7 +32,7 @@ export default function BalanceCard({
       transition={{ duration: 0.4 }}
       className="mb-6"
     >
-      <div className="rounded-2xl border border-border bg-card shadow-sm p-6 sm:p-8">
+      <div className="glass-card rounded-2xl p-6 sm:p-8">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 rounded-md bg-violet-500/15 flex items-center justify-center">

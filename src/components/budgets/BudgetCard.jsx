@@ -31,15 +31,11 @@ export default function BudgetCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
     >
-      <Card 
+      <Card
         onClick={onClick}
-        className={`border-0 shadow-sm backdrop-blur-sm hover:shadow-md transition-all group ${
+        className={`glass-card border-0 hover:shadow-md transition-all group ${
           onClick ? 'cursor-pointer' : ''
-        } ${
-          isEditable 
-            ? 'bg-white/80 dark:bg-slate-800/80' 
-            : 'bg-blue-50/80 dark:bg-blue-900/20'
-        }`}
+        } ${!isEditable ? 'ring-1 ring-blue-400/30' : ''}`}
       >
         <CardContent className="p-5">
           <div className="flex items-start justify-between mb-4">

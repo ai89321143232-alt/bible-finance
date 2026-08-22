@@ -422,7 +422,7 @@ export default function Dashboard() {
     switch (key) {
       case 'balance':
         return (
-          <section key="balance" className="mb-6 rounded-2xl border border-border bg-card shadow-sm p-4 sm:p-5 space-y-4">
+          <section key="balance" className="mb-6 glass-card rounded-2xl p-4 sm:p-5 space-y-4">
             {family ? (
               <motion.div drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.6}
                 onDragEnd={(event, info) => {
@@ -443,19 +443,19 @@ export default function Dashboard() {
         );
       case 'quickStats':
         return (
-          <section key="quickStats" className="mb-6 rounded-2xl border border-border bg-card shadow-sm p-4 sm:p-5">
+          <section key="quickStats" className="mb-6 p-0 sm:p-0">
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="rounded-2xl border border-border bg-card shadow-sm p-4 cursor-pointer hover:shadow-md transition-all" onClick={() => { setQuickAddType('income'); setShowQuickAdd(true); }}>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="glass-card rounded-2xl p-4 cursor-pointer hover:shadow-md transition-all" onClick={() => { setQuickAddType('income'); setShowQuickAdd(true); }}>
                 <div className="flex items-center gap-2 mb-3"><div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center"><ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" /></div><span className="text-muted-foreground text-xs">Доходы</span></div>
                 <p className="text-emerald-500 font-bold text-lg">{formatCurrency(monthIncome)}</p>
               </motion.div>
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }} className="rounded-2xl border border-border bg-card shadow-sm p-4 cursor-pointer hover:shadow-md transition-all" onClick={() => { setQuickAddType('expense'); setShowQuickAdd(true); }}>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }} className="glass-card rounded-2xl p-4 cursor-pointer hover:shadow-md transition-all" onClick={() => { setQuickAddType('expense'); setShowQuickAdd(true); }}>
                 <div className="flex items-center gap-2 mb-3"><div className="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center"><ArrowDownRight className="w-3.5 h-3.5 text-rose-500" /></div><span className="text-muted-foreground text-xs">Расходы</span></div>
                 <p className="text-rose-500 font-bold text-lg">{formatCurrency(monthExpenses)}</p>
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                 <Link to={createPageUrl('Investments')}>
-                  <div className="rounded-2xl border border-border bg-card shadow-sm p-4 hover:shadow-md transition-all h-full">
+                  <div className="glass-card rounded-2xl p-4 hover:shadow-md transition-all h-full">
                     <div className="flex items-center gap-2 mb-3"><div className="w-7 h-7 rounded-lg bg-cyan-500/15 flex items-center justify-center"><TrendingUp className="w-3.5 h-3.5 text-cyan-500" /></div><span className="text-muted-foreground text-xs">Инвестиции</span></div>
                     <p className="text-cyan-500 font-bold text-lg">{formatCurrency(investmentValue)}</p>
                   </div>
@@ -463,7 +463,7 @@ export default function Dashboard() {
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24 }}>
                 <Link to={createPageUrl('AIAssistant')}>
-                  <div className="rounded-2xl border border-border bg-card shadow-sm p-4 hover:shadow-md transition-all h-full flex items-center justify-between">
+                  <div className="glass-card rounded-2xl p-4 hover:shadow-md transition-all h-full flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2 mb-3"><div className="w-7 h-7 rounded-lg bg-violet-500/15 flex items-center justify-center"><Sparkles className="w-3.5 h-3.5 text-violet-500" /></div><span className="text-muted-foreground text-xs">AI</span></div>
                       <p className="text-foreground font-bold">Спросить</p>

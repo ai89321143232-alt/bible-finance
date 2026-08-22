@@ -61,7 +61,7 @@ export default function SafeDailyLimit({ budgets, accounts, subscriptions, forma
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.18 }}
-      className="rounded-2xl border border-border bg-card shadow-sm p-4"
+      className="glass-card rounded-2xl p-4"
     >
       <div className="flex items-center gap-2 mb-3">
         <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center">

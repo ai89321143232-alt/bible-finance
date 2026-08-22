@@ -132,12 +132,12 @@ export default function Subscriptions() {
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="rounded-2xl border border-border bg-card shadow-sm p-4">
+          <div className="glass-card rounded-2xl p-4">
             <p className="text-muted-foreground text-xs mb-1">В месяц</p>
             <p className="text-2xl font-bold text-foreground">{formatCurrency(monthlyTotal)}</p>
             <p className="text-muted-foreground text-xs mt-1">{activeSubs.length} активных</p>
           </div>
-          <div className="rounded-2xl border border-border bg-card shadow-sm p-4">
+          <div className="glass-card rounded-2xl p-4">
             <p className="text-muted-foreground text-xs mb-1">В год</p>
             <p className="text-2xl font-bold text-foreground">{formatCurrency(yearlyTotal)}</p>
             <p className="text-muted-foreground text-xs mt-1">≈ {formatCurrency(yearlyTotal / 12)} / мес</p>
