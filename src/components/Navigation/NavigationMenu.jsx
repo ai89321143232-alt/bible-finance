@@ -17,7 +17,7 @@ import { useTranslation } from '@/lib/LanguageContext';
 const MENU_STRUCTURE = [
   { type: 'link', name: 'Dashboard', labelKey: 'nav.dashboard', icon: Home },
   {
-    type: 'group', labelKey: 'nav.finance_group', icon: Wallet,
+    type: 'group', name: 'finance_group', labelKey: 'nav.finance_group', icon: Wallet,
     children: [
       { name: 'Transactions', labelKey: 'nav.transactions', icon: ArrowLeftRight },
       { name: 'Accounts', labelKey: 'nav.accounts', icon: CreditCard },
@@ -27,7 +27,7 @@ const MENU_STRUCTURE = [
     ],
   },
   {
-    type: 'group', labelKey: 'nav.planning_group', icon: Target,
+    type: 'group', name: 'planning_group', labelKey: 'nav.planning_group', icon: Target,
     children: [
       { name: 'FinancialPlanning', labelKey: 'nav.financial_planning', icon: Lightbulb },
       { name: 'Goals', labelKey: 'nav.goals', icon: Target },
@@ -38,7 +38,7 @@ const MENU_STRUCTURE = [
   },
   { type: 'link', name: 'Analytics', labelKey: 'nav.analytics', icon: TrendingUp },
   {
-    type: 'group', labelKey: 'nav.family', icon: Users,
+    type: 'group', name: 'family_group', labelKey: 'nav.family', icon: Users,
     children: [
       { name: 'FamilyFinances', labelKey: 'nav.family_finances', icon: Users },
       { name: 'ChildExpenses', labelKey: 'nav.child_expenses', icon: Baby, hideInChildMode: true },
@@ -46,7 +46,7 @@ const MENU_STRUCTURE = [
     ],
   },
   {
-    type: 'group', labelKey: 'nav.ai_group', icon: Bot,
+    type: 'group', name: 'ai_group', labelKey: 'nav.ai_group', icon: Bot,
     children: [
       { name: 'AIAssistant', labelKey: 'nav.ai_chat', icon: MessageCircle },
       { name: 'AIAdvisors', labelKey: 'nav.ai_advisors', icon: Sparkles },
@@ -54,7 +54,7 @@ const MENU_STRUCTURE = [
     ],
   },
   {
-    type: 'group', labelKey: 'nav.organizer_group', icon: CheckSquare,
+    type: 'group', name: 'organizer_group', labelKey: 'nav.organizer_group', icon: CheckSquare,
     children: [
       { name: 'Tasks', labelKey: 'nav.tasks', icon: ListTodo },
       { name: 'Notes', labelKey: 'nav.notes', icon: FileText },
@@ -163,7 +163,7 @@ export default function NavigationMenu({ currentPageName, onNavigate, isChildMod
         const groupActive = visibleChildren.some(c => c.name === currentPageName);
 
         return (
-          <div key={entry.name}>
+          <div key={entry.name || entry.labelKey}>
             <button
               type="button"
               onClick={() => toggleGroup(entry)}
