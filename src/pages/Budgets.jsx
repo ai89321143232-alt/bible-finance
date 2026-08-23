@@ -4,7 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BudgetService } from '@/services';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { ru, enUS } from 'date-fns/locale';
+import { useLanguage } from '@/lib/LanguageContext';
+import { useFormatCurrency } from '@/lib/formatCurrency';
 import {
   Plus, Wallet, AlertCircle, Edit2, Trash2, X, Check, TrendingUp, Users
 } from 'lucide-react';
@@ -77,6 +79,8 @@ import { getCategoryEmoji } from '@/lib/categoryIcon';
 // ============================================================
 export default function Budgets() {
   const queryClient = useQueryClient();
+  const { t, language } = useLanguage();
+  const dateLocale = language === 'en' ? enUS : ru;
   const [user, setUser] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editBudget, setEditBudget] = useState(null);
@@ -270,8 +274,8 @@ export default function Budgets() {
           if (percent >= (budget.notify_at_percent || 80)) {
             base44.integrations.Core.SendEmail({
               to: user?.email,
-              subject: `Бюджет "${budget.name}" близко к лимиту`,
-              body: `Вы потратили ${percent.toFixed(0)}% бюджета (${formatCurrency(spent)} из ${formatCurrency(budget.limit_amount)}) в категории "${(budget.categories || []).join(', ')}"${percent > 100 ? '. Бюджет превышен!' : '.'}`
+              subject: `${t('budgets.budget_near_limit_subject')}: "${budget.name}"`,
+              body: `${percent.toFixed(0)}% (${formatCurrency(spent)} / ${formatCurrency(budget.limit_amount)}) "${(budget.categories || []).join(', ')}"${percent > 100 ? '. ' + t('budgets.budget_exceeded') : '.'}`
             });
             
             updateMutation.mutate({
@@ -331,13 +335,7 @@ export default function Budgets() {
       .reduce((sum, t) => sum + t.amount, 0);
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('ru-RU', { 
-      style: 'currency', 
-      currency: 'RUB',
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
+  const formatCurrency = useFormatCurrency();
 
   const displayBudgets = filterByWorkspace(
     viewMode === 'personal' ? myBudgets : sharedBudgets,
@@ -367,7 +365,7 @@ export default function Budgets() {
           className="flex items-center justify-between mb-6"
         >
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-            Бюджеты
+            {t('budgets.title')}
           </h1>
           <div className="flex items-center gap-2">
             <CalendarExport budgets={myBudgets} goals={[]} accounts={[]} />
@@ -376,7 +374,7 @@ export default function Budgets() {
               className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl"
             >
               <Plus className="w-5 h-5 mr-2" />
-              Создать
+              {t('budgets.create')}
             </Button>
           </div>
         </motion.div>
@@ -397,7 +395,7 @@ export default function Budgets() {
                   : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
               }`}
             >
-              Мои бюджеты
+              {t('budgets.my_budgets')}
             </button>
             <button
               onClick={() => setViewMode('family')}
@@ -408,7 +406,7 @@ export default function Budgets() {
               }`}
             >
               <Users className="w-4 h-4" />
-              Общие
+              {t('budgets.shared')}
             </button>
           </motion.div>
         )}
@@ -423,7 +421,7 @@ export default function Budgets() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-violet-200 text-sm">Общий бюджет на месяц</p>
+                  <p className="text-violet-200 text-sm">{t('budgets.total_month')}</p>
                   <p className="text-3xl font-bold text-white">{formatCurrency(totalBudget)}</p>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl">
@@ -435,17 +433,17 @@ export default function Budgets() {
                 className="h-3 bg-white/20 [&>div]:bg-white"
               />
               <div className="flex justify-between mt-2 text-sm text-violet-200">
-                <span>Потрачено: {formatCurrency(totalSpent)}</span>
-                <span>Осталось: {formatCurrency(totalBudget - totalSpent)}</span>
+                <span>{t('budgets.spent')}: {formatCurrency(totalSpent)}</span>
+                <span>{t('budgets.left')}: {formatCurrency(totalBudget - totalSpent)}</span>
               </div>
               <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-white/20">
                 <div>
-                  <p className="text-violet-200 text-xs">Личный</p>
+                  <p className="text-violet-200 text-xs">{t('budgets.personal')}</p>
                   <p className="text-lg font-semibold text-white">{formatCurrency(personalTotal)}</p>
                 </div>
                 <div>
                   <p className="text-violet-200 text-xs flex items-center gap-1">
-                    <Users className="w-3 h-3" /> Семейный
+                    <Users className="w-3 h-3" /> {t('budgets.family')}
                   </p>
                   <p className="text-lg font-semibold text-white">{formatCurrency(familyTotal)}</p>
                 </div>
@@ -479,12 +477,12 @@ export default function Budgets() {
               <Wallet className="w-8 h-8 text-slate-400" />
             </div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-              {viewMode === 'personal' ? 'Нет бюджетов' : 'Нет общих бюджетов'}
+              {viewMode === 'personal' ? t('budgets.no_budgets') : t('budgets.no_shared')}
             </h3>
             <p className="text-slate-500 dark:text-slate-400 mb-4">
-              {viewMode === 'personal' 
-                ? 'Создайте первый бюджет для контроля расходов'
-                : 'Члены семьи пока не поделились бюджетами'
+              {viewMode === 'personal'
+                ? t('budgets.create_first')
+                : t('budgets.no_shared_hint')
               }
             </p>
             {viewMode === 'personal' && (
@@ -493,7 +491,7 @@ export default function Budgets() {
                 className="rounded-xl"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Создать бюджет
+                {t('budgets.create_budget')}
               </Button>
             )}
           </div>
@@ -506,21 +504,21 @@ export default function Budgets() {
         <DialogContent className="rounded-2xl max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editBudget ? 'Редактировать бюджет' : 'Новый бюджет'}
+              {editBudget ? t('budgets.edit_budget') : t('budgets.new_budget')}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Название</Label>
+              <Label>{t('budgets.name_label')}</Label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Например: Еда на месяц"
+                placeholder={t('budgets.name_placeholder')}
                 className="rounded-xl mt-1"
               />
             </div>
             <div>
-              <Label>Категории расходов (можно выбрать несколько)</Label>
+              <Label>{t('budgets.categories_label')}</Label>
               <div className="grid grid-cols-3 gap-2 mt-2 max-h-[50vh] overflow-y-auto">
                 {expenseCategories.map(cat => {
                   const isSelected = formData.categories.includes(cat.name);
@@ -555,7 +553,7 @@ export default function Budgets() {
               </div>
             </div>
             <div>
-              <Label>Лимит</Label>
+              <Label>{t('budgets.limit_label')}</Label>
               <div className="relative mt-1">
                 <Input
                   type="number"
@@ -568,17 +566,17 @@ export default function Budgets() {
               </div>
             </div>
             <div>
-              <Label>Период</Label>
+              <Label>{t('budgets.period_label')}</Label>
               <MobileSelect
                 value={formData.period}
                 onValueChange={(v) => setFormData({ ...formData, period: v })}
                 triggerClassName="w-full h-12 rounded-xl mt-1"
-                title="Период"
+                title={t('budgets.period_label')}
               >
-                <SelectItem value="weekly">Неделя</SelectItem>
-                <SelectItem value="monthly">Месяц</SelectItem>
-                <SelectItem value="quarterly">Квартал</SelectItem>
-                <SelectItem value="yearly">Год</SelectItem>
+                <SelectItem value="weekly">{t('budgets.period_weekly')}</SelectItem>
+                <SelectItem value="monthly">{t('budgets.period_monthly')}</SelectItem>
+                <SelectItem value="quarterly">{t('budgets.period_quarterly')}</SelectItem>
+                <SelectItem value="yearly">{t('budgets.period_yearly')}</SelectItem>
               </MobileSelect>
             </div>
 
@@ -593,13 +591,13 @@ export default function Budgets() {
                       className="rounded"
                     />
                     <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Это общий семейный бюджет
+                      {t('budgets.is_family_budget')}
                     </span>
                   </label>
                 </div>
                 {formData.is_family_budget && (
                   <div>
-                    <Label>Поделиться с членами семьи</Label>
+                    <Label>{t('budgets.share_with')}</Label>
                     <div className="mt-2 space-y-2">
                       {family.members
                         ?.filter(m => m.user_id !== user?.id)
@@ -634,7 +632,7 @@ export default function Budgets() {
               className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"
             >
               <Check className="w-4 h-4 mr-2" />
-              {editBudget ? 'Сохранить' : 'Создать'}
+              {editBudget ? t('common.save') : t('budgets.create')}
             </Button>
           </div>
         </DialogContent>
@@ -653,18 +651,18 @@ export default function Budgets() {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Удалить бюджет?</AlertDialogTitle>
+            <AlertDialogTitle>{t('budgets.delete_title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Это действие нельзя отменить.
+              {t('budgets.delete_desc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Отмена</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl">{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteMutation.mutate(deleteId)}
               className="bg-rose-600 hover:bg-rose-700 rounded-xl"
             >
-              Удалить
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -281,8 +281,8 @@ export default function Goals() {
           const daysLeft = differenceInDays(new Date(goal.deadline), new Date());
           if (daysLeft === 7 || daysLeft === 3 || daysLeft === 1) {
             base44.integrations.Core.SendEmail({
-              to: user?.email, subject: `Приближается дедлайн цели: ${goal.title}`,
-              body: `У вас осталось ${daysLeft} дней до дедлайна цели "${goal.title}". Текущий прогресс: ${((goal.current_amount / goal.target_amount) * 100).toFixed(0)}%`
+              to: user?.email, subject: `${t('goals.deadline_subject')}: ${goal.title}`,
+              body: `${t('goals.deadline_body')} ${daysLeft} ${t('goals.days_until_deadline')} "${goal.title}". ${t('goals.current_progress')}: ${((goal.current_amount / goal.target_amount) * 100).toFixed(0)}%`
             });
             updateMutation.mutate({ id: goal.id, data: { notification_sent: true }, enrich: false });
           }

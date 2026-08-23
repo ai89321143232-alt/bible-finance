@@ -3,7 +3,9 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { format, startOfMonth, endOfMonth, subMonths, eachDayOfInterval, eachMonthOfInterval, subDays } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { ru, enUS } from 'date-fns/locale';
+import { useLanguage } from '@/lib/LanguageContext';
+import { useFormatCurrency } from '@/lib/formatCurrency';
 import {
   TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
   Calendar, Download, ChevronLeft, ChevronRight
@@ -24,25 +26,24 @@ const COLORS = [
 const CATEGORY_ICONS = {
   'Еда': '🍔', 'Транспорт': '🚗', 'Жильё': '🏠', 'Развлечения': '🎮',
   'Здоровье': '💊', 'Одежда': '👕', 'Подписки': '📱', 'Образование': '📚',
-  'Зарплата': '💰', 'Фриланс': '💻', 'Инвестиции': '📈', 'Подарки': '🎁', 'Другое': '📦'
+  'Зарплата': '💰', 'Фриланс': '💻', 'Инвестиции': '📈', 'Подарки': '🎁', 'Другое': '📦',
+  'Food': '🍔', 'Transport': '🚗', 'Housing': '🏠', 'Entertainment': '🎮',
+  'Health': '💊', 'Clothing': '👕', 'Subscriptions': '📱', 'Education': '📚',
+  'Salary': '💰', 'Freelance': '💻', 'Investments': '📈', 'Gifts': '🎁', 'Other': '📦'
 };
 
 export default function Analytics() {
   const [period, setPeriod] = useState('month');
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const { t, language } = useLanguage();
+  const dateLocale = language === 'en' ? enUS : ru;
 
   const { data: transactions = [] } = useQuery({
     queryKey: ['transactions'],
     queryFn: () => base44.entities.Transaction.list('-date', 500)
   });
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('ru-RU', { 
-      style: 'currency', 
-      currency: 'RUB',
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
+  const formatCurrency = useFormatCurrency();
 
   // Filter transactions by period
   const getFilteredTransactions = () => {
@@ -74,10 +75,10 @@ export default function Analytics() {
 
   // Expenses by category
   const expensesByCategory = filteredTransactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, t) => {
-      const category = t.category || 'Другое';
-      acc[category] = (acc[category] || 0) + t.amount;
+    .filter(tx => tx.type === 'expense')
+    .reduce((acc, tx) => {
+      const category = tx.category || t('analytics.other');
+      acc[category] = (acc[category] || 0) + tx.amount;
       return acc;
     }, {});
 
@@ -93,9 +94,9 @@ export default function Analytics() {
 
   // Income by category
   const incomeByCategory = filteredTransactions
-    .filter(t => t.type === 'income')
-    .reduce((acc, t) => {
-      const category = t.category || 'Другое';
+    .filter(tx => tx.type === 'income')
+    .reduce((acc, tx) => {
+      const category = tx.category || t('analytics.other');
       acc[category] = (acc[category] || 0) + t.amount;
       return acc;
     }, {});
@@ -124,7 +125,7 @@ export default function Analytics() {
         });
 
         return {
-          date: format(month, 'MMM', { locale: ru }),
+          date: format(month, 'MMM', { locale: dateLocale }),
           income: monthTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0),
           expenses: monthTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
         };
@@ -142,7 +143,7 @@ export default function Analytics() {
       });
 
       return {
-        date: format(day, period === 'month' ? 'd' : 'EEE', { locale: ru }),
+        date: format(day, period === 'month' ? 'd' : 'EEE', { locale: dateLocale }),
         income: dayTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0),
         expenses: dayTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
       };
@@ -189,7 +190,7 @@ export default function Analytics() {
           <p className="font-medium text-slate-900 dark:text-white mb-1">{label}</p>
           {payload.map((entry, index) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name === 'income' ? 'Доход' : 'Расход'}: {formatCurrency(entry.value)}
+              {entry.name === 'income' ? t('analytics.income') : t('analytics.expenses')}: {formatCurrency(entry.value)}
             </p>
           ))}
         </div>
@@ -208,14 +209,14 @@ export default function Analytics() {
           className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"
         >
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-            Аналитика
+            {t('analytics.title')}
           </h1>
           <div className="flex items-center gap-3">
             <Tabs value={period} onValueChange={setPeriod}>
               <TabsList className="bg-white/80 dark:bg-slate-800/80">
-                <TabsTrigger value="week">Неделя</TabsTrigger>
-                <TabsTrigger value="month">Месяц</TabsTrigger>
-                <TabsTrigger value="year">Год</TabsTrigger>
+                <TabsTrigger value="week">{t('analytics.week')}</TabsTrigger>
+                <TabsTrigger value="month">{t('analytics.month')}</TabsTrigger>
+                <TabsTrigger value="year">{t('analytics.year')}</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -235,7 +236,7 @@ export default function Analytics() {
                   <ChevronLeft className="w-5 h-5" />
                 </Button>
                 <h2 className="font-semibold text-lg text-slate-900 dark:text-white capitalize">
-                  {format(selectedMonth, 'LLLL yyyy', { locale: ru })}
+                  {format(selectedMonth, 'LLLL yyyy', { locale: dateLocale })}
                 </h2>
                 <Button
                   variant="ghost"
@@ -263,7 +264,7 @@ export default function Analytics() {
                   <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
                     <ArrowUpRight className="w-5 h-5 text-emerald-600" />
                   </div>
-                  <span className="text-slate-500 dark:text-slate-400">Доходы</span>
+                  <span className="text-slate-500 dark:text-slate-400">{t('analytics.income')}</span>
                 </div>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">
                   {formatCurrency(totalIncome)}
@@ -271,7 +272,7 @@ export default function Analytics() {
                 {period === 'month' && incomeChange !== null && (
                   <p className={`text-sm mt-1 flex items-center gap-1 ${parseFloat(incomeChange) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                     {parseFloat(incomeChange) >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                    {parseFloat(incomeChange) > 0 ? '+' : ''}{incomeChange}% к прошлому месяцу
+                    {parseFloat(incomeChange) > 0 ? '+' : ''}{incomeChange}% {t('analytics.vs_prev_month')}
                   </p>
                 )}
               </CardContent>
@@ -289,7 +290,7 @@ export default function Analytics() {
                   <div className="p-2 rounded-xl bg-rose-100 dark:bg-rose-900/30">
                     <ArrowDownRight className="w-5 h-5 text-rose-600" />
                   </div>
-                  <span className="text-slate-500 dark:text-slate-400">Расходы</span>
+                  <span className="text-slate-500 dark:text-slate-400">{t('analytics.expenses')}</span>
                 </div>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">
                   {formatCurrency(totalExpenses)}
@@ -297,7 +298,7 @@ export default function Analytics() {
                 {period === 'month' && expenseChange !== null && (
                   <p className={`text-sm mt-1 flex items-center gap-1 ${parseFloat(expenseChange) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
                     {parseFloat(expenseChange) > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                    {parseFloat(expenseChange) > 0 ? '+' : ''}{expenseChange}% к прошлому месяцу
+                    {parseFloat(expenseChange) > 0 ? '+' : ''}{expenseChange}% {t('analytics.vs_prev_month')}
                   </p>
                 )}
               </CardContent>
@@ -318,7 +319,7 @@ export default function Analytics() {
                       : <TrendingDown className="w-5 h-5 text-amber-600" />
                     }
                   </div>
-                  <span className="text-slate-500 dark:text-slate-400">Баланс</span>
+                  <span className="text-slate-500 dark:text-slate-400">{t('analytics.balance')}</span>
                 </div>
                 <p className={`text-2xl font-bold ${netBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                   {netBalance >= 0 ? '+' : ''}{formatCurrency(netBalance)}
@@ -339,18 +340,18 @@ export default function Analytics() {
             <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
               <CardHeader>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <CardTitle className="text-lg">Сравнение с прошлым месяцем</CardTitle>
+                  <CardTitle className="text-lg">{t('analytics.compare_prev')}</CardTitle>
                   <div className="flex flex-wrap gap-3 text-sm">
                     {incomeChange !== null && (
                       <span className={`flex items-center gap-1 font-semibold ${parseFloat(incomeChange) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                         <ArrowUpRight className="w-4 h-4" />
-                        Доходы: {parseFloat(incomeChange) > 0 ? '+' : ''}{incomeChange}%
+                        {t('analytics.income')}: {parseFloat(incomeChange) > 0 ? '+' : ''}{incomeChange}%
                       </span>
                     )}
                     {expenseChange !== null && (
                       <span className={`flex items-center gap-1 font-semibold ${parseFloat(expenseChange) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
                         <ArrowDownRight className="w-4 h-4" />
-                        Расходы: {parseFloat(expenseChange) > 0 ? '+' : ''}{expenseChange}%
+                        {t('analytics.expenses')}: {parseFloat(expenseChange) > 0 ? '+' : ''}{expenseChange}%
                       </span>
                     )}
                   </div>
@@ -360,21 +361,21 @@ export default function Analytics() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-slate-500 mb-0.5">Расходы — этот месяц</p>
+                      <p className="text-xs text-slate-500 mb-0.5">{t('analytics.expenses_this_month')}</p>
                       <p className="text-lg font-bold text-rose-600">{formatCurrency(totalExpenses)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-slate-500 mb-0.5">Прошлый месяц</p>
+                      <p className="text-xs text-slate-500 mb-0.5">{t('analytics.prev_month')}</p>
                       <p className="text-lg font-bold text-slate-400">{formatCurrency(prevExpenses)}</p>
                     </div>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-slate-500 mb-0.5">Доходы — этот месяц</p>
+                      <p className="text-xs text-slate-500 mb-0.5">{t('analytics.income_this_month')}</p>
                       <p className="text-lg font-bold text-emerald-600">{formatCurrency(totalIncome)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-slate-500 mb-0.5">Прошлый месяц</p>
+                      <p className="text-xs text-slate-500 mb-0.5">{t('analytics.prev_month')}</p>
                       <p className="text-lg font-bold text-slate-400">{formatCurrency(prevIncome)}</p>
                     </div>
                   </div>
@@ -386,10 +387,10 @@ export default function Analytics() {
                       <XAxis dataKey="day" tick={{ fill: '#94a3b8', fontSize: 10 }} interval={3} />
                       <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} tickFormatter={(v) => `${Math.round(v/1000)}k`} />
                       <Tooltip
-                        formatter={(value, name) => [formatCurrency(value), name === 'current' ? 'Этот месяц' : 'Прошлый месяц']}
+                        formatter={(value, name) => [formatCurrency(value), name === 'current' ? t('analytics.this_month') : t('analytics.prev_month')]}
                         contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#f1f5f9' }}
                       />
-                      <Legend formatter={(value) => value === 'current' ? 'Этот месяц' : 'Прошлый месяц'} />
+                      <Legend formatter={(value) => value === 'current' ? t('analytics.this_month') : t('analytics.prev_month')} />
                       <Bar dataKey="previous" name="previous" fill="#94a3b8" radius={[3, 3, 0, 0]} opacity={0.6} />
                       <Bar dataKey="current" name="current" fill="#EF4444" radius={[3, 3, 0, 0]} />
                     </BarChart>
@@ -410,7 +411,7 @@ export default function Analytics() {
           >
             <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="text-lg">Динамика</CardTitle>
+                <CardTitle className="text-lg">{t('analytics.dynamics')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-64">
@@ -437,7 +438,7 @@ export default function Analytics() {
           >
             <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="text-lg">Расходы по категориям</CardTitle>
+                <CardTitle className="text-lg">{t('analytics.expenses_by_category')}</CardTitle>
               </CardHeader>
               <CardContent>
                 {categoryData.length > 0 ? (
@@ -493,7 +494,7 @@ export default function Analytics() {
                   </div>
                 ) : (
                   <div className="h-48 flex items-center justify-center text-slate-400">
-                    Нет данных о расходах
+                    {t('analytics.no_expense_data')}
                   </div>
                 )}
               </CardContent>
@@ -509,7 +510,7 @@ export default function Analytics() {
         >
           <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="text-lg">Топ категорий расходов</CardTitle>
+              <CardTitle className="text-lg">{t('analytics.top_categories')}</CardTitle>
             </CardHeader>
             <CardContent>
               {categoryData.length > 0 ? (
@@ -543,7 +544,7 @@ export default function Analytics() {
                 </div>
               ) : (
                 <div className="py-8 text-center text-slate-400">
-                  Нет данных о расходах за выбранный период
+                  {t('analytics.no_expense_period')}
                 </div>
               )}
             </CardContent>
