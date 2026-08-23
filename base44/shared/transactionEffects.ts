@@ -20,15 +20,28 @@ export async function applyBalanceDelta(entities, accountId, delta, ownerId) {
 export async function applyBudgetDelta(entities, userId, category, delta) {
   if (!category) return;
   const budgets = await entities.Budget.filter({ is_active: true, user_id: userId });
+  const now = new Date();
+  const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
   for (const budget of budgets) {
     // Бот/AI-ассистент не могут спросить пользователя, в какой бюджет (личный/семейный)
     // засчитать расход, поэтому по умолчанию засчитываем только в личные бюджеты —
     // иначе один и тот же расход задваивался бы и в личном, и в семейном бюджете.
     if (budget.is_family_budget) continue;
     const cats = budget.categories?.length > 0 ? budget.categories : (budget.category ? [budget.category] : []);
-    if (cats.includes(category)) {
-      await entities.Budget.update(budget.id, { spent_amount: (budget.spent_amount || 0) + delta });
-    }
+    if (!cats.includes(category)) continue;
+    // Идемпотентный пересчёт из реальных операций текущего периода —
+    // не накапливаем инкрементально, чтобы избежать задвоения при гонке
+    // с автоматизацией updateBudgetOnTransaction.
+    const allTransactions = await entities.Transaction.filter({ user_id: userId });
+    const realSpent = allTransactions
+      .filter(t => {
+        if (t.type !== 'expense') return false;
+        if (cats.length > 0 && !cats.includes(t.category)) return false;
+        if (new Date(t.date) < periodStart) return false;
+        return t.budget_scope !== 'family';
+      })
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    await entities.Budget.update(budget.id, { spent_amount: realSpent });
   }
 }
 
