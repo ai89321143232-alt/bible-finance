@@ -49,7 +49,7 @@ import TelegramBotSettings from '@/components/settings/TelegramBotSettings';
 import TextSizeControl from '@/components/settings/TextSizeControl';
 import LiquidGlassToggle from '@/components/settings/LiquidGlassToggle';
 import LanguageSwitcher from '@/components/settings/LanguageSwitcher';
-import { useLanguage } from '@/lib/LanguageContext';
+import { useLanguage, useTranslation } from '@/lib/LanguageContext';
 import { useFontScale } from '@/hooks/useFontScale';
 import { Layout, Bot } from 'lucide-react';
 
@@ -77,16 +77,16 @@ const PRESET_BACKGROUNDS = [
   { name: 'Лес', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/cffd6dae0_generated_image.png' },
 ];
 
-const SUBSCRIPTION_PLANS = [
+const getSubscriptionPlans = (t) => [
   {
     id: 'free',
-    name: 'Бесплатный',
+    name: t('settings.plan_free'),
     price: 0,
     features: [
-      'До 100 транзакций в месяц',
-      '3 бюджета',
-      'Базовая аналитика',
-      '1 финансовая цель'
+      t('settings.plan_free_f1'),
+      t('settings.plan_free_f2'),
+      t('settings.plan_free_f3'),
+      t('settings.plan_free_f4')
     ]
   },
   {
@@ -95,12 +95,12 @@ const SUBSCRIPTION_PLANS = [
     price: 299,
     popular: true,
     features: [
-      'Безлимитные транзакции',
-      'Неограниченные бюджеты',
-      'Расширенная аналитика',
-      'AI-ассистент без лимитов',
-      'Экспорт отчётов',
-      'Приоритетная поддержка'
+      t('settings.plan_premium_f1'),
+      t('settings.plan_premium_f2'),
+      t('settings.plan_premium_f3'),
+      t('settings.plan_premium_f4'),
+      t('settings.plan_premium_f5'),
+      t('settings.plan_premium_f6')
     ]
   },
   {
@@ -108,18 +108,20 @@ const SUBSCRIPTION_PLANS = [
     name: 'Family',
     price: 499,
     features: [
-      'Всё из Premium',
-      'AI-ассистент без лимитов',
-      'До 5 членов семьи',
-      'Семейные бюджеты',
-      'Совместные цели',
-      'Отдельная аналитика'
+      t('settings.plan_family_f1'),
+      t('settings.plan_family_f2'),
+      t('settings.plan_family_f3'),
+      t('settings.plan_family_f4'),
+      t('settings.plan_family_f5'),
+      t('settings.plan_family_f6')
     ]
   }
 ];
 
 export default function Settings() {
   const { user: authUser } = useAuth();
+  const t = useTranslation();
+  const subscriptionPlans = getSubscriptionPlans(t);
   const [user, setUser] = useState(authUser);
   const [isDark, setIsDark] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
@@ -277,7 +279,7 @@ export default function Settings() {
           className="mb-6"
         >
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-            Настройки
+            {t('settings.title')}
           </h1>
         </motion.div>
 
@@ -354,10 +356,10 @@ export default function Settings() {
                     <div>
                       <h3 className="font-semibold mb-1 flex items-center gap-2">
                         <SettingsIcon className="w-5 h-5" />
-                        Панель администратора
+                        {t('settings.admin_panel')}
                       </h3>
                       <p className="text-orange-100 text-sm">
-                        Управление пользователями и подписками
+                        {t('settings.admin_panel_desc')}
                       </p>
                     </div>
                     <ChevronRight className="w-5 h-5" />
@@ -383,19 +385,19 @@ export default function Settings() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold mb-1">
-                      {subscriptionStatus?.isTrial ? 'Продлите доступ к Premium' : 'Разблокируйте Premium'}
+                      {subscriptionStatus?.isTrial ? t('settings.renew_premium') : t('settings.upgrade_premium')}
                     </h3>
                     <p className="text-violet-200 text-sm">
-                      {subscriptionStatus?.isTrial 
-                        ? `Демо-период заканчивается через ${subscriptionStatus.daysLeft} дн.`
-                        : 'AI-ассистент, расширенная аналитика и многое другое'
+                      {subscriptionStatus?.isTrial
+                        ? t('settings.renew_desc').replace('{days}', subscriptionStatus.daysLeft)
+                        : t('settings.upgrade_desc')
                       }
                     </p>
                   </div>
                   <Button 
                     className="bg-white text-violet-700 hover:bg-violet-50 rounded-xl"
                   >
-                    Выбрать план
+                    {t('settings.choose_plan')}
                   </Button>
                 </div>
               </CardContent>
@@ -415,14 +417,14 @@ export default function Settings() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Bell className="w-5 h-5 text-violet-600" />
-                  Уведомления
+                  {t('settings.notifications')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-slate-900 dark:text-white">Предупреждения о бюджете</p>
-                    <p className="text-sm text-slate-500">При приближении к лимиту</p>
+                    <p className="font-medium text-slate-900 dark:text-white">{t('settings.notifications_budget_alerts')}</p>
+                    <p className="text-sm text-slate-500">{t('settings.notifications_budget_alerts_desc')}</p>
                   </div>
                   <Switch 
                     checked={notifications.budgetAlerts}
@@ -432,8 +434,8 @@ export default function Settings() {
                 <Separator />
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-slate-900 dark:text-white">Напоминания о целях</p>
-                    <p className="text-sm text-slate-500">Еженедельные напоминания</p>
+                    <p className="font-medium text-slate-900 dark:text-white">{t('settings.notifications_goal_reminders')}</p>
+                    <p className="text-sm text-slate-500">{t('settings.notifications_goal_reminders_desc')}</p>
                   </div>
                   <Switch 
                     checked={notifications.goalReminders}
@@ -928,7 +930,7 @@ export default function Settings() {
             <DialogTitle className="text-center">Выберите план</DialogTitle>
           </DialogHeader>
           <div className="grid sm:grid-cols-3 gap-4 mt-4">
-            {SUBSCRIPTION_PLANS.map((plan) => (
+            {subscriptionPlans.map((plan) => (
               <Card 
                 key={plan.id}
                 className={`border-2 transition-all ${

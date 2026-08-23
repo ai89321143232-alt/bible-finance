@@ -5,7 +5,8 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { ru, enUS } from 'date-fns/locale';
+import { useLanguage } from '@/lib/LanguageContext';
 import {
   ArrowUpRight, ArrowDownRight, TrendingUp, Plus, Wallet,
   PiggyBank, Target, ChevronRight, Sparkles, CreditCard, Calendar } from
@@ -45,6 +46,8 @@ import { INVESTMENT_CATEGORY } from '@/lib/investmentConstants';
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
+  const { t, language } = useLanguage();
+  const dateLocale = language === 'en' ? enUS : ru;
 
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [editTransaction, setEditTransaction] = useState(null);
@@ -446,17 +449,17 @@ export default function Dashboard() {
           <section key="quickStats" className="mb-6 p-0 sm:p-0">
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="glass-card rounded-2xl p-4 cursor-pointer hover:shadow-md transition-all" onClick={() => { setQuickAddType('income'); setShowQuickAdd(true); }}>
-                <div className="flex items-center gap-2 mb-3"><div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center"><ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" /></div><span className="text-muted-foreground text-xs">Доходы</span></div>
+                <div className="flex items-center gap-2 mb-3"><div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center"><ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" /></div><span className="text-muted-foreground text-xs">{t('dashboard.income')}</span></div>
                 <p className="text-emerald-500 font-bold text-lg">{formatCurrency(monthIncome)}</p>
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }} className="glass-card rounded-2xl p-4 cursor-pointer hover:shadow-md transition-all" onClick={() => { setQuickAddType('expense'); setShowQuickAdd(true); }}>
-                <div className="flex items-center gap-2 mb-3"><div className="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center"><ArrowDownRight className="w-3.5 h-3.5 text-rose-500" /></div><span className="text-muted-foreground text-xs">Расходы</span></div>
+                <div className="flex items-center gap-2 mb-3"><div className="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center"><ArrowDownRight className="w-3.5 h-3.5 text-rose-500" /></div><span className="text-muted-foreground text-xs">{t('dashboard.expense')}</span></div>
                 <p className="text-rose-500 font-bold text-lg">{formatCurrency(monthExpenses)}</p>
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                 <Link to={createPageUrl('Investments')}>
                   <div className="glass-card rounded-2xl p-4 hover:shadow-md transition-all h-full">
-                    <div className="flex items-center gap-2 mb-3"><div className="w-7 h-7 rounded-lg bg-cyan-500/15 flex items-center justify-center"><TrendingUp className="w-3.5 h-3.5 text-cyan-500" /></div><span className="text-muted-foreground text-xs">Инвестиции</span></div>
+                    <div className="flex items-center gap-2 mb-3"><div className="w-7 h-7 rounded-lg bg-cyan-500/15 flex items-center justify-center"><TrendingUp className="w-3.5 h-3.5 text-cyan-500" /></div><span className="text-muted-foreground text-xs">{t('dashboard.investments')}</span></div>
                     <p className="text-cyan-500 font-bold text-lg">{formatCurrency(investmentValue)}</p>
                   </div>
                 </Link>
@@ -465,8 +468,8 @@ export default function Dashboard() {
                 <Link to={createPageUrl('AIAssistant')}>
                   <div className="glass-card rounded-2xl p-4 hover:shadow-md transition-all h-full flex items-center justify-between">
                     <div>
-                      <div className="flex items-center gap-2 mb-3"><div className="w-7 h-7 rounded-lg bg-violet-500/15 flex items-center justify-center"><Sparkles className="w-3.5 h-3.5 text-violet-500" /></div><span className="text-muted-foreground text-xs">AI</span></div>
-                      <p className="text-foreground font-bold">Спросить</p>
+                      <div className="flex items-center gap-2 mb-3"><div className="w-7 h-7 rounded-lg bg-violet-500/15 flex items-center justify-center"><Sparkles className="w-3.5 h-3.5 text-violet-500" /></div><span className="text-muted-foreground text-xs">{t('dashboard.ai')}</span></div>
+                      <p className="text-foreground font-bold">{t('dashboard.ai_ask')}</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground" />
                   </div>
@@ -482,11 +485,11 @@ export default function Dashboard() {
           <div key="spendingChart" className="mb-6">
             <div className="flex items-center gap-3 mb-3">
               <Calendar className="w-4 h-4 text-muted-foreground" />
-              <MobileSelect value={periodType} onValueChange={updatePeriod} placeholder="Период" title="Выберите период" triggerClassName="w-36 h-8 text-sm rounded-lg border-border bg-muted text-muted-foreground">
-                <option value="week">Неделя</option>
-                <option value="month">Месяц</option>
-                <option value="year">Год</option>
-                <option value="all">Всё время</option>
+              <MobileSelect value={periodType} onValueChange={updatePeriod} placeholder={t('dashboard.period')} title={t('dashboard.period_title')} triggerClassName="w-36 h-8 text-sm rounded-lg border-border bg-muted text-muted-foreground">
+                <option value="week">{t('dashboard.period_week')}</option>
+                <option value="month">{t('dashboard.period_month')}</option>
+                <option value="year">{t('dashboard.period_year')}</option>
+                <option value="all">{t('dashboard.period_all')}</option>
               </MobileSelect>
             </div>
             <SpendingChart transactions={transactions} formatCurrency={formatCurrency} periodType={periodType} />
@@ -520,9 +523,9 @@ export default function Dashboard() {
             className="flex items-center justify-between mb-6 pt-2 lg:pt-0">
             
           <div className="bg-card/70 backdrop-blur-sm rounded-xl px-3 py-2 -mx-3 -my-2">
-            <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Дашборд</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold text-foreground">{t('dashboard.title')}</h1>
             <p className="text-foreground/70 text-sm mt-0.5">
-              {format(new Date(), "EEEE, d MMMM", { locale: ru })}
+              {format(new Date(), "EEEE, d MMMM", { locale: dateLocale })}
               {family && <span className="ml-2 text-foreground/70">· {family.name}</span>}
             </p>
           </div>
@@ -533,7 +536,7 @@ export default function Dashboard() {
                 className="rounded-lg h-9 px-4 text-sm font-semibold transition-colors bg-white text-violet-600 hover:bg-violet-600 hover:text-white dark:bg-violet-600 dark:text-white dark:hover:bg-slate-400 dark:hover:text-white">
                 
               <Plus className="w-4 h-4 mr-1.5" />
-              <span className="hidden sm:inline">Добавить</span>
+              <span className="hidden sm:inline">{t('common.add')}</span>
             </Button>
           </div>
         </motion.div>
@@ -546,10 +549,10 @@ export default function Dashboard() {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-4">
             <div className="flex gap-1 p-1 bg-muted border border-border rounded-lg w-fit">
              <button onClick={() => setBalanceMode('personal')} className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${balanceMode === 'personal' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-                Личный
+                {t('dashboard.personal_mode')}
               </button>
               <button onClick={() => setBalanceMode('family')} className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${balanceMode === 'family' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-                Семейный
+                {t('dashboard.family_mode')}
               </button>
             </div>
           </motion.div>
@@ -587,14 +590,14 @@ export default function Dashboard() {
         {balanceMode === 'family' && family && memberBalances.length > 0 &&
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-6">
             <div className="rounded-xl border border-border bg-card divide-y divide-border">
-              <div className="px-4 py-3 text-muted-foreground text-xs uppercase tracking-widest font-medium">Баланс по членам семьи</div>
+              <div className="px-4 py-3 text-muted-foreground text-xs uppercase tracking-widest font-medium">{t('dashboard.balance_by_members')}</div>
               {memberBalances.map((member) =>
               <div key={member.user_id} className="flex items-center justify-between px-4 py-3">
                   <div className="flex items-center gap-3">
                     <MemberAvatar member={member} size="sm" />
                     <div>
                       <p className="text-foreground text-sm font-medium">{member.display_name || member.name}</p>
-                      <p className="text-muted-foreground text-xs">{member.accountsCount} счетов</p>
+                      <p className="text-muted-foreground text-xs">{member.accountsCount} {t('dashboard.accounts_count')}</p>
                     </div>
                   </div>
                   <div className="text-right">
