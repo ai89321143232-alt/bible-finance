@@ -349,7 +349,7 @@ export default function AIPlanning() {
     }
   };
 
-  const activeTabObj = TABS.find(t => t.id === activeTab);
+  const activeTabObj = TABS.find(tb => tb.id === activeTab);
 
   return (
     <div className="space-y-4 max-w-5xl mx-auto">
@@ -358,8 +358,8 @@ export default function AIPlanning() {
           <Sparkles className="w-5 h-5 text-primary-foreground" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-foreground">ИИ Планировщик финансов</h1>
-          <p className="text-xs text-muted-foreground">9 умных инструментов для аналитики и планирования</p>
+          <h1 className="text-xl font-bold text-foreground">{t('ai_planning.title')}</h1>
+          <p className="text-xs text-muted-foreground">{t('ai_planning.subtitle')}</p>
         </div>
       </div>
 
@@ -380,8 +380,8 @@ export default function AIPlanning() {
                 <Icon className="w-5 h-5 text-white" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-foreground leading-tight">{tab.label}</p>
-                <p className="text-[10px] leading-snug mt-0.5 text-muted-foreground line-clamp-2">{tab.desc}</p>
+                <p className="text-xs font-semibold text-foreground leading-tight">{t(tab.labelKey)}</p>
+                <p className="text-[10px] leading-snug mt-0.5 text-muted-foreground line-clamp-2">{t(tab.descKey)}</p>
               </div>
             </motion.button>
           );
@@ -399,8 +399,8 @@ export default function AIPlanning() {
                     <activeTabObj.icon className="w-5 h-5 text-white" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <DialogTitle className="text-base">{activeTabObj.label}</DialogTitle>
-                    <DialogDescription className="text-xs">{activeTabObj.desc}</DialogDescription>
+                    <DialogTitle className="text-base">{t(activeTabObj.labelKey)}</DialogTitle>
+                    <DialogDescription className="text-xs">{t(activeTabObj.descKey)}</DialogDescription>
                   </div>
                 </div>
               </DialogHeader>
@@ -410,12 +410,12 @@ export default function AIPlanning() {
                 {activeTab === 'pre_purchase' && (
                   <form onSubmit={handlePrePurchase} className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">
-                      <Input type="number" placeholder="Сумма ₽" value={prePurchase.amount} onChange={e => setPrePurchase(p => ({ ...p, amount: e.target.value }))} required />
-                      <Input placeholder="Категория" value={prePurchase.category} onChange={e => setPrePurchase(p => ({ ...p, category: e.target.value }))} />
+                      <Input type="number" placeholder={t('ai_planning.amount')} value={prePurchase.amount} onChange={e => setPrePurchase(p => ({ ...p, amount: e.target.value }))} required />
+                      <Input placeholder={t('ai_planning.category')} value={prePurchase.category} onChange={e => setPrePurchase(p => ({ ...p, category: e.target.value }))} />
                     </div>
-                    <Input placeholder="Описание покупки" value={prePurchase.description} onChange={e => setPrePurchase(p => ({ ...p, description: e.target.value }))} />
+                    <Input placeholder={t('ai_planning.description')} value={prePurchase.description} onChange={e => setPrePurchase(p => ({ ...p, description: e.target.value }))} />
                     <Button type="submit" disabled={loading || !prePurchase.amount} className="w-full">
-                      {loading ? 'Анализирую...' : 'Проверить трату'}
+                      {loading ? t('ai_planning.analyzing') : t('ai_planning.check_purchase')}
                     </Button>
                   </form>
                 )}
@@ -424,7 +424,7 @@ export default function AIPlanning() {
                 {loading && (
                   <div className="py-10 text-center">
                     <Loader2 className="w-7 h-7 mx-auto text-primary animate-spin mb-2" />
-                    <p className="text-sm text-muted-foreground">Анализирую ваши данные...</p>
+                    <p className="text-sm text-muted-foreground">{t('ai_planning.analyzing')}</p>
                   </div>
                 )}
 
@@ -453,12 +453,12 @@ export default function AIPlanning() {
                 {activeTab !== 'pre_purchase' && (
                   <Button variant="outline" size="sm" onClick={() => analyze(activeTab)} disabled={loading} className="flex-1">
                     <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
-                    Обновить
+                    {t('common.refresh')}
                   </Button>
                 )}
                 <Button size="sm" onClick={handleSaveNote} disabled={!data || saving || loading} className="flex-1">
                   {saving ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
-                  В заметки
+                  {t('ai_planning.save_note')}
                 </Button>
               </DialogFooter>
             </>

@@ -48,6 +48,8 @@ import RedeemPromoCode from '@/components/settings/RedeemPromoCode';
 import TelegramBotSettings from '@/components/settings/TelegramBotSettings';
 import TextSizeControl from '@/components/settings/TextSizeControl';
 import LiquidGlassToggle from '@/components/settings/LiquidGlassToggle';
+import LanguageSwitcher from '@/components/settings/LanguageSwitcher';
+import { useLanguage } from '@/lib/LanguageContext';
 import { useFontScale } from '@/hooks/useFontScale';
 import { Layout, Bot } from 'lucide-react';
 
@@ -555,6 +557,16 @@ export default function Settings() {
                 <TextSizeControl />
                 <Separator />
                 <LiquidGlassToggle />
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-slate-900 dark:text-white">Язык интерфейса</p>
+                    <p className="text-sm text-slate-500">Русский / English</p>
+                  </div>
+                  <div className="w-40">
+                    <LanguageSwitcher />
+                  </div>
+                </div>
                 <Separator />
                 <div className="flex items-center justify-between">
                   <div>
