@@ -326,8 +326,9 @@ export default function DebtPlanner() {
           </>
         )}
 
-        {/* Debt Form Dialog */}
+        {/* Debt Form Dialog — key=editingDebt?.id || 'new' гарантирует ремоунт при смене долга */}
         <DebtForm
+          key={editingDebt?.id || 'new'}
           open={showForm}
           onClose={() => { setShowForm(false); setEditingDebt(null); }}
           onSave={handleSave}
