@@ -9,20 +9,21 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useLanguage } from '@/lib/LanguageContext';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog';
 
 const TABS = [
-  { id: 'cashflow', label: 'Кассовый разрыв', icon: CalendarClock, desc: 'Прогноз движения средств по дням', color: 'from-blue-500 to-cyan-500', bg: 'bg-blue-500', text: 'text-blue-500' },
-  { id: 'daily_limit', label: 'Дневной лимит', icon: Wallet, desc: 'Сколько можно потратить сегодня', color: 'from-violet-500 to-purple-500', bg: 'bg-violet-500', text: 'text-violet-500' },
-  { id: 'subscriptions', label: 'Подписки и переплаты', icon: Repeat, desc: 'Дубликаты и забытые подписки', color: 'from-emerald-500 to-teal-500', bg: 'bg-emerald-500', text: 'text-emerald-500' },
-  { id: 'debt_strategy', label: 'Стратегия долгов', icon: Snowflake, desc: 'Снежный ком vs лавина', color: 'from-sky-500 to-indigo-500', bg: 'bg-sky-500', text: 'text-sky-500' },
-  { id: 'goal_acceleration', label: 'Ускорение целей', icon: Target, desc: 'Прогноз достижения целей', color: 'from-rose-500 to-pink-500', bg: 'bg-rose-500', text: 'text-rose-500' },
-  { id: 'pre_purchase', label: 'Проверка траты', icon: ShoppingCart, desc: 'Оценка крупной покупки', color: 'from-amber-500 to-orange-500', bg: 'bg-amber-500', text: 'text-amber-500' },
-  { id: 'monthly_report', label: 'Месячный отчёт', icon: FileText, desc: 'Расширенный ИИ-отчёт', color: 'from-slate-500 to-gray-600', bg: 'bg-slate-500', text: 'text-slate-500' },
-  { id: 'balance_allocation', label: 'Баланс долг/накоп', icon: Scale, desc: 'Распределение свободных средств', color: 'from-fuchsia-500 to-pink-500', bg: 'bg-fuchsia-500', text: 'text-fuchsia-500' },
-  { id: 'spending_clusters', label: 'Карта трат', icon: Layers, desc: 'Сегментация расходов', color: 'from-teal-500 to-green-500', bg: 'bg-teal-500', text: 'text-teal-500' },
+  { id: 'cashflow', labelKey: 'ai_planning.cashflow', descKey: 'ai_planning.cashflow_desc', icon: CalendarClock, color: 'from-blue-500 to-cyan-500' },
+  { id: 'daily_limit', labelKey: 'ai_planning.daily_limit', descKey: 'ai_planning.daily_limit_desc', icon: Wallet, color: 'from-violet-500 to-purple-500' },
+  { id: 'subscriptions', labelKey: 'ai_planning.subscriptions', descKey: 'ai_planning.subscriptions_desc', icon: Repeat, color: 'from-emerald-500 to-teal-500' },
+  { id: 'debt_strategy', labelKey: 'ai_planning.debt_strategy', descKey: 'ai_planning.debt_strategy_desc', icon: Snowflake, color: 'from-sky-500 to-indigo-500' },
+  { id: 'goal_acceleration', labelKey: 'ai_planning.goal_acceleration', descKey: 'ai_planning.goal_acceleration_desc', icon: Target, color: 'from-rose-500 to-pink-500' },
+  { id: 'pre_purchase', labelKey: 'ai_planning.pre_purchase', descKey: 'ai_planning.pre_purchase_desc', icon: ShoppingCart, color: 'from-amber-500 to-orange-500' },
+  { id: 'monthly_report', labelKey: 'ai_planning.monthly_report', descKey: 'ai_planning.monthly_report_desc', icon: FileText, color: 'from-slate-500 to-gray-600' },
+  { id: 'balance_allocation', labelKey: 'ai_planning.balance_allocation', descKey: 'ai_planning.balance_allocation_desc', icon: Scale, color: 'from-fuchsia-500 to-pink-500' },
+  { id: 'spending_clusters', labelKey: 'ai_planning.spending_clusters', descKey: 'ai_planning.spending_clusters_desc', icon: Layers, color: 'from-teal-500 to-green-500' },
 ];
 
 function SectionCard({ title, children }) {
@@ -282,17 +283,18 @@ export default function AIPlanning() {
   const [prePurchase, setPrePurchase] = useState({ amount: '', category: '', description: '' });
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const { language, t } = useLanguage();
 
   const analyze = async (type, payload) => {
     setLoading(true);
     setError(null);
     setData(null);
     try {
-      const res = await base44.functions.invoke('aiFinancialPlanner', { analysisType: type, payload: payload || {} });
+      const res = await base44.functions.invoke('aiFinancialPlanner', { analysisType: type, language, payload: payload || {} });
       setData(res.data || res);
     } catch (err) {
-      setError(err.message || 'Ошибка анализа');
-      toast({ title: 'Ошибка', description: err.message, variant: 'destructive' });
+      setError(err.message || t('common.error'));
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -332,16 +334,16 @@ export default function AIPlanning() {
     if (!data) return;
     setSaving(true);
     try {
-      const tab = TABS.find(t => t.id === activeTab);
+      const tab = TABS.find(tb => tb.id === activeTab);
       await base44.entities.Note.create({
-        title: `${tab?.label || 'ИИ-анализ'} — ${new Date().toLocaleDateString('ru-RU')}`,
+        title: `${tab ? t(tab.labelKey) : 'AI'} — ${new Date().toLocaleDateString(language === 'en' ? 'en-US' : 'ru-RU')}`,
         content: buildNoteText(),
         category: 'financial',
         source: 'ai_planner'
       });
-      toast({ title: 'Сохранено', description: 'Анализ сохранён в заметках' });
+      toast({ title: t('ai_planning.saved_title'), description: t('ai_planning.saved') });
     } catch (err) {
-      toast({ title: 'Ошибка', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     } finally {
       setSaving(false);
     }

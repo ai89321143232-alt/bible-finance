@@ -22,6 +22,9 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const { analysisType, payload = {} } = body;
+    const language = body.language || payload.language || (user.language) || 'ru';
+    const langName = language === 'en' ? 'English' : 'русском';
+    const langInstruction = ` Отвечай ТОЛЬКО на ${langName} языке. Все текстовые поля должны быть на ${langName} языке.`;
 
     // Сбор данных
     const [allTx, allBudgets, allGoals, allInvestments, allAccounts, allDebts, allRecurring] = await Promise.all([
@@ -352,7 +355,7 @@ Deno.serve(async (req) => {
     }
 
     const result = await base44.integrations.Core.InvokeLLM({
-      prompt,
+      prompt: prompt + langInstruction,
       add_context_from_internet: false,
       response_json_schema: jsonSchema
     });

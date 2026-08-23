@@ -26,6 +26,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate, useNavigate, useLocat
 import { AnimatePresence, motion } from 'framer-motion';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { LanguageProvider } from '@/lib/LanguageContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ProtectedRoute from '@/components/ProtectedRoute';
 const Login = React.lazy(() => import('./pages/Login'));
@@ -156,19 +157,21 @@ function App() {
 
   return (
     <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <GlobalCacheSync />
-        <SplashScreen onFinish={() => setSplashDone(true)} />
-        <PushNotificationManager />
-        {splashDone && (
-          <Router>
-            <NavigationTracker />
-            <AuthenticatedApp />
-          </Router>
-        )}
-        <Toaster />
-        <SonnerToaster richColors position="top-center" />
-      </QueryClientProvider>
+      <LanguageProvider>
+        <QueryClientProvider client={queryClientInstance}>
+          <GlobalCacheSync />
+          <SplashScreen onFinish={() => setSplashDone(true)} />
+          <PushNotificationManager />
+          {splashDone && (
+            <Router>
+              <NavigationTracker />
+              <AuthenticatedApp />
+            </Router>
+          )}
+          <Toaster />
+          <SonnerToaster richColors position="top-center" />
+        </QueryClientProvider>
+      </LanguageProvider>
     </AuthProvider>
   )
 }
