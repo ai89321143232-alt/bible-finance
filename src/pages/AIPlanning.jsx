@@ -3,22 +3,26 @@ import { base44 } from '@/api/base44Client';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Activity, CalendarClock, Wallet, Repeat, Snowflake, Target,
-  ShoppingCart, FileText, Scale, Layers, Sparkles, RefreshCw, ChevronRight
+  ShoppingCart, FileText, Scale, Layers, Sparkles, RefreshCw,
+  X, Save, Loader2
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
+} from '@/components/ui/dialog';
 
 const TABS = [
-  { id: 'cashflow', label: 'Кассовый разрыв', icon: CalendarClock, desc: 'Прогноз движения средств по дням' },
-  { id: 'daily_limit', label: 'Дневной лимит', icon: Wallet, desc: 'Сколько можно потратить сегодня' },
-  { id: 'subscriptions', label: 'Подписки и переплаты', icon: Repeat, desc: 'Дубликаты и забытые подписки' },
-  { id: 'debt_strategy', label: 'Стратегия долгов', icon: Snowflake, desc: 'Снежный ком vs лавина' },
-  { id: 'goal_acceleration', label: 'Ускорение целей', icon: Target, desc: 'Прогноз достижения целей' },
-  { id: 'pre_purchase', label: 'Проверка траты', icon: ShoppingCart, desc: 'Оценка крупной покупки' },
-  { id: 'monthly_report', label: 'Месячный отчёт', icon: FileText, desc: 'Расширенный ИИ-отчёт' },
-  { id: 'balance_allocation', label: 'Баланс долг/накоп', icon: Scale, desc: 'Распределение свободных средств' },
-  { id: 'spending_clusters', label: 'Карта трат', icon: Layers, desc: 'Сегментация расходов' },
+  { id: 'cashflow', label: 'Кассовый разрыв', icon: CalendarClock, desc: 'Прогноз движения средств по дням', color: 'from-blue-500 to-cyan-500', bg: 'bg-blue-500', text: 'text-blue-500' },
+  { id: 'daily_limit', label: 'Дневной лимит', icon: Wallet, desc: 'Сколько можно потратить сегодня', color: 'from-violet-500 to-purple-500', bg: 'bg-violet-500', text: 'text-violet-500' },
+  { id: 'subscriptions', label: 'Подписки и переплаты', icon: Repeat, desc: 'Дубликаты и забытые подписки', color: 'from-emerald-500 to-teal-500', bg: 'bg-emerald-500', text: 'text-emerald-500' },
+  { id: 'debt_strategy', label: 'Стратегия долгов', icon: Snowflake, desc: 'Снежный ком vs лавина', color: 'from-sky-500 to-indigo-500', bg: 'bg-sky-500', text: 'text-sky-500' },
+  { id: 'goal_acceleration', label: 'Ускорение целей', icon: Target, desc: 'Прогноз достижения целей', color: 'from-rose-500 to-pink-500', bg: 'bg-rose-500', text: 'text-rose-500' },
+  { id: 'pre_purchase', label: 'Проверка траты', icon: ShoppingCart, desc: 'Оценка крупной покупки', color: 'from-amber-500 to-orange-500', bg: 'bg-amber-500', text: 'text-amber-500' },
+  { id: 'monthly_report', label: 'Месячный отчёт', icon: FileText, desc: 'Расширенный ИИ-отчёт', color: 'from-slate-500 to-gray-600', bg: 'bg-slate-500', text: 'text-slate-500' },
+  { id: 'balance_allocation', label: 'Баланс долг/накоп', icon: Scale, desc: 'Распределение свободных средств', color: 'from-fuchsia-500 to-pink-500', bg: 'bg-fuchsia-500', text: 'text-fuchsia-500' },
+  { id: 'spending_clusters', label: 'Карта трат', icon: Layers, desc: 'Сегментация расходов', color: 'from-teal-500 to-green-500', bg: 'bg-teal-500', text: 'text-teal-500' },
 ];
 
 function SectionCard({ title, children }) {
@@ -270,11 +274,13 @@ function ResultRenderer({ type, data }) {
 }
 
 export default function AIPlanning() {
-  const [activeTab, setActiveTab] = useState('cashflow');
+  const [activeTab, setActiveTab] = useState(null);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const [prePurchase, setPrePurchase] = useState({ amount: '', category: '', description: '' });
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
   const analyze = async (type, payload) => {
@@ -292,12 +298,18 @@ export default function AIPlanning() {
     }
   };
 
-  const handleTabChange = (type) => {
-    setActiveTab(type);
+  const openTool = (tab) => {
+    setActiveTab(tab.id);
     setData(null);
     setError(null);
-    if (type === 'pre_purchase') return; // требует ввода
-    analyze(type);
+    setModalOpen(true);
+    if (tab.id !== 'pre_purchase') {
+      analyze(tab.id);
+    }
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
   };
 
   const handlePrePurchase = (e) => {
@@ -305,6 +317,37 @@ export default function AIPlanning() {
     if (!prePurchase.amount) return;
     analyze('pre_purchase', { amount: Number(prePurchase.amount), category: prePurchase.category || 'Другое', description: prePurchase.description });
   };
+
+  const buildNoteText = () => {
+    if (!data) return '';
+    const tab = TABS.find(t => t.id === activeTab);
+    const date = new Date().toLocaleDateString('ru-RU');
+    let text = `📊 ${tab?.label || 'Анализ'} — ${date}\n\n`;
+    if (data.summary) text += `${data.summary}\n\n`;
+    text += JSON.stringify(data, null, 2);
+    return text;
+  };
+
+  const handleSaveNote = async () => {
+    if (!data) return;
+    setSaving(true);
+    try {
+      const tab = TABS.find(t => t.id === activeTab);
+      await base44.entities.Note.create({
+        title: `${tab?.label || 'ИИ-анализ'} — ${new Date().toLocaleDateString('ru-RU')}`,
+        content: buildNoteText(),
+        category: 'financial',
+        source: 'ai_planner'
+      });
+      toast({ title: 'Сохранено', description: 'Анализ сохранён в заметках' });
+    } catch (err) {
+      toast({ title: 'Ошибка', description: err.message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const activeTabObj = TABS.find(t => t.id === activeTab);
 
   return (
     <div className="space-y-4 max-w-5xl mx-auto">
@@ -319,95 +362,107 @@ export default function AIPlanning() {
       </div>
 
       {/* Tool cards grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {TABS.map((tab, idx) => {
           const Icon = tab.icon;
-          const active = activeTab === tab.id;
           return (
             <motion.button
               key={tab.id}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.03 }}
-              onClick={() => handleTabChange(tab.id)}
-              className={`relative flex flex-col items-start gap-2 p-3 rounded-xl text-left transition-all min-h-[92px] ${
-                active
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'glass-card text-foreground hover:scale-[1.02] active:scale-[0.98]'
-              }`}
+              onClick={() => openTool(tab)}
+              className="glass-card rounded-2xl p-3.5 text-left transition-all hover:scale-[1.02] active:scale-[0.97] min-h-[110px] flex flex-col gap-2"
             >
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                active ? 'bg-primary-foreground/15' : 'bg-muted'
-              }`}>
-                <Icon className={`w-4 h-4 ${active ? 'text-primary-foreground' : 'text-primary'}`} />
+              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${tab.color} flex items-center justify-center shadow-sm`}>
+                <Icon className="w-5 h-5 text-white" />
               </div>
               <div className="min-w-0">
-                <p className={`text-xs font-semibold leading-tight ${active ? 'text-primary-foreground' : 'text-foreground'}`}>
-                  {tab.label}
-                </p>
-                <p className={`text-[10px] leading-snug mt-0.5 line-clamp-2 ${active ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                  {tab.desc}
-                </p>
+                <p className="text-xs font-semibold text-foreground leading-tight">{tab.label}</p>
+                <p className="text-[10px] leading-snug mt-0.5 text-muted-foreground line-clamp-2">{tab.desc}</p>
               </div>
-              {active && (
-                <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-primary-foreground" />
-              )}
             </motion.button>
           );
         })}
       </div>
 
-      {/* Pre-purchase form */}
-      {activeTab === 'pre_purchase' && (
-        <form onSubmit={handlePrePurchase} className="glass-card rounded-xl p-4 space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-            <Input type="number" placeholder="Сумма ₽" value={prePurchase.amount} onChange={e => setPrePurchase(p => ({ ...p, amount: e.target.value }))} required />
-            <Input placeholder="Категория" value={prePurchase.category} onChange={e => setPrePurchase(p => ({ ...p, category: e.target.value }))} />
-          </div>
-          <Input placeholder="Описание покупки" value={prePurchase.description} onChange={e => setPrePurchase(p => ({ ...p, description: e.target.value }))} />
-          <Button type="submit" disabled={loading || !prePurchase.amount} className="w-full">
-            {loading ? 'Анализирую...' : 'Проверить трату'}
-          </Button>
-        </form>
-      )}
+      {/* Analysis Modal */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="max-w-md max-h-[88vh] overflow-y-auto p-0 gap-0">
+          {activeTabObj && (
+            <>
+              <DialogHeader className="p-4 pb-3 sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${activeTabObj.color} flex items-center justify-center shrink-0`}>
+                    <activeTabObj.icon className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <DialogTitle className="text-base">{activeTabObj.label}</DialogTitle>
+                    <DialogDescription className="text-xs">{activeTabObj.desc}</DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
 
-      {/* Refresh button */}
-      {activeTab !== 'pre_purchase' && (
-        <div className="flex justify-end">
-          <Button variant="ghost" size="sm" onClick={() => analyze(activeTab)} disabled={loading} className="text-muted-foreground">
-            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${loading ? 'animate-spin' : ''}`} />
-            {loading ? 'Анализирую...' : 'Обновить'}
-          </Button>
-        </div>
-      )}
+              <div className="p-4 space-y-3">
+                {/* Pre-purchase form */}
+                {activeTab === 'pre_purchase' && (
+                  <form onSubmit={handlePrePurchase} className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input type="number" placeholder="Сумма ₽" value={prePurchase.amount} onChange={e => setPrePurchase(p => ({ ...p, amount: e.target.value }))} required />
+                      <Input placeholder="Категория" value={prePurchase.category} onChange={e => setPrePurchase(p => ({ ...p, category: e.target.value }))} />
+                    </div>
+                    <Input placeholder="Описание покупки" value={prePurchase.description} onChange={e => setPrePurchase(p => ({ ...p, description: e.target.value }))} />
+                    <Button type="submit" disabled={loading || !prePurchase.amount} className="w-full">
+                      {loading ? 'Анализирую...' : 'Проверить трату'}
+                    </Button>
+                  </form>
+                )}
 
-      {/* Loading */}
-      {loading && (
-        <div className="glass-card rounded-xl p-8 text-center">
-          <Activity className="w-6 h-6 mx-auto text-primary animate-pulse mb-2" />
-          <p className="text-sm text-muted-foreground">Анализирую ваши данные...</p>
-        </div>
-      )}
+                {/* Loading */}
+                {loading && (
+                  <div className="py-10 text-center">
+                    <Loader2 className="w-7 h-7 mx-auto text-primary animate-spin mb-2" />
+                    <p className="text-sm text-muted-foreground">Анализирую ваши данные...</p>
+                  </div>
+                )}
 
-      {/* Error */}
-      {error && (
-        <div className="glass-card rounded-xl p-4 text-center text-destructive text-sm">{error}</div>
-      )}
+                {/* Error */}
+                {error && (
+                  <div className="glass-card rounded-xl p-4 text-center text-destructive text-sm">{error}</div>
+                )}
 
-      {/* Result */}
-      <AnimatePresence mode="wait">
-        {data && !loading && (
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <ResultRenderer type={activeTab} data={data} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+                {/* Result */}
+                <AnimatePresence mode="wait">
+                  {data && !loading && (
+                    <motion.div
+                      key={activeTab}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ResultRenderer type={activeTab} data={data} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <DialogFooter className="p-3 sticky bottom-0 bg-background/95 backdrop-blur border-t border-border gap-2 flex-row">
+                {activeTab !== 'pre_purchase' && (
+                  <Button variant="outline" size="sm" onClick={() => analyze(activeTab)} disabled={loading} className="flex-1">
+                    <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
+                    Обновить
+                  </Button>
+                )}
+                <Button size="sm" onClick={handleSaveNote} disabled={!data || saving || loading} className="flex-1">
+                  {saving ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
+                  В заметки
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
