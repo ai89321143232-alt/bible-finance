@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { CreditCard, Landmark, Home, Coins, Car, HelpCircle } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { CreditCard, Landmark, Home, Coins, Car, HelpCircle, Loader2, Plus } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useFormatCurrency } from '@/lib/formatCurrency';
 import { useTranslation } from '@/lib/LanguageContext';
@@ -26,19 +26,21 @@ const PAYMENT_TYPES = [
   { value: 'interest_only' },
 ];
 
+const CURRENCIES = ['RUB', 'USD', 'EUR', 'KZT', 'UAH', 'BYN'];
+
 export default function DebtForm({ open, onClose, onSave, initialData }) {
   const isEdit = !!initialData;
   const t = useTranslation();
   const formatCurrency = useFormatCurrency();
+  const queryClient = useQueryClient();
 
   const { data: accounts = [] } = useQuery({
     queryKey: ['accounts'],
     queryFn: () => base44.entities.Account.list(),
   });
 
-  // Кредитные счета: type=credit или отрицательный баланс
   const creditAccounts = useMemo(() =>
-    accounts.filter(a => a.type === 'credit' || (a.balance || 0) < 0),
+    accounts.filter(a => a.type === 'credit'),
     [accounts]
   );
 
@@ -47,6 +49,7 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
     type: initialData?.type || 'consumer_loan',
     creditor: initialData?.creditor || '',
     total_amount: initialData?.total_amount || '',
+    remaining_amount: initialData?.remaining_amount || '',
     interest_rate: initialData?.interest_rate || '',
     monthly_payment: initialData?.monthly_payment || '',
     min_payment_percent: initialData?.min_payment_percent || '',
@@ -60,26 +63,75 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
     ...initialData,
   });
 
+  // Режим работы со счётом: используем существующий или создаём новый
+  const [accountMode, setAccountMode] = useState(
+    isEdit ? 'existing' : (creditAccounts.length > 0 ? 'existing' : 'new')
+  );
+  const [newAccountName, setNewAccountName] = useState('');
+  const [newAccountCurrency, setNewAccountCurrency] = useState('RUB');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
   const selectedAccount = accounts.find(a => a.id === form.linked_account_id);
 
-  const handleSubmit = (e) => {
+  // Остаток долга для нового счёта берём из поля remaining_amount
+  const newAccountBalance = -(Number(form.remaining_amount) || 0);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.linked_account_id) return;
-    const payload = {
-      ...form,
-      total_amount: Number(form.total_amount) || 0,
-      interest_rate: Number(form.interest_rate) || 0,
-      monthly_payment: Number(form.monthly_payment) || 0,
-      min_payment_percent: Number(form.min_payment_percent) || 0,
-      payment_day: Number(form.payment_day) || 15,
-      // remaining_amount и currency наследуются от связанного счёта (авто-синхронизация)
-      remaining_amount: selectedAccount ? Math.abs(Math.min(selectedAccount.balance || 0, 0)) : 0,
-      currency: selectedAccount?.currency || 'RUB',
-    };
-    onSave(payload);
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      let linkedAccountId = form.linked_account_id;
+
+      // Если создаём новый credit-счёт — сначала создаём его
+      if (!isEdit && accountMode === 'new') {
+        const accountName = newAccountName.trim() || form.name;
+        const account = await base44.entities.Account.create({
+          name: accountName,
+          type: 'credit',
+          balance: newAccountBalance,
+          currency: newAccountCurrency,
+          is_active: true,
+        });
+        linkedAccountId = account.id;
+        queryClient.invalidateQueries(['accounts']);
+      }
+
+      if (!linkedAccountId) {
+        setIsSubmitting(false);
+        return;
+      }
+
+      const acc = accounts.find(a => a.id === linkedAccountId) || 
+        (accountMode === 'new' ? { balance: newAccountBalance, currency: newAccountCurrency } : null);
+
+      const payload = {
+        ...form,
+        total_amount: Number(form.total_amount) || 0,
+        remaining_amount: Math.abs(acc?.balance ?? (accountMode === 'new' ? newAccountBalance : 0)),
+        interest_rate: Number(form.interest_rate) || 0,
+        monthly_payment: Number(form.monthly_payment) || 0,
+        min_payment_percent: Number(form.min_payment_percent) || 0,
+        payment_day: Number(form.payment_day) || 15,
+        currency: acc?.currency || newAccountCurrency || 'RUB',
+        linked_account_id: linkedAccountId,
+      };
+      // Удаляем remaining_amount из payload если edit — пусть синхронизируется со счётом
+      if (isEdit) {
+        delete payload.remaining_amount;
+        delete payload.currency;
+      }
+      await onSave(payload);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const canSubmit = isEdit
+    ? !!form.linked_account_id
+    : (accountMode === 'existing' ? !!form.linked_account_id : Number(form.remaining_amount) > 0);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -88,12 +140,6 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
           <DialogTitle>{isEdit ? t('debt.form_edit') : t('debt.form_add')}</DialogTitle>
         </DialogHeader>
 
-        {creditAccounts.length === 0 ? (
-          <div className="py-6 text-center">
-            <p className="text-muted-foreground text-sm mb-4">{t('debt.form_no_accounts')}</p>
-            <Button variant="outline" onClick={() => onClose()}>{t('debt.form_go_to_accounts')}</Button>
-          </div>
-        ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label>{t('debt.form_name')}</Label>
@@ -127,24 +173,107 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
             </div>
           </div>
 
-          <div>
-            <Label>{t('debt.form_linked_account')}</Label>
-            <Select value={form.linked_account_id} onValueChange={(v) => update('linked_account_id', v)}>
-              <SelectTrigger><SelectValue placeholder={t('debt.form_linked_account_placeholder')} /></SelectTrigger>
-              <SelectContent>
-                {creditAccounts.map(acc => (
-                  <SelectItem key={acc.id} value={acc.id}>
-                    {acc.name} · {formatCurrency(Math.abs(Math.min(acc.balance || 0, 0)), acc.currency)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedAccount && (
-              <p className="text-xs text-muted-foreground mt-1">
-                {t('debt.form_remaining')}: {formatCurrency(Math.abs(Math.min(selectedAccount.balance || 0, 0)), selectedAccount.currency)} · {t('debt.form_currency')}: {selectedAccount.currency || 'RUB'}
+          {/* Блок выбора счёта */}
+          {isEdit ? (
+            <div className="rounded-xl border border-border bg-muted/30 p-3">
+              <p className="text-xs text-muted-foreground mb-1">{t('debt.form_linked_account')}</p>
+              <p className="text-sm font-medium text-foreground">
+                {selectedAccount?.name || '—'}
               </p>
-            )}
-          </div>
+              {selectedAccount && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t('debt.form_remaining')}: {formatCurrency(Math.abs(selectedAccount.balance || 0), selectedAccount.currency)}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {/* Переключатель режима */}
+              {creditAccounts.length > 0 && (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAccountMode('existing')}
+                    className={`rounded-lg border p-2.5 text-xs font-medium transition-colors text-left ${
+                      accountMode === 'existing'
+                        ? 'border-primary bg-primary/5 text-foreground'
+                        : 'border-border text-muted-foreground'
+                    }`}>
+                    {t('debt.form_account_existing')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAccountMode('new')}
+                    className={`rounded-lg border p-2.5 text-xs font-medium transition-colors text-left flex items-center gap-1 ${
+                      accountMode === 'new'
+                        ? 'border-primary bg-primary/5 text-foreground'
+                        : 'border-border text-muted-foreground'
+                    }`}>
+                    <Plus className="w-3 h-3" /> {t('debt.form_account_new')}
+                  </button>
+                </div>
+              )}
+
+              {accountMode === 'existing' ? (
+                <div>
+                  <Label>{t('debt.form_linked_account')}</Label>
+                  <Select value={form.linked_account_id} onValueChange={(v) => update('linked_account_id', v)}>
+                    <SelectTrigger><SelectValue placeholder={t('debt.form_linked_account_placeholder')} /></SelectTrigger>
+                    <SelectContent>
+                      {creditAccounts.map(acc => (
+                        <SelectItem key={acc.id} value={acc.id}>
+                          {acc.name} · {formatCurrency(Math.abs(acc.balance || 0), acc.currency)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedAccount && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {t('debt.form_remaining')}: {formatCurrency(Math.abs(selectedAccount.balance || 0), selectedAccount.currency)}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-3">
+                  <div>
+                    <Label>{t('debt.form_account_name')}</Label>
+                    <Input
+                      value={newAccountName}
+                      onChange={(e) => setNewAccountName(e.target.value)}
+                      placeholder={form.name || t('debt.form_account_name_placeholder')}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">{t('debt.form_account_name_hint')}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>{t('debt.form_remaining_amount')}</Label>
+                      <Input
+                        type="number"
+                        value={form.remaining_amount}
+                        onChange={(e) => update('remaining_amount', e.target.value)}
+                        placeholder="500000"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>{t('debt.form_currency')}</Label>
+                      <Select value={newAccountCurrency} onValueChange={setNewAccountCurrency}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {CURRENCIES.map(c => (
+                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {t('debt.form_remaining')}: {formatCurrency(Number(form.remaining_amount) || 0, newAccountCurrency)}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -257,11 +386,15 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>{t('common.cancel')}</Button>
-            <Button type="submit" disabled={!form.linked_account_id}>{isEdit ? t('common.save') : t('common.add')}</Button>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+              {t('common.cancel')}
+            </Button>
+            <Button type="submit" disabled={!canSubmit || isSubmitting}>
+              {isSubmitting && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+              {isEdit ? t('common.save') : t('common.add')}
+            </Button>
           </DialogFooter>
         </form>
-        )}
       </DialogContent>
     </Dialog>
   );

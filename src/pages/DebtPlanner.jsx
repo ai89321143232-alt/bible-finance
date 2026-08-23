@@ -45,6 +45,7 @@ export default function DebtPlanner() {
     mutationFn: (data) => base44.entities.DebtAccount.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['debtAccounts']);
+      queryClient.invalidateQueries(['accounts']);
       setShowForm(false);
     },
   });
@@ -53,6 +54,7 @@ export default function DebtPlanner() {
     mutationFn: ({ id, data }) => base44.entities.DebtAccount.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries(['debtAccounts']);
+      queryClient.invalidateQueries(['accounts']);
       setShowForm(false);
       setEditingDebt(null);
     },
@@ -95,11 +97,11 @@ export default function DebtPlanner() {
   const fmt = (amount) => formatDebtCurrency(amount, primaryCurrency);
   const dateLocale = ruLocale;
 
-  const handleSave = (data) => {
+  const handleSave = async (data) => {
     if (editingDebt) {
-      updateMutation.mutate({ id: editingDebt.id, data });
+      await updateMutation.mutateAsync({ id: editingDebt.id, data });
     } else {
-      createMutation.mutate(data);
+      await createMutation.mutateAsync(data);
     }
   };
 

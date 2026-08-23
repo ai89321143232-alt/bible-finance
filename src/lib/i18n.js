@@ -539,9 +539,15 @@ export const translations = {
     'debt.form_notes_placeholder': 'Условия досрочного погашения, комиссии, страховка...',
     'debt.form_linked_account': 'Связанный кредитный счёт *',
     'debt.form_linked_account_placeholder': 'Выберите счёт',
-    'debt.form_no_accounts': 'Нет кредитных счетов. Сначала создайте кредитный счёт.',
+    'debt.form_no_accounts': 'Нет кредитных счетов. Создайте новый ниже.',
     'debt.form_go_to_accounts': 'Перейти к счетам →',
     'debt.form_currency': 'Валюта',
+    'debt.form_account_existing': 'Существующий счёт',
+    'debt.form_account_new': 'Новый кредитный счёт',
+    'debt.form_account_name': 'Название счёта',
+    'debt.form_account_name_placeholder': 'Например: Кредитка Тинькофф',
+    'debt.form_account_name_hint': 'Если не указано — возьмётся название долга',
+    'debt.form_remaining_amount': 'Остаток долга',
 
     // Debt Card
     'debt.card_remaining': 'Остаток долга',
@@ -1143,9 +1149,15 @@ export const translations = {
     'debt.form_notes_placeholder': 'Early payoff terms, fees, insurance...',
     'debt.form_linked_account': 'Linked credit account *',
     'debt.form_linked_account_placeholder': 'Select account',
-    'debt.form_no_accounts': 'No credit accounts. Create a credit account first.',
+    'debt.form_no_accounts': 'No credit accounts. Create a new one below.',
     'debt.form_go_to_accounts': 'Go to accounts →',
     'debt.form_currency': 'Currency',
+    'debt.form_account_existing': 'Existing account',
+    'debt.form_account_new': 'New credit account',
+    'debt.form_account_name': 'Account name',
+    'debt.form_account_name_placeholder': 'e.g. Tinkoff Credit Card',
+    'debt.form_account_name_hint': 'If not specified — debt name will be used',
+    'debt.form_remaining_amount': 'Remaining debt',
 
     // Debt Card
     'debt.card_remaining': 'Remaining debt',
