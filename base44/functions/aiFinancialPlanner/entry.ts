@@ -73,11 +73,69 @@ Deno.serve(async (req) => {
 
     // ----------------------------------------------------------------
     if (analysisType === 'cashflow') {
+      // Детерминированный прогноз на 30 дней вперёд от сегодня
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const dailyIncome = monthIncome / daysInMonth;
+      const recentExpensesTotal = recentTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+      const dailyExpense = recentExpensesTotal / 180;
+
+      // Предстоящие списания подписок в ближайшие 30 дней
+      const recurringCharges = recurring.map(r => {
+        const next = r.next_charge_date ? new Date(r.next_charge_date) : null;
+        return { name: r.name, amount: r.amount, next: next, period: r.period };
+      }).filter(r => r.next);
+
+      // Предстоящие платежи по долгам в ближайшие 30 дней (по payment_day)
+      const debtPayments = debts.map(d => ({ name: d.name, amount: d.monthly_payment || 0, payment_day: d.payment_day }));
+
+      const dailyTable = [];
+      let runningBalance = totalBalance;
+      let breakDay = null;
+      let minBalance = totalBalance;
+
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(now.getTime() + i * 24 * 60 * 60 * 1000);
+        const dateStr = d.toISOString().slice(0, 10);
+        const dayOfMonth = d.getDate();
+
+        let plannedIn = dailyIncome;
+        let plannedOut = dailyExpense;
+
+        // Списания подписок, попадающие на этот день
+        for (const r of recurringCharges) {
+          if (r.next && r.next.toISOString().slice(0, 10) === dateStr) {
+            plannedOut += r.amount;
+          }
+        }
+        // Платежи по долгам, попадающие на этот день месяца
+        for (const dp of debtPayments) {
+          if (dp.payment_day === dayOfMonth) {
+            plannedOut += dp.amount;
+          }
+        }
+
+        runningBalance += plannedIn - plannedOut;
+        if (runningBalance < minBalance) minBalance = runningBalance;
+        if (breakDay === null && runningBalance < 0) breakDay = dateStr;
+
+        dailyTable.push({
+          date: dateStr,
+          planned_in: Math.round(plannedIn),
+          planned_out: Math.round(plannedOut),
+          balance: Math.round(runningBalance)
+        });
+      }
+
       const upcomingRecurring = recurring.map(r => ({ name: r.name, amount: r.amount, next: r.next_charge_date, period: r.period }));
       const upcomingDebt = debts.map(d => ({ name: d.name, remaining: d.remaining_amount, monthly: d.monthly_payment, day: d.payment_day }));
-      prompt = `Ты финансовый аналитик. Построй прогноз движения денежных средств на ближайшие 30 дней.
+
+      prompt = `Ты финансовый аналитик. Прогноз движения денежных средств на ближайшие 30 дней уже рассчитан.
 
 Текущий баланс счетов: ${totalBalance.toLocaleString()} ₽
+Дата возможного кассового разрыва: ${breakDay || 'нет (баланс не уйдёт в минус)'}
+Минимальный прогнозируемый баланс: ${minBalance.toLocaleString()} ₽
+Таблица движения средств (детерминированные реальные даты от пользователя — НЕ ИЗМЕНЯЙ их):
+${JSON.stringify(dailyTable)}
 Регулярные платежи (подписки): ${JSON.stringify(upcomingRecurring)}
 Долги с ежемесячными платежами: ${JSON.stringify(upcomingDebt)}
 Средние расходы по категориям за 6 мес: ${JSON.stringify(expensesByCategory)}
@@ -85,19 +143,32 @@ Deno.serve(async (req) => {
 Расход за текущий месяц: ${monthExpenses.toLocaleString()} ₽
 
 Определи:
-1. День, когда баланс может уйти в минус (если такой есть).
-2. Какие 3-5 расходов можно отложить/оптимизировать в критический период.
-Ответ строго в JSON по схеме.`;
+1. Какие 3-5 расходов можно отложить/оптимизировать в критический период (до кассового разрыва).
+2. Краткое резюме ситуации.
+Ответ строго в JSON по схеме. Поля break_day, min_balance, daily_table уже посчитаны — верни их дословно из данных выше, НЕ выдумывай свои даты.`;
       jsonSchema = {
         type: 'object',
         properties: {
-          break_day: { type: 'string', description: 'Дата возможного кассового разрыва или null' },
-          min_balance: { type: 'number', description: 'Минимальный прогнозируемый баланс' },
-          daily_table: { type: 'array', items: { type: 'object', properties: { date: { type: 'string' }, planned_in: { type: 'number' }, planned_out: { type: 'number' }, balance: { type: 'number' } } } },
+          break_day: { type: 'string', description: 'Дата возможного кассового разрыва или null (детерминированная реальная дата — не изменяй)' },
+          min_balance: { type: 'number', description: 'Минимальный прогнозируемый баланс (детерминированное значение — не изменяй)' },
+          daily_table: { type: 'array', description: 'Детерминированные реальные даты от пользователя — не изменяй', items: { type: 'object', properties: { date: { type: 'string' }, planned_in: { type: 'number' }, planned_out: { type: 'number' }, balance: { type: 'number' } } } },
           suggestions: { type: 'array', items: { type: 'object', properties: { action: { type: 'string' }, savings: { type: 'number' } } } },
           summary: { type: 'string' }
         }
       };
+
+      const _cfResult = await base44.integrations.Core.InvokeLLM({
+        prompt: prompt + langInstruction,
+        add_context_from_internet: false,
+        response_json_schema: jsonSchema
+      });
+      // Инъектируем детерминированные значения — не доверяем LLM переписывать даты
+      if (_cfResult && typeof _cfResult === 'object') {
+        _cfResult.break_day = breakDay;
+        _cfResult.min_balance = minBalance;
+        _cfResult.daily_table = dailyTable;
+      }
+      return Response.json(_cfResult);
     }
 
     // ----------------------------------------------------------------
