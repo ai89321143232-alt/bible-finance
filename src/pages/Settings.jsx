@@ -300,7 +300,7 @@ export default function Settings() {
                   <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
                     {profileData.firstName && profileData.lastName 
                       ? `${profileData.firstName} ${profileData.lastName}` 
-                      : user?.full_name || 'Пользователь'}
+                      : user?.full_name || t('settings.profile')}
                   </h2>
                   <p className="text-slate-500 dark:text-slate-400">{user?.email}</p>
                   {profileData.telegramNick && (
@@ -318,12 +318,12 @@ export default function Settings() {
                       }
                     >
                       <Crown className="w-3 h-3 mr-1" />
-                      {subscriptionStatus?.displayName || 'Бесплатный'}
+                      {subscriptionStatus?.displayName || t('settings.plan_free')}
                     </Badge>
                     {subscriptionStatus?.isTrial && subscriptionStatus?.daysLeft > 0 && (
                       <Badge className="bg-amber-100 text-amber-700">
                         <Clock className="w-3 h-3 mr-1" />
-                        Осталось {subscriptionStatus.daysLeft} дн.
+                        {t('settings.renew_desc').replace('{days}', subscriptionStatus.daysLeft)}
                       </Badge>
                     )}
                   </div>
@@ -445,8 +445,8 @@ export default function Settings() {
                 <Separator />
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-slate-900 dark:text-white">Еженедельный отчёт</p>
-                    <p className="text-sm text-slate-500">Сводка по финансам</p>
+                    <p className="font-medium text-slate-900 dark:text-white">{t('settings.notifications_weekly_report')}</p>
+                    <p className="text-sm text-slate-500">{t('settings.notifications_weekly_report_desc')}</p>
                   </div>
                   <Switch 
                     checked={notifications.weeklyReport}
@@ -474,8 +474,8 @@ export default function Settings() {
                       <Bot className="w-5 h-5 text-indigo-600" />
                     </div>
                     <div>
-                      <p className="font-semibold text-slate-900 dark:text-white">AI-модели</p>
-                      <p className="text-sm text-slate-500">DeepSeek и ChatGPT для аналитики</p>
+                      <p className="font-semibold text-slate-900 dark:text-white">{t('settings.ai_models')}</p>
+                      <p className="text-sm text-slate-500">{t('settings.ai_models_desc')}</p>
                     </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-400" />
@@ -502,8 +502,8 @@ export default function Settings() {
                         <Bot className="w-5 h-5 text-sky-600" />
                       </div>
                       <div>
-                        <p className="font-semibold text-slate-900 dark:text-white">Telegram-бот</p>
-                        <p className="text-sm text-slate-500">Голос, фото чеков и выписок — прямо в приложение</p>
+                        <p className="font-semibold text-slate-900 dark:text-white">{t('settings.telegram_bot')}</p>
+                        <p className="text-sm text-slate-500">{t('settings.telegram_bot_desc')}</p>
                       </div>
                     </div>
                     <ChevronRight className="w-5 h-5 text-slate-400" />
@@ -530,8 +530,8 @@ export default function Settings() {
                       <Layout className="w-5 h-5 text-violet-600" />
                     </div>
                     <div>
-                      <p className="font-semibold text-slate-900 dark:text-white">Персонализация</p>
-                      <p className="text-sm text-slate-500">Настройка меню и блоков дашборда</p>
+                      <p className="font-semibold text-slate-900 dark:text-white">{t('settings.personalization')}</p>
+                      <p className="text-sm text-slate-500">{t('settings.personalization_desc')}</p>
                     </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-400" />
@@ -550,7 +550,7 @@ export default function Settings() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Moon className="w-5 h-5 text-violet-600" />
-                  Внешний вид
+                  {t('settings.appearance')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -562,8 +562,8 @@ export default function Settings() {
                 <Separator />
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-slate-900 dark:text-white">Язык интерфейса</p>
-                    <p className="text-sm text-slate-500">Русский / English</p>
+                    <p className="font-medium text-slate-900 dark:text-white">{t('settings.language')}</p>
+                    <p className="text-sm text-slate-500">{t('settings.language_desc')}</p>
                   </div>
                   <div className="w-40">
                     <LanguageSwitcher />
@@ -572,8 +572,8 @@ export default function Settings() {
                 <Separator />
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-slate-900 dark:text-white">Валюта</p>
-                    <p className="text-sm text-slate-500">Основная валюта</p>
+                    <p className="font-medium text-slate-900 dark:text-white">{t('settings.currency')}</p>
+                    <p className="text-sm text-slate-500">{t('settings.currency_desc')}</p>
                   </div>
                   <Select defaultValue="RUB">
                     <SelectTrigger className="w-32 rounded-xl">
@@ -600,7 +600,7 @@ export default function Settings() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Image className="w-5 h-5 text-violet-600" />
-                  Фоновое изображение
+                  {t('settings.background_image')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -621,18 +621,18 @@ export default function Settings() {
                     {isUploadingBg ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Загрузка...
+                        {t('common.loading')}
                       </>
                     ) : (
                       <>
                         <Image className="w-4 h-4" />
-                        {user?.background_image_url ? 'Заменить изображение' : 'Загрузить изображение'}
+                        {user?.background_image_url ? t('settings.background_replace') : t('settings.background_upload')}
                       </>
                     )}
                   </div>
                 </label>
 
-                <p className="text-sm text-slate-500 dark:text-slate-400 pt-1">Или выберите готовый фон:</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 pt-1">{t('settings.background_preset')}</p>
                 <div className="grid grid-cols-3 gap-2">
                   {PRESET_BACKGROUNDS.map((preset) => (
                     <button
@@ -665,7 +665,7 @@ export default function Settings() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Tag className="w-5 h-5 text-violet-600" />
-                  ID пользователя
+                  {t('settings.account_id')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -682,7 +682,7 @@ export default function Settings() {
                   </button>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                  Уникальный идентификатор вашего аккаунта
+                  {t('settings.account_id_desc')}
                 </p>
               </CardContent>
             </Card>
@@ -698,7 +698,7 @@ export default function Settings() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Shield className="w-5 h-5 text-violet-600" />
-                  Данные и настройки
+                  {t('settings.security')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -707,7 +707,7 @@ export default function Settings() {
                     <Button variant="ghost" className="w-full justify-between rounded-xl h-12">
                       <div className="flex items-center gap-2">
                         <Tag className="w-4 h-4" />
-                        <span>Категории</span>
+                        <span>{t('settings.categories')}</span>
                       </div>
                       <ChevronRight className="w-4 h-4 text-slate-400" />
                     </Button>
@@ -716,7 +716,7 @@ export default function Settings() {
                     <Button variant="ghost" className="w-full justify-between rounded-xl h-12">
                       <div className="flex items-center gap-2">
                         <Users className="w-4 h-4" />
-                        <span>Семья</span>
+                        <span>{t('settings.family')}</span>
                       </div>
                       <ChevronRight className="w-4 h-4 text-slate-400" />
                     </Button>
@@ -725,7 +725,7 @@ export default function Settings() {
                     <Button variant="ghost" className="w-full justify-between rounded-xl h-12">
                       <div className="flex items-center gap-2">
                         <Database className="w-4 h-4" />
-                        <span>Резервные копии</span>
+                        <span>{t('settings.backup')}</span>
                       </div>
                       <ChevronRight className="w-4 h-4 text-slate-400" />
                     </Button>
@@ -747,7 +747,7 @@ export default function Settings() {
              className="w-full h-12 rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50"
            >
              <LogOut className="w-4 h-4 mr-2" />
-             Выйти из аккаунта
+             {t('settings.logout')}
            </Button>
           </motion.div>
 
@@ -764,7 +764,7 @@ export default function Settings() {
              className="w-full h-12 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
            >
              <Database className="w-4 h-4 mr-2" />
-             Обнулить все данные
+             {t('settings.reset_data')}
            </Button>
           </motion.div>
 
@@ -781,7 +781,7 @@ export default function Settings() {
              className="w-full h-12 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20"
            >
              <Trash2 className="w-4 h-4 mr-2" />
-             Удалить аккаунт
+             {t('settings.delete_account')}
            </Button>
           </motion.div>
 
@@ -789,11 +789,11 @@ export default function Settings() {
           <div className="text-center text-sm text-slate-400 py-4 space-y-2">
             <div>
               <Link to="/PrivacyPolicy" className="text-violet-500 hover:text-violet-600 underline underline-offset-2">
-                Политика конфиденциальности
+                {t('settings.privacy_policy')}
               </Link>
             </div>
-            <p>Библия Финансов v1.0.0</p>
-            <p>© 2025 Все права защищены</p>
+            <p>{t('settings.app_version')}</p>
+            <p>{t('settings.copyright')}</p>
           </div>
         </div>
       </div>
@@ -821,33 +821,33 @@ export default function Settings() {
       <Dialog open={showEditProfile} onOpenChange={setShowEditProfile}>
         <DialogContent className="rounded-2xl max-w-md">
           <DialogHeader>
-            <DialogTitle>Редактировать профиль</DialogTitle>
+            <DialogTitle>{t('settings.edit_profile')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Имя</Label>
+              <Label>{t('settings.first_name')}</Label>
               <Input
                 value={profileData.firstName}
                 onChange={(e) => setProfileData({...profileData, firstName: e.target.value})}
-                placeholder="Введите имя"
+                placeholder={t('settings.first_name_ph')}
                 className="rounded-xl mt-1"
               />
             </div>
             <div>
-              <Label>Фамилия</Label>
+              <Label>{t('settings.last_name')}</Label>
               <Input
                 value={profileData.lastName}
                 onChange={(e) => setProfileData({...profileData, lastName: e.target.value})}
-                placeholder="Введите фамилию"
+                placeholder={t('settings.last_name_ph')}
                 className="rounded-xl mt-1"
               />
             </div>
             <div>
-              <Label>Телеграм ник</Label>
+              <Label>{t('settings.telegram_nick')}</Label>
               <Input
                 value={profileData.telegramNick}
                 onChange={(e) => setProfileData({...profileData, telegramNick: e.target.value})}
-                placeholder="username"
+                placeholder={t('settings.telegram_nick_ph')}
                 className="rounded-xl mt-1"
               />
             </div>
@@ -856,7 +856,7 @@ export default function Settings() {
               className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"
             >
               <Check className="w-4 h-4 mr-2" />
-              Сохранить
+              {t('settings.save')}
             </Button>
           </div>
         </DialogContent>
@@ -866,27 +866,27 @@ export default function Settings() {
       <AlertDialog open={showDeleteAccount} onOpenChange={setShowDeleteAccount}>
         <AlertDialogContent className="rounded-2xl max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-rose-600">Удалить аккаунт?</AlertDialogTitle>
+            <AlertDialogTitle className="text-rose-600">{t('settings.delete_account_title')}</AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
-              <p>Это действие <strong>нельзя отменить</strong>. Будут безвозвратно удалены:</p>
+              <p dangerouslySetInnerHTML={{ __html: t('settings.delete_account_desc') }} />
               <ul className="list-disc pl-5 space-y-1 text-sm">
-                <li>Все ваши транзакции</li>
-                <li>Все счета и их балансы</li>
-                <li>Все бюджеты</li>
-                <li>Все финансовые цели</li>
-                <li>Все инвестиции</li>
+                <li>{t('settings.delete_account_list_1')}</li>
+                <li>{t('settings.delete_account_list_2')}</li>
+                <li>{t('settings.delete_account_list_3')}</li>
+                <li>{t('settings.delete_account_list_4')}</li>
+                <li>{t('settings.delete_account_list_5')}</li>
               </ul>
-              <p className="font-medium">После удаления вы выйдете из системы.</p>
+              <p className="font-medium">{t('settings.delete_account_after')}</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl" disabled={isDeleting}>Отмена</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl" disabled={isDeleting}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteAccount}
               disabled={isDeleting}
               className="bg-rose-600 hover:bg-rose-700 rounded-xl"
             >
-              {isDeleting ? 'Удаление...' : 'Удалить навсегда'}
+              {isDeleting ? t('settings.delete_account_deleting') : t('settings.delete_account_confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -896,28 +896,28 @@ export default function Settings() {
       <AlertDialog open={showResetData} onOpenChange={setShowResetData}>
         <AlertDialogContent className="rounded-2xl max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-amber-600">Обнулить все данные?</AlertDialogTitle>
+            <AlertDialogTitle className="text-amber-600">{t('settings.reset_title')}</AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
-              <p>Это действие <strong>нельзя отменить</strong>. Будут безвозвратно удалены только ваши записи:</p>
+              <p dangerouslySetInnerHTML={{ __html: t('settings.reset_desc') }} />
               <ul className="list-disc pl-5 space-y-1 text-sm">
-                <li>Все транзакции</li>
-                <li>Все счета и их балансы</li>
-                <li>Все бюджеты</li>
-                <li>Все финансовые цели</li>
-                <li>Все инвестиции</li>
-                <li>Все задачи, заметки и шаблоны операций</li>
+                <li>{t('settings.reset_list_1')}</li>
+                <li>{t('settings.reset_list_2')}</li>
+                <li>{t('settings.reset_list_3')}</li>
+                <li>{t('settings.reset_list_4')}</li>
+                <li>{t('settings.reset_list_5')}</li>
+                <li>{t('settings.reset_list_6')}</li>
               </ul>
-              <p className="font-medium">Аккаунт, семья и настройки профиля сохранятся — можно начать вести учёт заново.</p>
+              <p className="font-medium">{t('settings.reset_after')}</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl" disabled={isResetting}>Отмена</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl" disabled={isResetting}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleResetData}
               disabled={isResetting}
               className="bg-amber-600 hover:bg-amber-700 rounded-xl"
             >
-              {isResetting ? 'Обнуление...' : 'Обнулить данные'}
+              {isResetting ? t('settings.reset_resetting') : t('settings.reset_confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -927,7 +927,7 @@ export default function Settings() {
       <Dialog open={showPlanModal} onOpenChange={setShowPlanModal}>
         <DialogContent className="rounded-2xl max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-center">Выберите план</DialogTitle>
+            <DialogTitle className="text-center">{t('settings.plan_choose')}</DialogTitle>
           </DialogHeader>
           <div className="grid sm:grid-cols-3 gap-4 mt-4">
             {subscriptionPlans.map((plan) => (
@@ -939,12 +939,12 @@ export default function Settings() {
               >
                 <CardContent className="p-4">
                   {plan.popular && (
-                    <Badge className="mb-3 bg-violet-600">Популярный</Badge>
+                    <Badge className="mb-3 bg-violet-600">{t('settings.plan_popular')}</Badge>
                   )}
                   <h3 className="font-semibold text-lg text-slate-900 dark:text-white">{plan.name}</h3>
                   <div className="flex items-baseline gap-1 my-3">
                     <span className="text-3xl font-bold text-slate-900 dark:text-white">{plan.price}</span>
-                    <span className="text-slate-500 dark:text-slate-400">₽/мес</span>
+                    <span className="text-slate-500 dark:text-slate-400">{t('settings.plan_price_unit')}</span>
                   </div>
                   <ul className="space-y-2 mb-4">
                     {plan.features.map((feature, i) => (
@@ -964,7 +964,7 @@ export default function Settings() {
 
           <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl text-center">
             <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">
-              Для подключения тарифа свяжитесь с разработчиком
+              {t('settings.plan_contact')}
             </p>
             <a 
               href="https://t.me/RussianExpert" 
@@ -973,7 +973,7 @@ export default function Settings() {
             >
               <Button className="rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
                 <span className="mr-2">💬</span>
-                Написать в Telegram
+                {t('settings.plan_contact_btn')}
               </Button>
             </a>
           </div>

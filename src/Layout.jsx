@@ -15,6 +15,7 @@ import { base44 } from '@/api/base44Client';
 import OfflineBanner from '@/components/OfflineBanner';
 import { useWorkspaceProvision } from '@/components/workspace/WorkspaceContext';
 import { eventBus, EVENTS } from '@/lib/eventBus';
+import { useTranslation } from '@/lib/LanguageContext';
 
 // ============================================================
 // Layout.jsx — ОСНОВНОЙ МАКЕТ ПРИЛОЖЕНИЯ
@@ -49,6 +50,7 @@ export default function Layout({ children, currentPageName }) {
   const tabPages = bottomTabs.filter((t) => !t.isCenter).map((t) => t.page);
   const isTabPage = tabPages.includes(currentPageName);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Этап 1 Workspace-миграции: единожды на пользователя создаёт Personal/Family
   // Workspace и проставляет workspace_id существующим записям. Прозрачно для UI.
@@ -81,7 +83,7 @@ export default function Layout({ children, currentPageName }) {
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-sm">F</span>
             </div>
-            <span className="text-foreground font-semibold tracking-tight text-base">Библия Финансов</span>
+            <span className="text-foreground font-semibold tracking-tight text-base">{t('app.name')}</span>
           </Link>
         </div>
 
@@ -135,7 +137,7 @@ export default function Layout({ children, currentPageName }) {
           <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-xs">F</span>
           </div>
-          <span className="text-foreground font-semibold text-sm">Финансовая Библия</span>
+          <span className="text-foreground font-semibold text-sm">{t('app.name')}</span>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <ThemeIconToggle />
@@ -174,7 +176,7 @@ export default function Layout({ children, currentPageName }) {
                   <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
                     <span className="text-primary-foreground font-bold text-xs">F</span>
                   </div>
-                  <span className="text-foreground font-semibold text-sm">Финансовая Библия</span>
+                  <span className="text-foreground font-semibold text-sm">{t('app.name')}</span>
                 </div>
                 <button
                 onClick={() => setShowMobileMenu(false)}

@@ -17,6 +17,9 @@ export function detectBrowserLanguage() {
 
 export const translations = {
   ru: {
+    // App
+    'app.name': 'Библия Финансов',
+
     // Common
     'common.add': 'Добавить',
     'common.save': 'Сохранить',
@@ -51,6 +54,19 @@ export const translations = {
     'nav.subscriptions': 'Подписки',
     'nav.help': 'База знаний',
     'nav.categories': 'Категории',
+    'nav.finance_group': 'Финансы',
+    'nav.planning_group': 'Планирование',
+    'nav.ai_group': 'AI',
+    'nav.organizer_group': 'Органайзер',
+    'nav.financial_planning': 'Финплан',
+    'nav.debt_analytics': 'Аналитика долгов',
+    'nav.debt_planner': 'План погашения',
+    'nav.family_finances': 'Финансы семьи',
+    'nav.child_expenses': 'Расходы на детей',
+    'nav.family_chat': 'Семейный чат',
+    'nav.education': 'Обучение',
+    'nav.library': 'Библиотека',
+    'nav.more': 'Ещё',
 
     // AI Planning
     'ai_planning.title': 'ИИ Планировщик финансов',
@@ -199,6 +215,9 @@ export const translations = {
   },
 
   en: {
+    // App
+    'app.name': 'Bible Finance',
+
     // Common
     'common.add': 'Add',
     'common.save': 'Save',
@@ -233,6 +252,19 @@ export const translations = {
     'nav.subscriptions': 'Subscriptions',
     'nav.help': 'Help Center',
     'nav.categories': 'Categories',
+    'nav.finance_group': 'Finance',
+    'nav.planning_group': 'Planning',
+    'nav.ai_group': 'AI',
+    'nav.organizer_group': 'Organizer',
+    'nav.financial_planning': 'Financial Plan',
+    'nav.debt_analytics': 'Debt Analytics',
+    'nav.debt_planner': 'Debt Payoff Plan',
+    'nav.family_finances': 'Family Finances',
+    'nav.child_expenses': 'Child Expenses',
+    'nav.family_chat': 'Family Chat',
+    'nav.education': 'Education',
+    'nav.library': 'Library',
+    'nav.more': 'More',
 
     // AI Planning
     'ai_planning.title': 'AI Financial Planner',

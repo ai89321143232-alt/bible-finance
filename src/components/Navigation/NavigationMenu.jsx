@@ -9,59 +9,60 @@ import {
   GraduationCap, Library, Settings, ChevronDown
 } from 'lucide-react';
 import useUnreadFamilyChat from '@/hooks/useUnreadFamilyChat';
+import { useTranslation } from '@/lib/LanguageContext';
 
 // ============================================================
 // Структура меню: плоские пункты (type: 'link') и группы с подменю (type: 'group')
 // ============================================================
 const MENU_STRUCTURE = [
-  { type: 'link', name: 'Dashboard', label: 'Дашборд', icon: Home },
+  { type: 'link', name: 'Dashboard', labelKey: 'nav.dashboard', icon: Home },
   {
-    type: 'group', label: 'Финансы', icon: Wallet,
+    type: 'group', labelKey: 'nav.finance_group', icon: Wallet,
     children: [
-      { name: 'Transactions', label: 'Операции', icon: ArrowLeftRight },
-      { name: 'Accounts', label: 'Счета', icon: CreditCard },
-      { name: 'Categories', label: 'Категории', icon: BarChart2 },
-      { name: 'Budgets', label: 'Бюджеты', icon: PieChart },
-      { name: 'Subscriptions', label: 'Подписки', icon: Repeat },
+      { name: 'Transactions', labelKey: 'nav.transactions', icon: ArrowLeftRight },
+      { name: 'Accounts', labelKey: 'nav.accounts', icon: CreditCard },
+      { name: 'Categories', labelKey: 'nav.categories', icon: BarChart2 },
+      { name: 'Budgets', labelKey: 'nav.budgets', icon: PieChart },
+      { name: 'Subscriptions', labelKey: 'nav.subscriptions', icon: Repeat },
     ],
   },
   {
-    type: 'group', label: 'Планирование', icon: Target,
+    type: 'group', labelKey: 'nav.planning_group', icon: Target,
     children: [
-      { name: 'FinancialPlanning', label: 'Финплан', icon: Lightbulb },
-      { name: 'Goals', label: 'Цели', icon: Target },
-      { name: 'DebtAnalytics', label: 'Аналитика долгов', icon: AlertTriangle },
-      { name: 'DebtPlanner', label: 'План погашения', icon: TrendingDown },
-      { name: 'Investments', label: 'Инвестиции', icon: TrendingUp, hideInChildMode: true },
+      { name: 'FinancialPlanning', labelKey: 'nav.financial_planning', icon: Lightbulb },
+      { name: 'Goals', labelKey: 'nav.goals', icon: Target },
+      { name: 'DebtAnalytics', labelKey: 'nav.debt_analytics', icon: AlertTriangle },
+      { name: 'DebtPlanner', labelKey: 'nav.debt_planner', icon: TrendingDown },
+      { name: 'Investments', labelKey: 'nav.investments', icon: TrendingUp, hideInChildMode: true },
     ],
   },
-  { type: 'link', name: 'Analytics', label: 'Аналитика', icon: TrendingUp },
+  { type: 'link', name: 'Analytics', labelKey: 'nav.analytics', icon: TrendingUp },
   {
-    type: 'group', label: 'Семья', icon: Users,
+    type: 'group', labelKey: 'nav.family', icon: Users,
     children: [
-      { name: 'FamilyFinances', label: 'Финансы семьи', icon: Users },
-      { name: 'ChildExpenses', label: 'Расходы на детей', icon: Baby, hideInChildMode: true },
-      { name: 'FamilyChat', label: 'Семейный чат', icon: MessageSquare },
-    ],
-  },
-  {
-    type: 'group', label: 'AI', icon: Bot,
-    children: [
-      { name: 'AIAssistant', label: 'AI Чат', icon: MessageCircle },
-      { name: 'AIAdvisors', label: 'AI Ассистенты', icon: Sparkles },
-      { name: 'AIPlanning', label: 'ИИ Планировщик', icon: Sparkles },
+      { name: 'FamilyFinances', labelKey: 'nav.family_finances', icon: Users },
+      { name: 'ChildExpenses', labelKey: 'nav.child_expenses', icon: Baby, hideInChildMode: true },
+      { name: 'FamilyChat', labelKey: 'nav.family_chat', icon: MessageSquare },
     ],
   },
   {
-    type: 'group', label: 'Органайзер', icon: CheckSquare,
+    type: 'group', labelKey: 'nav.ai_group', icon: Bot,
     children: [
-      { name: 'Tasks', label: 'Задачи', icon: ListTodo },
-      { name: 'Notes', label: 'Заметки', icon: FileText },
+      { name: 'AIAssistant', labelKey: 'nav.ai_chat', icon: MessageCircle },
+      { name: 'AIAdvisors', labelKey: 'nav.ai_advisors', icon: Sparkles },
+      { name: 'AIPlanning', labelKey: 'nav.ai_planning', icon: Sparkles },
     ],
   },
-  { type: 'link', name: 'Education', label: 'Обучение', icon: GraduationCap },
-  { type: 'link', name: 'HelpCenter', label: 'Библиотека', icon: Library },
-  { type: 'link', name: 'Settings', label: 'Настройки', icon: Settings },
+  {
+    type: 'group', labelKey: 'nav.organizer_group', icon: CheckSquare,
+    children: [
+      { name: 'Tasks', labelKey: 'nav.tasks', icon: ListTodo },
+      { name: 'Notes', labelKey: 'nav.notes', icon: FileText },
+    ],
+  },
+  { type: 'link', name: 'Education', labelKey: 'nav.education', icon: GraduationCap },
+  { type: 'link', name: 'HelpCenter', labelKey: 'nav.library', icon: Library },
+  { type: 'link', name: 'Settings', labelKey: 'nav.settings', icon: Settings },
 ];
 
 // ============================================================
@@ -80,6 +81,7 @@ export default function NavigationMenu({ currentPageName, onNavigate, isChildMod
   const [hiddenItems, setHiddenItems] = useState([]);
   const [manualOpen, setManualOpen] = useState({});
   const { data: unreadChatCount = 0 } = useUnreadFamilyChat();
+  const { t } = useTranslation();
 
   useEffect(() => {
     base44.auth.me().then(user => {
@@ -105,12 +107,12 @@ export default function NavigationMenu({ currentPageName, onNavigate, isChildMod
   };
 
   const isGroupOpen = (group) => {
-    if (manualOpen[group.label] !== undefined) return manualOpen[group.label];
+    if (manualOpen[group.name] !== undefined) return manualOpen[group.name];
     return group.children.some(c => c.name === currentPageName);
   };
 
   const toggleGroup = (group) => {
-    setManualOpen(prev => ({ ...prev, [group.label]: !isGroupOpen(group) }));
+    setManualOpen(prev => ({ ...prev, [group.name]: !isGroupOpen(group) }));
   };
 
   const renderLink = (item, isChild) => {
@@ -131,7 +133,7 @@ export default function NavigationMenu({ currentPageName, onNavigate, isChildMod
         `}
       >
         <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`} />
-        <span>{item.label}</span>
+        <span>{t(item.labelKey)}</span>
         {item.name === 'FamilyChat' && unreadChatCount > 0 && (
           <span className="ml-auto flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-fuchsia-600 text-white text-[10px] font-semibold">
             {unreadChatCount > 9 ? '9+' : unreadChatCount}
@@ -161,7 +163,7 @@ export default function NavigationMenu({ currentPageName, onNavigate, isChildMod
         const groupActive = visibleChildren.some(c => c.name === currentPageName);
 
         return (
-          <div key={entry.label}>
+          <div key={entry.name}>
             <button
               type="button"
               onClick={() => toggleGroup(entry)}
@@ -171,7 +173,7 @@ export default function NavigationMenu({ currentPageName, onNavigate, isChildMod
               `}
             >
               <GroupIcon className={`w-4 h-4 flex-shrink-0 ${groupActive ? 'text-foreground' : 'text-muted-foreground'}`} />
-              <span>{entry.label}</span>
+              <span>{t(entry.labelKey)}</span>
               <ChevronDown className={`w-3.5 h-3.5 ml-auto flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
             </button>
             {open && (
