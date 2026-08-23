@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { ru as ruLocale } from 'date-fns/locale';
 import {
   Plus, TrendingDown, Snowflake, Wallet, Calendar, AlertTriangle,
   Loader2, PiggyBank
@@ -22,9 +22,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
+import { useFormatCurrency } from '@/lib/formatCurrency';
+import { useTranslation } from '@/lib/LanguageContext';
 
 export default function DebtPlanner() {
   const queryClient = useQueryClient();
+  const t = useTranslation();
+  const formatCurrency = useFormatCurrency();
   const [showForm, setShowForm] = useState(false);
   const [editingDebt, setEditingDebt] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -35,11 +39,6 @@ export default function DebtPlanner() {
   const { data: debts = [], isLoading } = useQuery({
     queryKey: ['debtAccounts'],
     queryFn: () => base44.entities.DebtAccount.list(),
-  });
-
-  const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions'],
-    queryFn: () => base44.entities.Transaction.list('-date', 500),
   });
 
   const createMutation = useMutation({
@@ -91,6 +90,11 @@ export default function DebtPlanner() {
   const totalMonthly = activeDebts.reduce((s, d) => s + (d.monthly_payment || 0), 0);
   const totalOverpayment = simulation?.summary?.totalInterest || 0;
 
+  // Основная валюта — от первого долга
+  const primaryCurrency = activeDebts[0]?.currency || 'RUB';
+  const fmt = (amount) => formatDebtCurrency(amount, primaryCurrency);
+  const dateLocale = ruLocale;
+
   const handleSave = (data) => {
     if (editingDebt) {
       updateMutation.mutate({ id: editingDebt.id, data });
@@ -108,11 +112,11 @@ export default function DebtPlanner() {
   };
 
   const burdenLabels = {
-    low: 'Низкая нагрузка',
-    moderate: 'Умеренная нагрузка',
-    high: 'Высокая нагрузка',
-    critical: 'Критическая нагрузка!',
-    unknown: 'Укажите доход',
+    low: t('debt.burden_low'),
+    moderate: t('debt.burden_moderate'),
+    high: t('debt.burden_high'),
+    critical: t('debt.burden_critical'),
+    unknown: t('debt.burden_unknown'),
   };
 
   if (isLoading) {
@@ -128,9 +132,9 @@ export default function DebtPlanner() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">План выхода из долгов</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t('debt.planner_title')}</h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            Стратегия погашения кредитов с учётом российских условий
+            {t('debt.planner_subtitle')}
           </p>
         </motion.div>
 
@@ -141,12 +145,12 @@ export default function DebtPlanner() {
             <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
               <PiggyBank className="w-8 h-8 text-emerald-500" />
             </div>
-            <h2 className="text-foreground text-lg font-semibold mb-2">Долгов нет</h2>
+            <h2 className="text-foreground text-lg font-semibold mb-2">{t('debt.no_debts')}</h2>
             <p className="text-muted-foreground text-sm mb-6 max-w-sm mx-auto">
-              Добавьте свои кредиты, кредитные карты и займы, чтобы составить персональный план погашения
+              {t('debt.no_debts_desc')}
             </p>
             <Button onClick={() => { setEditingDebt(null); setShowForm(true); }}>
-              <Plus className="w-4 h-4 mr-1" /> Добавить долг
+              <Plus className="w-4 h-4 mr-1" /> {t('debt.add_debt')}
             </Button>
           </motion.div>
         ) : (
@@ -156,34 +160,34 @@ export default function DebtPlanner() {
               <div className="rounded-2xl border border-border bg-card p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Wallet className="w-4 h-4 text-rose-500" />
-                  <span className="text-muted-foreground text-xs">Общий долг</span>
+                  <span className="text-muted-foreground text-xs">{t('debt.total_debt')}</span>
                 </div>
-                <p className="text-rose-500 font-bold text-lg sm:text-xl">{formatDebtCurrency(totalDebt)}</p>
-                <p className="text-muted-foreground text-xs mt-0.5">{activeDebts.length} кредитов</p>
+                <p className="text-rose-500 font-bold text-lg sm:text-xl">{fmt(totalDebt)}</p>
+                <p className="text-muted-foreground text-xs mt-0.5">{activeDebts.length} {t('debt.credits_count')}</p>
               </div>
 
               <div className="rounded-2xl border border-border bg-card p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Calendar className="w-4 h-4 text-amber-500" />
-                  <span className="text-muted-foreground text-xs">Платежей / мес.</span>
+                  <span className="text-muted-foreground text-xs">{t('debt.payments_per_month')}</span>
                 </div>
-                <p className="text-amber-500 font-bold text-lg sm:text-xl">{formatDebtCurrency(totalMonthly)}</p>
-                <p className="text-muted-foreground text-xs mt-0.5">минимально</p>
+                <p className="text-amber-500 font-bold text-lg sm:text-xl">{fmt(totalMonthly)}</p>
+                <p className="text-muted-foreground text-xs mt-0.5">{t('debt.minimally')}</p>
               </div>
 
               <div className="rounded-2xl border border-border bg-card p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <AlertTriangle className="w-4 h-4 text-orange-500" />
-                  <span className="text-muted-foreground text-xs">Переплата</span>
+                  <span className="text-muted-foreground text-xs">{t('debt.overpayment')}</span>
                 </div>
-                <p className="text-orange-500 font-bold text-lg sm:text-xl">{formatDebtCurrency(totalOverpayment)}</p>
-                <p className="text-muted-foreground text-xs mt-0.5">проценты банкам</p>
+                <p className="text-orange-500 font-bold text-lg sm:text-xl">{fmt(totalOverpayment)}</p>
+                <p className="text-muted-foreground text-xs mt-0.5">{t('debt.interest_to_banks')}</p>
               </div>
 
               <div className={`rounded-2xl border p-4 ${burdenColors[burden.level]}`}>
                 <div className="flex items-center gap-2 mb-2">
                   <AlertTriangle className="w-4 h-4" />
-                  <span className="text-xs">Нагрузка</span>
+                  <span className="text-xs">{t('debt.burden')}</span>
                 </div>
                 <p className="font-bold text-lg sm:text-xl">{burden.ratio.toFixed(0)}%</p>
                 <p className="text-xs mt-0.5">{burdenLabels[burden.level]}</p>
@@ -192,7 +196,7 @@ export default function DebtPlanner() {
 
             {/* Strategy Selector */}
             <div className="rounded-2xl border border-border bg-card p-4 sm:p-6 mb-6">
-              <h3 className="font-semibold text-foreground mb-3">Стратегия погашения</h3>
+              <h3 className="font-semibold text-foreground mb-3">{t('debt.strategy_title')}</h3>
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <button
                   onClick={() => setStrategy('avalanche')}
@@ -202,8 +206,8 @@ export default function DebtPlanner() {
                       : 'border-border bg-muted/30 hover:bg-muted/50'
                   }`}>
                   <TrendingDown className={`w-5 h-5 mb-2 ${strategy === 'avalanche' ? 'text-emerald-500' : 'text-muted-foreground'}`} />
-                  <p className="font-medium text-foreground text-sm">Лавина</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Сначала долг с высокой ставкой</p>
+                  <p className="font-medium text-foreground text-sm">{t('debt.strategy_avalanche')}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t('debt.strategy_avalanche_desc')}</p>
                 </button>
 
                 <button
@@ -214,31 +218,31 @@ export default function DebtPlanner() {
                       : 'border-border bg-muted/30 hover:bg-muted/50'
                   }`}>
                   <Snowflake className={`w-5 h-5 mb-2 ${strategy === 'snowball' ? 'text-blue-500' : 'text-muted-foreground'}`} />
-                  <p className="font-medium text-foreground text-sm">Снежный ком</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Сначала маленький долг</p>
+                  <p className="font-medium text-foreground text-sm">{t('debt.strategy_snowball')}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t('debt.strategy_snowball_desc')}</p>
                 </button>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">Доп. платёж ₽/мес.</Label>
+                  <Label className="text-xs">{t('debt.extra_payment')}</Label>
                   <Input
                     type="number"
                     value={extraPayment}
                     onChange={(e) => setExtraPayment(e.target.value)}
                     placeholder="5000"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">Сверху минимальных платежей</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('debt.extra_payment_hint')}</p>
                 </div>
                 <div>
-                  <Label className="text-xs">Доход ₽/мес.</Label>
+                  <Label className="text-xs">{t('debt.monthly_income')}</Label>
                   <Input
                     type="number"
                     value={monthlyIncome}
                     onChange={(e) => setMonthlyIncome(e.target.value)}
                     placeholder="80000"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">Для расчёта нагрузки</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('debt.income_hint')}</p>
                 </div>
               </div>
             </div>
@@ -246,44 +250,44 @@ export default function DebtPlanner() {
             {/* Payoff Chart */}
             {simulation && (
               <div className="mb-6">
-                <DebtPayoffChart simulation={simulation} />
+                <DebtPayoffChart simulation={simulation} currency={primaryCurrency} />
               </div>
             )}
 
             {/* Strategy Comparison */}
             {comparison && (
               <div className="mb-6">
-                <StrategyComparison comparison={comparison} />
+                <StrategyComparison comparison={comparison} currency={primaryCurrency} />
               </div>
             )}
 
             {/* Payoff Summary */}
             {simulation && (
               <div className="rounded-2xl border border-border bg-card p-4 sm:p-6 mb-6">
-                <h3 className="font-semibold text-foreground mb-3">Итоги плана</h3>
+                <h3 className="font-semibold text-foreground mb-3">{t('debt.plan_summary')}</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Дата освобождения</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('debt.payoff_date_label')}</p>
                     <p className="font-bold text-foreground text-sm sm:text-base">
-                      {format(simulation.summary.payoffDate, 'd MMMM yyyy', { locale: ru })}
+                      {format(simulation.summary.payoffDate, 'd MMMM yyyy', { locale: dateLocale })}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Срок погашения</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('debt.payoff_term')}</p>
                     <p className="font-bold text-foreground text-sm sm:text-base">
-                      {simulation.summary.monthsToPayoff} мес. ({Math.ceil(simulation.summary.monthsToPayoff / 12)} г.)
+                      {simulation.summary.monthsToPayoff} {t('debt.analytics_months')} ({Math.ceil(simulation.summary.monthsToPayoff / 12)} {t('debt.analytics_months')})
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Всего заплатите</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('debt.total_will_pay')}</p>
                     <p className="font-bold text-amber-500 text-sm sm:text-base">
-                      {formatDebtCurrency(simulation.summary.totalPaid)}
+                      {fmt(simulation.summary.totalPaid)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Из них проценты</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('debt.interest_part')}</p>
                     <p className="font-bold text-orange-500 text-sm sm:text-base">
-                      {formatDebtCurrency(simulation.summary.totalInterest)}
+                      {fmt(simulation.summary.totalInterest)}
                     </p>
                   </div>
                 </div>
@@ -293,9 +297,9 @@ export default function DebtPlanner() {
             {/* Debt List */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-foreground">Мои долги</h3>
+                <h3 className="font-semibold text-foreground">{t('debt.my_debts')}</h3>
                 <Button size="sm" onClick={() => { setEditingDebt(null); setShowForm(true); }}>
-                  <Plus className="w-4 h-4 mr-1" /> Добавить
+                  <Plus className="w-4 h-4 mr-1" /> {t('debt.add')}
                 </Button>
               </div>
               <div className="space-y-3">
@@ -332,17 +336,17 @@ export default function DebtPlanner() {
         <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Удалить долг?</AlertDialogTitle>
+              <AlertDialogTitle>{t('debt.delete_title')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Долг «{deleteTarget?.name}» будет удалён без возможности восстановления.
+                {t('debt.delete_desc').replace('{name}', deleteTarget?.name || '')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Отмена</AlertDialogCancel>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => deleteMutation.mutate(deleteTarget.id)}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Удалить
+                {t('debt.delete')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

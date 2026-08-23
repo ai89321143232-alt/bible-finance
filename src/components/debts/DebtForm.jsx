@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,30 +6,47 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { CreditCard, Landmark, Home, Coins, Car, HelpCircle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { useFormatCurrency } from '@/lib/formatCurrency';
+import { useTranslation } from '@/lib/LanguageContext';
 
 const DEBT_TYPES = [
-  { value: 'credit_card', label: 'Кредитная карта', icon: CreditCard },
-  { value: 'consumer_loan', label: 'Потребкредит', icon: Landmark },
-  { value: 'mortgage', label: 'Ипотека', icon: Home },
-  { value: 'microloan', label: 'Микрозайм (МФО)', icon: Coins },
-  { value: 'auto_loan', label: 'Автокредит', icon: Car },
-  { value: 'other', label: 'Другое', icon: HelpCircle },
+  { value: 'credit_card', icon: CreditCard },
+  { value: 'consumer_loan', icon: Landmark },
+  { value: 'mortgage', icon: Home },
+  { value: 'microloan', icon: Coins },
+  { value: 'auto_loan', icon: Car },
+  { value: 'other', icon: HelpCircle },
 ];
 
 const PAYMENT_TYPES = [
-  { value: 'annuity', label: 'Аннуитетный (равные платежи)' },
-  { value: 'differentiated', label: 'Дифференцированный' },
-  { value: 'interest_only', label: 'Только проценты' },
+  { value: 'annuity' },
+  { value: 'differentiated' },
+  { value: 'interest_only' },
 ];
 
 export default function DebtForm({ open, onClose, onSave, initialData }) {
   const isEdit = !!initialData;
+  const t = useTranslation();
+  const formatCurrency = useFormatCurrency();
+
+  const { data: accounts = [] } = useQuery({
+    queryKey: ['accounts'],
+    queryFn: () => base44.entities.Account.list(),
+  });
+
+  // Кредитные счета: type=credit или отрицательный баланс
+  const creditAccounts = useMemo(() =>
+    accounts.filter(a => a.type === 'credit' || (a.balance || 0) < 0),
+    [accounts]
+  );
+
   const [form, setForm] = useState({
     name: initialData?.name || '',
     type: initialData?.type || 'consumer_loan',
     creditor: initialData?.creditor || '',
     total_amount: initialData?.total_amount || '',
-    remaining_amount: initialData?.remaining_amount || '',
     interest_rate: initialData?.interest_rate || '',
     monthly_payment: initialData?.monthly_payment || '',
     min_payment_percent: initialData?.min_payment_percent || '',
@@ -45,16 +62,21 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
 
   const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
+  const selectedAccount = accounts.find(a => a.id === form.linked_account_id);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!form.linked_account_id) return;
     const payload = {
       ...form,
       total_amount: Number(form.total_amount) || 0,
-      remaining_amount: Number(form.remaining_amount) || 0,
       interest_rate: Number(form.interest_rate) || 0,
       monthly_payment: Number(form.monthly_payment) || 0,
       min_payment_percent: Number(form.min_payment_percent) || 0,
       payment_day: Number(form.payment_day) || 15,
+      // remaining_amount и currency наследуются от связанного счёта (авто-синхронизация)
+      remaining_amount: selectedAccount ? Math.abs(Math.min(selectedAccount.balance || 0, 0)) : 0,
+      currency: selectedAccount?.currency || 'RUB',
     };
     onSave(payload);
   };
@@ -63,44 +85,70 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Редактировать долг' : 'Добавить долг'}</DialogTitle>
+          <DialogTitle>{isEdit ? t('debt.form_edit') : t('debt.form_add')}</DialogTitle>
         </DialogHeader>
+
+        {creditAccounts.length === 0 ? (
+          <div className="py-6 text-center">
+            <p className="text-muted-foreground text-sm mb-4">{t('debt.form_no_accounts')}</p>
+            <Button variant="outline" onClick={() => onClose()}>{t('debt.form_go_to_accounts')}</Button>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label>Название *</Label>
+            <Label>{t('debt.form_name')}</Label>
             <Input
               value={form.name}
               onChange={(e) => update('name', e.target.value)}
-              placeholder="Например: Кредитная карта Тинькофф"
+              placeholder={t('debt.form_name_placeholder')}
               required
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Тип долга *</Label>
+              <Label>{t('debt.form_type')}</Label>
               <Select value={form.type} onValueChange={(v) => update('type', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {DEBT_TYPES.map(t => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  {DEBT_TYPES.map(item => (
+                    <SelectItem key={item.value} value={item.value}>{t(`debt.type_${item.value}`)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Кредитор</Label>
+              <Label>{t('debt.form_creditor')}</Label>
               <Input
                 value={form.creditor}
                 onChange={(e) => update('creditor', e.target.value)}
-                placeholder="Сбербанк, ВТБ, МФО..."
+                placeholder={t('debt.form_creditor_placeholder')}
               />
             </div>
           </div>
 
+          <div>
+            <Label>{t('debt.form_linked_account')}</Label>
+            <Select value={form.linked_account_id} onValueChange={(v) => update('linked_account_id', v)}>
+              <SelectTrigger><SelectValue placeholder={t('debt.form_linked_account_placeholder')} /></SelectTrigger>
+              <SelectContent>
+                {creditAccounts.map(acc => (
+                  <SelectItem key={acc.id} value={acc.id}>
+                    {acc.name} · {formatCurrency(Math.abs(Math.min(acc.balance || 0, 0)), acc.currency)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedAccount && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {t('debt.form_remaining')}: {formatCurrency(Math.abs(Math.min(selectedAccount.balance || 0, 0)), selectedAccount.currency)} · {t('debt.form_currency')}: {selectedAccount.currency || 'RUB'}
+              </p>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Первоначальная сумма ₽</Label>
+              <Label>{t('debt.form_initial_amount')}</Label>
               <Input
                 type="number"
                 value={form.total_amount}
@@ -109,20 +157,7 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
               />
             </div>
             <div>
-              <Label>Остаток долга ₽ *</Label>
-              <Input
-                type="number"
-                value={form.remaining_amount}
-                onChange={(e) => update('remaining_amount', e.target.value)}
-                placeholder="250000"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Ставка % годовых *</Label>
+              <Label>{t('debt.form_rate')}</Label>
               <Input
                 type="number"
                 step="0.1"
@@ -132,8 +167,11 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
                 required
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Ежемес. платёж ₽</Label>
+              <Label>{t('debt.form_monthly_payment')}</Label>
               <Input
                 type="number"
                 value={form.monthly_payment}
@@ -141,11 +179,8 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
                 placeholder="15000"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>День платежа</Label>
+              <Label>{t('debt.form_payment_day')}</Label>
               <Input
                 type="number"
                 min="1" max="31"
@@ -153,23 +188,23 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
                 onChange={(e) => update('payment_day', e.target.value)}
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Тип платежа</Label>
+              <Label>{t('debt.form_payment_type')}</Label>
               <Select value={form.payment_type} onValueChange={(v) => update('payment_type', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {PAYMENT_TYPES.map(t => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  {PAYMENT_TYPES.map(item => (
+                    <SelectItem key={item.value} value={item.value}>{t(`debt.pt_${item.value}`)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          {form.type === 'credit_card' && (
-            <div className="grid grid-cols-2 gap-3">
+            {form.type === 'credit_card' && (
               <div>
-                <Label>Мин. платёж % от остатка</Label>
+                <Label>{t('debt.form_min_percent')}</Label>
                 <Input
                   type="number"
                   step="0.1"
@@ -178,20 +213,23 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
                   placeholder="3-5%"
                 />
               </div>
-              <div>
-                <Label>Конец льготного периода</Label>
-                <Input
-                  type="date"
-                  value={form.grace_period_end}
-                  onChange={(e) => update('grace_period_end', e.target.value)}
-                />
-              </div>
+            )}
+          </div>
+
+          {form.type === 'credit_card' && (
+            <div>
+              <Label>{t('debt.form_grace_end')}</Label>
+              <Input
+                type="date"
+                value={form.grace_period_end}
+                onChange={(e) => update('grace_period_end', e.target.value)}
+              />
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Дата открытия</Label>
+              <Label>{t('debt.form_start_date')}</Label>
               <Input
                 type="date"
                 value={form.start_date}
@@ -199,7 +237,7 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
               />
             </div>
             <div>
-              <Label>Дата окончания (план)</Label>
+              <Label>{t('debt.form_end_date')}</Label>
               <Input
                 type="date"
                 value={form.end_date}
@@ -209,20 +247,21 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
           </div>
 
           <div>
-            <Label>Заметки</Label>
+            <Label>{t('debt.form_notes')}</Label>
             <Textarea
               value={form.notes}
               onChange={(e) => update('notes', e.target.value)}
-              placeholder="Условия досрочного погашения, комиссии, страховка..."
+              placeholder={t('debt.form_notes_placeholder')}
               rows={2}
             />
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Отмена</Button>
-            <Button type="submit">{isEdit ? 'Сохранить' : 'Добавить'}</Button>
+            <Button type="button" variant="outline" onClick={onClose}>{t('common.cancel')}</Button>
+            <Button type="submit" disabled={!form.linked_account_id}>{isEdit ? t('common.save') : t('common.add')}</Button>
           </DialogFooter>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );

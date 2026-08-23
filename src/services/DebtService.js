@@ -14,6 +14,16 @@ export function monthlyRate(annualRatePercent) {
   return (annualRatePercent / 100) / 12;
 }
 
+// Расчёт минимального платежа: если задан monthly_payment — берём его,
+// иначе считаем по min_payment_percent (для кредитных карт, по умолчанию 3%)
+export function calcMinPayment(debt) {
+  const balance = debt.remaining_amount || 0;
+  const explicit = Number(debt.monthly_payment) || 0;
+  if (explicit > 0) return explicit;
+  const percent = Number(debt.min_payment_percent) || 3;
+  return Math.max(balance * (percent / 100), 500);
+}
+
 // Аннуитетный платёж: сумма, ставка % годовых, срок в месяцах
 export function calcAnnuityPayment(principal, annualRatePercent, months) {
   if (months <= 0) return 0;
@@ -43,12 +53,13 @@ export function calcOverpayment(remaining, monthlyPayment, annualRatePercent) {
 // Симуляция погашения всех долгов по выбранной стратегии
 // Возвращает массив помесячных прогнозов
 //
-// debts: [{ id, name, remaining_amount, interest_rate, monthly_payment, type }]
+// debts: [{ id, name, remaining_amount, interest_rate, monthly_payment, min_payment_percent, type, status, grace_period_end }]
 // extraPayment: дополнительная сумма, которую пользователь готов платить сверху
 // strategy: "snowball" | "avalanche"
-// minPaymentOverride: если у кредитки нет фиксированного платежа, считаем минимальный %
 export function simulatePayoff(debts, extraPayment = 0, strategy = "avalanche") {
   if (!debts || debts.length === 0) return [];
+
+  const now = new Date();
 
   // Клонируем долги в рабочий массив
   let working = debts.map(d => ({
@@ -56,16 +67,11 @@ export function simulatePayoff(debts, extraPayment = 0, strategy = "avalanche") 
     name: d.name,
     balance: d.remaining_amount || 0,
     rate: d.interest_rate || 0,
-    minPayment: d.monthly_payment || 0,
+    minPayment: calcMinPayment(d),
     type: d.type,
+    status: d.status,
+    gracePeriodEnd: d.grace_period_end ? new Date(d.grace_period_end) : null,
   }));
-
-  // Если минимальный платёж не задан, считаем 3% от остатка (для кредитных карт)
-  working.forEach(d => {
-    if (d.minPayment <= 0) {
-      d.minPayment = Math.max(d.balance * 0.03, 500);
-    }
-  });
 
   const totalDebt = working.reduce((s, d) => s + d.balance, 0);
   const totalMinPayments = working.reduce((s, d) => s + d.minPayment, 0);
@@ -83,11 +89,17 @@ export function simulatePayoff(debts, extraPayment = 0, strategy = "avalanche") 
       payments: [],
     };
 
-    // 1. Начисляем проценты за месяц на каждый долг
+    // 1. Начисляем проценты за месяц на каждый долг (кроме льготного периода)
+    const monthDate = addMonths(now, month);
     working.forEach(d => {
       if (d.balance > 0) {
-        const interest = d.balance * monthlyRate(d.rate);
-        d.balance += interest;
+        // В льготном периоде проценты не начисляются
+        const inGrace = d.status === 'in_grace' ||
+          (d.gracePeriodEnd && monthDate <= d.gracePeriodEnd);
+        if (!inGrace) {
+          const interest = d.balance * monthlyRate(d.rate);
+          d.balance += interest;
+        }
       }
     });
 
@@ -189,11 +201,12 @@ function addMonths(date, months) {
   return d;
 }
 
-// Форматирование валюты
-export function formatDebtCurrency(amount) {
-  return new Intl.NumberFormat('ru-RU', {
+// Форматирование валюты (по умолчанию RUB, можно передать код валюты и язык)
+export function formatDebtCurrency(amount, currency = 'RUB', language = 'ru') {
+  const locale = language === 'en' ? 'en-US' : 'ru-RU';
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: 'RUB',
+    currency: currency || 'RUB',
     maximumFractionDigits: 0,
   }).format(amount || 0);
 }

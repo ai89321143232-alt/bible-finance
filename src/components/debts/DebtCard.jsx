@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, Landmark, Home, Coins, Car, HelpCircle, Trash2, Edit2, Calendar } from 'lucide-react';
-import { formatDebtCurrency, monthlyRate } from '@/services/DebtService';
+import { Trash2, Edit2, Calendar, RefreshCw, AlertCircle, CreditCard, Landmark, Home, Coins, Car, HelpCircle } from 'lucide-react';
+import { formatDebtCurrency, monthlyRate, calcMinPayment } from '@/services/DebtService';
 import { Button } from '@/components/ui/button';
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from '@/lib/LanguageContext';
 
 const TYPE_ICONS = {
   credit_card: CreditCard,
@@ -11,15 +14,6 @@ const TYPE_ICONS = {
   microloan: Coins,
   auto_loan: Car,
   other: HelpCircle,
-};
-
-const TYPE_LABELS = {
-  credit_card: 'Кредитная карта',
-  consumer_loan: 'Потребкредит',
-  mortgage: 'Ипотека',
-  microloan: 'Микрозайм',
-  auto_loan: 'Автокредит',
-  other: 'Другое',
 };
 
 const TYPE_COLORS = {
@@ -32,6 +26,34 @@ const TYPE_COLORS = {
 };
 
 export default function DebtCard({ debt, onEdit, onDelete, order }) {
+  const t = useTranslation();
+  const currency = debt.currency || 'RUB';
+  const fmt = (amount) => formatDebtCurrency(amount, currency);
+
+  const { data: linkedAccount } = useQuery({
+    queryKey: ['account', debt.linked_account_id],
+    queryFn: () => base44.entities.Account.get(debt.linked_account_id),
+    enabled: !!debt.linked_account_id,
+  });
+
+  // Проверка расхождения: remaining_amount vs баланс связанного счёта
+  const expectedRemaining = linkedAccount ? Math.abs(Math.min(linkedAccount.balance || 0, 0)) : null;
+  const needsSync = expectedRemaining !== null && Math.abs(expectedRemaining - (debt.remaining_amount || 0)) > 0.01;
+  const [syncing, setSyncing] = useState(false);
+
+  const handleResync = async () => {
+    if (!linkedAccount) return;
+    setSyncing(true);
+    try {
+      const newRemaining = Math.abs(Math.min(linkedAccount.balance || 0, 0));
+      const updates = { remaining_amount: newRemaining };
+      if (newRemaining <= 0) updates.status = 'paid_off';
+      await base44.entities.DebtAccount.update(debt.id, updates);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const Icon = TYPE_ICONS[debt.type] || HelpCircle;
   const colorClass = TYPE_COLORS[debt.type] || TYPE_COLORS.other;
   const monthlyInterest = (debt.remaining_amount || 0) * monthlyRate(debt.interest_rate || 0);
@@ -58,7 +80,7 @@ export default function DebtCard({ debt, onEdit, onDelete, order }) {
             <h3 className="font-semibold text-foreground text-sm sm:text-base truncate">{debt.name}</h3>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {TYPE_LABELS[debt.type] || debt.type}
+            {t(`debt.type_${debt.type}`)}
             {debt.creditor && ` · ${debt.creditor}`}
           </p>
         </div>
@@ -74,26 +96,26 @@ export default function DebtCard({ debt, onEdit, onDelete, order }) {
 
       <div className="grid grid-cols-2 gap-3 mt-4">
         <div>
-          <p className="text-xs text-muted-foreground mb-0.5">Остаток долга</p>
-          <p className="text-lg font-bold text-foreground">{formatDebtCurrency(debt.remaining_amount)}</p>
+          <p className="text-xs text-muted-foreground mb-0.5">{t('debt.card_remaining')}</p>
+          <p className="text-lg font-bold text-foreground">{fmt(debt.remaining_amount)}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground mb-0.5">Платёж / мес.</p>
-          <p className="text-lg font-bold text-foreground">{formatDebtCurrency(debt.monthly_payment)}</p>
+          <p className="text-xs text-muted-foreground mb-0.5">{t('debt.card_payment')}</p>
+          <p className="text-lg font-bold text-foreground">{fmt(debt.monthly_payment || calcMinPayment(debt))}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-border">
         <div>
-          <p className="text-xs text-muted-foreground">Ставка</p>
+          <p className="text-xs text-muted-foreground">{t('debt.card_rate')}</p>
           <p className="text-sm font-medium text-foreground">{debt.interest_rate}%</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">% в мес.</p>
-          <p className="text-sm font-medium text-amber-500">{formatDebtCurrency(monthlyInterest)}</p>
+          <p className="text-xs text-muted-foreground">{t('debt.card_rate_monthly')}</p>
+          <p className="text-sm font-medium text-amber-500">{fmt(monthlyInterest)}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">День платежа</p>
+          <p className="text-xs text-muted-foreground">{t('debt.card_payment_day')}</p>
           <p className="text-sm font-medium text-foreground flex items-center gap-1">
             <Calendar className="w-3 h-3" />
             {debt.payment_day || '—'}
@@ -101,14 +123,27 @@ export default function DebtCard({ debt, onEdit, onDelete, order }) {
         </div>
       </div>
 
+      {needsSync && (
+        <div className="mt-3 flex items-center justify-between px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+          <span className="flex items-center gap-1.5 text-xs text-amber-600">
+            <AlertCircle className="w-3.5 h-3.5" />
+            {t('debt.card_sync_badge')}
+          </span>
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={handleResync} disabled={syncing}>
+            <RefreshCw className={`w-3 h-3 mr-1 ${syncing ? 'animate-spin' : ''}`} />
+            {t('debt.card_resync')}
+          </Button>
+        </div>
+      )}
+
       {debt.status === 'in_grace' && (
         <div className="mt-3 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 text-xs font-medium text-center">
-          В льготном периоде — проценты не начисляются
+          {t('debt.card_in_grace')}
         </div>
       )}
       {debt.status === 'paid_off' && (
         <div className="mt-3 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 text-xs font-medium text-center">
-          ✓ Долг погашен
+          {t('debt.card_paid_off')}
         </div>
       )}
     </motion.div>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -7,22 +7,33 @@ import { motion } from 'framer-motion';
 import {
   format, startOfMonth, endOfMonth, subMonths
 } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { ru as ruLocale } from 'date-fns/locale';
 import {
   TrendingDown, TrendingUp, AlertTriangle, CreditCard, Calendar,
-  Wallet, PiggyBank, ArrowUpRight, ArrowDownRight, ChevronDown
+  Wallet, PiggyBank
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Legend, ComposedChart, Line
 } from 'recharts';
+import { useFormatCurrency } from '@/lib/formatCurrency';
+import { useTranslation } from '@/lib/LanguageContext';
 
 const MONTHS_BACK = 12;
 
 export default function DebtAnalytics() {
+  const t = useTranslation();
+  const formatCurrency = useFormatCurrency();
+  const dateLocale = ruLocale;
+
   const { data: accounts = [] } = useQuery({
     queryKey: ['accounts'],
     queryFn: () => base44.entities.Account.list(),
+  });
+
+  const { data: debts = [] } = useQuery({
+    queryKey: ['debtAccounts'],
+    queryFn: () => base44.entities.DebtAccount.list(),
   });
 
   const { data: transactions = [] } = useQuery({
@@ -30,32 +41,40 @@ export default function DebtAnalytics() {
     queryFn: () => base44.entities.Transaction.list('-date', 1000),
   });
 
-  const formatCurrency = (amount) => new Intl.NumberFormat('ru-RU', {
-    style: 'currency', currency: 'RUB', maximumFractionDigits: 0
-  }).format(amount);
+  // Долги читаются из DebtAccount (единый источник правды)
+  const activeDebts = useMemo(() =>
+    debts.filter(d => d.status !== 'paid_off' && d.remaining_amount > 0),
+    [debts]
+  );
 
-  // Identify debt accounts: credit type or negative balance
-  const debtAccounts = useMemo(() => 
-    accounts.filter(a => a.type === 'credit' || (a.balance || 0) < 0),
-    [accounts]
+  const primaryCurrency = activeDebts[0]?.currency || 'RUB';
+
+  // Кредитные счета, привязанные к долгам
+  const linkedAccountIds = useMemo(() =>
+    activeDebts.map(d => d.linked_account_id).filter(Boolean),
+    [activeDebts]
+  );
+
+  const linkedAccounts = useMemo(() =>
+    accounts.filter(a => linkedAccountIds.includes(a.id)),
+    [accounts, linkedAccountIds]
   );
 
   const totalCurrentDebt = useMemo(() =>
-    debtAccounts.reduce((sum, a) => sum + Math.abs(Math.min(a.balance || 0, 0)), 0),
-    [debtAccounts]
+    activeDebts.reduce((s, d) => s + (d.remaining_amount || 0), 0),
+    [activeDebts]
   );
 
   // Monthly data: debt level, income, debt payments
   const monthlyData = useMemo(() => {
     const now = new Date();
     const months = [];
-    
+
     for (let i = MONTHS_BACK - 1; i >= 0; i--) {
       const monthDate = subMonths(now, i);
       const monthStart = startOfMonth(monthDate);
       const monthEnd = endOfMonth(monthDate);
-      
-      // Transactions in this month
+
       const monthTxns = transactions.filter(t => {
         if (!t.date) return false;
         const d = new Date(t.date);
@@ -66,55 +85,39 @@ export default function DebtAnalytics() {
         .filter(t => t.type === 'income')
         .reduce((s, t) => s + t.amount, 0);
 
-      // Debt payments: expenses on credit accounts + transfers TO credit accounts (paying off)
-      const debtAccountIds = debtAccounts.map(a => a.id);
+      // Debt payments: transfers TO credit accounts + expenses on credit accounts
       const debtPayments = monthTxns
         .filter(t => {
-          if (t.type === 'expense' && debtAccountIds.includes(t.account_id)) return true;
-          // Transfer TO a credit account = paying off debt
-          if (t.type === 'transfer' && debtAccountIds.includes(t.account_id)) return true;
+          if (t.type === 'expense' && linkedAccountIds.includes(t.account_id)) return true;
+          if (t.type === 'transfer' && linkedAccountIds.includes(t.to_account_id)) return true;
           return false;
         })
         .reduce((s, t) => s + t.amount, 0);
 
-      // Also count income transactions ON credit accounts (refunds, cashback reducing debt)
-      const debtReductions = monthTxns
-        .filter(t => t.type === 'income' && debtAccountIds.includes(t.account_id))
-        .reduce((s, t) => s + t.amount, 0);
-
-      // Total debt change this month (new debt - paid off)
       const newDebtAdded = monthTxns
-        .filter(t => t.type === 'expense' && debtAccountIds.includes(t.account_id))
+        .filter(t => t.type === 'expense' && linkedAccountIds.includes(t.account_id))
         .reduce((s, t) => s + t.amount, 0);
-      
-      const debtPaidOff = debtPayments + debtReductions - newDebtAdded >= 0 
-        ? debtPayments + debtReductions 
-        : newDebtAdded;
 
-      // Estimate debt level at end of this month
-      // Start from current debt and work backwards
       months.push({
-        month: format(monthDate, 'MMM yy', { locale: ru }),
-        fullMonth: format(monthDate, 'LLLL yyyy', { locale: ru }),
+        month: format(monthDate, 'MMM yy', { locale: dateLocale }),
+        fullMonth: format(monthDate, 'LLLL yyyy', { locale: dateLocale }),
         income,
-        debtPayments: debtPayments + debtReductions,
+        debtPayments,
         newDebtAdded,
-        label: format(monthDate, 'MMM', { locale: ru }),
+        label: format(monthDate, 'MMM', { locale: dateLocale }),
       });
     }
 
     return months;
-  }, [transactions, debtAccounts]);
+  }, [transactions, linkedAccountIds, dateLocale]);
 
   // Calculate debt progression (backward from current)
   const debtProgression = useMemo(() => {
     let runningDebt = totalCurrentDebt;
     const result = [];
-    // Go backwards through months to reconstruct debt levels
     for (let i = monthlyData.length - 1; i >= 0; i--) {
       const m = monthlyData[i];
       const netChange = m.newDebtAdded - m.debtPayments;
-      // At start of this month, debt was runningDebt - netChange
       const debtAtStart = Math.max(0, runningDebt - netChange);
       result.unshift({
         ...m,
@@ -151,20 +154,20 @@ export default function DebtAnalytics() {
     return 'stable';
   }, [debtProgression]);
 
-  if (debtAccounts.length === 0) {
+  if (activeDebts.length === 0) {
     return (
-      <div className="min-h-screen bg-[#0f1117] flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           className="text-center max-w-md">
           <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
-            <PiggyBank className="w-8 h-8 text-emerald-400" />
+            <PiggyBank className="w-8 h-8 text-emerald-500" />
           </div>
-          <h2 className="text-white text-xl font-semibold mb-2">Долгов нет</h2>
-          <p className="text-white/40 text-sm mb-6">
-            У вас нет кредитных счетов или счетов с отрицательным балансом. Отличная работа!
+          <h2 className="text-foreground text-xl font-semibold mb-2">{t('debt.analytics_no_debts')}</h2>
+          <p className="text-muted-foreground text-sm mb-6">
+            {t('debt.analytics_no_debts_desc')}
           </p>
-          <Link to={createPageUrl('Accounts')} className="text-emerald-400 text-sm hover:underline">
-            Перейти к счетам →
+          <Link to={createPageUrl('Accounts')} className="text-primary text-sm hover:underline">
+            {t('debt.analytics_go_accounts')}
           </Link>
         </motion.div>
       </div>
@@ -172,14 +175,14 @@ export default function DebtAnalytics() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1117]">
+    <div className="min-h-screen">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
           className="mb-6">
-          <h1 className="text-xl sm:text-2xl font-semibold text-white">Анализ долгов</h1>
-          <p className="text-white/35 text-sm mt-0.5">
-            Отслеживание задолженности и платежей по кредитам
+          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">{t('debt.analytics_title')}</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            {t('debt.analytics_subtitle')}
           </p>
         </motion.div>
 
@@ -188,51 +191,51 @@ export default function DebtAnalytics() {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
             className="rounded-2xl border border-rose-500/15 bg-rose-500/5 p-4">
             <div className="flex items-center gap-2 mb-2">
-              <CreditCard className="w-4 h-4 text-rose-400" />
-              <span className="text-white/40 text-xs">Общий долг</span>
+              <CreditCard className="w-4 h-4 text-rose-500" />
+              <span className="text-muted-foreground text-xs">{t('debt.analytics_total_debt')}</span>
             </div>
-            <p className="text-rose-400 font-bold text-xl">{formatCurrency(totalCurrentDebt)}</p>
-            <p className="text-white/25 text-xs mt-0.5">{debtAccounts.length} счетов</p>
+            <p className="text-rose-500 font-bold text-xl">{formatCurrency(totalCurrentDebt, primaryCurrency)}</p>
+            <p className="text-muted-foreground text-xs mt-0.5">{activeDebts.length} {t('debt.analytics_accounts')}</p>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
             className="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Calendar className="w-4 h-4 text-amber-400" />
-              <span className="text-white/40 text-xs">Платежи в этом мес.</span>
+              <Calendar className="w-4 h-4 text-amber-500" />
+              <span className="text-muted-foreground text-xs">{t('debt.analytics_payments_this_month')}</span>
             </div>
-            <p className="text-amber-400 font-bold text-xl">{formatCurrency(totalPaymentsThisMonth)}</p>
-            <p className="text-white/25 text-xs mt-0.5">{ratioThisMonth.toFixed(1)}% от дохода</p>
+            <p className="text-amber-500 font-bold text-xl">{formatCurrency(totalPaymentsThisMonth, primaryCurrency)}</p>
+            <p className="text-muted-foreground text-xs mt-0.5">{ratioThisMonth.toFixed(1)}% {t('debt.analytics_of_income')}</p>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-            className={`rounded-2xl border p-4 ${debtTrend === 'down' ? 'border-emerald-500/15 bg-emerald-500/5' : debtTrend === 'up' ? 'border-rose-500/15 bg-rose-500/5' : 'border-white/5 bg-white/3'}`}>
+            className={`rounded-2xl border p-4 ${debtTrend === 'down' ? 'border-emerald-500/15 bg-emerald-500/5' : debtTrend === 'up' ? 'border-rose-500/15 bg-rose-500/5' : 'border-border bg-muted/30'}`}>
             <div className="flex items-center gap-2 mb-2">
-              {debtTrend === 'down' ? <TrendingDown className="w-4 h-4 text-emerald-400" /> : <TrendingUp className="w-4 h-4 text-rose-400" />}
-              <span className="text-white/40 text-xs">Тренд за год</span>
+              {debtTrend === 'down' ? <TrendingDown className="w-4 h-4 text-emerald-500" /> : <TrendingUp className="w-4 h-4 text-rose-500" />}
+              <span className="text-muted-foreground text-xs">{t('debt.analytics_trend_year')}</span>
             </div>
-            <p className={`font-bold text-xl ${debtTrend === 'down' ? 'text-emerald-400' : debtTrend === 'up' ? 'text-rose-400' : 'text-white/40'}`}>
-              {debtTrend === 'down' ? 'Снижается' : debtTrend === 'up' ? 'Растёт' : 'Стабильно'}
+            <p className={`font-bold text-xl ${debtTrend === 'down' ? 'text-emerald-500' : debtTrend === 'up' ? 'text-rose-500' : 'text-muted-foreground'}`}>
+              {debtTrend === 'down' ? t('debt.analytics_trend_down') : debtTrend === 'up' ? t('debt.analytics_trend_up') : t('debt.analytics_trend_stable')}
             </p>
-            <p className="text-white/25 text-xs mt-0.5">за {MONTHS_BACK} месяцев</p>
+            <p className="text-muted-foreground text-xs mt-0.5">{MONTHS_BACK} {t('debt.analytics_months')}</p>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
             className="rounded-2xl border border-violet-500/15 bg-violet-500/5 p-4">
             <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="w-4 h-4 text-violet-400" />
-              <span className="text-white/40 text-xs">Долг/Доход в сред.</span>
+              <AlertTriangle className="w-4 h-4 text-violet-500" />
+              <span className="text-muted-foreground text-xs">{t('debt.analytics_avg_burden')}</span>
             </div>
-            <p className="text-violet-400 font-bold text-xl">{avgRatio.toFixed(1)}%</p>
-            <p className="text-white/25 text-xs mt-0.5">{avgRatio > 30 ? 'Высокая нагрузка' : avgRatio > 15 ? 'Умеренно' : 'Низкая'}</p>
+            <p className="text-violet-500 font-bold text-xl">{avgRatio.toFixed(1)}%</p>
+            <p className="text-muted-foreground text-xs mt-0.5">{avgRatio > 30 ? t('debt.analytics_burden_high') : avgRatio > 15 ? t('debt.analytics_burden_moderate') : t('debt.analytics_burden_low')}</p>
           </motion.div>
         </div>
 
         {/* Debt Level Chart */}
         <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-          className="rounded-2xl border border-white/8 bg-[#141820] p-5 sm:p-6 mb-6">
-          <h3 className="text-white font-semibold mb-1">Динамика задолженности</h3>
-          <p className="text-white/35 text-xs mb-5">Изменение общего долга за последние 12 месяцев</p>
+          className="rounded-2xl border border-border bg-card p-5 sm:p-6 mb-6">
+          <h3 className="text-foreground font-semibold mb-1">{t('debt.analytics_dynamics')}</h3>
+          <p className="text-muted-foreground text-xs mb-5">{t('debt.analytics_dynamics_desc')}</p>
           <div className="h-64 sm:h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={debtProgression}>
@@ -242,15 +245,15 @@ export default function DebtAnalytics() {
                     <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="label" stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} />
-                <YAxis 
-                  stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false}
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} />
+                <YAxis
+                  stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false}
                   tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
                 />
                 <Tooltip
-                  contentStyle={{ background: '#1a1f2b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }}
-                  formatter={(value) => [formatCurrency(value), 'Долг']}
+                  contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '12px', color: 'hsl(var(--foreground))' }}
+                  formatter={(value) => [formatCurrency(value, primaryCurrency), t('debt.analytics_debt')]}
                   labelFormatter={(label, payload) => payload?.[0]?.payload?.fullMonth || label}
                 />
                 <Area
@@ -264,36 +267,36 @@ export default function DebtAnalytics() {
 
         {/* Debt-to-Income Ratio Chart */}
         <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="rounded-2xl border border-white/8 bg-[#141820] p-5 sm:p-6 mb-6">
-          <h3 className="text-white font-semibold mb-1">Нагрузка на доход</h3>
-          <p className="text-white/35 text-xs mb-5">Какой % дохода уходит на выплату долгов каждый месяц</p>
+          className="rounded-2xl border border-border bg-card p-5 sm:p-6 mb-6">
+          <h3 className="text-foreground font-semibold mb-1">{t('debt.analytics_burden_title')}</h3>
+          <p className="text-muted-foreground text-xs mb-5">{t('debt.analytics_burden_desc')}</p>
           <div className="h-64 sm:h-72">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={debtToIncomeRatio}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="label" stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} />
-                <YAxis 
-                  yAxisId="left" stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false}
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} />
+                <YAxis
+                  yAxisId="left" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false}
                   tickFormatter={(v) => `${v}%`}
                 />
-                <YAxis 
-                  yAxisId="right" orientation="right" stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false}
+                <YAxis
+                  yAxisId="right" orientation="right" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false}
                   tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
                 />
                 <Tooltip
-                  contentStyle={{ background: '#1a1f2b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }}
+                  contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '12px', color: 'hsl(var(--foreground))' }}
                   formatter={(value, name) => {
-                    if (name === 'ratio') return [`${value.toFixed(1)}%`, 'Доля от дохода'];
-                    if (name === 'income') return [formatCurrency(value), 'Доход'];
-                    if (name === 'debtPayments') return [formatCurrency(value), 'Платежи'];
+                    if (name === 'ratio') return [`${value.toFixed(1)}%`, '%'];
+                    if (name === 'income') return [formatCurrency(value, primaryCurrency), t('debt.analytics_income_legend')];
+                    if (name === 'debtPayments') return [formatCurrency(value, primaryCurrency), t('debt.analytics_payments_legend')];
                     return [value, name];
                   }}
                   labelFormatter={(label, payload) => payload?.[0]?.payload?.fullMonth || label}
                 />
                 <Legend formatter={(v) => {
-                  if (v === 'ratio') return '% от дохода';
-                  if (v === 'income') return 'Доход';
-                  if (v === 'debtPayments') return 'Платежи по долгам';
+                  if (v === 'ratio') return '%';
+                  if (v === 'income') return t('debt.analytics_income_legend');
+                  if (v === 'debtPayments') return t('debt.analytics_payments_legend');
                   return v;
                 }} />
                 <Bar yAxisId="right" dataKey="income" fill="#10b981" radius={[4, 4, 0, 0]} barSize={10} opacity={0.6} />
@@ -303,46 +306,43 @@ export default function DebtAnalytics() {
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex items-center gap-4 mt-4 text-xs text-white/35 justify-center flex-wrap">
-            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-500/60" /> Доход</span>
-            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-amber-500" /> Платежи</span>
-            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-violet-500" style={{ height: 2 }} /> % от дохода</span>
+          <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground justify-center flex-wrap">
+            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-500/60" /> {t('debt.analytics_income_legend')}</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-amber-500" /> {t('debt.analytics_payments_legend')}</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-violet-500" style={{ height: 2 }} /> %</span>
           </div>
         </motion.div>
 
         {/* Credit Accounts List */}
         <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-          className="rounded-2xl border border-white/8 bg-[#141820] p-5 sm:p-6 mb-6">
-          <h3 className="text-white font-semibold mb-1">Кредитные счета</h3>
-          <p className="text-white/35 text-xs mb-4">Детализация по каждому счёту</p>
+          className="rounded-2xl border border-border bg-card p-5 sm:p-6 mb-6">
+          <h3 className="text-foreground font-semibold mb-1">{t('debt.analytics_credit_accounts')}</h3>
+          <p className="text-muted-foreground text-xs mb-4">{t('debt.analytics_credit_accounts_desc')}</p>
           <div className="space-y-2">
-            {debtAccounts.map(acc => {
-              const debt = Math.abs(Math.min(acc.balance || 0, 0));
-              const limit = acc.credit_limit || 0;
-              const utilization = limit > 0 ? (debt / limit) * 100 : 0;
+            {activeDebts.map(debt => {
+              const acc = accounts.find(a => a.id === debt.linked_account_id);
+              const limit = acc?.credit_limit || 0;
+              const utilization = limit > 0 ? (debt.remaining_amount / limit) * 100 : 0;
               return (
-                <div key={acc.id}
-                  className="flex items-center gap-3 p-3.5 rounded-xl border border-white/8 bg-white/3 hover:bg-white/5 transition-all">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold"
-                    style={{ background: (acc.color || '#ef4444') + '20', color: acc.color || '#ef4444' }}>
-                    {acc.name.charAt(0).toUpperCase()}
+                <div key={debt.id}
+                  className="flex items-center gap-3 p-3.5 rounded-xl border border-border bg-muted/30 hover:bg-muted/50 transition-all">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold bg-rose-500/10 text-rose-500">
+                    {debt.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium">{acc.name}</p>
-                    <p className="text-white/30 text-xs">
-                      {acc.type === 'credit' ? 'Кредитная карта' : 'Отрицательный баланс'}
-                      {limit > 0 && <span className="ml-2">· Лимит {formatCurrency(limit)}</span>}
+                    <p className="text-foreground text-sm font-medium">{debt.name}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {t(`debt.type_${debt.type}`)}
+                      {debt.creditor && ` · ${debt.creditor}`}
+                      {limit > 0 && <span className="ml-2">· {t('debt.analytics_limit')} {formatCurrency(limit, debt.currency)}</span>}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-rose-400 font-semibold text-sm">{formatCurrency(-debt)}</p>
+                    <p className="text-rose-500 font-semibold text-sm">{formatCurrency(debt.remaining_amount, debt.currency)}</p>
                     {utilization > 0 && (
-                      <p className={`text-xs font-medium ${utilization > 80 ? 'text-rose-400' : utilization > 50 ? 'text-amber-400' : 'text-white/30'}`}>
-                        {utilization.toFixed(0)}% использ.
+                      <p className={`text-xs font-medium ${utilization > 80 ? 'text-rose-500' : utilization > 50 ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                        {utilization.toFixed(0)}% {t('debt.analytics_utilization')}
                       </p>
-                    )}
-                    {acc.balance > 0 && acc.type === 'credit' && (
-                      <p className="text-emerald-400 text-xs">Переплата</p>
                     )}
                   </div>
                 </div>
@@ -353,30 +353,30 @@ export default function DebtAnalytics() {
 
         {/* Monthly Breakdown Table */}
         <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-          className="rounded-2xl border border-white/8 bg-[#141820] overflow-hidden mb-6">
-          <div className="p-5 sm:p-6 border-b border-white/5">
-            <h3 className="text-white font-semibold">Помесячная детализация</h3>
+          className="rounded-2xl border border-border bg-card overflow-hidden mb-6">
+          <div className="p-5 sm:p-6 border-b border-border">
+            <h3 className="text-foreground font-semibold">{t('debt.analytics_monthly_detail')}</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/5">
-                  <th className="text-left px-5 py-3 text-white/35 text-xs font-medium">Месяц</th>
-                  <th className="text-right px-5 py-3 text-white/35 text-xs font-medium">Доход</th>
-                  <th className="text-right px-5 py-3 text-white/35 text-xs font-medium">Платежи</th>
-                  <th className="text-right px-5 py-3 text-white/35 text-xs font-medium">Новые долги</th>
-                  <th className="text-right px-5 py-3 text-white/35 text-xs font-medium">% от дохода</th>
+                <tr className="border-b border-border">
+                  <th className="text-left px-5 py-3 text-muted-foreground text-xs font-medium">{t('debt.analytics_month')}</th>
+                  <th className="text-right px-5 py-3 text-muted-foreground text-xs font-medium">{t('debt.analytics_income_col')}</th>
+                  <th className="text-right px-5 py-3 text-muted-foreground text-xs font-medium">{t('debt.analytics_payments_col')}</th>
+                  <th className="text-right px-5 py-3 text-muted-foreground text-xs font-medium">{t('debt.analytics_new_debts')}</th>
+                  <th className="text-right px-5 py-3 text-muted-foreground text-xs font-medium">{t('debt.analytics_pct_income')}</th>
                 </tr>
               </thead>
               <tbody>
                 {[...debtToIncomeRatio].reverse().map((m, i) => (
-                  <tr key={i} className="border-b border-white/5 last:border-0 hover:bg-white/3 transition-colors">
-                    <td className="px-5 py-3 text-white/70 text-sm">{m.fullMonth}</td>
-                    <td className="px-5 py-3 text-right text-emerald-400 text-sm font-medium">{formatCurrency(m.income)}</td>
-                    <td className="px-5 py-3 text-right text-amber-400 text-sm font-medium">{formatCurrency(m.debtPayments)}</td>
-                    <td className="px-5 py-3 text-right text-rose-400 text-sm font-medium">{formatCurrency(m.newDebtAdded)}</td>
+                  <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                    <td className="px-5 py-3 text-foreground text-sm">{m.fullMonth}</td>
+                    <td className="px-5 py-3 text-right text-emerald-500 text-sm font-medium">{formatCurrency(m.income, primaryCurrency)}</td>
+                    <td className="px-5 py-3 text-right text-amber-500 text-sm font-medium">{formatCurrency(m.debtPayments, primaryCurrency)}</td>
+                    <td className="px-5 py-3 text-right text-rose-500 text-sm font-medium">{formatCurrency(m.newDebtAdded, primaryCurrency)}</td>
                     <td className="px-5 py-3 text-right">
-                      <span className={`text-sm font-semibold ${m.ratio > 30 ? 'text-rose-400' : m.ratio > 15 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                      <span className={`text-sm font-semibold ${m.ratio > 30 ? 'text-rose-500' : m.ratio > 15 ? 'text-amber-500' : 'text-emerald-500'}`}>
                         {m.ratio.toFixed(1)}%
                       </span>
                     </td>

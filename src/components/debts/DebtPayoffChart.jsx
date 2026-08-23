@@ -1,15 +1,19 @@
 import React, { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { format, addMonths } from 'date-fns';
-import { ru } from 'date-fns/locale';
 import { formatDebtCurrency } from '@/services/DebtService';
+import { useTranslation } from '@/lib/LanguageContext';
+import { ru as ruLocale } from 'date-fns/locale';
 
-export default function DebtPayoffChart({ simulation }) {
+export default function DebtPayoffChart({ simulation, currency = 'RUB' }) {
+  const t = useTranslation();
+  const dateLocale = ruLocale;
+  const fmt = (amount) => formatDebtCurrency(amount, currency);
   const chartData = useMemo(() => {
     if (!simulation?.timeline) return [];
     return simulation.timeline.map(m => ({
       month: m.month,
-      label: format(addMonths(new Date(), m.month - 1), 'MMM yy', { locale: ru }),
+      label: format(addMonths(new Date(), m.month - 1), 'MMM yy', { locale: dateLocale }),
       debt: Math.round(m.totalDebt),
     }));
   }, [simulation]);
@@ -17,7 +21,7 @@ export default function DebtPayoffChart({ simulation }) {
   if (chartData.length === 0) {
     return (
       <div className="rounded-2xl border border-border bg-card p-6 text-center">
-        <p className="text-muted-foreground text-sm">Добавьте долги, чтобы увидеть прогноз погашения</p>
+        <p className="text-muted-foreground text-sm">{t('debt.no_debts_desc')}</p>
       </div>
     );
   }
@@ -26,11 +30,11 @@ export default function DebtPayoffChart({ simulation }) {
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
-      <h3 className="font-semibold text-foreground mb-1">Прогноз погашения</h3>
+      <h3 className="font-semibold text-foreground mb-1">{t('debt.payoff_forecast')}</h3>
       <p className="text-xs text-muted-foreground mb-4">
-        Дата освобождения от долгов: {' '}
+        {t('debt.payoff_date')}: {' '}
         <span className="font-medium text-foreground">
-          {format(simulation.summary.payoffDate, 'd MMMM yyyy', { locale: ru })}
+          {format(simulation.summary.payoffDate, 'd MMMM yyyy', { locale: dateLocale })}
         </span>
       </p>
       <div className="h-56 sm:h-64">
@@ -62,8 +66,8 @@ export default function DebtPayoffChart({ simulation }) {
                 border: '1px solid hsl(var(--border))',
                 borderRadius: '12px',
               }}
-              formatter={(value) => [formatDebtCurrency(value), 'Остаток долга']}
-              labelFormatter={(label) => `Месяц: ${label}`}
+              formatter={(value) => [fmt(value), t('debt.analytics_debt')]}
+              labelFormatter={(label) => `${t('debt.analytics_month')}: ${label}`}
             />
             <ReferenceLine y={0} stroke="rgba(128,128,128,0.3)" />
             <Area

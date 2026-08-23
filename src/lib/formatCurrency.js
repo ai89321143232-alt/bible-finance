@@ -9,16 +9,16 @@ import { useLanguage } from '@/lib/LanguageContext';
 //   en → en-US, RUB (валюта остаётся рублём, формат локали en)
 // ============================================================
 
-export function formatCurrencyFor(amount, language = 'ru') {
+export function formatCurrencyFor(amount, language = 'ru', currency = 'RUB') {
   const locale = language === 'en' ? 'en-US' : 'ru-RU';
   return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: 'RUB',
+    currency: currency || 'RUB',
     maximumFractionDigits: 0,
   }).format(amount);
 }
 
 export function useFormatCurrency() {
   const { language } = useLanguage();
-  return (amount) => formatCurrencyFor(amount, language);
+  return (amount, currency) => formatCurrencyFor(amount, language, currency);
 }
