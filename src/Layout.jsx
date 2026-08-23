@@ -50,7 +50,7 @@ export default function Layout({ children, currentPageName }) {
   const tabPages = bottomTabs.filter((t) => !t.isCenter).map((t) => t.page);
   const isTabPage = tabPages.includes(currentPageName);
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const t = useTranslation();
 
   // Этап 1 Workspace-миграции: единожды на пользователя создаёт Personal/Family
   // Workspace и проставляет workspace_id существующим записям. Прозрачно для UI.

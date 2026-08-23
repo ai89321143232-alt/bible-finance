@@ -81,7 +81,7 @@ export default function NavigationMenu({ currentPageName, onNavigate, isChildMod
   const [hiddenItems, setHiddenItems] = useState([]);
   const [manualOpen, setManualOpen] = useState({});
   const { data: unreadChatCount = 0 } = useUnreadFamilyChat();
-  const { t } = useTranslation();
+  const t = useTranslation();
 
   useEffect(() => {
     base44.auth.me().then(user => {

@@ -31,7 +31,7 @@ export function useBottomTabs() {
     queryFn: () => base44.auth.me(),
     staleTime: 5 * 60 * 1000,
   });
-  const { t } = useTranslation();
+  const t = useTranslation();
 
   const tabOrder = user?.bottom_tab_order || user?.data?.bottom_tab_order || DEFAULT_TAB_ORDER;
 
