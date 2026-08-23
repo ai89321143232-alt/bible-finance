@@ -49,6 +49,7 @@ const MENU_STRUCTURE = [
     children: [
       { name: 'AIAssistant', label: 'AI Чат', icon: MessageCircle },
       { name: 'AIAdvisors', label: 'AI Ассистенты', icon: Sparkles },
+      { name: 'AIPlanning', label: 'ИИ Планировщик', icon: Sparkles },
     ],
   },
   {
