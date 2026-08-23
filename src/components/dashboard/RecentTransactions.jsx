@@ -3,20 +3,23 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { ru, enUS } from 'date-fns/locale';
 import { ChevronRight, ArrowLeftRight, Edit2 } from 'lucide-react';
 import { useCategoryIconMap } from '@/hooks/useCategoryIcons';
+import { useLanguage } from '@/lib/LanguageContext';
 
 export default function RecentTransactions({ transactions, formatCurrency, onEdit }) {
   const getCategoryIcon = useCategoryIconMap();
+  const { t, language } = useLanguage();
+  const dateLocale = language === 'en' ? enUS : ru;
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
       <div className="glass-card rounded-2xl overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-          <span className="text-muted-foreground text-xs uppercase tracking-widest font-semibold">Последние операции</span>
+          <span className="text-muted-foreground text-xs uppercase tracking-widest font-semibold">{t('recent.title')}</span>
           <Link to={createPageUrl('Transactions')}>
             <span className="text-muted-foreground/70 hover:text-foreground text-xs flex items-center gap-1 transition-colors">
-              Все <ChevronRight className="w-3.5 h-3.5" />
+              {t('recent.all')} <ChevronRight className="w-3.5 h-3.5" />
             </span>
           </Link>
         </div>
@@ -42,9 +45,9 @@ export default function RecentTransactions({ transactions, formatCurrency, onEdi
                     {getCategoryIcon(tx.category)}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-foreground text-sm font-medium truncate">{tx.category || 'Без категории'}</p>
+                    <p className="text-foreground text-sm font-medium truncate">{tx.category || t('recent.no_category')}</p>
                     <p className="text-muted-foreground/70 text-xs truncate">
-                      {tx.description || format(new Date(tx.date), 'd MMM', { locale: ru })}
+                      {tx.description || format(new Date(tx.date), 'd MMM', { locale: dateLocale })}
                     </p>
                   </div>
                 </div>
@@ -57,7 +60,7 @@ export default function RecentTransactions({ transactions, formatCurrency, onEdi
                       {formatCurrency(tx.amount)}
                     </p>
                     <p className="text-muted-foreground/70 text-xs mt-0.5">
-                      {format(new Date(tx.date), 'd MMM', { locale: ru })}
+                      {format(new Date(tx.date), 'd MMM', { locale: dateLocale })}
                     </p>
                   </div>
                   {onEdit && (
@@ -77,7 +80,7 @@ export default function RecentTransactions({ transactions, formatCurrency, onEdi
             <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
               <ArrowLeftRight className="w-7 h-7 opacity-50" />
             </div>
-            <p className="text-sm">Нет операций</p>
+            <p className="text-sm">{t('recent.no_transactions')}</p>
           </div>
         )}
       </div>

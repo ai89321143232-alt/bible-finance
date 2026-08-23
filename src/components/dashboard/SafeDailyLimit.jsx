@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Wallet, Snowflake, Repeat } from 'lucide-react';
+import { useLanguage } from '@/lib/LanguageContext';
 
 // ============================================================
 // SafeDailyLimit — Безопасный дневной лимит
@@ -15,6 +16,7 @@ import { Wallet, Snowflake, Repeat } from 'lucide-react';
 // где балансный = (доступный баланс - предстоящие подписки) / дни
 // ============================================================
 export default function SafeDailyLimit({ budgets, accounts, subscriptions, formatCurrency }) {
+  const { t } = useLanguage();
   const now = new Date();
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   const daysLeft = Math.max(1, endOfMonth.getDate() - now.getDate() + 1);
@@ -67,7 +69,7 @@ export default function SafeDailyLimit({ budgets, accounts, subscriptions, forma
         <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center">
           <Wallet className="w-3.5 h-3.5 text-amber-500" />
         </div>
-        <span className="text-muted-foreground text-xs">Безопасно потратить сегодня</span>
+        <span className="text-muted-foreground text-xs">{t('safedaily.title')}</span>
       </div>
       <p className="text-amber-500 font-bold text-lg">{formatCurrency(safeDaily)}</p>
 
@@ -75,13 +77,13 @@ export default function SafeDailyLimit({ budgets, accounts, subscriptions, forma
       <div className="mt-3 space-y-1.5">
         {hasBudgets && (
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>По бюджету</span>
+            <span>{t('safedaily.by_budget')}</span>
             <span className="text-foreground font-medium">{formatCurrency(budgetDaily)}</span>
           </div>
         )}
         {availableBalance > 0 && (
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>По балансу</span>
+            <span>{t('safedaily.by_balance')}</span>
             <span className="text-foreground font-medium">{formatCurrency(balanceDaily)}</span>
           </div>
         )}
@@ -89,7 +91,7 @@ export default function SafeDailyLimit({ budgets, accounts, subscriptions, forma
           <div className="flex justify-between text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Repeat className="w-3 h-3" />
-              Подписки до конца месяца
+              {t('safedaily.subscriptions_left')}
             </span>
             <span className="text-rose-500 font-medium">−{formatCurrency(upcomingSubs)}</span>
           </div>
@@ -98,7 +100,7 @@ export default function SafeDailyLimit({ budgets, accounts, subscriptions, forma
           <div className="flex justify-between text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Snowflake className="w-3 h-3" />
-              Заморожено
+              {t('safedaily.frozen')}
             </span>
             <span className="text-blue-500 font-medium">−{formatCurrency(frozenTotal)}</span>
           </div>
@@ -109,8 +111,8 @@ export default function SafeDailyLimit({ budgets, accounts, subscriptions, forma
       {hasBudgets && (
         <div className="mt-3">
           <div className="flex justify-between text-xs text-muted-foreground mb-1">
-            <span>Потрачено {Math.round(usagePercent)}%</span>
-            <span>Осталось {daysLeft} дн.</span>
+            <span>{t('safedaily.spent')} {Math.round(usagePercent)}%</span>
+            <span>{t('safedaily.left_days')} {daysLeft} {t('safedaily.days_short')}</span>
           </div>
           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
             <div

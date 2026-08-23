@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import { useLanguage } from '@/lib/LanguageContext';
+import { formatCurrencyFor } from '@/lib/formatCurrency';
 import {
   ArrowUpRight, ArrowDownRight, TrendingUp, Plus, Wallet,
   PiggyBank, Target, ChevronRight, Sparkles, CreditCard, Calendar } from
@@ -352,13 +353,7 @@ export default function Dashboard() {
   const personalFixedAssets = fixedAssets.filter((fa) => fa.created_by_id === user?.id);
   const modeFixedAssets = family && balanceMode === 'family' ? fixedAssets : personalFixedAssets;
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('ru-RU', {
-      style: 'currency',
-      currency: 'RUB',
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
+  const formatCurrency = (amount) => formatCurrencyFor(amount, language);
 
   const handleRefresh = async () => {
     await Promise.all([

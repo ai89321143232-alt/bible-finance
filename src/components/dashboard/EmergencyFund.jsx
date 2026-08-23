@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield } from 'lucide-react';
+import { useLanguage } from '@/lib/LanguageContext';
 
 // ============================================================
 // EmergencyFund — Подушка безопасности
@@ -11,6 +12,7 @@ import { Shield } from 'lucide-react';
 // Формула: общий баланс / средние месячные расходы за последние 3 месяца
 // ============================================================
 export default function EmergencyFund({ totalBalance, transactions, formatCurrency }) {
+  const { t } = useLanguage();
   const now = new Date();
 
   // Считаем средние месячные расходы за последние 3 месяца
@@ -38,16 +40,16 @@ export default function EmergencyFund({ totalBalance, transactions, formatCurren
 
   let statusColor = 'text-rose-500';
   let statusIcon = 'bg-rose-500/15 text-rose-500';
-  let message = 'Пора копить';
+  let message = t('emergency.start_saving');
 
   if (months >= 6) {
     statusColor = 'text-emerald-500';
     statusIcon = 'bg-emerald-500/15 text-emerald-500';
-    message = 'Отличная подушка';
+    message = t('emergency.great_cushion');
   } else if (months >= 3) {
     statusColor = 'text-amber-500';
     statusIcon = 'bg-amber-500/15 text-amber-500';
-    message = 'Хорошее начало';
+    message = t('emergency.good_start');
   }
 
   return (
@@ -61,21 +63,21 @@ export default function EmergencyFund({ totalBalance, transactions, formatCurren
         <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${statusIcon}`}>
           <Shield className="w-3.5 h-3.5" />
         </div>
-        <span className="text-muted-foreground text-xs">Подушка безопасности</span>
+        <span className="text-muted-foreground text-xs">{t('emergency.title')}</span>
       </div>
       <p className={`${statusColor} font-bold text-lg`}>
-        {avgMonthly === 0 ? 'Нет данных' : `${monthsDisplay} мес.`}
+        {avgMonthly === 0 ? t('emergency.no_data') : `${monthsDisplay} ${t('emergency.months_short')}`}
       </p>
       {avgMonthly > 0 && (
         <div className="mt-3">
           <p className="text-muted-foreground text-xs">{message}</p>
           <p className="text-muted-foreground/70 text-xs mt-1">
-            Трат ~{formatCurrency(avgMonthly)}/мес · Баланс {formatCurrency(totalBalance)}
+            {t('emergency.spending_month')} ~{formatCurrency(avgMonthly)}/{t('emergency.months_short')} · {t('emergency.balance')} {formatCurrency(totalBalance)}
           </p>
         </div>
       )}
       {avgMonthly === 0 && (
-        <p className="text-muted-foreground/70 text-xs mt-3">Добавьте расходы для расчёта</p>
+        <p className="text-muted-foreground/70 text-xs mt-3">{t('emergency.add_expenses')}</p>
       )}
     </motion.div>
   );

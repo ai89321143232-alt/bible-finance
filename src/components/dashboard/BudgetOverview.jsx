@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { ChevronRight, Plus, AlertCircle, Layers } from 'lucide-react';
+import { useLanguage } from '@/lib/LanguageContext';
 
 function calcBudgetSpent(budget, transactions, currentUserId) {
   const now = new Date();
@@ -23,6 +24,7 @@ function calcBudgetSpent(budget, transactions, currentUserId) {
 
 export default function BudgetOverview({ budgets, transactions = [], formatCurrency, currentUser }) {
   const currentUserId = currentUser?.id;
+  const { t } = useLanguage();
   const totalLimit = budgets.reduce((sum, b) => sum + (b.limit_amount || 0), 0);
   const totalSpent = budgets.reduce((sum, b) => sum + calcBudgetSpent(b, transactions, currentUserId), 0);
 
@@ -30,17 +32,17 @@ export default function BudgetOverview({ budgets, transactions = [], formatCurre
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
       <div className="glass-card rounded-2xl overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-          <span className="text-muted-foreground text-xs uppercase tracking-widest font-semibold">Бюджеты</span>
+          <span className="text-muted-foreground text-xs uppercase tracking-widest font-semibold">{t('budget_overview.title')}</span>
           <Link to={createPageUrl('Budgets')}>
             <span className="text-muted-foreground/70 hover:text-foreground text-xs flex items-center gap-1 transition-colors">
-              Все <ChevronRight className="w-3.5 h-3.5" />
+              {t('budget_overview.all')} <ChevronRight className="w-3.5 h-3.5" />
             </span>
           </Link>
         </div>
 
         {budgets.length > 0 && (
           <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-muted/30">
-            <span className="text-muted-foreground text-xs">Общий бюджет</span>
+            <span className="text-muted-foreground text-xs">{t('budget_overview.total')}</span>
             <span className="text-cyan-500 font-extrabold text-base">
               {formatCurrency(totalSpent)} <span className="text-muted-foreground font-medium text-sm">/ {formatCurrency(totalLimit)}</span>
             </span>
@@ -100,10 +102,10 @@ export default function BudgetOverview({ budgets, transactions = [], formatCurre
             <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
               <Layers className="w-6 h-6 text-muted-foreground/50" />
             </div>
-            <p className="text-muted-foreground text-sm mb-3">Нет бюджетов</p>
+            <p className="text-muted-foreground text-sm mb-3">{t('budget_overview.no_budgets')}</p>
             <Link to={createPageUrl('Budgets')}>
               <span className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-xs border border-border hover:border-foreground/20 rounded-lg px-3 py-1.5 transition-all">
-                <Plus className="w-3.5 h-3.5" /> Создать
+                <Plus className="w-3.5 h-3.5" /> {t('budget_overview.create')}
               </span>
             </Link>
           </div>

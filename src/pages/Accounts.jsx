@@ -38,14 +38,8 @@ import {
 import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/WorkspaceContext';
 import CreatorTag from '@/components/shared/CreatorTag';
 import FamilyVisibilityToggle from '@/components/shared/FamilyVisibilityToggle';
-
-const ACCOUNT_TYPES = [
-  { value: 'cash', label: 'Наличные', icon: '💵', color: '#10B981' },
-  { value: 'card', label: 'Карта', icon: '💳', color: '#8B5CF6' },
-  { value: 'bank_account', label: 'Банковский счёт', icon: '🏦', color: '#3B82F6' },
-  { value: 'savings', label: 'Накопительный', icon: '🐷', color: '#EC4899' },
-  { value: 'credit', label: 'Кредитная карта', icon: '💎', color: '#EF4444' },
-];
+import { useLanguage } from '@/lib/LanguageContext';
+import { useFormatCurrency } from '@/lib/formatCurrency';
 
 const ACCOUNT_COLORS = [
   '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6',
@@ -74,8 +68,17 @@ const ACCOUNT_COLORS = [
 //   Показываются только ЛИЧНЫЕ счета: accounts.filter(acc => acc.created_by_id === user.id)
 //   Семейные счета видны только в FamilyFinances и при переносах
 // ============================================================
+const ACCOUNT_TYPES = [
+  { value: 'cash', labelKey: 'accounts.type_cash', icon: '💵', color: '#10B981' },
+  { value: 'card', labelKey: 'accounts.type_card', icon: '💳', color: '#8B5CF6' },
+  { value: 'bank_account', labelKey: 'accounts.type_bank', icon: '🏦', color: '#3B82F6' },
+  { value: 'savings', labelKey: 'accounts.type_savings', icon: '🐷', color: '#EC4899' },
+  { value: 'credit', labelKey: 'accounts.type_credit', icon: '💎', color: '#EF4444' },
+];
+
 export default function Accounts() {
   const queryClient = useQueryClient();
+  const { t } = useLanguage();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editAccount, setEditAccount] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
@@ -197,7 +200,7 @@ export default function Accounts() {
         old ? old.filter(a => a.id !== id) : []
       );
       setDeleteId(null);
-      toast.success('Счет и связанные транзакции удалены');
+      toast.success(t('accounts.deleted_toast'));
       return { prevAccounts };
     },
     onError: (error, _id, context) => {
@@ -229,7 +232,7 @@ export default function Accounts() {
   const handleEdit = async (account) => {
     const user = await base44.auth.me();
     if (account.created_by_id !== user.id) {
-      toast.error('Действия с данными других пользователей запрещены!');
+      toast.error(t('accounts.edit_forbidden'));
       return;
     }
     setEditAccount(account);
@@ -259,13 +262,7 @@ export default function Accounts() {
     }
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('ru-RU', { 
-      style: 'currency', 
-      currency: 'RUB',
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
+  const formatCurrency = useFormatCurrency();
 
   // Calculate account stats
   const getAccountStats = (accountId) => {
@@ -298,9 +295,9 @@ export default function Accounts() {
         >
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-              Счета
+              {t('accounts.title')}
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{displayedAccounts.length} {displayedAccounts.length === 1 ? 'счёт' : 'счёта'}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{displayedAccounts.length} {displayedAccounts.length === 1 ? t('accounts.count_one') : t('accounts.count_few')}</p>
           </div>
           <div className="flex items-center gap-2">
             {family && (
@@ -311,7 +308,7 @@ export default function Accounts() {
               className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl"
             >
               <Plus className="w-5 h-5 mr-2" />
-              Добавить
+              {t('common.add')}
             </Button>
           </div>
         </motion.div>
@@ -326,23 +323,23 @@ export default function Accounts() {
             <CardContent className="p-6">
               <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-violet-500/20 to-transparent rounded-full blur-3xl pointer-events-none" />
               <div className="relative">
-                <p className="text-slate-400 text-sm mb-1">Чистый капитал</p>
+                <p className="text-slate-400 text-sm mb-1">{t('accounts.net_worth')}</p>
                 <p className={`text-4xl font-bold ${netWorth >= 0 ? 'text-white' : 'text-rose-400'}`}>
                   {formatCurrency(netWorth)}
                 </p>
                 <div className="flex items-center gap-4 mt-3 text-sm">
                   <div>
-                    <span className="text-slate-500">Активы: </span>
+                    <span className="text-slate-500">{t('accounts.assets')}: </span>
                     <span className="text-emerald-400 font-semibold">{formatCurrency(positiveBalance)}</span>
                   </div>
                   {negativeBalance < 0 && (
                     <div>
-                      <span className="text-slate-500">Долги: </span>
+                      <span className="text-slate-500">{t('accounts.debts')}: </span>
                       <span className="text-rose-400 font-semibold">{formatCurrency(negativeBalance)}</span>
                     </div>
                   )}
                 </div>
-                <p className="text-slate-400 text-xs mt-2">{displayedAccounts.length} счетов</p>
+                <p className="text-slate-400 text-xs mt-2">{displayedAccounts.length} {t('accounts.accounts_count')}</p>
               </div>
             </CardContent>
           </Card>
@@ -389,7 +386,7 @@ export default function Accounts() {
                               )}
                             </div>
                             <p className="text-sm text-slate-500 dark:text-slate-400">
-                              {typeInfo.label}
+                              {t(typeInfo.labelKey)}
                             </p>
                             <CreatorTag creatorId={account.created_by_id} family={family} currentUser={currentUser} className="mt-0.5" />
                           </div>
@@ -430,13 +427,13 @@ export default function Accounts() {
                       {(account.frozen_amount || 0) > 0 && (
                         <p className="text-xs text-amber-500 dark:text-amber-400 mb-1 flex items-center gap-1">
                           <Lock className="w-3 h-3" />
-                          Заморожено: {formatCurrency(account.frozen_amount || 0)} • Доступно: {formatCurrency((account.balance || 0) - (account.frozen_amount || 0))}
+                           {t('accounts.frozen')}: {formatCurrency(account.frozen_amount || 0)} • {t('accounts.available')}: {formatCurrency((account.balance || 0) - (account.frozen_amount || 0))}
                         </p>
                       )}
                       {account.type === 'credit' && account.credit_limit > 0 && (
                         <p className="text-xs text-slate-400 mb-2">
-                          Лимит: {formatCurrency(account.credit_limit)} • 
-                          Доступно: {formatCurrency(account.credit_limit + (account.balance || 0))}
+                          {t('accounts.limit')}: {formatCurrency(account.credit_limit)} •
+                          {t('accounts.available')}: {formatCurrency(account.credit_limit + (account.balance || 0))}
                         </p>
                       )}
                       {!account.credit_limit && <div className="mb-3" />}
@@ -463,17 +460,17 @@ export default function Accounts() {
               <Wallet className="w-8 h-8 text-slate-400" />
             </div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-              Нет счетов
+              {t('accounts.no_accounts')}
             </h3>
             <p className="text-slate-500 dark:text-slate-400 mb-4">
-              Добавьте первый счёт для учёта финансов
+              {t('accounts.add_first')}
             </p>
             <Button
               onClick={() => setShowAddModal(true)}
               className="rounded-xl"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Добавить счёт
+              {t('accounts.add_account')}
             </Button>
           </div>
         )}
@@ -484,21 +481,21 @@ export default function Accounts() {
         <DialogContent className="rounded-2xl max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editAccount ? 'Редактировать счёт' : 'Новый счёт'}
+              {editAccount ? t('accounts.edit_account') : t('accounts.new_account')}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Название</Label>
+              <Label>{t('accounts.name_label')}</Label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Например: Основная карта"
+                placeholder={t('accounts.name_placeholder')}
                 className="rounded-xl mt-1"
               />
             </div>
             <div>
-              <Label>Тип счёта</Label>
+              <Label>{t('accounts.type_label')}</Label>
               <Select 
                 value={formData.type} 
                 onValueChange={(v) => setFormData({ ...formData, type: v })}
@@ -509,14 +506,14 @@ export default function Accounts() {
                 <SelectContent>
                   {ACCOUNT_TYPES.map(type => (
                     <SelectItem key={type.value} value={type.value}>
-                      {type.icon} {type.label}
+                      {type.icon} {t(type.labelKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Баланс</Label>
+              <Label>{t('accounts.balance_label')}</Label>
               <div className="relative mt-1">
                 <Input
                   type="number"
@@ -530,19 +527,19 @@ export default function Accounts() {
               {formData.type === 'credit' && (
                 <p className="text-xs text-rose-500/80 mt-1.5 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />
-                  Для кредитного счёта укажите отрицательный баланс (сумму долга)
+                  {t('accounts.credit_balance_hint')}
                 </p>
               )}
             </div>
             {formData.type === 'credit' && (
               <div>
-                <Label>Кредитный лимит</Label>
+                <Label>{t('accounts.credit_limit_label')}</Label>
                 <div className="relative mt-1">
                   <Input
                     type="number"
                     value={formData.credit_limit}
                     onChange={(e) => setFormData({ ...formData, credit_limit: e.target.value })}
-                    placeholder="Например: 100000"
+                    placeholder={t('accounts.credit_limit_placeholder')}
                     className="rounded-xl pr-8"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
@@ -550,7 +547,7 @@ export default function Accounts() {
               </div>
             )}
             <div>
-              <Label>Цвет</Label>
+              <Label>{t('accounts.color_label')}</Label>
               <div className="flex gap-2 mt-2 flex-wrap">
                 {ACCOUNT_COLORS.map((color) => (
                   <button
@@ -570,7 +567,7 @@ export default function Accounts() {
               className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"
             >
               <Check className="w-4 h-4 mr-2" />
-              {editAccount ? 'Сохранить' : 'Создать'}
+              {editAccount ? t('common.save') : t('budget_overview.create')}
             </Button>
           </div>
         </DialogContent>
@@ -580,24 +577,24 @@ export default function Accounts() {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Удалить счёт?</AlertDialogTitle>
+            <AlertDialogTitle>{t('accounts.delete_title')}</AlertDialogTitle>
             <AlertDialogDescription>
               {relatedTransactionsCount > 0 ? (
                 <>
-                  <span className="font-semibold text-rose-600">{relatedTransactionsCount} {relatedTransactionsCount === 1 ? 'транзакция' : relatedTransactionsCount % 10 === 1 && relatedTransactionsCount % 100 !== 11 ? 'транзакция' : relatedTransactionsCount % 10 >= 2 && relatedTransactionsCount % 10 <= 4 && (relatedTransactionsCount % 100 < 10 || relatedTransactionsCount % 100 >= 20) ? 'транзакции' : 'транзакций'}</span> будет удалена вместе со счётом. Это действие нельзя отменить.
+                  <span className="font-semibold text-rose-600">{relatedTransactionsCount} {relatedTransactionsCount === 1 ? t('accounts.tx_one') : t('accounts.tx_few')}</span> {t('accounts.transactions_with')}
                 </>
               ) : (
-                'Это действие нельзя отменить.'
+                t('accounts.delete_desc')
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Отмена</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl">{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteMutation.mutate(deleteId)}
               className="bg-rose-600 hover:bg-rose-700 rounded-xl"
             >
-              Удалить
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

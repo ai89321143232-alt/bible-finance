@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Eye, EyeOff, TrendingUp, TrendingDown, Wallet, BarChart2, ArrowUpRight, ArrowDownRight, CreditCard } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { useLanguage } from '@/lib/LanguageContext';
 
 export default function BalanceCard({
   totalBalance,
@@ -16,6 +17,7 @@ export default function BalanceCard({
   investments = []
 }) {
   const [showBalance, setShowBalance] = useState(true);
+  const { t } = useLanguage();
   const netFlow = monthIncome - monthExpenses;
   const isPositive = netFlow >= 0;
 
@@ -38,7 +40,7 @@ export default function BalanceCard({
             <div className="w-5 h-5 rounded-md bg-violet-500/15 flex items-center justify-center">
               <Wallet className="w-3 h-3 text-violet-500" />
             </div>
-            <span className="text-muted-foreground text-xs uppercase tracking-widest font-medium">Общий баланс</span>
+            <span className="text-muted-foreground text-xs uppercase tracking-widest font-medium">{t('balance.total_balance')}</span>
           </div>
           <Button
             variant="ghost"
@@ -61,7 +63,7 @@ export default function BalanceCard({
           </h2>
           {totalFrozen > 0 && (
             <p className="text-xs text-amber-500 mt-1">
-              Заморожено под цели: {showBalance ? formatCurrency(totalFrozen) : '••••'} • Доступно: {showBalance ? formatCurrency(totalBalance - totalFrozen) : '••••'}
+              {t('balance.frozen_for_goals')}: {showBalance ? formatCurrency(totalFrozen) : '••••'} • {t('balance.available')}: {showBalance ? formatCurrency(totalBalance - totalFrozen) : '••••'}
             </p>
           )}
           <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -73,11 +75,11 @@ export default function BalanceCard({
               {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
               {isPositive ? '+' : ''}{formatCurrency(netFlow)}
             </span>
-            <span className="text-muted-foreground/70 text-xs">в этом месяце</span>
+            <span className="text-muted-foreground/70 text-xs">{t('balance.this_month')}</span>
             {hasDebt && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-500">
                 <CreditCard className="w-3 h-3" />
-                Долг: {formatCurrency(-totalDebt)}
+                {t('balance.debt')}: {formatCurrency(-totalDebt)}
               </span>
             )}
           </div>
@@ -85,10 +87,10 @@ export default function BalanceCard({
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Счета', value: formatCurrency(totalBalance - totalFrozen), icon: Wallet, color: 'text-violet-500', bg: 'bg-violet-500/10', link: 'Accounts' },
-            { label: 'Инвестиции', value: formatCurrency(investmentValue), icon: BarChart2, color: 'text-cyan-500', bg: 'bg-cyan-500/10', link: 'Investments' },
-            { label: 'Доходы', value: formatCurrency(monthIncome), icon: ArrowUpRight, color: 'text-emerald-500', bg: 'bg-emerald-500/10', link: 'Transactions' },
-            { label: 'Расходы', value: formatCurrency(monthExpenses), icon: ArrowDownRight, color: 'text-rose-500', bg: 'bg-rose-500/10', link: 'Transactions' },
+            { label: t('balance.accounts'), value: formatCurrency(totalBalance - totalFrozen), icon: Wallet, color: 'text-violet-500', bg: 'bg-violet-500/10', link: 'Accounts' },
+            { label: t('balance.investments'), value: formatCurrency(investmentValue), icon: BarChart2, color: 'text-cyan-500', bg: 'bg-cyan-500/10', link: 'Investments' },
+            { label: t('balance.income'), value: formatCurrency(monthIncome), icon: ArrowUpRight, color: 'text-emerald-500', bg: 'bg-emerald-500/10', link: 'Transactions' },
+            { label: t('balance.expenses'), value: formatCurrency(monthExpenses), icon: ArrowDownRight, color: 'text-rose-500', bg: 'bg-rose-500/10', link: 'Transactions' },
           ].map((stat) => (
             <Link key={stat.label} to={createPageUrl(stat.link)}>
               <div className="rounded-xl border border-border bg-muted/50 p-3.5 hover:bg-muted transition-all group cursor-pointer">

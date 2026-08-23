@@ -4,7 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { GoalService, InvestmentService } from '@/services';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { ru, enUS } from 'date-fns/locale';
+import { useLanguage } from '@/lib/LanguageContext';
+import { useFormatCurrency } from '@/lib/formatCurrency';
 import {
   Plus, Target, Edit2, Trash2, Check, Calendar, TrendingUp, Coins, MinusCircle,
   Users, Zap
@@ -46,17 +48,19 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
 const GOAL_TYPES = [
-  { value: 'savings', label: 'Накопления', icon: '💰', color: '#10B981' },
-  { value: 'debt_payoff', label: 'Погашение долга', icon: '📉', color: '#EF4444' },
-  { value: 'investment', label: 'Инвестиции', icon: '📈', color: '#8B5CF6' },
-  { value: 'purchase', label: 'Покупка', icon: '🛍️', color: '#F59E0B' },
-  { value: 'emergency_fund', label: 'Подушка безопасности', icon: '🛡️', color: '#3B82F6' },
-  { value: 'other', label: 'Другое', icon: '🎯', color: '#64748B' },
+  { value: 'savings', labelKey: 'goals.type_savings', icon: '💰', color: '#10B981' },
+  { value: 'debt_payoff', labelKey: 'goals.type_debt_payoff', icon: '📉', color: '#EF4444' },
+  { value: 'investment', labelKey: 'goals.type_investment', icon: '📈', color: '#8B5CF6' },
+  { value: 'purchase', labelKey: 'goals.type_purchase', icon: '🛍️', color: '#F59E0B' },
+  { value: 'emergency_fund', labelKey: 'goals.type_emergency_fund', icon: '🛡️', color: '#3B82F6' },
+  { value: 'other', labelKey: 'goals.type_other', icon: '🎯', color: '#64748B' },
 ];
 
 export default function Goals() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { t, language } = useLanguage();
+  const dateLocale = language === 'en' ? enUS : ru;
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddFundsModal, setShowAddFundsModal] = useState(null);
   const [showSpendModal, setShowSpendModal] = useState(null);
@@ -290,9 +294,7 @@ export default function Goals() {
     return () => clearInterval(interval);
   }, [myGoals, sharedGoals, user?.email, viewMode]);
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(amount);
-  };
+  const formatCurrency = useFormatCurrency();
 
   // Сколько каждой инвестиции уже распределено по ДРУГИМ целям
   const allGoals = [...myGoals, ...sharedGoals];
@@ -317,7 +319,7 @@ export default function Goals() {
     const allocatedElsewhere = investmentAllocatedMap[invId] || 0;
     const maxAvailable = Math.max(0, fullValue - allocatedElsewhere);
     if (entered > maxAvailable) {
-      return `Максимум ${maxAvailable.toFixed(0)} ₽ — остальное уже распределено по другим целям`;
+      return `${t('goals.max_amount')} ${maxAvailable.toFixed(0)} ₽ ${t('goals.allocated_elsewhere')}`;
     }
     return '';
   };
@@ -344,14 +346,14 @@ export default function Goals() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-32 sm:pb-6">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <div className="flex items-center justify-between gap-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Цели</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">{t('goals.title')}</h1>
             <div className="flex items-center gap-2">
               {family && viewMode === 'family' && (
                 <FamilyVisibilityToggle showOnlyMine={showOnlyMine} onToggle={() => setShowOnlyMine(v => !v)} />
               )}
               <span className="hidden sm:block"><CalendarExport budgets={[]} goals={myGoals} accounts={accounts} /></span>
               <Button onClick={() => setShowAddModal(true)} size="sm" className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl">
-                <Plus className="w-4 h-4" /><span className="ml-1">Создать</span>
+                <Plus className="w-4 h-4" /><span className="ml-1">{t('goals.create')}</span>
               </Button>
             </div>
           </div>
@@ -359,15 +361,15 @@ export default function Goals() {
 
         {family && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-6 flex gap-2">
-            <button onClick={() => setViewMode('personal')} className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all ${viewMode === 'personal' ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Мои цели</button>
-            <button onClick={() => setViewMode('family')} className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${viewMode === 'family' ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><Users className="w-4 h-4" />Семейные</button>
+            <button onClick={() => setViewMode('personal')} className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all ${viewMode === 'personal' ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{t('goals.my_goals')}</button>
+            <button onClick={() => setViewMode('family')} className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${viewMode === 'family' ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}><Users className="w-4 h-4" />{t('goals.family_goals')}</button>
           </motion.div>
         )}
 
         {viewMode === 'personal' && activeGoals.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-6">
             <Button onClick={() => setShowAutoDistribute(true)} variant="outline" className="w-full rounded-xl border-violet-200 text-violet-700 dark:text-violet-400">
-              <Zap className="w-4 h-4 mr-2" />Распределить {formatCurrency(totalBalance)} между целями
+              <Zap className="w-4 h-4 mr-2" />{t('goals.distribute')} {formatCurrency(totalBalance)} {t('goals.between_goals')}
             </Button>
           </motion.div>
         )}
@@ -378,7 +380,7 @@ export default function Goals() {
             <GoalsPieChart goals={activeGoals} formatCurrency={formatCurrency} />
           </div>
           <div className="mb-8">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Активные цели</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">{t('goals.active_goals')}</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               {activeGoals.map((goal, index) => (
                 <GoalCard key={goal.id} goal={goal} index={index}
@@ -395,7 +397,7 @@ export default function Goals() {
 
         {completedGoals.length > 0 && (
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Достигнутые цели 🎉</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">{t('goals.completed_goals')} 🎉</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               {completedGoals.map((goal) => (
                 <Card key={goal.id} className="border-0 shadow-sm bg-emerald-50 dark:bg-emerald-900/20">
@@ -404,7 +406,7 @@ export default function Goals() {
                       <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-xl">✅</div>
                       <div>
                         <h3 className="font-medium text-slate-900 dark:text-white">{goal.title}</h3>
-                        <p className="text-sm text-emerald-600">{formatCurrency(goal.target_amount)} накоплено</p>
+                        <p className="text-sm text-emerald-600">{formatCurrency(goal.target_amount)} {t('goals.saved_word')}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -419,10 +421,10 @@ export default function Goals() {
             <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <Target className="w-8 h-8 text-slate-400" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">{viewMode === 'personal' ? 'Нет целей' : 'Нет общих целей'}</h3>
-            <p className="text-slate-500 dark:text-slate-400 mb-4">{viewMode === 'personal' ? 'Создайте первую финансовую цель' : 'Семейные члены пока не создали общих целей'}</p>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">{viewMode === 'personal' ? t('goals.no_goals') : t('goals.no_shared_goals')}</h3>
+            <p className="text-slate-500 dark:text-slate-400 mb-4">{viewMode === 'personal' ? t('goals.create_first') : t('goals.no_shared_hint')}</p>
             {viewMode === 'personal' && (
-              <Button onClick={() => setShowAddModal(true)} className="rounded-xl"><Plus className="w-4 h-4 mr-2" />Создать цель</Button>
+              <Button onClick={() => setShowAddModal(true)} className="rounded-xl"><Plus className="w-4 h-4 mr-2" />{t('goals.create_goal_btn')}</Button>
             )}
           </div>
         )}
@@ -431,39 +433,39 @@ export default function Goals() {
       {/* Add/Edit Modal */}
       <Dialog open={showAddModal} onOpenChange={() => resetForm()}>
         <DialogContent className="rounded-2xl max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editGoal ? 'Редактировать цель' : 'Новая цель'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editGoal ? t('goals.edit_goal') : t('goals.new_goal')}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Название</Label>
-              <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="Например: Отпуск на море" className="rounded-xl mt-1" />
+              <Label>{t('goals.name_label')}</Label>
+              <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder={t('goals.name_placeholder')} className="rounded-xl mt-1" />
             </div>
             <div>
-              <Label>Тип цели</Label>
-              <MobileSelect value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })} placeholder="Тип цели" title="Тип цели" triggerClassName="rounded-xl mt-1 w-full">
+              <Label>{t('goals.type_label')}</Label>
+              <MobileSelect value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })} placeholder={t('goals.type_label')} title={t('goals.type_label')} triggerClassName="rounded-xl mt-1 w-full">
                 {GOAL_TYPES.map(type => (
-                  <option key={type.value} value={type.value}>{type.icon} {type.label}</option>
+                  <option key={type.value} value={type.value}>{type.icon} {t(type.labelKey)}</option>
                 ))}
               </MobileSelect>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Целевая сумма</Label>
+                <Label>{t('goals.target_amount')}</Label>
                 <div className="relative mt-1">
                   <Input type="number" value={formData.target_amount} onChange={(e) => setFormData({ ...formData, target_amount: e.target.value })} placeholder="0" className="rounded-xl pr-8" />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
                 </div>
               </div>
               <div>
-                <Label>Приоритет</Label>
-                <MobileSelect value={formData.priority} onValueChange={(v) => setFormData({ ...formData, priority: v })} placeholder="Приоритет" title="Приоритет" triggerClassName="rounded-xl mt-1 w-full">
-                  <option value="low">🟢 Низкий</option>
-                  <option value="medium">🟡 Средний</option>
-                  <option value="high">🔴 Высокий</option>
+                <Label>{t('goals.priority')}</Label>
+                <MobileSelect value={formData.priority} onValueChange={(v) => setFormData({ ...formData, priority: v })} placeholder={t('goals.priority')} title={t('goals.priority')} triggerClassName="rounded-xl mt-1 w-full">
+                  <option value="low">{t('goals.priority_low')}</option>
+                  <option value="medium">{t('goals.priority_medium')}</option>
+                  <option value="high">{t('goals.priority_high')}</option>
                 </MobileSelect>
               </div>
             </div>
             <div>
-              <Label>Уже накоплено</Label>
+              <Label>{t('goals.already_saved')}</Label>
               <div className="relative mt-1">
                 <Input type="number" value={formData.current_amount} onChange={(e) => setFormData({ ...formData, current_amount: e.target.value })} placeholder="0" className="rounded-xl pr-8" />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
@@ -471,10 +473,10 @@ export default function Goals() {
             </div>
             {parseFloat(formData.current_amount) > 0 && (
               <div>
-                <Label>Где хранятся эти деньги?</Label>
+                <Label>{t('goals.where_stored')}</Label>
                 <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
                   {accounts.length === 0 && (
-                    <p className="text-sm text-slate-400">Нет доступных счетов</p>
+                    <p className="text-sm text-slate-400">{t('goals.no_accounts')}</p>
                   )}
                   {accounts.map(account => (
                     <label key={account.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30">
@@ -488,14 +490,14 @@ export default function Goals() {
                     </label>
                   ))}
                 </div>
-                <p className="text-xs text-slate-400 mt-1">Можно выбрать несколько счетов. Позволяет следить, что суммарный баланс не упал ниже накопленной суммы</p>
+                <p className="text-xs text-slate-400 mt-1">{t('goals.multi_account_hint')}</p>
               </div>
             )}
 
             {/* Привязка инвестиций и вкладов к цели */}
             {investments.length > 0 && (
               <div>
-                <Label>Инвестиции и вклады под эту цель</Label>
+                <Label>{t('goals.investments_for_goal')}</Label>
                 <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
                   {investments.map(inv => {
                     const isDeposit = inv.type === 'deposit';
@@ -520,7 +522,7 @@ export default function Goals() {
                         {isChecked && (
                           <div className="mt-2 pl-6">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-slate-500 whitespace-nowrap">Считать для цели:</span>
+                              <span className="text-xs text-slate-500 whitespace-nowrap">{t('goals.count_for_goal')}</span>
                               <Input type="number" value={investmentAmounts[inv.id] || ''} onChange={(e) => {
                                 const val = e.target.value;
                                 setInvestmentAmounts({ ...investmentAmounts, [inv.id]: val });
@@ -533,7 +535,7 @@ export default function Goals() {
                               <p className="text-xs text-rose-500 mt-1">{investmentErrors[inv.id]}</p>
                             )}
                             {(investmentAllocatedMap[inv.id] || 0) > 0 && !investmentErrors[inv.id] && (
-                              <p className="text-xs text-slate-400 mt-0.5">Уже в других целях: {(investmentAllocatedMap[inv.id]).toFixed(0)} ₽</p>
+                              <p className="text-xs text-slate-400 mt-0.5">{t('goals.already_in_goals')} {(investmentAllocatedMap[inv.id]).toFixed(0)} ₽</p>
                             )}
                           </div>
                         )}
@@ -541,16 +543,16 @@ export default function Goals() {
                     );
                   })}
                 </div>
-                <p className="text-xs text-slate-400 mt-1">Вклады и инвестиции, которые работают на эту цель</p>
+                <p className="text-xs text-slate-400 mt-1">{t('goals.investments_hint')}</p>
               </div>
             )}
             <div>
-              <Label>Дедлайн</Label>
-              <MobilePopover title="Выберите дату"
+              <Label>{t('goals.deadline')}</Label>
+              <MobilePopover title={t('goals.pick_date')}
                 trigger={
                   <Button variant="outline" className="w-full justify-start text-left font-normal rounded-xl mt-1">
                     <Calendar className="mr-2 h-4 w-4" />
-                    {formData.deadline ? format(formData.deadline, 'dd.MM.yyyy') : 'Выберите дату'}
+                    {formData.deadline ? format(formData.deadline, 'dd.MM.yyyy') : t('goals.pick_date')}
                   </Button>
                 }>
                 <CalendarComponent mode="single" selected={formData.deadline} onSelect={(d) => setFormData({ ...formData, deadline: d })} />
@@ -562,12 +564,12 @@ export default function Goals() {
                 <div>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={formData.is_family_goal} onChange={(e) => setFormData({ ...formData, is_family_goal: e.target.checked })} className="rounded" />
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Это семейная цель</span>
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('goals.is_family_goal')}</span>
                   </label>
                 </div>
                 {formData.is_family_goal && (
                   <div>
-                    <Label>Поделиться с членами семьи</Label>
+                    <Label>{t('goals.share_with')}</Label>
                     <div className="mt-2 space-y-2">
                       {family.members?.filter(m => m.user_id !== user?.id).map(member => (
                         <label key={member.user_id} className="flex items-center gap-2 cursor-pointer">
@@ -589,7 +591,7 @@ export default function Goals() {
 
             <Button onClick={handleSubmit} disabled={!formData.title || !formData.target_amount || createMutation.isPending || updateMutation.isPending}
               className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600">
-              <Check className="w-4 h-4 mr-2" />{editGoal ? 'Сохранить' : 'Создать'}
+              <Check className="w-4 h-4 mr-2" />{editGoal ? t('common.save') : t('goals.create')}
             </Button>
           </div>
         </DialogContent>
@@ -600,26 +602,26 @@ export default function Goals() {
 
       <Dialog open={!!showAddFundsModal} onOpenChange={() => { setShowAddFundsModal(null); setAddFundsAmount(''); setSelectedAccount(''); }}>
         <DialogContent className="rounded-2xl max-w-sm">
-          <DialogHeader><DialogTitle>Пополнить цель</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('goals.add_funds')}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <p className="text-slate-500">{showAddFundsModal?.title}</p>
             <div>
-              <Label>Счет списания</Label>
-              <MobileSelect value={selectedAccount} onValueChange={setSelectedAccount} placeholder="Выберите счет" title="Счет списания" triggerClassName="rounded-xl mt-1 w-full">
+              <Label>{t('goals.source_account')}</Label>
+              <MobileSelect value={selectedAccount} onValueChange={setSelectedAccount} placeholder={t('goals.pick_account')} title={t('goals.source_account')} triggerClassName="rounded-xl mt-1 w-full">
                 {accounts.map(account => (
                   <option key={account.id} value={account.id}>{account.name} ({formatCurrency(account.balance)})</option>
                 ))}
               </MobileSelect>
             </div>
             <div>
-              <Label>Сумма</Label>
+              <Label>{t('goals.amount')}</Label>
               <div className="relative mt-1">
                 <Input type="number" value={addFundsAmount} onChange={(e) => setAddFundsAmount(e.target.value)} placeholder="0" className="rounded-xl pr-8 text-xl font-semibold h-14" />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
               </div>
             </div>
             <Button onClick={handleAddFunds} disabled={!addFundsAmount || !selectedAccount || updateMutation.isPending} className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600">
-              <Coins className="w-4 h-4 mr-2" />Пополнить
+              <Coins className="w-4 h-4 mr-2" />{t('goals.add_funds_btn')}
             </Button>
           </div>
         </DialogContent>
@@ -627,21 +629,21 @@ export default function Goals() {
 
       <Dialog open={!!showSpendModal} onOpenChange={() => { setShowSpendModal(null); setSpendAmount(''); setSpendCategory(''); setSpendDescription(''); setSpendAccountId(''); }}>
         <DialogContent className="rounded-2xl max-w-sm">
-          <DialogHeader><DialogTitle>Потратить из цели</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('goals.spend_from_goal')}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <p className="text-slate-500">{showSpendModal?.title}</p>
-            <p className="text-sm text-slate-600">Доступно: {formatCurrency(showSpendModal?.current_amount || 0)}</p>
+            <p className="text-sm text-slate-600">{t('goals.available')}: {formatCurrency(showSpendModal?.current_amount || 0)}</p>
             <div>
-              <Label>Счёт списания</Label>
-              <MobileSelect value={spendAccountId} onValueChange={setSpendAccountId} placeholder="Выберите счёт" title="Счёт списания" triggerClassName="rounded-xl mt-1 w-full">
+              <Label>{t('goals.source_account_label')}</Label>
+              <MobileSelect value={spendAccountId} onValueChange={setSpendAccountId} placeholder={t('goals.pick_account_label')} title={t('goals.source_account_label')} triggerClassName="rounded-xl mt-1 w-full">
                 {accounts.map(account => (
-                  <option key={account.id} value={account.id}>{account.name} — заморожено: {formatCurrency(account.frozen_amount || 0)}</option>
+                  <option key={account.id} value={account.id}>{account.name} — {t('accounts.frozen')}: {formatCurrency(account.frozen_amount || 0)}</option>
                 ))}
               </MobileSelect>
-              <p className="text-xs text-slate-400 mt-1">Средства будут списаны с баланса и разморожены</p>
+              <p className="text-xs text-slate-400 mt-1">{t('goals.funds_will_be_unfrozen')}</p>
             </div>
             <div>
-              <Label>Сумма</Label>
+              <Label>{t('goals.amount')}</Label>
               <div className="relative mt-1">
                 <Input type="number" value={spendAmount} onChange={(e) => setSpendAmount(e.target.value)} placeholder="0" max={showSpendModal?.current_amount || 0} className="rounded-xl pr-8 text-xl font-semibold h-14" />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
@@ -649,25 +651,25 @@ export default function Goals() {
             </div>
             <div>
               <div className="flex items-center justify-between">
-                <Label>Категория расхода</Label>
+                <Label>{t('goals.expense_category')}</Label>
                 <Link to={createPageUrl('Categories')} className="text-xs text-violet-600 hover:underline">
-                  + Добавить категорию
+                  {t('goals.add_category')}
                 </Link>
               </div>
-              <MobileSelect value={spendCategory} onValueChange={setSpendCategory} placeholder="Выберите категорию" title="Категория" triggerClassName="rounded-xl mt-1 w-full">
+              <MobileSelect value={spendCategory} onValueChange={setSpendCategory} placeholder={t('goals.pick_category')} title={t('goals.expense_category')} triggerClassName="rounded-xl mt-1 w-full">
                 {categories.map(cat => (
                   <option key={cat.id} value={cat.name}>{getCategoryEmoji(cat.icon)} {cat.name}</option>
                 ))}
               </MobileSelect>
             </div>
             <div>
-              <Label>Комментарий</Label>
-              <Input value={spendDescription} onChange={(e) => setSpendDescription(e.target.value)} placeholder="Описание расхода" className="rounded-xl mt-1" />
+              <Label>{t('goals.comment')}</Label>
+              <Input value={spendDescription} onChange={(e) => setSpendDescription(e.target.value)} placeholder={t('goals.comment_placeholder')} className="rounded-xl mt-1" />
             </div>
             <Button onClick={handleSpendFromGoal}
               disabled={!spendAmount || !spendCategory || parseFloat(spendAmount) > (showSpendModal?.current_amount || 0) || updateMutation.isPending}
               className="w-full rounded-xl bg-gradient-to-r from-rose-600 to-pink-600">
-              <MinusCircle className="w-4 h-4 mr-2" />Потратить
+              <MinusCircle className="w-4 h-4 mr-2" />{t('goals.spend_btn')}
             </Button>
           </div>
         </DialogContent>
@@ -676,12 +678,12 @@ export default function Goals() {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Удалить цель?</AlertDialogTitle>
-            <AlertDialogDescription>Это действие нельзя отменить.</AlertDialogDescription>
+            <AlertDialogTitle>{t('goals.delete_title')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('goals.delete_desc')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteMutation.mutate(deleteId)} className="bg-rose-600 hover:bg-rose-700 rounded-xl">Удалить</AlertDialogAction>
+            <AlertDialogCancel className="rounded-xl">{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteMutation.mutate(deleteId)} className="bg-rose-600 hover:bg-rose-700 rounded-xl">{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

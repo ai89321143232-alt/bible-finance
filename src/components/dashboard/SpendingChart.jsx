@@ -4,14 +4,17 @@ import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { PieChart as PieIcon, BarChart2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, addWeeks, subWeeks, addMonths, subMonths, addYears, subYears } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { ru, enUS } from 'date-fns/locale';
 import { INVESTMENT_CATEGORY } from '@/lib/investmentConstants';
+import { useLanguage } from '@/lib/LanguageContext';
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#e11d48', '#d946ef', '#0ea5e9', '#f97316'];
 
 const CATEGORY_ICONS = {
   'Еда': '🍔', 'Транспорт': '🚗', 'Жильё': '🏠', 'Развлечения': '🎮',
-  'Здоровье': '💊', 'Одежда': '👕', 'Подписки': '📱', 'Образование': '📚', 'Другое': '📦'
+  'Здоровье': '💊', 'Одежда': '👕', 'Подписки': '📱', 'Образование': '📚',
+  'Food': '🍔', 'Transport': '🚗', 'Housing': '🏠', 'Entertainment': '🎮',
+  'Health': '💊', 'Clothing': '👕', 'Subscriptions': '📱', 'Education': '📚', 'Other': '📦'
 };
 
 function getPeriodRange(periodType, anchor) {
@@ -33,16 +36,16 @@ function shiftAnchor(periodType, anchor, direction) {
   }
 }
 
-function formatPeriodLabel(periodType, start, end) {
+function formatPeriodLabel(periodType, start, end, locale, yearWord) {
   switch (periodType) {
     case 'week':
-      return `${format(start, 'd MMM', { locale: ru })} – ${format(end, 'd MMM yyyy', { locale: ru })}`;
+      return `${format(start, 'd MMM', { locale })} – ${format(end, 'd MMM yyyy', { locale })}`;
     case 'month':
-      return format(start, 'LLLL yyyy', { locale: ru });
+      return format(start, 'LLLL yyyy', { locale });
     case 'year':
-      return format(start, 'yyyy', { locale: ru }) + ' год';
+      return format(start, 'yyyy', { locale }) + (yearWord ? ' ' + yearWord : '');
     default:
-      return format(start, 'LLLL yyyy', { locale: ru });
+      return format(start, 'LLLL yyyy', { locale });
   }
 }
 
@@ -50,6 +53,8 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
   const [chartType, setChartType] = useState('pie');
   const [anchor, setAnchor] = useState(new Date());
   const navigate = useNavigate();
+  const { t, language } = useLanguage();
+  const dateLocale = language === 'en' ? enUS : ru;
 
   const touchStartX = useRef(null);
 
@@ -79,16 +84,17 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
   };
 
   const expensesByCategory = periodTransactions
-    .filter(t => t.type === 'expense' && t.category !== INVESTMENT_CATEGORY)
-    .reduce((acc, t) => {
-      const cat = t.category || 'Другое';
-      acc[cat] = (acc[cat] || 0) + t.amount;
+    .filter(tx => tx.type === 'expense' && tx.category !== INVESTMENT_CATEGORY)
+    .reduce((acc, tx) => {
+      const cat = tx.category || t('spending.other');
+      acc[cat] = (acc[cat] || 0) + tx.amount;
       return acc;
     }, {});
 
   const chartData = Object.entries(expensesByCategory)
     .map(([name, value], i) => ({ name, value, color: COLORS[i % COLORS.length], icon: CATEGORY_ICONS[name] || '📦' }))
     .sort((a, b) => b.value - a.value);
+
 
   const total = chartData.reduce((sum, i) => sum + i.value, 0);
 
@@ -103,7 +109,7 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
     );
   };
 
-  const periodLabel = isAllTime ? 'Всё время' : formatPeriodLabel(periodType, start, end);
+  const periodLabel = isAllTime ? t('spending.all_time') : formatPeriodLabel(periodType, start, end, dateLocale, t('spending.year_word'));
   const isCurrentPeriod = isAllTime || (() => {
     const now = new Date();
     const cur = getPeriodRange(periodType, now);
@@ -118,7 +124,7 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
         onTouchEnd={handleTouchEnd}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <span className="text-muted-foreground text-xs uppercase tracking-widest font-medium">Расходы по категориям</span>
+          <span className="text-muted-foreground text-xs uppercase tracking-widest font-medium">{t('spending.expenses_by_category')}</span>
           <div className="flex gap-1">
             <button
               onClick={() => setChartType('pie')}
@@ -211,7 +217,7 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
           <div className="h-52 flex items-center justify-center text-muted-foreground/50">
             <div className="text-center">
               <PieIcon className="w-10 h-10 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">Нет данных за этот период</p>
+              <p className="text-sm">{t('spending.no_data_period')}</p>
             </div>
           </div>
         )}

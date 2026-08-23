@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Wallet, TrendingUp, PiggyBank, CreditCard, AlertCircle, Plus, Home, Car, Gem, Box } from 'lucide-react';
 import AddFixedAssetModal from './AddFixedAssetModal';
+import { useLanguage } from '@/lib/LanguageContext';
 
 const FIXED_ASSET_ICONS = { real_estate: Home, auto: Car, gold: Gem, other: Box };
 
@@ -15,6 +16,7 @@ export default function NetWorthCard({
   onFixedAssetAdded
 }) {
   const [showAddAsset, setShowAddAsset] = useState(false);
+  const { t } = useLanguage();
 
   const totalAssets = accounts.reduce((sum, a) => sum + Math.max(a.balance || 0, 0), 0);
   const totalDebts = accounts.reduce((sum, a) => sum + Math.abs(Math.min(a.balance || 0, 0)), 0);
@@ -46,7 +48,7 @@ export default function NetWorthCard({
             <PiggyBank className="w-3 h-3 text-emerald-500" />
           </div>
           <span className="text-muted-foreground text-xs uppercase tracking-widest font-medium">
-            Чистый капитал (Net Worth)
+            {t('networth.title')}
           </span>
         </div>
 
@@ -58,7 +60,7 @@ export default function NetWorthCard({
             <div className="flex items-center gap-2 mt-2 px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20">
               <AlertCircle className="w-4 h-4 text-rose-500" />
               <span className="text-sm text-rose-500">
-                Долги превышают активы на {formatCurrency(Math.abs(netWorth))}
+                {t('balance.debts_exceed')} {formatCurrency(Math.abs(netWorth))}
               </span>
             </div>
           )}
@@ -69,10 +71,10 @@ export default function NetWorthCard({
             <div className="rounded-xl border border-border bg-muted/50 p-3.5 hover:bg-muted transition-all cursor-pointer">
               <div className="flex items-center gap-2 mb-1.5">
                 <Wallet className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-muted-foreground text-xs">Активы</span>
+                <span className="text-muted-foreground text-xs">{t('networth.assets')}</span>
               </div>
               <p className="text-emerald-500 font-bold text-lg">{formatCurrency(totalAssets)}</p>
-              <p className="text-muted-foreground/70 text-xs mt-0.5">{assetAccounts.length} счетов</p>
+              <p className="text-muted-foreground/70 text-xs mt-0.5">{assetAccounts.length} {t('networth.accounts_count')}</p>
             </div>
           </Link>
 
@@ -80,10 +82,10 @@ export default function NetWorthCard({
             <div className="rounded-xl border border-border bg-muted/50 p-3.5 hover:bg-muted transition-all cursor-pointer">
               <div className="flex items-center gap-2 mb-1.5">
                 <TrendingUp className="w-3.5 h-3.5 text-cyan-500" />
-                <span className="text-muted-foreground text-xs">Инвестиции</span>
+                <span className="text-muted-foreground text-xs">{t('balance.investments')}</span>
               </div>
               <p className="text-cyan-500 font-bold text-lg">{formatCurrency(investmentValue)}</p>
-              <p className="text-muted-foreground/70 text-xs mt-0.5">{investments.length} активов</p>
+              <p className="text-muted-foreground/70 text-xs mt-0.5">{investments.length} {t('networth.assets_count')}</p>
             </div>
           </Link>
 
@@ -92,20 +94,20 @@ export default function NetWorthCard({
               <div className="rounded-xl border border-border bg-muted/50 p-3.5 hover:bg-muted transition-all cursor-pointer">
                 <div className="flex items-center gap-2 mb-1.5">
                   <CreditCard className="w-3.5 h-3.5 text-rose-500" />
-                  <span className="text-muted-foreground text-xs">Долги</span>
+                  <span className="text-muted-foreground text-xs">{t('networth.debts')}</span>
                 </div>
                 <p className="text-rose-500 font-bold text-lg">{formatCurrency(-totalDebts)}</p>
-                <p className="text-muted-foreground/70 text-xs mt-0.5">{debtAccounts.length} счетов</p>
+                <p className="text-muted-foreground/70 text-xs mt-0.5">{debtAccounts.length} {t('networth.accounts_count')}</p>
               </div>
             </Link>
           ) : (
             <div className="rounded-xl border border-border bg-muted/50 p-3.5">
               <div className="flex items-center gap-2 mb-1.5">
                 <CreditCard className="w-3.5 h-3.5 text-muted-foreground/50" />
-                <span className="text-muted-foreground text-xs">Долги</span>
+                <span className="text-muted-foreground text-xs">{t('networth.debts')}</span>
               </div>
               <p className="text-muted-foreground/50 font-bold text-lg">{formatCurrency(0)}</p>
-              <p className="text-muted-foreground/50 text-xs mt-0.5">Нет долгов</p>
+              <p className="text-muted-foreground/50 text-xs mt-0.5">{t('networth.no_debts')}</p>
             </div>
           )}
 
@@ -113,10 +115,10 @@ export default function NetWorthCard({
             <div className="rounded-xl border border-dashed border-border bg-muted/30 p-3.5 hover:bg-muted transition-all cursor-pointer h-full">
               <div className="flex items-center gap-2 mb-1.5">
                 <Plus className="w-3.5 h-3.5 text-amber-500" />
-                <span className="text-muted-foreground text-xs">Недвижимость, авто, золото</span>
+                <span className="text-muted-foreground text-xs">{t('networth.fixed_assets_hint')}</span>
               </div>
               <p className="text-amber-500 font-bold text-lg">{formatCurrency(fixedAssetsValue)}</p>
-              <p className="text-muted-foreground/70 text-xs mt-0.5">{fixedAssets.length} активов · добавить</p>
+              <p className="text-muted-foreground/70 text-xs mt-0.5">{fixedAssets.length} {t('networth.assets_count')} · {t('networth.add')}</p>
             </div>
           </button>
         </div>

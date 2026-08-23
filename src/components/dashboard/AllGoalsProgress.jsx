@@ -4,6 +4,7 @@ import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { differenceInDays } from 'date-fns';
 import { ChevronRight, Plus, Target, TrendingUp } from 'lucide-react';
+import { useLanguage } from '@/lib/LanguageContext';
 
 const GOAL_COLORS = {
   savings:        { bar: 'from-emerald-500 to-teal-400', dot: '#10b981' },
@@ -15,6 +16,7 @@ const GOAL_COLORS = {
 };
 
 export default function AllGoalsProgress({ goals, formatCurrency }) {
+  const { t } = useLanguage();
   if (goals.length === 0) {
     return (
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
@@ -22,10 +24,10 @@ export default function AllGoalsProgress({ goals, formatCurrency }) {
           <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
             <Target className="w-6 h-6 text-muted-foreground/50" />
           </div>
-          <p className="text-muted-foreground text-sm mb-3">Нет активных целей</p>
+          <p className="text-muted-foreground text-sm mb-3">{t('goals_progress.no_active')}</p>
           <Link to={createPageUrl('Goals')}>
             <span className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-xs border border-border hover:border-foreground/20 rounded-lg px-3 py-1.5 transition-all">
-              <Plus className="w-3.5 h-3.5" /> Создать цель
+              <Plus className="w-3.5 h-3.5" /> {t('goals_progress.create_goal')}
             </span>
           </Link>
         </div>
@@ -40,10 +42,10 @@ export default function AllGoalsProgress({ goals, formatCurrency }) {
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
       <div className="glass-card rounded-2xl overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-          <span className="text-muted-foreground text-xs uppercase tracking-widest font-semibold">Цели</span>
+          <span className="text-muted-foreground text-xs uppercase tracking-widest font-semibold">{t('goals_progress.title')}</span>
           <Link to={createPageUrl('Goals')}>
             <span className="text-muted-foreground/70 hover:text-foreground text-xs flex items-center gap-1 transition-colors">
-              Все <ChevronRight className="w-3.5 h-3.5" />
+              {t('recent.all')} <ChevronRight className="w-3.5 h-3.5" />
             </span>
           </Link>
         </div>
@@ -96,7 +98,7 @@ export default function AllGoalsProgress({ goals, formatCurrency }) {
                     <div className="flex items-center gap-1.5">
                       <TrendingUp className="w-3 h-3 text-muted-foreground flex-shrink-0" />
                       <div>
-                        <p className="text-[10px] text-muted-foreground leading-none">В день</p>
+                        <p className="text-[10px] text-muted-foreground leading-none">{t('goals_progress.per_day')}</p>
                         <p className="text-xs font-semibold text-foreground mt-0.5">
                           {formatCurrency(Math.ceil(dailyAmount))}
                         </p>
@@ -105,7 +107,7 @@ export default function AllGoalsProgress({ goals, formatCurrency }) {
                     <div className="flex items-center gap-1.5">
                       <TrendingUp className="w-3 h-3 text-muted-foreground flex-shrink-0" />
                       <div>
-                        <p className="text-[10px] text-muted-foreground leading-none">В месяц</p>
+                        <p className="text-[10px] text-muted-foreground leading-none">{t('goals_progress.per_month')}</p>
                         <p className="text-xs font-semibold text-foreground mt-0.5">
                           {formatCurrency(Math.ceil(monthlyAmount))}
                         </p>
@@ -118,8 +120,8 @@ export default function AllGoalsProgress({ goals, formatCurrency }) {
           })}
 
           <div className="pt-2 border-t border-border flex justify-between text-xs mt-2">
-            <span className="text-muted-foreground/80">Накоплено: <span className="text-foreground font-medium">{formatCurrency(totalCurrent)}</span></span>
-            <span className="text-muted-foreground/80">Цель: <span className="text-foreground font-medium">{formatCurrency(totalTarget)}</span></span>
+            <span className="text-muted-foreground/80">{t('goals_progress.saved')}: <span className="text-foreground font-medium">{formatCurrency(totalCurrent)}</span></span>
+            <span className="text-muted-foreground/80">{t('goals_progress.target')}: <span className="text-foreground font-medium">{formatCurrency(totalTarget)}</span></span>
           </div>
         </div>
       </div>

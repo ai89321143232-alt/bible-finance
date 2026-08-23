@@ -3,7 +3,9 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, startOfMonth, endOfMonth, subMonths, addMonths } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { ru, enUS } from 'date-fns/locale';
+import { useLanguage } from '@/lib/LanguageContext';
+import { useFormatCurrency } from '@/lib/formatCurrency';
 import {
   Plus, Search, ChevronLeft, ChevronRight, Calendar, Download, Upload
 } from 'lucide-react';
@@ -33,11 +35,16 @@ import FamilyVisibilityToggle from '@/components/shared/FamilyVisibilityToggle';
 const CATEGORY_ICONS = {
   'Еда': '🍔', 'Транспорт': '🚗', 'Жильё': '🏠', 'Развлечения': '🎮',
   'Здоровье': '💊', 'Одежда': '👕', 'Подписки': '📱', 'Образование': '📚',
-  'Зарплата': '💰', 'Фриланс': '💻', 'Инвестиции': '📈', 'Подарки': '🎁', 'Другое': '📦'
+  'Зарплата': '💰', 'Фриланс': '💻', 'Инвестиции': '📈', 'Подарки': '🎁', 'Другое': '📦',
+  'Food': '🍔', 'Transport': '🚗', 'Housing': '🏠', 'Entertainment': '🎮',
+  'Health': '💊', 'Clothing': '👕', 'Subscriptions': '📱', 'Education': '📚',
+  'Salary': '💰', 'Freelance': '💻', 'Investments': '📈', 'Gifts': '🎁', 'Other': '📦'
 };
 
 export default function Transactions() {
   const queryClient = useQueryClient();
+  const { t, language } = useLanguage();
+  const dateLocale = language === 'en' ? enUS : ru;
   const [showAddModal, setShowAddModal] = useState(false);
   const [editTransaction, setEditTransaction] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -124,9 +131,7 @@ export default function Transactions() {
     }
   });
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(amount);
-  };
+  const formatCurrency = useFormatCurrency();
 
   const isFamilyTier = family?.subscription_tier === 'family' || family?.subscription_tier === 'premium';
   const familyMemberIds = (family?.members || []).map(m => m.user_id).filter(id => id && id !== user?.id);
@@ -174,19 +179,19 @@ export default function Transactions() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Операции</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">{t('transactions.title')}</h1>
           <div className="flex items-center gap-2">
             {family && (
               <FamilyVisibilityToggle showOnlyMine={showOnlyMine} onToggle={() => setShowOnlyMine(v => !v)} />
             )}
             <Button onClick={() => setShowImportModal(true)} variant="outline" className="rounded-xl hidden sm:flex">
-              <Upload className="w-4 h-4 mr-2" />Импорт
+              <Upload className="w-4 h-4 mr-2" />{t('transactions.import')}
             </Button>
             <Button onClick={() => setShowExportModal(true)} variant="outline" className="rounded-xl hidden sm:flex">
-              <Download className="w-4 h-4 mr-2" />Экспорт
+              <Download className="w-4 h-4 mr-2" />{t('transactions.export')}
             </Button>
             <Button onClick={() => setShowAddModal(true)} className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 rounded-xl">
-              <Plus className="w-5 h-5 mr-2" />Добавить
+              <Plus className="w-5 h-5 mr-2" />{t('common.add')}
             </Button>
           </div>
         </motion.div>
@@ -198,7 +203,7 @@ export default function Transactions() {
                 <ChevronLeft className="w-5 h-5" />
               </Button>
               <div className="text-center">
-                <h2 className="font-semibold text-lg text-slate-900 dark:text-white capitalize">{format(currentMonth, 'LLLL yyyy', { locale: ru })}</h2>
+                <h2 className="font-semibold text-lg text-slate-900 dark:text-white capitalize">{format(currentMonth, 'LLLL yyyy', { locale: dateLocale })}</h2>
                 <div className="flex items-center justify-center gap-4 mt-1">
                   <span className="text-sm text-emerald-600">+{formatCurrency(totalIncome)}</span>
                   <span className="text-sm text-rose-600">-{formatCurrency(totalExpense)}</span>
@@ -214,25 +219,25 @@ export default function Transactions() {
         <div className="flex flex-wrap gap-3 mb-6">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input placeholder="Поиск..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 rounded-xl border-slate-200 dark:border-slate-700" />
+            <Input placeholder={t('transactions.search_placeholder')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 rounded-xl border-slate-200 dark:border-slate-700" />
           </div>
-          <MobileSelect value={filterType} onValueChange={setFilterType} placeholder="Тип" title="Тип операции" triggerClassName="w-32 rounded-xl text-slate-900 dark:text-white">
-            <option value="all">Все типы</option>
-            <option value="expense">Расходы</option>
-            <option value="income">Доходы</option>
+          <MobileSelect value={filterType} onValueChange={setFilterType} placeholder={t('transactions.filter_type')} title={t('transactions.filter_type_title')} triggerClassName="w-32 rounded-xl text-slate-900 dark:text-white">
+            <option value="all">{t('transactions.all_types')}</option>
+            <option value="expense">{t('balance.expenses')}</option>
+            <option value="income">{t('balance.income')}</option>
           </MobileSelect>
-          <MobileSelect value={filterCategory} onValueChange={setFilterCategory} placeholder="Категория" title="Категория" triggerClassName="w-40 rounded-xl text-slate-900 dark:text-white">
-            <option value="all">Все категории</option>
+          <MobileSelect value={filterCategory} onValueChange={setFilterCategory} placeholder={t('transactions.filter_category')} title={t('transactions.filter_category')} triggerClassName="w-40 rounded-xl text-slate-900 dark:text-white">
+            <option value="all">{t('transactions.all_categories')}</option>
             {allCategories.map(cat => (
               <option key={cat} value={cat}>{CATEGORY_ICONS[cat]} {cat}</option>
             ))}
           </MobileSelect>
           {family && (
-            <MobileSelect value={ownerFilter} onValueChange={setOwnerFilter} placeholder="Чьи" title="Чьи операции" triggerClassName="w-36 rounded-xl text-slate-900 dark:text-white">
-              <option value="all">Все операции</option>
-              <option value="mine">Только мои</option>
-              <option value="family">Семейные</option>
-              <option value="others">Другие члены</option>
+            <MobileSelect value={ownerFilter} onValueChange={setOwnerFilter} placeholder={t('transactions.filter_owner')} title={t('transactions.filter_owner_title')} triggerClassName="w-36 rounded-xl text-slate-900 dark:text-white">
+              <option value="all">{t('transactions.all_operations')}</option>
+              <option value="mine">{t('transactions.only_mine')}</option>
+              <option value="family">{t('transactions.family')}</option>
+              <option value="others">{t('transactions.other_members')}</option>
             </MobileSelect>
           )}
         </div>
@@ -242,7 +247,7 @@ export default function Transactions() {
             sortedDates.map((dateKey) => (
               <motion.div key={dateKey} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                 <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3 px-1">
-                  {format(new Date(dateKey + 'T00:00:00'), 'd MMMM, EEEE', { locale: ru })}
+                  {format(new Date(dateKey + 'T00:00:00'), 'd MMMM, EEEE', { locale: dateLocale })}
                 </h3>
                 <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden">
                   <CardContent className="p-0">
@@ -262,9 +267,9 @@ export default function Transactions() {
               <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Calendar className="w-8 h-8 text-slate-400" />
               </div>
-              <p className="text-slate-500 dark:text-slate-400 mb-2">Нет операций за этот период</p>
+              <p className="text-slate-500 dark:text-slate-400 mb-2">{t('transactions.no_transactions_period')}</p>
               <Button onClick={() => setShowAddModal(true)} variant="outline" className="rounded-xl">
-                <Plus className="w-4 h-4 mr-2" />Добавить операцию
+                <Plus className="w-4 h-4 mr-2" />{t('transactions.add_transaction')}
               </Button>
             </div>
           )}
@@ -289,12 +294,12 @@ export default function Transactions() {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Удалить операцию?</AlertDialogTitle>
-            <AlertDialogDescription>Это действие нельзя отменить. Операция будет удалена навсегда.</AlertDialogDescription>
+            <AlertDialogTitle>{t('transactions.delete_title')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('transactions.delete_desc')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteMutation.mutate(deleteId)} className="bg-rose-600 hover:bg-rose-700 rounded-xl">Удалить</AlertDialogAction>
+            <AlertDialogCancel className="rounded-xl">{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteMutation.mutate(deleteId)} className="bg-rose-600 hover:bg-rose-700 rounded-xl">{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
