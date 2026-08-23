@@ -318,28 +318,44 @@ export default function AIPlanning() {
         </div>
       </div>
 
-      {/* Tab chips */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
-        {TABS.map((tab) => {
+      {/* Tool cards grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+        {TABS.map((tab, idx) => {
           const Icon = tab.icon;
           const active = activeTab === tab.id;
           return (
-            <button
+            <motion.button
               key={tab.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.03 }}
               onClick={() => handleTabChange(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg whitespace-nowrap text-xs font-medium transition-colors min-h-[40px] ${
-                active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'
+              className={`relative flex flex-col items-start gap-2 p-3 rounded-xl text-left transition-all min-h-[92px] ${
+                active
+                  ? 'bg-primary text-primary-foreground shadow-md'
+                  : 'glass-card text-foreground hover:scale-[1.02] active:scale-[0.98]'
               }`}
             >
-              <Icon className="w-3.5 h-3.5" />
-              {tab.label}
-            </button>
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                active ? 'bg-primary-foreground/15' : 'bg-muted'
+              }`}>
+                <Icon className={`w-4 h-4 ${active ? 'text-primary-foreground' : 'text-primary'}`} />
+              </div>
+              <div className="min-w-0">
+                <p className={`text-xs font-semibold leading-tight ${active ? 'text-primary-foreground' : 'text-foreground'}`}>
+                  {tab.label}
+                </p>
+                <p className={`text-[10px] leading-snug mt-0.5 line-clamp-2 ${active ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                  {tab.desc}
+                </p>
+              </div>
+              {active && (
+                <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-primary-foreground" />
+              )}
+            </motion.button>
           );
         })}
       </div>
-
-      {/* Active tab description */}
-      <p className="text-xs text-muted-foreground">{TABS.find(t => t.id === activeTab)?.desc}</p>
 
       {/* Pre-purchase form */}
       {activeTab === 'pre_purchase' && (
