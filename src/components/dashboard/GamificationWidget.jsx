@@ -6,6 +6,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TITLES, FAMILY_TITLES, ACHIEVEMENTS, getTitleForPoints, getNextTitle, getFamilyTitleForPoints, getNextFamilyTitle } from '@/lib/gamification';
 import AchievementsModal from '@/components/dashboard/AchievementsModal';
+import RewardPopup from '@/components/dashboard/RewardPopup';
 import { eventBus, EVENTS } from '@/lib/eventBus';
 
 const PersonalTitleCard = ({ p, currentTitle, nextTitle, progressToNext, unlockedCount, totalCount, hasPrayedToday, onPray, onShowAchievements }) => (
@@ -429,82 +430,7 @@ export default function GamificationWidget() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -30, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] max-w-sm w-full px-4"
-          >
-            {toast.isTitleUp ? (
-              <div className={`relative rounded-2xl shadow-2xl overflow-hidden p-5 text-center ${
-                toast.familyTitleChanged
-                  ? 'bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600'
-                  : 'bg-gradient-to-br from-violet-500 via-indigo-500 to-purple-600'
-              }`}>
-                {/* Glow shimmer */}
-                <motion.div
-                  className="absolute inset-0 bg-white/20"
-                  initial={{ x: '-100%' }}
-                  animate={{ x: '100%' }}
-                  transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 0.5 }}
-                />
-                <motion.div
-                  animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.15, 1] }}
-                  transition={{ duration: 0.6, repeat: 2 }}
-                  className="text-5xl mb-2 relative"
-                >
-                  {toast.familyTitleChanged
-                    ? (toast.newFamilyTitle?.icon || '👑')
-                    : (toast.newTitle?.icon || '👑')}
-                </motion.div>
-                <div className="flex items-center justify-center gap-1.5 mb-1 relative">
-                  <Sparkles className="w-4 h-4 text-yellow-300" />
-                  <p className="text-white/90 text-xs font-semibold uppercase tracking-wide">
-                    {toast.familyTitleChanged ? 'Новый семейный титул!' : 'Новый титул!'}
-                  </p>
-                  <Sparkles className="w-4 h-4 text-yellow-300" />
-                </div>
-                <p className="text-white font-bold text-lg relative">
-                  {toast.familyTitleChanged
-                    ? toast.newFamilyTitle?.title
-                    : toast.newTitle?.title}
-                </p>
-                {toast.points > 0 && (
-                  <p className="text-white/80 text-sm mt-2 relative">+{toast.points} оч. мудрости</p>
-                )}
-              </div>
-            ) : (
-              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-violet-200 dark:border-violet-800 p-4">
-                {toast.points > 0 && (
-                  <p className="text-center text-slate-700 dark:text-slate-200 text-sm">
-                    +{toast.points} оч.
-                  </p>
-                )}
-                {toast.achievements && toast.achievements.length > 0 && (
-                  <div className="mt-2 space-y-1">
-                    {toast.achievements.map(code => {
-                      const a = ACHIEVEMENTS[code];
-                      if (!a) return null;
-                      return (
-                        <div key={code} className="flex items-center gap-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg p-2">
-                          <span className="text-lg">{a.icon}</span>
-                          <div>
-                            <p className="text-xs font-semibold text-slate-900 dark:text-white">{a.title}</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">{a.description}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <RewardPopup toast={toast} onClose={() => setToast(null)} />
 
       <AchievementsModal
         open={showAchievements}
