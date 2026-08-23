@@ -258,25 +258,71 @@ Deno.serve(async (req) => {
 
     // ----------------------------------------------------------------
     else if (analysisType === 'monthly_report') {
-      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-      const lastMonthTx = transactions.filter(t => { const d = new Date(t.date); return d >= lastMonthStart && d <= lastMonthEnd; });
-      const lastExpenses = lastMonthTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-      const lastIncome = lastMonthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-      const lastByCategory = lastMonthTx.filter(t => t.type === 'expense').reduce((acc, t) => { acc[t.category] = (acc[t.category] || 0) + t.amount; return acc; }, {});
-      prompt = `Ты финансовый аналитик. Составь расширенный ежемесячный отчёт.
+      // Текущий (идущий) месяц — с 1-го числа по сегодня
+      const curStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const curEnd = now;
+      const curTx = transactions.filter(t => { const d = new Date(t.date); return d >= curStart && d <= curEnd; });
+      const curIncome = curTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+      const curExpenses = curTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+      const curBalance = curIncome - curExpenses;
+      const curByCategory = curTx.filter(t => t.type === 'expense').reduce((acc, t) => { const c = t.category || 'Другое'; acc[c] = (acc[c] || 0) + t.amount; return acc; }, {});
+      const curIncomeByCategory = curTx.filter(t => t.type === 'income').reduce((acc, t) => { const c = t.category || 'Другое'; acc[c] = (acc[c] || 0) + t.amount; return acc; }, {});
 
-Период: ${lastMonthStart.toLocaleDateString('ru-RU')} — ${lastMonthEnd.toLocaleDateString('ru-RU')}
-Доход: ${lastIncome.toLocaleString()} ₽
-Расход: ${lastExpenses.toLocaleString()} ₽
-Расходы по категориям: ${JSON.stringify(lastByCategory)}
+      // Прошлый месяц — для сравнения (рост/снижение категорий)
+      const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const prevEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+      const prevTx = transactions.filter(t => { const d = new Date(t.date); return d >= prevStart && d <= prevEnd; });
+      const prevIncome = prevTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+      const prevExpenses = prevTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+      const prevByCategory = prevTx.filter(t => t.type === 'expense').reduce((acc, t) => { const c = t.category || 'Другое'; acc[c] = (acc[c] || 0) + t.amount; return acc; }, {});
+
+      // Реальная дельта по категориям (только если есть данные за прошлый месяц)
+      const hasPrev = prevTx.length > 0;
+      const growth = [];
+      const decline = [];
+      if (hasPrev) {
+        const allCats = Array.from(new Set([...Object.keys(curByCategory), ...Object.keys(prevByCategory)]));
+        for (const cat of allCats) {
+          const cur = curByCategory[cat] || 0;
+          const prev = prevByCategory[cat] || 0;
+          if (cur === 0 && prev === 0) continue;
+          if (prev === 0) { growth.push({ category: cat, amount: cur, change_percent: 100 }); continue; }
+          if (cur === 0) { decline.push({ category: cat, amount: 0, change_percent: -100 }); continue; }
+          const pct = Math.round(((cur - prev) / prev) * 100);
+          if (pct > 0) growth.push({ category: cat, amount: cur, change_percent: pct });
+          else if (pct < 0) decline.push({ category: cat, amount: cur, change_percent: pct });
+        }
+        growth.sort((a, b) => b.change_percent - a.change_percent);
+        decline.sort((a, b) => a.change_percent - b.change_percent);
+      }
+
+      prompt = `Ты финансовый аналитик. Составь расширенный ежемесячный отчёт по ТЕКУЩЕМУ (идущему) месяцу.
+
+Период: ${curStart.toLocaleDateString('ru-RU')} — ${curEnd.toLocaleDateString('ru-RU')}
+Реальный доход: ${curIncome.toLocaleString()} ₽
+Реальный расход: ${curExpenses.toLocaleString()} ₽
+Реальный остаток: ${curBalance.toLocaleString()} ₽
+Кол-во транзакций: ${curTx.length}
+Расходы по категориям (текущий месяц): ${JSON.stringify(curByCategory)}
+Доходы по категориям (текущий месяц): ${JSON.stringify(curIncomeByCategory)}
+Прошлый месяц: доход ${prevIncome.toLocaleString()} ₽, расход ${prevExpenses.toLocaleString()} ₽
+Расходы по категориям (прошлый месяц): ${JSON.stringify(prevByCategory)}
+Уже посчитанный рост категорий: ${JSON.stringify(growth.slice(0, 3))}
+Уже посчитанное снижение категорий: ${JSON.stringify(decline.slice(0, 3))}
 Текущие бюджеты: ${JSON.stringify(budgets.map(b => ({ name: b.name, limit: b.limit_amount, spent: b.spent_amount })))}
 Цели: ${JSON.stringify(goals.map(g => ({ title: g.title, target: g.target_amount, current: g.current_amount })))}
 Долги: ${JSON.stringify(debts.map(d => ({ name: d.name, remaining: d.remaining_amount })))}
 
+КРИТИЧЕСКИ ВАЖНО:
+- Используй ТОЛЬКО приведённые выше реальные числа. НЕ ВЫДУМЫВАЙ категории, суммы или проценты.
+- Сводку (summary) бери дословно из реальных значений выше.
+- top_growth и top_decline бери ИЗ предоставленного «уже посчитанного» списка. Если он пуст — верни пустой массив.
+- Если по категории нет данных — не упоминай её.
+- Рекомендации делай только на основе реальных категорий и сумм из текущего месяца.
+
 Структура отчёта:
-1. Сводка (доход/расход/остаток, +%/- к предыдущему).
-2. Топ-3 категории роста и снижения.
+1. Сводка (доход/расход/остаток + изменение к прошлому месяцу в %).
+2. Топ-3 категории роста и снижения (из посчитанных списков).
 3. Топ-3 рекомендации по улучшению.
 4. Прогноз на следующий месяц.
 5. Личные/семейные рекорды.
@@ -294,6 +340,21 @@ Deno.serve(async (req) => {
           bible_wisdom: { type: 'string' }
         }
       };
+
+      const _result = await base44.integrations.Core.InvokeLLM({
+        prompt: prompt + langInstruction,
+        add_context_from_internet: false,
+        response_json_schema: jsonSchema
+      });
+      // Переопределяем сводку и рост/снижение реальными значениями — не доверяем LLM
+      if (_result && typeof _result === 'object') {
+        const incomeChange = prevIncome > 0 ? Math.round(((curIncome - prevIncome) / prevIncome) * 100) : (curIncome > 0 ? 100 : 0);
+        const expenseChange = prevExpenses > 0 ? Math.round(((curExpenses - prevExpenses) / prevExpenses) * 100) : (curExpenses > 0 ? 100 : 0);
+        _result.summary = { income: curIncome, expenses: curExpenses, balance: curBalance, income_change: incomeChange, expense_change: expenseChange };
+        _result.top_growth = growth.slice(0, 3);
+        _result.top_decline = decline.slice(0, 3);
+      }
+      return Response.json(_result);
     }
 
     // ----------------------------------------------------------------
