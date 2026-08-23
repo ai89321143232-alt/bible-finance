@@ -73,10 +73,11 @@ const PersonalTitleCard = ({ p, currentTitle, nextTitle, progressToNext, unlocke
           <span className="text-violet-200 text-xs">оч.</span>
         </div>
         <button
-          onClick={onPray}
+          onClick={hasPrayedToday ? undefined : onPray}
+          disabled={hasPrayedToday}
           className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors min-h-[36px] ${
             hasPrayedToday
-              ? 'bg-white/10 text-violet-200'
+              ? 'bg-white/10 text-violet-200 cursor-default'
               : 'bg-amber-400 hover:bg-amber-300 text-amber-900 animate-pulse'
           }`}
         >
@@ -139,10 +140,11 @@ const FamilyTitleCard = ({ p, familyCurrentTitle, familyNextTitle, familyProgres
 
       <div className="flex items-center justify-end mt-4 pt-4 border-t border-white/20">
         <button
-          onClick={onPray}
+          onClick={hasFamilyPrayedToday ? undefined : onPray}
+          disabled={hasFamilyPrayedToday}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors min-h-[36px] ${
             hasFamilyPrayedToday
-              ? 'bg-white/10 text-emerald-200'
+              ? 'bg-white/10 text-emerald-200 cursor-default'
               : 'bg-amber-400 hover:bg-amber-300 text-amber-900 animate-pulse'
           }`}
         >
