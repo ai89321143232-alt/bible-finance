@@ -62,7 +62,7 @@ export default function SwipeableTransaction({
         dragElastic={0.05}
         onDragEnd={isOwner ? handleDragEnd : undefined}
         onClick={(e) => { if (isOpen) { e.stopPropagation(); onOpenChange(false); } }}
-        className="glass-row relative z-10 flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors group bg-white dark:bg-slate-800"
+        className="relative z-10 flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors group bg-white dark:bg-slate-800"
       >
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className={`w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-lg shadow-sm ${
