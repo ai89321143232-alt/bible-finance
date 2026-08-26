@@ -109,13 +109,15 @@ export const TransactionService = {
    * Перенос: между счетами или на цель (toAccountId начинается с "goal_").
    * @returns {Promise<{ok:boolean, error?:string}>}
    */
-  async transfer({ amount, description, date, account_id, toAccountId, accounts = [], goals = [], existingId = null }) {
+  async transfer({ amount, description, date, account_id, toAccountId, accounts = [], goals = [], existingId = null, fxRate = null }) {
     const valid = validateTransactionInput({ type: 'transfer', amount, account_id, toAccountId });
     if (!valid.ok) return { ok: false, error: valid.error };
 
     const amountNum = parseFloat(amount);
     const user = await getCurrentUser();
     const source = accounts.find((a) => a.id === account_id);
+    const dest = !toAccountId.startsWith('goal_') ? accounts.find((a) => a.id === toAccountId) : null;
+    const isFx = !toAccountId.startsWith('goal_') && dest && source && (source.currency || 'RUB') !== (dest.currency || 'RUB');
 
     const own = validateAccountOwnership(source, user);
     if (!own.ok) return { ok: false, error: own.error };
@@ -170,6 +172,16 @@ export const TransactionService = {
       }
     }
 
+    // Валютный обмен: зачисляем на получатель пересчитанную сумму в его валюте
+    let fxTags = undefined;
+    let destAmount = amountNum;
+    if (isFx) {
+      const rateNum = parseFloat(fxRate);
+      if (!rateNum || rateNum <= 0) return { ok: false, error: 'Укажите курс обмена' };
+      destAmount = amountNum / rateNum;
+      fxTags = ['fx', `fx:${rateNum}`];
+    }
+
     if (isDestGoal) {
       const goalId = toAccountId.replace('goal_', '');
       const goal = goals.find((g) => g.id === goalId);
@@ -185,7 +197,7 @@ export const TransactionService = {
     } else {
       const dest = accounts.find((a) => a.id === toAccountId);
       if (dest) {
-        await AccountService.setBalance(dest.id, (dest.balance || 0) + amountNum);
+        await AccountService.setBalance(dest.id, (dest.balance || 0) + destAmount);
         destName = dest.name;
       }
     }
@@ -194,11 +206,14 @@ export const TransactionService = {
       {
         type: 'transfer',
         amount: amountNum,
-        category: isDestGoal ? 'Перенос на цель' : 'Перенос между счетами',
-        description: `${refreshedSource?.name} → ${destName}${description ? ': ' + description : ''}`,
+        category: isFx ? 'Обмен валют' : (isDestGoal ? 'Перенос на цель' : 'Перенос между счетами'),
+        description: isFx
+          ? `Обмен: ${source.currency || 'RUB'} → ${dest.currency || 'RUB'} @ ${parseFloat(fxRate)}${description ? ': ' + description : ''}`
+          : `${refreshedSource?.name} → ${destName}${description ? ': ' + description : ''}`,
         date: date instanceof Date ? date.toISOString() : date,
         account_id,
         to_account_id: toAccountId,
+        tags: fxTags,
       },
       user
     );

@@ -26,7 +26,9 @@ export default function RecentTransactions({ transactions, formatCurrency, onEdi
 
         {transactions.length > 0 ? (
           <div className="divide-y divide-border">
-            {transactions.map((tx, idx) => (
+            {transactions.map((tx, idx) => {
+              const isFx = Array.isArray(tx.tags) && tx.tags.some((t) => t === 'fx' || String(t).startsWith('fx:'));
+              return (
               <motion.div
                 key={tx.id}
                 initial={{ opacity: 0, x: -10 }}
@@ -36,16 +38,18 @@ export default function RecentTransactions({ transactions, formatCurrency, onEdi
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-base ${
-                    tx.type === 'income'
-                      ? 'bg-emerald-500/10'
-                      : tx.type === 'expense'
-                        ? 'bg-rose-500/10'
-                        : 'bg-muted'
+                    isFx
+                      ? 'bg-violet-500/10 text-violet-600'
+                      : tx.type === 'income'
+                        ? 'bg-emerald-500/10'
+                        : tx.type === 'expense'
+                          ? 'bg-rose-500/10'
+                          : 'bg-muted'
                   }`}>
-                    {getCategoryIcon(tx.category)}
+                    {isFx ? <ArrowLeftRight className="w-4 h-4" /> : getCategoryIcon(tx.category)}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-foreground text-sm font-medium truncate">{tx.category || t('recent.no_category')}</p>
+                    <p className="text-foreground text-sm font-medium truncate">{isFx ? 'Обмен валют' : (tx.category || t('recent.no_category'))}</p>
                     <p className="text-muted-foreground/70 text-xs truncate">
                       {tx.description || format(new Date(tx.date), 'd MMM', { locale: dateLocale })}
                     </p>
@@ -73,7 +77,8 @@ export default function RecentTransactions({ transactions, formatCurrency, onEdi
                   )}
                 </div>
               </motion.div>
-            ))}
+            );
+            })}
           </div>
         ) : (
           <div className="py-14 text-center text-muted-foreground/50">

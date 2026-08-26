@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Trash2, Edit2 } from 'lucide-react';
+import { Trash2, Edit2, ArrowLeftRight } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import CreatorTag from '@/components/shared/CreatorTag';
 import { useCategoryIconMap } from '@/hooks/useCategoryIcons';
@@ -29,6 +29,7 @@ export default function SwipeableTransaction({
       (transaction.description || '').startsWith('Перевод от')
     )
   );
+  const isFx = Array.isArray(transaction.tags) && transaction.tags.some((t) => t === 'fx' || String(t).startsWith('fx:'));
 
   const handleDragEnd = (_event, info) => {
     onOpenChange(info.offset.x < -DELETE_WIDTH / 2);
@@ -65,15 +66,17 @@ export default function SwipeableTransaction({
       >
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className={`w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-lg shadow-sm ${
-            isIncoming
-              ? 'bg-emerald-100 dark:bg-emerald-900/30'
-              : 'bg-rose-100 dark:bg-rose-900/30'
+            isFx
+              ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300'
+              : isIncoming
+                ? 'bg-emerald-100 dark:bg-emerald-900/30'
+                : 'bg-rose-100 dark:bg-rose-900/30'
           }`}>
-            {getCategoryIcon(transaction.category)}
+            {isFx ? <ArrowLeftRight className="w-5 h-5" /> : getCategoryIcon(transaction.category)}
           </div>
           <div className="min-w-0">
             <p className="font-medium text-slate-900 dark:text-white truncate">
-              {transaction.category || 'Без категории'}
+              {isFx ? 'Обмен валют' : (transaction.category || 'Без категории')}
             </p>
             {transaction.description && (
               <p className="text-sm text-slate-500 dark:text-slate-400 truncate max-w-[200px]">

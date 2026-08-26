@@ -111,6 +111,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   const [suggestedCategory, setSuggestedCategory] = useState(null);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [budgetScope, setBudgetScope] = useState('personal');
+  const [fxRate, setFxRate] = useState('');
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
   const debounceRef = useRef(null);
@@ -118,6 +119,14 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   React.useEffect(() => {
     loadUser();
   }, []);
+
+  // Восстановить курс обмена при редактировании fx-транзакции
+  React.useEffect(() => {
+    if (transaction?.tags?.some((t) => t === 'fx' || String(t).startsWith('fx:'))) {
+      const rateTag = transaction.tags.find((t) => String(t).startsWith('fx:'));
+      if (rateTag) setFxRate(rateTag.replace('fx:', ''));
+    }
+  }, [transaction]);
 
   // Auto-categorization: debounced AI suggestion on description change
   const suggestCategory = useCallback(async (text, cats) => {
@@ -248,6 +257,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
       const res = await TransactionService.transfer({
         amount, description, date, account_id: accountId, toAccountId, accounts, goals,
         existingId: transaction?.id || null,
+        fxRate: isFx ? fxRate : null,
       });
       if (!res.ok) { toast.error(res.error); return; }
       toast.success(transaction ? 'Перенос обновлён' : 'Перенос выполнен');
@@ -497,6 +507,13 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
 
   const filteredCategories = categories.filter(c => c.type === type);
 
+  // Валютный обмен: если источник и получатель в разных валютах — показываем курс
+  const sourceAcc = myAccounts.find(a => a.id === accountId);
+  const destAcc = (accounts || []).find(a => a.id === toAccountId);
+  const isFx = type === 'transfer' && sourceAcc && destAcc && (sourceAcc.currency || 'RUB') !== (destAcc.currency || 'RUB');
+  const fxRateNum = parseFloat(fxRate) || 0;
+  const destAmount = isFx && fxRateNum > 0 && amount ? (parseFloat(amount) / fxRateNum) : 0;
+
   const formContent = (
     <>
           {/* Header — only for desktop */}
@@ -635,6 +652,29 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                       })}
                     </NativeSelect>
                   </div>
+
+                  {/* Блок обмена валют — только при разных валютах счетов */}
+                  {isFx && (
+                    <div className="mb-4 p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800">
+                      <Label className="text-violet-700 dark:text-violet-300 text-sm mb-2 block">
+                        Курс обмена ({sourceAcc?.currency} → {destAcc?.currency})
+                      </Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        inputMode="decimal"
+                        placeholder="0.00"
+                        value={fxRate}
+                        onChange={(e) => setFxRate(e.target.value)}
+                        className="h-12 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                      />
+                      {destAmount > 0 && (
+                        <p className="text-xs text-violet-600 dark:text-violet-400 mt-2">
+                          Получите ≈ {destAmount.toFixed(2)} {destAcc?.currency}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="mb-4">
@@ -745,7 +785,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
               {/* Submit */}
               <Button
                 onClick={handleSubmit}
-                disabled={!amount || myAccounts.length === 0 || !accountId || (type !== 'transfer' && !category) || (type === 'transfer' && !toAccountId) || isSubmitting}
+                disabled={!amount || myAccounts.length === 0 || !accountId || (type !== 'transfer' && !category) || (type === 'transfer' && (!toAccountId || (isFx && !fxRate))) || isSubmitting}
                 className="w-full h-14 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold text-lg shadow-lg shadow-violet-500/25"
               >
                 {isSubmitting ? (
