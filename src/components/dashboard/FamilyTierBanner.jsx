@@ -39,7 +39,7 @@ export default function FamilyTierBanner({ user, hasFamily }) {
         exit={{ opacity: 0, height: 0 }}
         className="mb-4"
       >
-        <div className="relative rounded-2xl border border-violet-500/20 bg-gradient-to-r from-violet-500/10 to-indigo-500/10 p-4 pr-10">
+        <div className="glass-card relative rounded-2xl border border-violet-500/20 bg-gradient-to-r from-violet-500/10 to-indigo-500/10 p-4 pr-10">
           <button
             onClick={handleDismiss}
             aria-label="Скрыть напоминание"

@@ -164,4 +164,51 @@
     html[data-liquid-glass="true"] .glass-card { background-color: hsl(var(--card)); background-image: none; }
     html[data-liquid-glass="true"] .glass-card-flat { background-color: hsl(var(--muted)); background-image: none; }
   }
+
+  /* ============================================================
+     Liquid Glass — расширенные поверхности (навигация, диалоги)
+     ============================================================ */
+  /* Топбар, сайдбар, нижний таб-бар */
+  html[data-liquid-glass="true"] .glass-bar {
+    background-color: rgba(255, 255, 255, 0.6);
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 60%);
+    border-color: rgba(255, 255, 255, 0.7);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    backdrop-filter: blur(24px) saturate(160%);
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.5);
+  }
+  html.dark[data-liquid-glass="true"] .glass-bar {
+    background-color: rgba(255, 255, 255, 0.05);
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 60%);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  }
+
+  /* Диалоги (DialogContent) */
+  html[data-liquid-glass="true"] [role="dialog"] > div:not([data-radix-popper]):last-child,
+  html[data-liquid-glass="true"] .glass-dialog {
+    background-color: rgba(255, 255, 255, 0.72) !important;
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 50%) !important;
+    border-color: rgba(255, 255, 255, 0.7) !important;
+    -webkit-backdrop-filter: blur(30px) saturate(160%);
+    backdrop-filter: blur(30px) saturate(160%);
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.12), inset 0 1px 0 0 rgba(255, 255, 255, 0.6) !important;
+  }
+  html.dark[data-liquid-glass="true"] [role="dialog"] > div:not([data-radix-popper]):last-child,
+  html.dark[data-liquid-glass="true"] .glass-dialog {
+    background-color: rgba(20, 20, 25, 0.8) !important;
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 50%) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.08) !important;
+  }
+
+  /* Строки списков (транзакции и т.п.) — лёгкий стеклянный фон */
+  html[data-liquid-glass="true"] .glass-row {
+    background-color: rgba(255, 255, 255, 0.45);
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 50%);
+  }
+  html.dark[data-liquid-glass="true"] .glass-row {
+    background-color: rgba(255, 255, 255, 0.04);
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 50%);
+  }
 }

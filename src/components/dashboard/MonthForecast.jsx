@@ -72,7 +72,7 @@ export default function MonthForecast({ transactions, totalBalance, formatCurren
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.28 }}
-      className={`rounded-2xl border ${borderColor} ${bgColor} p-4 mb-6`}
+      className={`glass-card rounded-2xl border ${borderColor} ${bgColor} p-4 mb-6`}
     >
       <div className="flex items-center gap-2 mb-3">
         <div className={`w-7 h-7 rounded-lg ${iconBg} flex items-center justify-center`}>

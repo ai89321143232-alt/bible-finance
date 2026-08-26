@@ -76,7 +76,7 @@ export default function Layout({ children, currentPageName }) {
       <OfflineBanner />
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-64 bg-background border-r border-border z-40 overflow-y-auto">
+      <aside className="glass-bar hidden lg:flex flex-col fixed left-0 top-0 h-full w-64 bg-background border-r border-border z-40 overflow-y-auto">
         {/* Logo */}
         <div className="px-6 py-5 border-b border-border">
           <Link to={createPageUrl('Dashboard')} className="flex items-center gap-2.5">
@@ -118,7 +118,7 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       {/* Mobile Top Bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 bg-background border-b border-border z-40 flex items-center px-5 gap-3"
+      <div className="glass-bar lg:hidden fixed top-0 left-0 right-0 bg-background border-b border-border z-40 flex items-center px-5 gap-3"
         style={{ height: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         {currentPageName !== 'Dashboard' && (
           <button
@@ -169,7 +169,7 @@ export default function Layout({ children, currentPageName }) {
                 setShowMobileMenu(false);
               }
             }}
-            className="lg:hidden fixed left-0 top-0 h-full w-72 bg-background border-r border-border shadow-2xl z-50 overflow-y-auto">
+            className="glass-bar lg:hidden fixed left-0 top-0 h-full w-72 bg-background border-r border-border shadow-2xl z-50 overflow-y-auto">
             
               <div className="px-5 py-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-2.5">

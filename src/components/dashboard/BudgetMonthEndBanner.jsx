@@ -92,7 +92,7 @@ export default function BudgetMonthEndBanner({ budgets, transactions, formatCurr
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-6 rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-950/60 to-indigo-950/60 overflow-hidden"
+      className="glass-card mb-6 rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-950/60 to-indigo-950/60 overflow-hidden"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">

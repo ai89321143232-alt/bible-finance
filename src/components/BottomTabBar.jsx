@@ -39,7 +39,7 @@ export default function BottomTabBar({ activeIndex, onTabClick }) {
       className="lg:hidden fixed left-4 right-4 z-50"
       style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
     >
-      <div className="flex items-end justify-around py-2 px-1 rounded-2xl bg-card/95 backdrop-blur-xl border border-border shadow-2xl">
+      <div className="glass-bar flex items-end justify-around py-2 px-1 rounded-2xl bg-card/95 backdrop-blur-xl border border-border shadow-2xl">
         {tabs.map((tab, index) => {
           const Icon = tab.icon;
           const isActive = activeIndex === index;
