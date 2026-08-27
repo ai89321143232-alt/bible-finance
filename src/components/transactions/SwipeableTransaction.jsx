@@ -36,7 +36,7 @@ export default function SwipeableTransaction({
   };
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm mb-2">
+    <div className="relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 mb-2">
       {/* Delete action revealed by swiping left — only for own transactions */}
       {isOwner && (
         <div
@@ -62,7 +62,7 @@ export default function SwipeableTransaction({
         dragElastic={0.05}
         onDragEnd={isOwner ? handleDragEnd : undefined}
         onClick={(e) => { if (isOpen) { e.stopPropagation(); onOpenChange(false); } }}
-        className="relative z-10 flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group bg-white dark:bg-slate-800 glass-row"
+        className="relative z-10 flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group bg-white dark:bg-slate-800"
       >
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className={`w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-lg shadow-sm ${
