@@ -31,8 +31,27 @@ export default function SwipeableTransaction({
   );
   const isFx = Array.isArray(transaction.tags) && transaction.tags.some((t) => t === 'fx' || String(t).startsWith('fx:'));
 
+  const [didDrag, setDidDrag] = useState(false);
+
+  const handleDragStart = () => {
+    setDidDrag(false);
+  };
+
   const handleDragEnd = (_event, info) => {
-    onOpenChange(info.offset.x < -DELETE_WIDTH / 2);
+    setDidDrag(true);
+    // Порог раскрытия — нужно утащить минимум на 60% ширины корзинки
+    const shouldOpen = info.offset.x < -DELETE_WIDTH * 0.6;
+    onOpenChange(shouldOpen);
+  };
+
+  const handleClick = (e) => {
+    // Если был драг — игнорируем клик (framer-motion всё равно его подавляет,
+    // но страхуемся), иначе тоглим раскрытие
+    if (didDrag) return;
+    if (isOwner) {
+      e.stopPropagation();
+      onOpenChange(!isOpen);
+    }
   };
 
   return (
@@ -59,9 +78,10 @@ export default function SwipeableTransaction({
         transition={{ delay: index * 0.03, x: { type: 'spring', damping: 30, stiffness: 300 } }}
         drag={isOwner ? "x" : false}
         dragConstraints={{ left: -DELETE_WIDTH, right: 0 }}
-        dragElastic={0.05}
+        dragElastic={0.02}
+        onDragStart={isOwner ? handleDragStart : undefined}
         onDragEnd={isOwner ? handleDragEnd : undefined}
-        onClick={(e) => { if (isOpen) { e.stopPropagation(); onOpenChange(false); } }}
+        onClick={handleClick}
         className="relative z-10 flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group bg-white dark:bg-slate-800"
       >
         <div className="flex items-center gap-3 flex-1 min-w-0">
