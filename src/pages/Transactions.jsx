@@ -249,7 +249,7 @@ export default function Transactions() {
                 <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3 px-1">
                   {format(new Date(dateKey + 'T00:00:00'), 'd MMMM, EEEE', { locale: dateLocale })}
                 </h3>
-                <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden">
+                <Card className="glass-card border border-slate-200 dark:border-slate-700 shadow-none overflow-hidden">
                   <CardContent className="p-0">
                     {groupedTransactions[dateKey].map((transaction, index) => (
                       <SwipeableTransaction key={transaction.id} transaction={transaction} index={index}

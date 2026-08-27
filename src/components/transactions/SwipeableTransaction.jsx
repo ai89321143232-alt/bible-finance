@@ -36,7 +36,7 @@ export default function SwipeableTransaction({
   };
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 mb-2">
+    <div className="relative overflow-hidden border-b border-slate-100 dark:border-slate-700/60 last:border-b-0">
       {/* Delete action revealed by swiping left — only for own transactions */}
       {isOwner && (
         <div
