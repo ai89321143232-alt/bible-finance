@@ -73,9 +73,9 @@ export default function SwipeableTransaction({
       )}
 
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1, x: isOwner && isOpen ? -DELETE_WIDTH : 0 }}
-        transition={{ delay: index * 0.03, x: { type: 'spring', damping: 30, stiffness: 300 } }}
+        initial={false}
+        animate={{ x: isOwner && isOpen ? -DELETE_WIDTH : 0 }}
+        transition={{ x: { type: 'spring', damping: 30, stiffness: 300 } }}
         drag={isOwner ? "x" : false}
         dragConstraints={{ left: -DELETE_WIDTH, right: 0 }}
         dragElastic={0.02}
