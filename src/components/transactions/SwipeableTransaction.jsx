@@ -82,7 +82,7 @@ export default function SwipeableTransaction({
         onDragStart={isOwner ? handleDragStart : undefined}
         onDragEnd={isOwner ? handleDragEnd : undefined}
         onClick={handleClick}
-        className="relative z-10 flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group bg-white dark:bg-slate-800"
+        className="relative z-10 flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors group bg-white dark:bg-slate-800"
       >
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className={`w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-lg shadow-sm ${
