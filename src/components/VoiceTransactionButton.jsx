@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Mic, MicOff, Loader2, CheckCircle, AlertCircle, Wallet } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
+import { useCurrencySymbol } from '@/lib/formatCurrency';
 
 const CATEGORY_EMOJIS = {
   'Еда и рестораны': '🍕',
@@ -17,6 +18,7 @@ const CATEGORY_EMOJIS = {
 };
 
 export default function VoiceTransactionButton({ onTransactionCreated }) {
+  const currencySymbol = useCurrencySymbol();
   const [status, setStatus] = useState('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [result, setResult] = useState(null);
@@ -251,7 +253,7 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
                             </span>
                             <div>
                                 <div className={`text-sm font-bold ${result.parsed.type === 'expense' ? 'text-red-400' : 'text-green-400'}`}>
-                                    {result.parsed.type === 'expense' ? '-' : '+'}{result.parsed.amount?.toLocaleString()} ₽
+                                    {result.parsed.type === 'expense' ? '-' : '+'}{result.parsed.amount?.toLocaleString()} {currencySymbol}
                                 </div>
                                 <div className="text-xs text-white/40">{result.parsed.description}</div>
                             </div>
@@ -315,7 +317,7 @@ export default function VoiceTransactionButton({ onTransactionCreated }) {
                             {CATEGORY_EMOJIS[result.parsed.category] || '📦'}
                         </div>
                         <div className={`text-lg font-bold ${result.parsed.type === 'expense' ? 'text-red-400' : 'text-green-400'}`}>
-                            {result.parsed.type === 'expense' ? '-' : '+'}{result.parsed.amount?.toLocaleString()} ₽
+                            {result.parsed.type === 'expense' ? '-' : '+'}{result.parsed.amount?.toLocaleString()} {currencySymbol}
                         </div>
                         <div className="text-xs text-white/50 mt-0.5">{result.parsed.description}</div>
                     </motion.div>

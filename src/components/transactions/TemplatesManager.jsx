@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Edit2, Trash2, GripVertical } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { useCurrencySymbol } from '@/lib/formatCurrency';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +22,7 @@ const CATEGORIES = {
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#ec4899', '#14b8a6', '#6366f1'];
 
 export default function TemplatesManager({ open, onClose, onUseTemplate, accounts = [] }) {
+  const currencySymbol = useCurrencySymbol();
   const [templates, setTemplates] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ name: '', type: 'expense', amount: '', category: '', account_id: '', color: COLORS[0], icon: '' });
@@ -105,7 +107,7 @@ export default function TemplatesManager({ open, onClose, onUseTemplate, account
                             <p className="text-white/35 text-xs">{t.category}</p>
                           </div>
                           <span className={`text-sm font-semibold ${isExpense ? 'text-rose-400' : 'text-emerald-400'}`}>
-                            {isExpense ? '-' : '+'}{parseInt(t.amount).toLocaleString()} ₽
+                            {isExpense ? '-' : '+'}{parseInt(t.amount).toLocaleString()} {currencySymbol}
                           </span>
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => onUseTemplate(t)}>

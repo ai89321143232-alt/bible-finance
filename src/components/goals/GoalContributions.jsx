@@ -15,9 +15,12 @@ import { Plus, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { useCurrencySymbol, useFormatCurrency } from '@/lib/formatCurrency';
 
 export default function GoalContributions({ goal, currentUser, familyMembers }) {
   const queryClient = useQueryClient();
+  const currencySymbol = useCurrencySymbol();
+  const formatCurrency = useFormatCurrency();
   const [showModal, setShowModal] = useState(false);
   const [contributionAmount, setContributionAmount] = useState('');
 
@@ -47,14 +50,6 @@ export default function GoalContributions({ goal, currentUser, familyMembers }) 
       toast.success('Вклад добавлен');
     }
   });
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('ru-RU', { 
-      style: 'currency', 
-      currency: 'RUB',
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
 
   if (!goal.is_family_goal) return null;
 
@@ -124,7 +119,7 @@ export default function GoalContributions({ goal, currentUser, familyMembers }) 
                   placeholder="0"
                   autoFocus
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{currencySymbol}</span>
               </div>
             </div>
 

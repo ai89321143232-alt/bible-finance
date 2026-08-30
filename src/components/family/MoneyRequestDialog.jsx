@@ -5,9 +5,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { HandCoins } from 'lucide-react';
+import { useCurrencySymbol } from '@/lib/formatCurrency';
 
 // Диалог создания запроса денег у членов семьи — сумма + необязательная заметка.
 export default function MoneyRequestDialog({ open, onOpenChange, onSubmit }) {
+  const currencySymbol = useCurrencySymbol();
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -36,7 +38,7 @@ export default function MoneyRequestDialog({ open, onOpenChange, onSubmit }) {
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <Label>Сумма, ₽</Label>
+            <Label>Сумма, {currencySymbol}</Label>
             <Input
               type="number"
               inputMode="decimal"

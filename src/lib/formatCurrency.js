@@ -38,6 +38,17 @@ export function getCurrencySymbol(code = 'RUB', language = 'ru') {
   }
 }
 
+export function useCurrencySymbol() {
+  const { language } = useLanguage();
+  const { data: user } = useQuery({
+    queryKey: ['auth-me'],
+    queryFn: () => base44.auth.me(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const profileCurrency = user?.currency || user?.data?.currency || 'RUB';
+  return getCurrencySymbol(profileCurrency, language);
+}
+
 export function useFormatCurrency() {
   const { language } = useLanguage();
   // Кэшированный запрос профиля — user.currency обновляется при смене в Настройках

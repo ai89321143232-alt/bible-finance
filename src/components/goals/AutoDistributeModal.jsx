@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle } from 'lucide-react';
+import { useCurrencySymbol } from '@/lib/formatCurrency';
 
 export default function AutoDistributeModal({ 
   open, 
@@ -13,6 +14,7 @@ export default function AutoDistributeModal({
   onDistribute,
   formatCurrency
 }) {
+  const currencySymbol = useCurrencySymbol();
   const [amount, setAmount] = useState('');
   const [distribution, setDistribution] = useState({});
 
@@ -77,7 +79,7 @@ export default function AutoDistributeModal({
                 placeholder="0"
                 className="rounded-xl pr-8"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{currencySymbol}</span>
             </div>
           </div>
 

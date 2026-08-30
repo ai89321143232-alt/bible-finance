@@ -4,11 +4,13 @@ import { ru } from 'date-fns/locale';
 import { Pencil, Check, X, HandCoins, PartyPopper } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import ReactionBar from '@/components/family/ReactionBar';
+import { useCurrencySymbol } from '@/lib/formatCurrency';
 
 // Один пузырь сообщения в семейном чате: справа/цветной для своих,
 // слева/нейтральный для чужих. Поддерживает редактирование, реакции
 // и особый вид для запроса денег.
 export default function ChatBubble({ message, member, isOwn, userId, totalMembers = 1, payer, onReact, onEdit, onFulfillRequest }) {
+  const currencySymbol = useCurrencySymbol();
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(message.content);
   const name = member?.display_name || member?.name || 'Участник';
@@ -49,7 +51,7 @@ export default function ChatBubble({ message, member, isOwn, userId, totalMember
           } ${isOwn ? 'rounded-br-sm' : 'rounded-bl-sm'}`}>
             <div className="flex items-center gap-1.5 font-semibold">
               <HandCoins className="w-4 h-4" />
-              Запрос {message.amount?.toLocaleString('ru-RU')} ₽
+              Запрос {message.amount?.toLocaleString('ru-RU')} {currencySymbol}
             </div>
             {message.content && <p className="mt-1 opacity-95 whitespace-pre-wrap break-words">{message.content}</p>}
             {isFulfilled ? (

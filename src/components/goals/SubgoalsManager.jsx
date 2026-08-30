@@ -3,8 +3,10 @@ import { Plus, X, Check } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useCurrencySymbol } from '@/lib/formatCurrency';
 
 export default function SubgoalsManager({ subgoals, onChange, formatCurrency }) {
+  const currencySymbol = useCurrencySymbol();
   const [newSubgoal, setNewSubgoal] = useState({ title: '', target_amount: '' });
 
   const addSubgoal = () => {
@@ -100,7 +102,7 @@ export default function SubgoalsManager({ subgoals, onChange, formatCurrency }) 
             placeholder="Сумма"
             className="rounded-lg pr-8"
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{currencySymbol}</span>
         </div>
         <Button
           onClick={addSubgoal}

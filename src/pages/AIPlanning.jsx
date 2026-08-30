@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/lib/LanguageContext';
+import { useCurrencySymbol } from '@/lib/formatCurrency';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog';
@@ -36,6 +37,7 @@ function SectionCard({ title, children }) {
 }
 
 function ResultRenderer({ type, data }) {
+  const currencySymbol = useCurrencySymbol();
   if (!data) return null;
 
   if (type === 'cashflow') {
@@ -45,7 +47,7 @@ function ResultRenderer({ type, data }) {
         {data.break_day && (
           <SectionCard title="⚠️ Возможный кассовый разрыв">
             <p className="text-sm text-destructive font-medium">{data.break_day}</p>
-            <p className="text-xs text-muted-foreground mt-1">Минимальный баланс: {data.min_balance?.toLocaleString()} ₽</p>
+            <p className="text-xs text-muted-foreground mt-1">Минимальный баланс: {data.min_balance?.toLocaleString()} {currencySymbol}</p>
           </SectionCard>
         )}
         {data.daily_table?.length > 0 && (
@@ -55,7 +57,7 @@ function ResultRenderer({ type, data }) {
                 <div key={i} className="flex justify-between text-xs py-1 border-b border-border/30">
                   <span className="text-muted-foreground">{d.date?.slice(5)}</span>
                   <span className={d.balance < 0 ? 'text-destructive font-medium' : 'text-foreground'}>
-                    {d.balance?.toLocaleString()} ₽
+                    {d.balance?.toLocaleString()} {currencySymbol}
                   </span>
                 </div>
               ))}
@@ -65,7 +67,7 @@ function ResultRenderer({ type, data }) {
         {data.suggestions?.length > 0 && (
           <SectionCard title="Что оптимизировать">
             {data.suggestions.map((s, i) => (
-              <p key={i} className="text-sm py-1">• {s.action} — экономия {s.savings?.toLocaleString()} ₽</p>
+              <p key={i} className="text-sm py-1">• {s.action} — экономия {s.savings?.toLocaleString()} {currencySymbol}</p>
             ))}
           </SectionCard>
         )}
@@ -78,9 +80,9 @@ function ResultRenderer({ type, data }) {
       <div className="space-y-3">
         <div className="glass-card rounded-xl p-5 text-center bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10">
           <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Можно потратить сегодня</p>
-          <p className="text-3xl font-bold text-primary">{data.daily_limit?.toLocaleString()} ₽</p>
-          <p className="text-xs text-muted-foreground mt-2">Уже потрачено: {data.already_spent_today?.toLocaleString()} ₽</p>
-          <p className="text-xs text-muted-foreground">Остаток: <span className="font-medium text-foreground">{data.remaining_today?.toLocaleString()} ₽</span></p>
+          <p className="text-3xl font-bold text-primary">{data.daily_limit?.toLocaleString()} {currencySymbol}</p>
+          <p className="text-xs text-muted-foreground mt-2">Уже потрачено: {data.already_spent_today?.toLocaleString()} {currencySymbol}</p>
+          <p className="text-xs text-muted-foreground">Остаток: <span className="font-medium text-foreground">{data.remaining_today?.toLocaleString()} {currencySymbol}</span></p>
         </div>
         {data.summary && <p className="text-sm text-muted-foreground">{data.summary}</p>}
         {data.tips?.length > 0 && (
@@ -99,7 +101,7 @@ function ResultRenderer({ type, data }) {
         {data.total_monthly_savings > 0 && (
           <div className="glass-card rounded-xl p-4 text-center bg-gradient-to-br from-emerald-500/10 to-teal-500/10">
             <p className="text-xs text-muted-foreground">Потенциальная ежемесячная экономия</p>
-            <p className="text-2xl font-bold text-emerald-500">{data.total_monthly_savings?.toLocaleString()} ₽</p>
+            <p className="text-2xl font-bold text-emerald-500">{data.total_monthly_savings?.toLocaleString()} {currencySymbol}</p>
           </div>
         )}
         {data.duplicates?.length > 0 && (
@@ -108,7 +110,7 @@ function ResultRenderer({ type, data }) {
               <div key={i} className="py-1.5 border-b border-border/30 last:border-0">
                 <p className="text-sm font-medium text-foreground">{d.name}</p>
                 <p className="text-xs text-muted-foreground">{d.reason}</p>
-                {d.monthly_savings > 0 && <p className="text-xs text-emerald-500">экономия {d.monthly_savings?.toLocaleString()} ₽/мес</p>}
+                {d.monthly_savings > 0 && <p className="text-xs text-emerald-500">экономия {d.monthly_savings?.toLocaleString()} {currencySymbol}/мес</p>}
               </div>
             ))}
           </SectionCard>
@@ -150,7 +152,7 @@ function ResultRenderer({ type, data }) {
           ))}
         </SectionCard>
         {data.savings_vs_minimal > 0 && (
-          <p className="text-sm text-emerald-500">Экономия на процентах: {data.savings_vs_minimal?.toLocaleString()} ₽</p>
+          <p className="text-sm text-emerald-500">Экономия на процентах: {data.savings_vs_minimal?.toLocaleString()} {currencySymbol}</p>
         )}
       </div>
     );
@@ -165,8 +167,8 @@ function ResultRenderer({ type, data }) {
           <SectionCard title="С ускорением"><p className="text-sm font-medium text-emerald-500">{data.accelerated_date}</p></SectionCard>
         </div>
         <SectionCard title="Рекомендация">
-          <p className="text-sm">Добавлять <span className="font-bold text-primary">{data.required_monthly?.toLocaleString()} ₽/мес</span> для дедлайна</p>
-          <p className="text-sm mt-1">Рекомендованный взнос: <span className="font-medium">{data.recommended_contribution?.toLocaleString()} ₽/мес</span></p>
+          <p className="text-sm">Добавлять <span className="font-bold text-primary">{data.required_monthly?.toLocaleString()} {currencySymbol}/мес</span> для дедлайна</p>
+          <p className="text-sm mt-1">Рекомендованный взнос: <span className="font-medium">{data.recommended_contribution?.toLocaleString()} {currencySymbol}/мес</span></p>
           {data.months_saved > 0 && <p className="text-sm text-emerald-500 mt-1">Экономия {data.months_saved} мес.</p>}
         </SectionCard>
       </div>
@@ -203,12 +205,12 @@ function ResultRenderer({ type, data }) {
         </SectionCard>
         {data.top_growth?.length > 0 && (
           <SectionCard title="Рост категорий">
-            {data.top_growth.map((c, i) => <p key={i} className="text-sm py-0.5">{c.category}: {c.amount?.toLocaleString()} ₽ (+{c.change_percent}%)</p>)}
+            {data.top_growth.map((c, i) => <p key={i} className="text-sm py-0.5">{c.category}: {c.amount?.toLocaleString()} {currencySymbol} (+{c.change_percent}%)</p>)}
           </SectionCard>
         )}
         {data.top_decline?.length > 0 && (
           <SectionCard title="Снижение категорий">
-            {data.top_decline.map((c, i) => <p key={i} className="text-sm py-0.5">{c.category}: {c.amount?.toLocaleString()} ₽ ({c.change_percent}%)</p>)}
+            {data.top_decline.map((c, i) => <p key={i} className="text-sm py-0.5">{c.category}: {c.amount?.toLocaleString()} {currencySymbol} ({c.change_percent}%)</p>)}
           </SectionCard>
         )}
         {data.recommendations?.length > 0 && (
@@ -237,7 +239,7 @@ function ResultRenderer({ type, data }) {
             {data.debt_allocation.map((d, i) => (
               <div key={i} className="flex justify-between text-sm py-1 border-b border-border/30 last:border-0">
                 <span className="text-foreground">{d.name}</span>
-                <span className="font-medium text-destructive">{d.amount?.toLocaleString()} ₽</span>
+                <span className="font-medium text-destructive">{d.amount?.toLocaleString()} {currencySymbol}</span>
               </div>
             ))}
           </SectionCard>
@@ -247,7 +249,7 @@ function ResultRenderer({ type, data }) {
             {data.savings_allocation.map((d, i) => (
               <div key={i} className="flex justify-between text-sm py-1 border-b border-border/30 last:border-0">
                 <span className="text-foreground">{d.name}</span>
-                <span className="font-medium text-emerald-500">{d.amount?.toLocaleString()} ₽</span>
+                <span className="font-medium text-emerald-500">{d.amount?.toLocaleString()} {currencySymbol}</span>
               </div>
             ))}
           </SectionCard>

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import { useLanguage } from '@/lib/LanguageContext';
-import { useFormatCurrency, getCurrencySymbol } from '@/lib/formatCurrency';
+import { useFormatCurrency, getCurrencySymbol, useCurrencySymbol } from '@/lib/formatCurrency';
 import {
   Plus, Wallet, AlertCircle, Edit2, Trash2, X, Check, TrendingUp, Users
 } from 'lucide-react';
@@ -337,6 +337,7 @@ export default function Budgets() {
   };
 
   const formatCurrency = useFormatCurrency();
+  const currencySymbol = useCurrencySymbol();
 
   const displayBudgets = filterByWorkspace(
     viewMode === 'personal' ? myBudgets : sharedBudgets,
@@ -563,7 +564,7 @@ export default function Budgets() {
                   placeholder="0"
                   className="rounded-xl pr-8"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{currencySymbol}</span>
               </div>
             </div>
             <div>

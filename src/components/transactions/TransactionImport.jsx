@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, FileUp, CheckCircle2, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useCurrencySymbol } from '@/lib/formatCurrency';
 
 const IMPORT_FORMATS = [
   { value: 'auto', label: 'Автоопределение' },
@@ -159,6 +160,7 @@ const STEPS = {
 };
 
 export default function TransactionImport({ open, onClose, onImported }) {
+  const currencySymbol = useCurrencySymbol();
   const [step, setStep] = useState(STEPS.UPLOAD);
   const [format, setFormat] = useState('auto');
   const [parsedData, setParsedData] = useState([]);
@@ -342,7 +344,7 @@ export default function TransactionImport({ open, onClose, onImported }) {
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${
                       t.type === 'income' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'
                     }`}>
-                      {t.type === 'income' ? '+' : '−'}{new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(t.amount)} ₽
+                      {t.type === 'income' ? '+' : '−'}{new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(t.amount)} {currencySymbol}
                     </span>
                     <span className="text-sm text-foreground flex-1 truncate">{t.category}</span>
                     <span className="text-xs text-muted-foreground truncate max-w-[100px]">{t.description || '—'}</span>

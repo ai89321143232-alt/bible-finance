@@ -2,8 +2,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Zap, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useCurrencySymbol } from '@/lib/formatCurrency';
 
 export default function QuickTemplates({ templates = [], onUseTemplate, onOpenManager, accounts = [] }) {
+  const currencySymbol = useCurrencySymbol();
   if (templates.length === 0) {
     return (
       <div className="mb-6">
@@ -48,7 +50,7 @@ export default function QuickTemplates({ templates = [], onUseTemplate, onOpenMa
                 <p className="text-white text-xs font-medium truncate max-w-[100px]">{t.name}</p>
                 <div className="flex items-center gap-1 mt-0.5">
                   <span className={`text-xs font-semibold ${isExpense ? 'text-rose-400' : 'text-emerald-400'}`}>
-                    {isExpense ? '-' : '+'}{parseInt(t.amount).toLocaleString()} ₽
+                    {isExpense ? '-' : '+'}{parseInt(t.amount).toLocaleString()} {currencySymbol}
                   </span>
                   {account && (
                     <span className="text-white/25 text-[10px]">· {account.name}</span>

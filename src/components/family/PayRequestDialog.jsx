@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { SelectItem } from '@/components/ui/select';
 import MobileSelect from '@/components/mobile/MobileSelect';
 import { HandCoins } from 'lucide-react';
+import { useCurrencySymbol } from '@/lib/formatCurrency';
 
 // Диалог оплаты запроса денег: выбор своего счёта, с которого спишется сумма.
 // Сама сумма переводится на счёт запросившего — общий баланс семьи не меняется,
 // меняются только балансы двух конкретных счетов.
 export default function PayRequestDialog({ open, onOpenChange, message, requesterName, accounts, onConfirm }) {
+  const currencySymbol = useCurrencySymbol();
   const [accountId, setAccountId] = useState('');
   const [isSending, setIsSending] = useState(false);
 
@@ -38,7 +40,7 @@ export default function PayRequestDialog({ open, onOpenChange, message, requeste
         </DialogHeader>
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            {requesterName} запросил(а) <span className="font-semibold text-foreground">{message?.amount?.toLocaleString('ru-RU')} ₽</span>.
+            {requesterName} запросил(а) <span className="font-semibold text-foreground">{message?.amount?.toLocaleString('ru-RU')} {currencySymbol}</span>.
             Выберите счёт, с которого списать сумму:
           </p>
           {accounts.length === 0 ? (
@@ -47,7 +49,7 @@ export default function PayRequestDialog({ open, onOpenChange, message, requeste
             <MobileSelect value={accountId} onValueChange={setAccountId} placeholder="Счёт" title="Выберите счёт" triggerClassName="w-full h-10 rounded-xl">
               {accounts.map(acc => (
                 <SelectItem key={acc.id} value={acc.id}>
-                  {acc.name} · {(acc.balance || 0).toLocaleString('ru-RU')} ₽
+                  {acc.name} · {(acc.balance || 0).toLocaleString('ru-RU')} {currencySymbol}
                 </SelectItem>
               ))}
             </MobileSelect>

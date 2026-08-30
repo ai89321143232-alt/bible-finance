@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sparkles, TrendingUp, AlertTriangle, Lightbulb } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useCurrencySymbol } from '@/lib/formatCurrency';
 
 export default function PremiumAIAnalytics() {
+  const currencySymbol = useCurrencySymbol();
   const [activeTab, setActiveTab] = useState('forecast');
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
@@ -90,7 +92,7 @@ export default function PremiumAIAnalytics() {
                         <span className="font-medium text-gray-800">{item.category}</span>
                         <div className="text-right">
                           <span className="text-lg font-semibold text-indigo-600">
-                            {item.predicted_amount.toFixed(0)} ₽
+                            {item.predicted_amount.toFixed(0)} {currencySymbol}
                           </span>
                           <p className="text-xs text-gray-500">{item.confidence}</p>
                         </div>
@@ -119,7 +121,7 @@ export default function PremiumAIAnalytics() {
                       <p className="text-sm text-gray-600 mt-1">{rec.description}</p>
                       {rec.potential_savings > 0 && (
                         <p className="text-xs text-green-600 mt-2 font-medium">
-                          💰 Потенциальная экономия: {rec.potential_savings.toFixed(0)} ₽
+                          💰 Потенциальная экономия: {rec.potential_savings.toFixed(0)} {currencySymbol}
                         </p>
                       )}
                     </div>
@@ -155,7 +157,7 @@ export default function PremiumAIAnalytics() {
                           <p className="text-xs text-red-600 mt-2">🔍 {anomaly.recommendation}</p>
                         </div>
                         <span className="text-lg font-bold text-red-600">
-                          {anomaly.amount.toFixed(0)} ₽
+                          {anomaly.amount.toFixed(0)} {currencySymbol}
                         </span>
                       </div>
                     </div>
