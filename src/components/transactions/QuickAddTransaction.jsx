@@ -514,6 +514,15 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
   const fxRateNum = parseFloat(fxRate) || 0;
   const destAmount = isFx && fxRateNum > 0 && amount ? (parseFloat(amount) / fxRateNum) : 0;
 
+  // Символ валюты выбранного счёта (для поля суммы)
+  const selectedCurrency = sourceAcc?.currency || 'RUB';
+  const currencySymbol = (() => {
+    try {
+      const parts = new Intl.NumberFormat('ru-RU', { style: 'currency', currency: selectedCurrency, maximumFractionDigits: 0 }).formatToParts(0);
+      return parts.find(p => p.type === 'currency')?.value || selectedCurrency;
+    } catch { return selectedCurrency; }
+  })();
+
   const formContent = (
     <>
           {/* Header — only for desktop */}
@@ -606,7 +615,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                 <div className="relative">
                   <Input type="number" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)}
                     className="text-3xl font-bold h-16 pl-4 pr-12 rounded-xl border-2 focus:border-violet-500 text-slate-900 dark:text-white bg-white dark:bg-slate-800" />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">₽</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">{currencySymbol}</span>
                 </div>
               </div>
 
