@@ -583,6 +583,7 @@ export default function Settings() {
                       <SelectItem value="RUB">🇷🇺 RUB</SelectItem>
                       <SelectItem value="USD">🇺🇸 USD</SelectItem>
                       <SelectItem value="EUR">🇪🇺 EUR</SelectItem>
+                      <SelectItem value="UZS">🇺🇿 UZS</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
