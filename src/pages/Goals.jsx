@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import { useLanguage } from '@/lib/LanguageContext';
-import { useFormatCurrency } from '@/lib/formatCurrency';
+import { useFormatCurrency, getCurrencySymbol } from '@/lib/formatCurrency';
 import {
   Plus, Target, Edit2, Trash2, Check, Calendar, TrendingUp, Coins, MinusCircle,
   Users, Zap
@@ -79,6 +79,7 @@ export default function Goals() {
 
   const [formData, setFormData] = useState({
     title: '', type: 'savings', target_amount: '', current_amount: '0',
+    currency: user?.currency || 'RUB',
     deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: [],
     linked_account_ids: [], linked_investment_ids: [], linked_investment_amounts: []
   });
@@ -174,7 +175,7 @@ export default function Goals() {
   });
 
   const resetForm = () => {
-    setFormData({ title: '', type: 'savings', target_amount: '', current_amount: '0', deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: [], linked_account_ids: [], linked_investment_ids: [], linked_investment_amounts: [] });
+    setFormData({ title: '', type: 'savings', target_amount: '', current_amount: '0', currency: user?.currency || 'RUB', deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: [], linked_account_ids: [], linked_investment_ids: [], linked_investment_amounts: [] });
     setShowAddModal(false);
     setEditGoal(null);
     setShareWithUsers([]);
@@ -186,7 +187,7 @@ export default function Goals() {
     setEditGoal(goal);
     setFormData({
       title: goal.title, type: goal.type, target_amount: goal.target_amount.toString(),
-      current_amount: (goal.current_amount || 0).toString(), deadline: goal.deadline ? new Date(goal.deadline) : null,
+      current_amount: (goal.current_amount || 0).toString(), currency: goal.currency || user?.currency || 'RUB', deadline: goal.deadline ? new Date(goal.deadline) : null,
       priority: goal.priority || 'medium', is_family_goal: goal.is_family_goal || false,
       share_with: goal.share_with || [], subgoals: goal.subgoals || [],
       linked_account_ids: goal.linked_account_ids?.length ? goal.linked_account_ids : (goal.linked_account_id ? [goal.linked_account_id] : []),
@@ -220,6 +221,7 @@ export default function Goals() {
 
     const data = {
       ...formData, target_amount: parseFloat(formData.target_amount),
+      currency: formData.currency,
       current_amount: parseFloat(formData.current_amount) || 0,
       deadline: formData.deadline ? format(formData.deadline, 'yyyy-MM-dd') : null,
       status: 'active', share_with: shareWithUsers,
@@ -295,6 +297,11 @@ export default function Goals() {
   }, [myGoals, sharedGoals, user?.email, viewMode]);
 
   const formatCurrency = useFormatCurrency();
+  const goalCurrencySymbol = getCurrencySymbol(formData.currency, language);
+  const addFundsAccount = accounts.find(a => a.id === selectedAccount);
+  const addFundsCurrencySymbol = getCurrencySymbol(addFundsAccount?.currency || user?.currency || 'RUB', language);
+  const spendAccount = accounts.find(a => a.id === spendAccountId);
+  const spendCurrencySymbol = getCurrencySymbol(spendAccount?.currency || user?.currency || 'RUB', language);
 
   // Сколько каждой инвестиции уже распределено по ДРУГИМ целям
   const allGoals = [...myGoals, ...sharedGoals];
@@ -319,7 +326,7 @@ export default function Goals() {
     const allocatedElsewhere = investmentAllocatedMap[invId] || 0;
     const maxAvailable = Math.max(0, fullValue - allocatedElsewhere);
     if (entered > maxAvailable) {
-      return `${t('goals.max_amount')} ${maxAvailable.toFixed(0)} ₽ ${t('goals.allocated_elsewhere')}`;
+      return `${t('goals.max_amount')} ${maxAvailable.toFixed(0)} ${goalCurrencySymbol} ${t('goals.allocated_elsewhere')}`;
     }
     return '';
   };
@@ -452,7 +459,7 @@ export default function Goals() {
                 <Label>{t('goals.target_amount')}</Label>
                 <div className="relative mt-1">
                   <Input type="number" value={formData.target_amount} onChange={(e) => setFormData({ ...formData, target_amount: e.target.value })} placeholder="0" className="rounded-xl pr-8" />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{goalCurrencySymbol}</span>
                 </div>
               </div>
               <div>
@@ -468,7 +475,7 @@ export default function Goals() {
               <Label>{t('goals.already_saved')}</Label>
               <div className="relative mt-1">
                 <Input type="number" value={formData.current_amount} onChange={(e) => setFormData({ ...formData, current_amount: e.target.value })} placeholder="0" className="rounded-xl pr-8" />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{goalCurrencySymbol}</span>
               </div>
             </div>
             {parseFloat(formData.current_amount) > 0 && (
@@ -529,13 +536,13 @@ export default function Goals() {
                                 setInvestmentErrors({ ...investmentErrors, [inv.id]: validateInvestmentAmount(inv.id, val) });
                               }}
                                 placeholder={invValue.toFixed(0)} className="h-8 text-sm rounded-lg max-w-32" />
-                              <span className="text-xs text-slate-400">₽</span>
+                              <span className="text-xs text-slate-400">{goalCurrencySymbol}</span>
                             </div>
                             {investmentErrors[inv.id] && (
                               <p className="text-xs text-rose-500 mt-1">{investmentErrors[inv.id]}</p>
                             )}
                             {(investmentAllocatedMap[inv.id] || 0) > 0 && !investmentErrors[inv.id] && (
-                              <p className="text-xs text-slate-400 mt-0.5">{t('goals.already_in_goals')} {(investmentAllocatedMap[inv.id]).toFixed(0)} ₽</p>
+                              <p className="text-xs text-slate-400 mt-0.5">{t('goals.already_in_goals')} {(investmentAllocatedMap[inv.id]).toFixed(0)} {goalCurrencySymbol}</p>
                             )}
                           </div>
                         )}
@@ -617,7 +624,7 @@ export default function Goals() {
               <Label>{t('goals.amount')}</Label>
               <div className="relative mt-1">
                 <Input type="number" value={addFundsAmount} onChange={(e) => setAddFundsAmount(e.target.value)} placeholder="0" className="rounded-xl pr-8 text-xl font-semibold h-14" />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{addFundsCurrencySymbol}</span>
               </div>
             </div>
             <Button onClick={handleAddFunds} disabled={!addFundsAmount || !selectedAccount || updateMutation.isPending} className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600">
@@ -646,7 +653,7 @@ export default function Goals() {
               <Label>{t('goals.amount')}</Label>
               <div className="relative mt-1">
                 <Input type="number" value={spendAmount} onChange={(e) => setSpendAmount(e.target.value)} placeholder="0" max={showSpendModal?.current_amount || 0} className="rounded-xl pr-8 text-xl font-semibold h-14" />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{spendCurrencySymbol}</span>
               </div>
             </div>
             <div>

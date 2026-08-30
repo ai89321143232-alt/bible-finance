@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import { useLanguage } from '@/lib/LanguageContext';
-import { useFormatCurrency } from '@/lib/formatCurrency';
+import { useFormatCurrency, getCurrencySymbol } from '@/lib/formatCurrency';
 import {
   Plus, Wallet, AlertCircle, Edit2, Trash2, X, Check, TrendingUp, Users
 } from 'lucide-react';
@@ -94,6 +94,7 @@ export default function Budgets() {
     name: '',
     categories: [],
     limit_amount: '',
+    currency: 'RUB',
     period: 'monthly',
     notify_at_percent: 80,
     is_family_budget: false,

@@ -353,7 +353,9 @@ export default function Dashboard() {
   const personalFixedAssets = fixedAssets.filter((fa) => fa.created_by_id === user?.id);
   const modeFixedAssets = family && balanceMode === 'family' ? fixedAssets : personalFixedAssets;
 
-  const formatCurrency = (amount) => formatCurrencyFor(amount, language);
+  // Валюта профиля — дефолт для всех агрегатов (общий баланс, net worth, доход/расход)
+  const profileCurrency = user?.currency || user?.data?.currency || 'RUB';
+  const formatCurrency = (amount, currency) => formatCurrencyFor(amount, language, currency || profileCurrency);
 
   const handleRefresh = async () => {
     await Promise.all([

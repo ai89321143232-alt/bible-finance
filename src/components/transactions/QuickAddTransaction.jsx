@@ -11,6 +11,7 @@ import ReceiptReviewModal from './ReceiptReviewModal';
 import { parseFlexibleDate } from '@/lib/parseDate';
 import { compressImage } from '@/lib/compressImage';
 import { getCategoryEmoji } from '@/lib/categoryIcon';
+import { getCurrencySymbol } from '@/lib/formatCurrency';
 import QRReceiptScanner from './QRReceiptScanner';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -516,12 +517,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
 
   // Символ валюты выбранного счёта (для поля суммы)
   const selectedCurrency = sourceAcc?.currency || 'RUB';
-  const currencySymbol = (() => {
-    try {
-      const parts = new Intl.NumberFormat('ru-RU', { style: 'currency', currency: selectedCurrency, maximumFractionDigits: 0 }).formatToParts(0);
-      return parts.find(p => p.type === 'currency')?.value || selectedCurrency;
-    } catch { return selectedCurrency; }
-  })();
+  const currencySymbol = getCurrencySymbol(selectedCurrency);
 
   const formContent = (
     <>

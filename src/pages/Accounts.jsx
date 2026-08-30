@@ -39,7 +39,7 @@ import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/
 import CreatorTag from '@/components/shared/CreatorTag';
 import FamilyVisibilityToggle from '@/components/shared/FamilyVisibilityToggle';
 import { useLanguage } from '@/lib/LanguageContext';
-import { useFormatCurrency } from '@/lib/formatCurrency';
+import { useFormatCurrency, getCurrencySymbol } from '@/lib/formatCurrency';
 
 const ACCOUNT_COLORS = [
   '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6',
@@ -263,6 +263,8 @@ export default function Accounts() {
   };
 
   const formatCurrency = useFormatCurrency();
+  const { language } = useLanguage();
+  const formCurrencySymbol = getCurrencySymbol(formData.currency, language);
 
   // Calculate account stats
   const getAccountStats = (accountId) => {
@@ -422,18 +424,18 @@ export default function Accounts() {
                       </div>
 
                       <p className={`text-2xl font-bold mb-1 ${(account.balance || 0) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
-                        {formatCurrency(account.balance || 0)}
+                        {formatCurrency(account.balance || 0, account.currency)}
                       </p>
                       {(account.frozen_amount || 0) > 0 && (
                         <p className="text-xs text-amber-500 dark:text-amber-400 mb-1 flex items-center gap-1">
                           <Lock className="w-3 h-3" />
-                           {t('accounts.frozen')}: {formatCurrency(account.frozen_amount || 0)} • {t('accounts.available')}: {formatCurrency((account.balance || 0) - (account.frozen_amount || 0))}
+                           {t('accounts.frozen')}: {formatCurrency(account.frozen_amount || 0, account.currency)} • {t('accounts.available')}: {formatCurrency((account.balance || 0) - (account.frozen_amount || 0), account.currency)}
                         </p>
                       )}
                       {account.type === 'credit' && account.credit_limit > 0 && (
                         <p className="text-xs text-slate-400 mb-2">
-                          {t('accounts.limit')}: {formatCurrency(account.credit_limit)} •
-                          {t('accounts.available')}: {formatCurrency(account.credit_limit + (account.balance || 0))}
+                          {t('accounts.limit')}: {formatCurrency(account.credit_limit, account.currency)} •
+                          {t('accounts.available')}: {formatCurrency(account.credit_limit + (account.balance || 0), account.currency)}
                         </p>
                       )}
                       {!account.credit_limit && <div className="mb-3" />}
@@ -441,11 +443,11 @@ export default function Accounts() {
                       <div className="flex gap-4 text-sm">
                         <div className="flex items-center gap-1 text-emerald-600">
                           <ArrowUpRight className="w-4 h-4" />
-                          <span>{formatCurrency(stats.income)}</span>
+                          <span>{formatCurrency(stats.income, account.currency)}</span>
                         </div>
                         <div className="flex items-center gap-1 text-rose-600">
                           <ArrowDownRight className="w-4 h-4" />
-                          <span>{formatCurrency(stats.expenses)}</span>
+                          <span>{formatCurrency(stats.expenses, account.currency)}</span>
                         </div>
                       </div>
                     </CardContent>
@@ -522,7 +524,7 @@ export default function Accounts() {
                   placeholder="0"
                   className="rounded-xl pr-8"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{formCurrencySymbol}</span>
               </div>
               {formData.type === 'credit' && (
                 <p className="text-xs text-rose-500/80 mt-1.5 flex items-center gap-1">
@@ -542,7 +544,7 @@ export default function Accounts() {
                     placeholder={t('accounts.credit_limit_placeholder')}
                     className="rounded-xl pr-8"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{formCurrencySymbol}</span>
                 </div>
               </div>
             )}
