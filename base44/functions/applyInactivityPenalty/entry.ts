@@ -4,7 +4,17 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // This is a scheduled function - use service role
+    // This maintenance job operates on every ChildGameProfile with service role,
+    // so the HTTP endpoint must be restricted to admins. (The scheduled automation
+    // caller will need an admin context to keep working — see release notes.)
+    const user = await base44.auth.me();
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (user.role !== 'admin') {
+      return Response.json({ error: 'Forbidden: admin access required' }, { status: 403 });
+    }
+
     const profiles = await base44.asServiceRole.entities.ChildGameProfile.list();
 
     const today = new Date();

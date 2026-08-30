@@ -15,11 +15,23 @@ Deno.serve(async (req) => {
 
   try {
     const base44 = createClientFromRequest(req);
+
+    // Authenticate the caller — push dispatch must not be anonymous.
+    const user = await base44.auth.me();
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { user_id, title, body: messageBody, tag, data } = body;
 
     if (!user_id) {
       return Response.json({ error: 'user_id is required' }, { status: 400 });
+    }
+
+    // A logged-in user may only send pushes to themselves; admins may send to anyone.
+    if (user_id !== user.id && user.role !== 'admin') {
+      return Response.json({ error: 'Forbidden: can only send to yourself' }, { status: 403 });
     }
 
     const results = await sendPushToUser(base44, user_id, {
