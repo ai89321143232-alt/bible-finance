@@ -89,6 +89,45 @@ Deno.serve(async (req) => {
 
     const action = parsed.action || 'none';
 
+    // === Bulk create (list of transactions) ===
+    if (action === 'create_transactions' && Array.isArray(parsed.transactions) && parsed.transactions.length > 0) {
+      const items = parsed.transactions.filter(t => t.amount && t.type);
+      if (items.length === 0) {
+        return Response.json({ reply: parsed.reply || 'Не удалось распознать операции из списка.' });
+      }
+      const needAccountSelection = accounts.length > 1 && !items.every(t => matchAccount(accounts, t.account_hint));
+      if (needAccountSelection) {
+        return Response.json({
+          reply: parsed.reply || 'Уточните, пожалуйста, с какого счёта записать операции?',
+          needs_account: true,
+          pendingTransactions: items,
+          accounts: accounts.map(a => ({ id: a.id, name: a.name, balance: a.balance }))
+        });
+      }
+      const created = [];
+      for (const t of items) {
+        const matchedAccountId = matchAccount(accounts, t.account_hint);
+        const targetAccountId = matchedAccountId || (accounts[0]?.id);
+        if (!targetAccountId) continue;
+        const transaction = await base44.entities.Transaction.create({
+          type: t.type,
+          amount: t.amount,
+          currency: t.currency || 'RUB',
+          category: t.category || 'Другое',
+          description: t.description || 'Операция из списка',
+          date: t.date || new Date().toISOString(),
+          account_id: targetAccountId,
+          user_id: user.id,
+          source: 'app'
+        });
+        await applyBalanceDelta(entities, targetAccountId, effect(t.type, t.amount), user.id);
+        if (t.type === 'expense') await applyBudgetDelta(entities, user.id, t.category, t.amount);
+        created.push(transaction);
+      }
+      const total = items.reduce((s, t) => s + (t.amount || 0), 0);
+      return Response.json({ reply: parsed.reply || `✅ Записано ${created.length} из ${items.length} операций на сумму ${total.toLocaleString()} ₽`, action: 'created', transactions: created });
+    }
+
     // === Create ===
     if (action === 'create_transaction' && parsed.transaction) {
       const t = parsed.transaction;

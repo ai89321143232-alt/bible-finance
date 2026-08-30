@@ -182,7 +182,37 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
   const action = parsed.action || 'none';
   let replyText = parsed.reply || '';
 
-  if (action === 'create_transaction' && parsed.transaction) {
+  if (action === 'create_transactions' && Array.isArray(parsed.transactions) && parsed.transactions.length > 0) {
+    const items = parsed.transactions.filter(t => t.amount && t.type);
+    if (items.length === 0) {
+      replyText = replyText || 'Не удалось распознать операции из списка.';
+    } else {
+      // Если хотя бы у одной операции есть подсказка счёта — пытаемся сопоставить,
+      // иначе используем счёт по умолчанию. При нескольких счетах и отсутствии подсказки — спрашиваем.
+      const needAccountSelection = accounts.length > 1 && !items.every(t => matchAccount(accounts, t.account_hint));
+      if (needAccountSelection) {
+        await requestAccountSelection({
+          entities, config, accounts,
+          transactions: items.map(t => ({ type: t.type, amount: t.amount, category: t.category || 'Другое', description: t.description || 'Операция из списка', date: t.date })),
+          botToken, chatId
+        });
+        const newHistory = [...history, { role: 'user', content: text }, { role: 'assistant', content: 'Уточняю счёт для записи операций…' }].slice(-20);
+        await entities.TelegramBotConfig.update(config.id, { chat_history: newHistory });
+        return;
+      }
+      await sendMessage(botToken, chatId, `📝 Записываю ${items.length} операци(й/ии)…`);
+      let created = 0;
+      for (const t of items) {
+        const matchedAccountId = matchAccount(accounts, t.account_hint);
+        const targetAccount = accounts.find(a => a.id === matchedAccountId) || account;
+        if (!targetAccount) continue;
+        await createTransactionRecord({ entities, parsed: t, account: targetAccount, ownerId });
+        created++;
+      }
+      const total = items.reduce((s, t) => s + (t.amount || 0), 0);
+      replyText = replyText || `✅ Записано ${created} из ${items.length} операций на сумму ${total.toLocaleString()} ₽`;
+    }
+  } else if (action === 'create_transaction' && parsed.transaction) {
     const t = parsed.transaction;
     if (!t.amount || !t.type) {
       replyText = replyText || 'Не удалось распознать сумму или тип операции.';
