@@ -7,15 +7,39 @@ Deno.serve(async (req) => {
 
         const { event, data, old_data } = payload;
 
+        // Не доверяем полям из тела запроса (data.user_id/category/family_id/amount и т.д.) —
+        // внешний злоумышленник мог бы подделать их, чтобы повлиять на чужой бюджет.
+        // Определяем транзакцию по event.entity_id и берём ВСЕ поля из реальной записи БД.
+        // Для события delete запись уже удалена — используем old_data (снимок до удаления).
+        const entityId = event?.entity_id || data?.id;
+        if (!entityId) {
+            return Response.json({ message: 'No entity_id, skipping' });
+        }
+
+        let txn = null;
+        if (event?.type !== 'delete') {
+            txn = await base44.asServiceRole.entities.Transaction.get(entityId).catch(() => null);
+        }
+        const source = txn || old_data;
+        if (!source) {
+            return Response.json({ message: 'Transaction not found, skipping' });
+        }
+
         // Обрабатываем только расходы (включая transfer, т.к. старая логика тоже их фильтровала)
-        if (!data || data.type !== 'expense') {
+        if (source.type !== 'expense') {
             return Response.json({ message: 'Not an expense, skipping' });
         }
 
-        const transactionDate = data.date ? data.date.substring(0, 10) : null;
+        const transactionDate = source.date ? source.date.substring(0, 10) : null;
         if (!transactionDate) {
             return Response.json({ message: 'No date, skipping' });
         }
+
+        // Реальные поля владельца/категории/семьи — из БД, не из тела
+        const ownerId = source.user_id || source.created_by_id;
+        const category = source.category;
+        const familyId = source.family_id;
+        const budgetScope = source.budget_scope;
 
         // Получаем все активные бюджеты пользователя/семьи
         const allBudgets = await base44.asServiceRole.entities.Budget.list();
@@ -29,22 +53,22 @@ Deno.serve(async (req) => {
 
             // Проверяем категорию
             const budgetCategories = b.categories || (b.category ? [b.category] : []);
-            const categoryMatches = budgetCategories.length === 0 || budgetCategories.includes(data.category);
+            const categoryMatches = budgetCategories.length === 0 || budgetCategories.includes(category);
             if (!categoryMatches) return false;
 
             // Семейный и личный бюджет с одинаковой категорией не должны оба получать один
             // и тот же расход — budget_scope (выбор пользователя при вводе операции) решает,
             // в какой именно бюджет засчитать расход, если есть совпадение.
             if (b.is_family_budget) {
-                const belongsToFamily = data.family_id && b.family_id === data.family_id;
+                const belongsToFamily = familyId && b.family_id === familyId;
                 if (!belongsToFamily) return false;
-                if (data.budget_scope === 'personal') return false;
+                if (budgetScope === 'personal') return false;
                 return true;
             }
 
-            const belongsToUser = b.user_id === data.user_id || b.created_by_id === data.user_id;
+            const belongsToUser = b.user_id === ownerId || b.created_by_id === ownerId;
             if (!belongsToUser) return false;
-            if (data.budget_scope === 'family') return false;
+            if (budgetScope === 'family') return false;
             return true;
         });
 
@@ -57,9 +81,9 @@ Deno.serve(async (req) => {
                 const name = (b.name || '').toLowerCase();
                 if (name !== 'прочее' && name !== 'другое') return false;
                 if (b.is_family_budget) {
-                    return data.family_id && b.family_id === data.family_id;
+                    return familyId && b.family_id === familyId;
                 }
-                return b.user_id === data.user_id || b.created_by_id === data.user_id;
+                return b.user_id === ownerId || b.created_by_id === ownerId;
             });
             if (fallbackBudget) {
                 matchingBudgets.push(fallbackBudget);
@@ -78,9 +102,9 @@ Deno.serve(async (req) => {
             const budgetCategories = budget.categories || (budget.category ? [budget.category] : []);
 
             // Загружаем все транзакции владельца бюджета за текущий период
-            const ownerId = budget.user_id || budget.created_by_id;
+            const budgetOwnerId = budget.user_id || budget.created_by_id;
             const allTransactions = await base44.asServiceRole.entities.Transaction.filter({
-                user_id: ownerId
+                user_id: budgetOwnerId
             });
 
             const realSpent = allTransactions

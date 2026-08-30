@@ -7,12 +7,26 @@ Deno.serve(async (req) => {
         const body = await req.json();
         const { event, data } = body;
 
-        if (!data || data.category) {
+        // Не доверяем полям из тела (data.id/description/amount/type) —
+        // внешний злоумышленник мог бы подделать их, чтобы перезаписать категорию
+        // чужой транзакции. Определяем транзакцию по event.entity_id и берём
+        // description/type из реальной записи БД.
+        const entityId = event?.entity_id || data?.id;
+        if (!entityId) {
+            return Response.json({ skipped: true, reason: 'no entity_id' });
+        }
+
+        const txn = await base44.asServiceRole.entities.Transaction.get(entityId).catch(() => null);
+        if (!txn) {
+            return Response.json({ skipped: true, reason: 'transaction not found' });
+        }
+
+        if (txn.category) {
             // Уже есть категория — пропускаем
             return Response.json({ skipped: true });
         }
 
-        if (data.type !== 'expense') {
+        if (txn.type !== 'expense') {
             // Категоризируем только расходы
             return Response.json({ skipped: true, reason: 'not an expense' });
         }
@@ -46,8 +60,8 @@ Deno.serve(async (req) => {
             ? budgetCategories
             : defaultCategories;
 
-        const description = data.description || '';
-        const amount = data.amount || 0;
+        const description = txn.description || '';
+        const amount = txn.amount || 0;
 
         const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
             prompt: `Ты помощник по личным финансам. Определи категорию расхода.
@@ -72,11 +86,8 @@ Deno.serve(async (req) => {
             return Response.json({ skipped: true, reason: 'no category returned' });
         }
 
-        // Обновляем транзакцию с определённой категорией
-        const entityId = event?.entity_id || data?.id;
-        if (entityId) {
-            await base44.asServiceRole.entities.Transaction.update(entityId, { category });
-        }
+        // Обновляем ту же найденную запись — ID из БД, не из тела
+        await base44.asServiceRole.entities.Transaction.update(txn.id, { category });
 
         return Response.json({ success: true, category });
     } catch (error) {

@@ -381,6 +381,14 @@ Deno.serve(async (req) => {
     const config = await base44.asServiceRole.entities.TelegramBotConfig.get(configId).catch(() => null);
     if (!config || !config.is_active) return Response.json({ ok: true });
 
+    // Верификация происхождения запроса: Telegram при setWebhook(secret_token)
+    // отправляет заголовок X-Telegram-Bot-Api-Secret-Token. Проверяем ДО обработки
+    // update — подделка тела с from.id больше не проходит (finding 4).
+    const secretHeader = req.headers.get('x-telegram-bot-api-secret-token');
+    if (!config.webhook_secret || secretHeader !== config.webhook_secret) {
+      return Response.json({ ok: true });
+    }
+
     const update = await req.json();
     const botToken = config.bot_token;
 

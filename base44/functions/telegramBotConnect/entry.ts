@@ -33,6 +33,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Неверный токен бота. Проверьте токен, полученный от @BotFather' }, { status: 400 });
     }
 
+    // Генерируем секрет для верификации происхождения запросов вебхука —
+    // передаётся в Telegram setWebhook как secret_token и проверяется
+    // в telegramWebhook по заголовку X-Telegram-Bot-Api-Secret-Token.
+    // Это закрывает подделку тела с from.id (finding 4).
+    const webhookSecret = crypto.randomUUID();
+
     const payload = {
       bot_token,
       bot_username: meData.result.username,
@@ -40,7 +46,8 @@ Deno.serve(async (req) => {
       default_account_id: default_account_id || undefined,
       timezone: timezone || 'Europe/Moscow',
       is_active: true,
-      last_error: null
+      last_error: null,
+      webhook_secret: webhookSecret
     };
 
     const saved = config
@@ -57,7 +64,7 @@ Deno.serve(async (req) => {
     const setRes = await fetch(`https://api.telegram.org/bot${bot_token}/setWebhook`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: webhookUrl })
+      body: JSON.stringify({ url: webhookUrl, secret_token: webhookSecret })
     });
     const setData = await setRes.json();
 
