@@ -29,7 +29,7 @@ export default function SubscriptionForm({ initial, accounts, onClose, onSaved }
   const [form, setForm] = useState({
     name: '',
     amount: '',
-    currency: 'RUB',
+    currency: user?.currency || 'RUB',
     period: 'monthly',
     billing_day: 1,
     next_charge_date: '',

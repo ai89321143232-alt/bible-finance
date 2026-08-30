@@ -100,9 +100,10 @@ export const enrichWithOwnership = async (data, user) => {
     // Фолбэк, если сервер недоступен: family_id проставляем только
     // когда активно именно семейное пространство, а не по факту наличия семьи.
     const active = await resolveActiveWorkspace(user);
+    const base = { ...data, currency: data.currency || user?.currency || 'RUB' };
     return active.type === 'family' && user?.family_id
-      ? { ...data, family_id: user.family_id, user_id: user.id }
-      : { ...data, family_id: undefined, user_id: user?.id };
+      ? { ...base, family_id: user.family_id, user_id: user.id }
+      : { ...base, family_id: undefined, user_id: user?.id };
   }
   const familyFields =
     ws.type === 'family'
@@ -114,6 +115,7 @@ export const enrichWithOwnership = async (data, user) => {
     user_id: user.id,
     workspace_id: ws.workspace_id,
     visibility: ws.visibility,
+    currency: data.currency || user?.currency || 'RUB',
   };
 };
 

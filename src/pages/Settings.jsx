@@ -185,6 +185,15 @@ export default function Settings() {
     }
   };
 
+  const handleCurrencyChange = async (currency) => {
+    try {
+      await base44.auth.updateMe({ currency });
+      await loadUser();
+    } catch (error) {
+      console.error('Failed to save currency:', error);
+    }
+  };
+
   const handleLogout = () => {
     base44.auth.logout();
   };
@@ -575,7 +584,7 @@ export default function Settings() {
                     <p className="font-medium text-slate-900 dark:text-white">{t('settings.currency')}</p>
                     <p className="text-sm text-slate-500">{t('settings.currency_desc')}</p>
                   </div>
-                  <Select defaultValue="RUB">
+                  <Select value={user?.currency || 'RUB'} onValueChange={handleCurrencyChange}>
                     <SelectTrigger className="w-32 rounded-xl">
                       <SelectValue />
                     </SelectTrigger>
@@ -583,6 +592,9 @@ export default function Settings() {
                       <SelectItem value="RUB">🇷🇺 RUB</SelectItem>
                       <SelectItem value="USD">🇺🇸 USD</SelectItem>
                       <SelectItem value="EUR">🇪🇺 EUR</SelectItem>
+                      <SelectItem value="KZT">🇰🇿 KZT</SelectItem>
+                      <SelectItem value="BYN">🇧🇾 BYN</SelectItem>
+                      <SelectItem value="UAH">🇺🇦 UAH</SelectItem>
                       <SelectItem value="UZS">🇺🇿 UZS</SelectItem>
                     </SelectContent>
                   </Select>

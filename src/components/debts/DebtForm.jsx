@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { CreditCard, Landmark, Home, Coins, Car, HelpCircle, Loader2, Plus } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 import { useFormatCurrency } from '@/lib/formatCurrency';
 import { useTranslation } from '@/lib/LanguageContext';
 
@@ -26,7 +27,7 @@ const PAYMENT_TYPES = [
   { value: 'interest_only' },
 ];
 
-const CURRENCIES = ['RUB', 'USD', 'EUR', 'KZT', 'UAH', 'BYN'];
+const CURRENCIES = ['RUB', 'USD', 'EUR', 'KZT', 'UAH', 'BYN', 'UZS'];
 
 export default function DebtForm({ open, onClose, onSave, initialData }) {
   const isEdit = !!initialData;
@@ -67,8 +68,9 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
   const [accountMode, setAccountMode] = useState(
     isEdit ? 'existing' : (creditAccounts.length > 0 ? 'existing' : 'new')
   );
+  const { user: authUser } = useAuth();
   const [newAccountName, setNewAccountName] = useState('');
-  const [newAccountCurrency, setNewAccountCurrency] = useState('RUB');
+  const [newAccountCurrency, setNewAccountCurrency] = useState(authUser?.currency || 'RUB');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));

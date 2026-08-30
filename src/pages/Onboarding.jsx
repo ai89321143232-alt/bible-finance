@@ -71,8 +71,8 @@ export default function Onboarding() {
         });
       }
 
-      // Помечаем онбординг завершённым
-      await base44.auth.updateMe({ onboarding_complete: true });
+      // Помечаем онбординг завершённым + сохраняем выбранную валюту
+      await base44.auth.updateMe({ onboarding_complete: true, currency });
 
       navigate('/');
     } catch (e) {
@@ -83,7 +83,7 @@ export default function Onboarding() {
   };
 
   const handleSkip = async () => {
-    await base44.auth.updateMe({ onboarding_complete: true });
+    await base44.auth.updateMe({ onboarding_complete: true, currency });
     navigate('/');
   };
 
