@@ -8,6 +8,7 @@ import {
   HelpCircle, LogOut, ChevronRight, Crown, Check, Tag, Users, Database, Settings as SettingsIcon, Clock, Copy, Trash2,
   Image, Loader2, X
 } from 'lucide-react';
+import ExchangeRatesSettings from '@/components/settings/ExchangeRatesSettings';
 import ThemeToggle from '@/components/ThemeToggle';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -599,6 +600,25 @@ export default function Settings() {
                     </SelectContent>
                   </Select>
                 </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Exchange Rates — manual currency rates for multi-currency totals */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.26 }}
+          >
+            <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-violet-600" />
+                  Курсы валют
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ExchangeRatesSettings user={user} onSaved={loadUser} />
               </CardContent>
             </Card>
           </motion.div>

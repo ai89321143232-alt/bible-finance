@@ -1,32 +1,45 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Shield } from 'lucide-react';
 import { useLanguage } from '@/lib/LanguageContext';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
 
 // ============================================================
 // EmergencyFund — Подушка безопасности
 // ============================================================
 // Считает, на сколько месяцев хватит текущего баланса
 // при текущем уровне месячных расходов.
-//
-// Формула: общий баланс / средние месячные расходы за последние 3 месяца
+// Баланс и расходы конвертируются в валюту профиля по ручным курсам.
 // ============================================================
-export default function EmergencyFund({ totalBalance, transactions, formatCurrency }) {
+export default function EmergencyFund({ totalBalance, transactions, accounts = [], formatCurrency }) {
   const { t } = useLanguage();
+  const { convert, hasRate, profileCurrency } = useExchangeRates();
   const now = new Date();
 
-  // Считаем средние месячные расходы за последние 3 месяца
+  // Карта валют счетов для транзакций
+  const accountCurrencyMap = useMemo(() => {
+    const map = {};
+    for (const a of accounts) map[a.id] = a.currency || profileCurrency;
+    return map;
+  }, [accounts, profileCurrency]);
+
+  // Считаем средние месячные расходы за последние 3 месяца (конвертируем в валюту профиля)
   const monthlyExpenses = [];
   for (let i = 0; i < 3; i++) {
     const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
 
     const monthTotal = transactions
-      .filter(t => {
-        const d = new Date(t.date);
-        return t.type === 'expense' && d >= monthStart && d <= monthEnd;
+      .filter(tx => {
+        const d = new Date(tx.date);
+        return tx.type === 'expense' && d >= monthStart && d <= monthEnd;
       })
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce((sum, tx) => {
+        const cur = tx.currency || accountCurrencyMap[tx.account_id] || profileCurrency;
+        if (cur === profileCurrency) return sum + tx.amount;
+        const converted = convert(tx.amount, cur, profileCurrency);
+        return converted != null ? sum + converted : sum;
+      }, 0);
 
     if (monthTotal > 0) monthlyExpenses.push(monthTotal);
   }

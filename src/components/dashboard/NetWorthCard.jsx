@@ -5,6 +5,8 @@ import { createPageUrl } from '@/utils';
 import { Wallet, TrendingUp, PiggyBank, CreditCard, AlertCircle, Plus, Home, Car, Gem, Box } from 'lucide-react';
 import AddFixedAssetModal from './AddFixedAssetModal';
 import { useLanguage } from '@/lib/LanguageContext';
+import { groupBalancesByCurrency } from '@/lib/groupByCurrency';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
 
 const FIXED_ASSET_ICONS = { real_estate: Home, auto: Car, gold: Gem, other: Box };
 
@@ -17,9 +19,29 @@ export default function NetWorthCard({
 }) {
   const [showAddAsset, setShowAddAsset] = useState(false);
   const { t } = useLanguage();
+  const { convert, hasRate, profileCurrency, isMultiCurrency } = useExchangeRates();
 
-  const totalAssets = accounts.reduce((sum, a) => sum + Math.max(a.balance || 0, 0), 0);
-  const totalDebts = accounts.reduce((sum, a) => sum + Math.abs(Math.min(a.balance || 0, 0)), 0);
+  const balancesByCurrency = groupBalancesByCurrency(accounts);
+
+  // Конвертируем балансы в валюту профиля
+  const totalAssets = Object.entries(balancesByCurrency).reduce((sum, [cur, bal]) => {
+    if (bal <= 0) return sum;
+    if (cur === profileCurrency) return sum + bal;
+    const converted = convert(bal, cur, profileCurrency);
+    return converted != null ? sum + converted : sum;
+  }, 0);
+
+  const totalDebts = Object.entries(balancesByCurrency).reduce((sum, [cur, bal]) => {
+    if (bal >= 0) return sum;
+    const abs = Math.abs(bal);
+    if (cur === profileCurrency) return sum + abs;
+    const converted = convert(abs, cur, profileCurrency);
+    return converted != null ? sum + converted : sum;
+  }, 0);
+
+  // Валюты без курса
+  const currenciesWithoutRate = Object.keys(balancesByCurrency)
+    .filter(cur => cur !== profileCurrency && !hasRate(cur));
 
   const assetAccounts = accounts.filter(a => (a.balance || 0) > 0);
   const debtAccounts = accounts.filter(a => (a.balance || 0) < 0);
@@ -50,12 +72,30 @@ export default function NetWorthCard({
           <span className="text-muted-foreground text-xs uppercase tracking-widest font-medium">
             {t('networth.title')}
           </span>
+          {isMultiCurrency && Object.keys(balancesByCurrency).length > 1 && (
+            <span className="text-muted-foreground/50 text-xs ml-auto">в {profileCurrency}</span>
+          )}
         </div>
 
         <div className="mb-5">
           <h3 className={`text-3xl sm:text-4xl font-bold tracking-tight ${isNegative ? 'text-rose-500' : 'text-emerald-500'}`}>
             {formatCurrency(netWorth)}
           </h3>
+          {/* Разбивка по валютам */}
+          {isMultiCurrency && Object.keys(balancesByCurrency).length > 1 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {Object.entries(balancesByCurrency).map(([cur, bal]) => (
+                <span key={cur} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/60 text-muted-foreground text-xs font-medium">
+                  {formatCurrency(bal, cur)}
+                </span>
+              ))}
+            </div>
+          )}
+          {currenciesWithoutRate.length > 0 && (
+            <p className="text-xs text-amber-500 mt-1.5">
+              Без курса: {currenciesWithoutRate.join(', ')} — задайте курс в Настройках
+            </p>
+          )}
           {isNegative && (
             <div className="flex items-center gap-2 mt-2 px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20">
               <AlertCircle className="w-4 h-4 text-rose-500" />

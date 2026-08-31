@@ -1,24 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import MemberAvatar from '@/components/family/MemberAvatar';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
 
 // Показывает расходы/доходы по каждому члену семьи за выбранный период
 // с возможностью сортировки — кто и сколько тратит/зарабатывает, и на что больше всего.
-export default function MemberSpendingBreakdown({ transactions, familyMembers, formatCurrency }) {
-  const [sortBy, setSortBy] = useState('expense'); // 'expense' | 'income'
+export default function MemberSpendingBreakdown({ transactions, familyMembers, accounts = [], formatCurrency }) {
+  const [sortBy, setSortBy] = useState('expense');
+  const { convert, profileCurrency } = useExchangeRates();
+
+  const accountCurrencyMap = useMemo(() => {
+    const map = {};
+    for (const a of accounts) map[a.id] = a.currency || profileCurrency;
+    return map;
+  }, [accounts, profileCurrency]);
 
   if (!familyMembers || familyMembers.length === 0) return null;
 
+  const convertTx = (tx) => {
+    const cur = tx.currency || accountCurrencyMap[tx.account_id] || profileCurrency;
+    if (cur === profileCurrency) return tx.amount;
+    const converted = convert(tx.amount, cur, profileCurrency);
+    return converted != null ? converted : 0;
+  };
+
   const rows = familyMembers.map((member) => {
     const memberTx = transactions.filter((t) => t.user_id === member.user_id || t.created_by_id === member.user_id);
-    const expense = memberTx.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-    const income = memberTx.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const expense = memberTx.filter((t) => t.type === 'expense').reduce((s, t) => s + convertTx(t), 0);
+    const income = memberTx.filter((t) => t.type === 'income').reduce((s, t) => s + convertTx(t), 0);
     const byCategory = memberTx
       .filter((t) => t.type === 'expense')
       .reduce((acc, t) => {
         const cat = t.category || 'Другое';
-        acc[cat] = (acc[cat] || 0) + t.amount;
+        acc[cat] = (acc[cat] || 0) + convertTx(t);
         return acc;
       }, {});
     const topCategory = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0];

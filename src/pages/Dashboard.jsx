@@ -44,6 +44,8 @@ import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/
 import MemberAvatar from '@/components/family/MemberAvatar';
 import MemberSpendingBreakdown from '@/components/dashboard/MemberSpendingBreakdown';
 import { INVESTMENT_CATEGORY } from '@/lib/investmentConstants';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
+import { groupBalancesByCurrency, buildAccountCurrencyMap, groupTransactionsByCurrency } from '@/lib/groupByCurrency';
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -291,14 +293,30 @@ export default function Dashboard() {
   memberIds.includes(acc.user_id)
   );
   const displayAccounts = balanceMode === 'family' ? familyAccounts : personalAccounts;
-  // Общий баланс = только положительные балансы (активы без долгов)
-  const totalBalance = displayAccounts.reduce((sum, acc) => sum + Math.max(acc.balance || 0, 0), 0);
+
+  // Мультивалютная поддержка: хук курсов и группировка по валюте
+  const { convert, hasRate, profileCurrency: hookCurrency, isMultiCurrency } = useExchangeRates();
+  const balancesByCurrency = groupBalancesByCurrency(displayAccounts);
+  const accountCurrencyMap = buildAccountCurrencyMap(allAccounts);
+
+  // Общий баланс = только положительные балансы (активы без долгов), конвертируем в валюту профиля
+  const totalBalance = Object.entries(balancesByCurrency).reduce((sum, [cur, bal]) => {
+    const positive = Math.max(bal, 0);
+    if (cur === hookCurrency) return sum + positive;
+    const converted = convert(positive, cur, hookCurrency);
+    return converted != null ? sum + converted : sum;
+  }, 0);
 
   const memberBalances = familyMembers.map((member) => {
     const memberAccounts = allAccounts.filter((acc) =>
     acc.created_by_id === member.user_id || acc.user_id === member.user_id
     );
-    const balance = memberAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+    const memberBalanceByCur = groupBalancesByCurrency(memberAccounts);
+    const balance = Object.entries(memberBalanceByCur).reduce((sum, [cur, bal]) => {
+      if (cur === hookCurrency) return sum + bal;
+      const converted = convert(bal, cur, hookCurrency);
+      return converted != null ? sum + converted : sum;
+    }, 0);
     return { ...member, balance, accountsCount: memberAccounts.length };
   });
 
@@ -327,13 +345,24 @@ export default function Dashboard() {
     setFilterCategory(null);
   };
 
+  // Доходы/расходы за период — конвертируем в валюту профиля по ручным курсам
   const monthIncome = monthTransactions.
   filter((t) => t.type === 'income').
-  reduce((sum, t) => sum + t.amount, 0);
+  reduce((sum, t) => {
+    const cur = t.currency || accountCurrencyMap[t.account_id] || hookCurrency;
+    if (cur === hookCurrency) return sum + t.amount;
+    const converted = convert(t.amount, cur, hookCurrency);
+    return converted != null ? sum + converted : sum;
+  }, 0);
 
   const monthExpenses = monthTransactions.
   filter((t) => t.type === 'expense' && t.category !== INVESTMENT_CATEGORY).
-  reduce((sum, t) => sum + t.amount, 0);
+  reduce((sum, t) => {
+    const cur = t.currency || accountCurrencyMap[t.account_id] || hookCurrency;
+    if (cur === hookCurrency) return sum + t.amount;
+    const converted = convert(t.amount, cur, hookCurrency);
+    return converted != null ? sum + converted : sum;
+  }, 0);
 
   // Личный режим: только мои инвестиции. Семейный режим: все инвестиции (мои + семьи), как раньше.
   const personalInvestments = investments.filter((inv) =>
@@ -354,7 +383,7 @@ export default function Dashboard() {
   const modeFixedAssets = family && balanceMode === 'family' ? fixedAssets : personalFixedAssets;
 
   // Валюта профиля — дефолт для всех агрегатов (общий баланс, net worth, доход/расход)
-  const profileCurrency = user?.currency || user?.data?.currency || 'RUB';
+  const profileCurrency = hookCurrency;
   const formatCurrency = (amount, currency) => formatCurrencyFor(amount, language, currency || profileCurrency);
 
   const handleRefresh = async () => {
@@ -489,7 +518,7 @@ export default function Dashboard() {
                 <option value="all">{t('dashboard.period_all')}</option>
               </MobileSelect>
             </div>
-            <SpendingChart transactions={transactions} formatCurrency={formatCurrency} periodType={periodType} />
+            <SpendingChart transactions={transactions} formatCurrency={formatCurrency} periodType={periodType} accounts={allAccounts} />
           </div>
         );
       case 'transactions':

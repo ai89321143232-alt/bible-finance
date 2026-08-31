@@ -3,11 +3,13 @@ import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
 import { Sparkles, TrendingUp, AlertCircle, RefreshCw, Target } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
 
 export default function AIInsights({ transactions, accounts, budgets, investments, formatCurrency }) {
   const [insights, setInsights] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { convert, profileCurrency } = useExchangeRates();
 
   useEffect(() => {
     if (transactions?.length > 0 || accounts?.length > 0) {
@@ -42,9 +44,25 @@ export default function AIInsights({ transactions, accounts, budgets, investment
     setLoading(true);
     setError(null);
     try {
-      const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-      const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-      const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+      // Карта валют счетов
+      const accountCurrencyMap = {};
+      (accounts || []).forEach(a => { accountCurrencyMap[a.id] = a.currency || profileCurrency; });
+
+      const convertTx = (tx) => {
+        const cur = tx.currency || accountCurrencyMap[tx.account_id] || profileCurrency;
+        if (cur === profileCurrency) return tx.amount;
+        const converted = convert(tx.amount, cur, profileCurrency);
+        return converted != null ? converted : 0;
+      };
+
+      const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + convertTx(t), 0);
+      const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + convertTx(t), 0);
+      const totalBalance = accounts.reduce((sum, acc) => {
+        const cur = acc.currency || profileCurrency;
+        if (cur === profileCurrency) return sum + (acc.balance || 0);
+        const converted = convert(acc.balance || 0, cur, profileCurrency);
+        return converted != null ? sum + converted : sum;
+      }, 0);
 
       // Analyze budget deviations
       const budgetDeviations = budgets
@@ -58,7 +76,8 @@ export default function AIInsights({ transactions, accounts, budgets, investment
       // Analyze expense categories
       const expensesByCategory = {};
       transactions.filter(t => t.type === 'expense').forEach(t => {
-        expensesByCategory[t.category] = (expensesByCategory[t.category] || 0) + t.amount;
+        const cat = t.category || 'Другое';
+        expensesByCategory[cat] = (expensesByCategory[cat] || 0) + convertTx(t);
       });
       const topCategories = Object.entries(expensesByCategory).sort(([,a],[,b]) => b - a).slice(0, 3);
 
@@ -68,7 +87,7 @@ export default function AIInsights({ transactions, accounts, budgets, investment
 
       const prompt = `Ты финансовый советник. Проанализируй данные и дай конкретные краткие советы на русском языке.
 
-Финансовое состояние:
+Финансовое состояние (в валюте ${profileCurrency}):
 - Баланс: ${formatCurrency(totalBalance)}
 - Доходы (этот период): ${formatCurrency(totalIncome)}
 - Расходы (этот период): ${formatCurrency(totalExpenses)}

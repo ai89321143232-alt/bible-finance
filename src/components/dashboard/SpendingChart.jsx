@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
@@ -7,6 +7,8 @@ import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, 
 import { ru, enUS } from 'date-fns/locale';
 import { INVESTMENT_CATEGORY } from '@/lib/investmentConstants';
 import { useLanguage } from '@/lib/LanguageContext';
+import { groupTransactionsByCurrency, buildAccountCurrencyMap } from '@/lib/groupByCurrency';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#e11d48', '#d946ef', '#0ea5e9', '#f97316'];
 
@@ -15,6 +17,11 @@ const CATEGORY_ICONS = {
   'Здоровье': '💊', 'Одежда': '👕', 'Подписки': '📱', 'Образование': '📚',
   'Food': '🍔', 'Transport': '🚗', 'Housing': '🏠', 'Entertainment': '🎮',
   'Health': '💊', 'Clothing': '👕', 'Subscriptions': '📱', 'Education': '📚', 'Other': '📦'
+};
+
+const CURRENCY_FLAGS = {
+  RUB: '🇷🇺', USD: '🇺🇸', EUR: '🇪🇺', KZT: '🇰🇿',
+  BYN: '🇧🇾', UAH: '🇺🇦', UZS: '🇺🇿',
 };
 
 function getPeriodRange(periodType, anchor) {
@@ -49,11 +56,13 @@ function formatPeriodLabel(periodType, start, end, locale, yearWord) {
   }
 }
 
-export default function SpendingChart({ transactions, formatCurrency, periodType = 'month' }) {
+export default function SpendingChart({ transactions, formatCurrency, periodType = 'month', accounts = [] }) {
   const [chartType, setChartType] = useState('pie');
   const [anchor, setAnchor] = useState(new Date());
+  const [selectedCurrency, setSelectedCurrency] = useState(null);
   const navigate = useNavigate();
   const { t, language } = useLanguage();
+  const { convert, hasRate, profileCurrency } = useExchangeRates();
   const dateLocale = language === 'en' ? enUS : ru;
 
   const touchStartX = useRef(null);
@@ -69,34 +78,55 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
   };
 
   const isAllTime = periodType === 'all';
-
   const { start, end } = isAllTime ? { start: null, end: null } : getPeriodRange(periodType, anchor);
 
-  const periodTransactions = isAllTime
+  const periodTransactions = useMemo(() => isAllTime
     ? transactions
-    : transactions.filter(t => {
-        const d = new Date(t.date);
+    : transactions.filter(tx => {
+        const d = new Date(tx.date);
         return d >= start && d <= end;
-      });
+      }), [transactions, isAllTime, start, end]);
 
-  const handleCategoryClick = (category) => {
-    navigate(`/Transactions?category=${encodeURIComponent(category)}`);
-  };
+  // Определяем доступные валюты в этом периоде
+  const accountCurrencyMap = buildAccountCurrencyMap(accounts);
+  const currenciesInPeriod = useMemo(() => {
+    const set = new Set();
+    for (const tx of periodTransactions) {
+      set.add(tx.currency || accountCurrencyMap[tx.account_id] || profileCurrency);
+    }
+    return [...set].sort();
+  }, [periodTransactions, accountCurrencyMap, profileCurrency]);
 
-  const expensesByCategory = periodTransactions
-    .filter(tx => tx.type === 'expense' && tx.category !== INVESTMENT_CATEGORY)
-    .reduce((acc, tx) => {
+  // Автовыбор первой валюты
+  const activeCurrency = selectedCurrency || currenciesInPeriod[0] || profileCurrency;
+
+  // Конвертируем суммы расходов по категориям в выбранную валюту
+  const expensesByCategory = useMemo(() => {
+    const acc = {};
+    for (const tx of periodTransactions) {
+      if (tx.type !== 'expense' || tx.category === INVESTMENT_CATEGORY) continue;
+      const txCur = tx.currency || accountCurrencyMap[tx.account_id] || profileCurrency;
+      let amount = tx.amount;
+      if (txCur !== activeCurrency) {
+        const converted = convert(amount, txCur, activeCurrency);
+        if (converted == null) continue; // пропускаем если нет курса
+        amount = converted;
+      }
       const cat = tx.category || t('spending.other');
-      acc[cat] = (acc[cat] || 0) + tx.amount;
-      return acc;
-    }, {});
+      acc[cat] = (acc[cat] || 0) + amount;
+    }
+    return acc;
+  }, [periodTransactions, activeCurrency, convert, accountCurrencyMap, profileCurrency, t]);
 
   const chartData = Object.entries(expensesByCategory)
     .map(([name, value], i) => ({ name, value, color: COLORS[i % COLORS.length], icon: CATEGORY_ICONS[name] || '📦' }))
     .sort((a, b) => b.value - a.value);
 
-
   const total = chartData.reduce((sum, i) => sum + i.value, 0);
+
+  const handleCategoryClick = (category) => {
+    navigate(`/Transactions?category=${encodeURIComponent(category)}`);
+  };
 
   const CustomTooltip = ({ active, payload }) => {
     if (!active || !payload?.length) return null;
@@ -104,7 +134,7 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
     return (
       <div className="bg-popover border border-border shadow-md rounded-lg p-3 text-sm">
         <p className="text-foreground font-medium">{d.icon} {d.name}</p>
-        <p className="text-muted-foreground text-xs">{formatCurrency(d.value)} · {((d.value / total) * 100).toFixed(1)}%</p>
+        <p className="text-muted-foreground text-xs">{formatCurrency(d.value, activeCurrency)} · {((d.value / total) * 100).toFixed(1)}%</p>
       </div>
     );
   };
@@ -115,6 +145,8 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
     const cur = getPeriodRange(periodType, now);
     return start.getTime() === cur.start.getTime();
   })();
+
+  const multiCurrency = currenciesInPeriod.length > 1;
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
@@ -140,6 +172,25 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
             </button>
           </div>
         </div>
+
+        {/* Currency switcher */}
+        {multiCurrency && (
+          <div className="flex gap-1.5 px-4 py-2 border-b border-border overflow-x-auto scrollbar-none">
+            {currenciesInPeriod.map(cur => (
+              <button
+                key={cur}
+                onClick={() => setSelectedCurrency(cur)}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors ${
+                  activeCurrency === cur
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {CURRENCY_FLAGS[cur] || '💱'} {cur}
+              </button>
+            ))}
+          </div>
+        )}
 
         {!isAllTime && (
           <div className="flex items-center justify-between px-3 py-2 border-b border-border">
@@ -206,7 +257,7 @@ export default function SpendingChart({ transactions, formatCurrency, periodType
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
                     <div className="min-w-0">
                       <p className="text-foreground/80 text-xs truncate">{item.name}</p>
-                      <p className="text-muted-foreground text-xs">{formatCurrency(item.value)}</p>
+                      <p className="text-muted-foreground text-xs">{formatCurrency(item.value, activeCurrency)}</p>
                     </div>
                   </div>
                 ))}

@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Wallet, Snowflake, Repeat } from 'lucide-react';
 import { useLanguage } from '@/lib/LanguageContext';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
 
 // ============================================================
 // SafeDailyLimit — Безопасный дневной лимит
@@ -9,14 +10,12 @@ import { useLanguage } from '@/lib/LanguageContext';
 // Показывает, сколько можно безопасно потратить сегодня,
 // учитывая:
 //   1. Остаток бюджетов до конца месяца
-//   2. Доступный баланс (баланс - замороженные суммы)
+//   2. Доступный баланс (баланс - замороженные суммы) — в валюте профиля (с конвертацией)
 //   3. Предстоящие списания подписок в этом периоде
-//
-// Итоговое значение = min(бюджетный лимит, балансный лимит)
-// где балансный = (доступный баланс - предстоящие подписки) / дни
 // ============================================================
 export default function SafeDailyLimit({ budgets, accounts, subscriptions, formatCurrency }) {
   const { t } = useLanguage();
+  const { convert, profileCurrency } = useExchangeRates();
   const now = new Date();
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   const daysLeft = Math.max(1, endOfMonth.getDate() - now.getDate() + 1);
@@ -28,15 +27,23 @@ export default function SafeDailyLimit({ budgets, accounts, subscriptions, forma
   const budgetDaily = budgetRemaining / daysLeft;
   const usagePercent = totalLimit > 0 ? (totalSpent / totalLimit) * 100 : 0;
 
-  // --- 2. Доступный баланс (баланс - замороженные) ---
-  const availableBalance = (accounts || []).reduce(
-    (sum, a) => sum + Math.max((a.balance || 0) - (a.frozen_amount || 0), 0),
-    0
-  );
-  const frozenTotal = (accounts || []).reduce(
-    (sum, a) => sum + (a.frozen_amount || 0),
-    0
-  );
+  // --- 2. Доступный баланс (баланс - замороженные) — конвертируем в валюту профиля ---
+  const availableBalance = (accounts || []).reduce((sum, a) => {
+    const available = Math.max((a.balance || 0) - (a.frozen_amount || 0), 0);
+    if (available === 0) return sum;
+    const cur = a.currency || profileCurrency;
+    if (cur === profileCurrency) return sum + available;
+    const converted = convert(available, cur, profileCurrency);
+    return converted != null ? sum + converted : sum;
+  }, 0);
+  const frozenTotal = (accounts || []).reduce((sum, a) => {
+    const frozen = a.frozen_amount || 0;
+    if (frozen === 0) return sum;
+    const cur = a.currency || profileCurrency;
+    if (cur === profileCurrency) return sum + frozen;
+    const converted = convert(frozen, cur, profileCurrency);
+    return converted != null ? sum + converted : sum;
+  }, 0);
 
   // --- 3. Предстоящие списания подписок до конца месяца ---
   const upcomingSubs = (subscriptions || [])
@@ -45,7 +52,13 @@ export default function SafeDailyLimit({ budgets, accounts, subscriptions, forma
       const d = new Date(s.next_charge_date);
       return d >= now && d <= endOfMonth;
     })
-    .reduce((sum, s) => sum + (s.amount || 0), 0);
+    .reduce((sum, s) => {
+      const cur = s.currency || profileCurrency;
+      const amount = s.amount || 0;
+      if (cur === profileCurrency) return sum + amount;
+      const converted = convert(amount, cur, profileCurrency);
+      return converted != null ? sum + converted : sum;
+    }, 0);
 
   // Балансный дневной лимит
   const balanceAfterSubs = Math.max(0, availableBalance - upcomingSubs);

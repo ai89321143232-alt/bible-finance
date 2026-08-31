@@ -3,16 +3,24 @@ import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { startOfMonth, endOfMonth, getDaysInMonth, getDate, subMonths } from 'date-fns';
 import { useLanguage } from '@/lib/LanguageContext';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
 
-export default function MonthForecast({ transactions, totalBalance, formatCurrency }) {
+export default function MonthForecast({ transactions, totalBalance, accounts = [], formatCurrency }) {
   const { t } = useLanguage();
+  const { convert, profileCurrency } = useExchangeRates();
+
+  const accountCurrencyMap = useMemo(() => {
+    const map = {};
+    for (const a of accounts) map[a.id] = a.currency || profileCurrency;
+    return map;
+  }, [accounts, profileCurrency]);
+
   const forecast = useMemo(() => {
     const now = new Date();
     const todayDay = getDate(now);
     const daysInMonth = getDaysInMonth(now);
     const daysLeft = daysInMonth - todayDay;
 
-    // Current month so far
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
     const thisMonth = transactions.filter(t => {
@@ -20,8 +28,15 @@ export default function MonthForecast({ transactions, totalBalance, formatCurren
       return d >= monthStart && d <= monthEnd;
     });
 
-    const incomeThisMonth = thisMonth.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const expenseThisMonth = thisMonth.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const convertTx = (tx) => {
+      const cur = tx.currency || accountCurrencyMap[tx.account_id] || profileCurrency;
+      if (cur === profileCurrency) return tx.amount;
+      const converted = convert(tx.amount, cur, profileCurrency);
+      return converted != null ? converted : 0;
+    };
+
+    const incomeThisMonth = thisMonth.filter(t => t.type === 'income').reduce((s, t) => s + convertTx(t), 0);
+    const expenseThisMonth = thisMonth.filter(t => t.type === 'expense').reduce((s, t) => s + convertTx(t), 0);
 
     // Average daily rates based on past 3 months
     const past3months = [1, 2, 3].flatMap(offset => {
@@ -33,12 +48,11 @@ export default function MonthForecast({ transactions, totalBalance, formatCurren
       });
     });
 
-    const past3Income = past3months.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const past3Expenses = past3months.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const past3Income = past3months.filter(t => t.type === 'income').reduce((s, t) => s + convertTx(t), 0);
+    const past3Expenses = past3months.filter(t => t.type === 'expense').reduce((s, t) => s + convertTx(t), 0);
     const avgDailyIncome = past3months.length > 0 ? past3Income / 90 : 0;
     const avgDailyExpense = past3months.length > 0 ? past3Expenses / 90 : 0;
 
-    // Forecast remaining days
     const forecastedIncome = incomeThisMonth + avgDailyIncome * daysLeft;
     const forecastedExpenses = expenseThisMonth + avgDailyExpense * daysLeft;
     const forecastedBalance = totalBalance + (avgDailyIncome - avgDailyExpense) * daysLeft;
@@ -54,7 +68,7 @@ export default function MonthForecast({ transactions, totalBalance, formatCurren
       avgDailyExpense,
       hasPastData: past3months.length > 0,
     };
-  }, [transactions, totalBalance]);
+  }, [transactions, totalBalance, accountCurrencyMap, convert, profileCurrency]);
 
   const isPositive = forecast.netFlow >= 0;
   const isNeutral = Math.abs(forecast.netFlow) < 100;

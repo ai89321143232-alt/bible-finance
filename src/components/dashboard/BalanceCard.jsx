@@ -5,6 +5,8 @@ import { createPageUrl } from '@/utils';
 import { Eye, EyeOff, TrendingUp, TrendingDown, Wallet, BarChart2, ArrowUpRight, ArrowDownRight, CreditCard } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useLanguage } from '@/lib/LanguageContext';
+import { groupBalancesByCurrency } from '@/lib/groupByCurrency';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
 
 export default function BalanceCard({
   totalBalance,
@@ -26,6 +28,23 @@ export default function BalanceCard({
     .filter(a => (a.balance || 0) < 0)
     .reduce((sum, a) => sum + Math.abs(a.balance || 0), 0);
   const hasDebt = totalDebt > 0;
+
+  // Мультивалютная разбивка балансов
+  const balancesByCurrency = groupBalancesByCurrency(accounts);
+  const { convert, hasRate, profileCurrency, isMultiCurrency } = useExchangeRates();
+
+  // Общий баланс в валюте профиля (с конвертацией по ручным курсам)
+  const totalBalanceConverted = Object.entries(balancesByCurrency).reduce((sum, [cur, bal]) => {
+    if (cur === profileCurrency) return sum + bal;
+    const converted = convert(bal, cur, profileCurrency);
+    return converted != null ? sum + converted : sum;
+  }, 0);
+
+  // Валюты без курса (не вошли в общий итог)
+  const currenciesWithoutRate = Object.entries(balancesByCurrency)
+    .filter(([cur]) => cur !== profileCurrency && !hasRate(cur));
+
+  const displayBalance = isMultiCurrency ? totalBalanceConverted : totalBalance;
 
   return (
     <motion.div
@@ -59,11 +78,26 @@ export default function BalanceCard({
           className="mb-6"
         >
           <h2 className="text-4xl sm:text-5xl font-bold text-foreground tracking-tight">
-            {showBalance ? formatCurrency(totalBalance + investmentValue) : '••••••'}
+            {showBalance ? formatCurrency(displayBalance + (isMultiCurrency ? convert(investmentValue, investments[0]?.currency || profileCurrency, profileCurrency) ?? investmentValue : investmentValue)) : '••••••'}
           </h2>
+          {/* Разбивка по валютам */}
+          {isMultiCurrency && Object.keys(balancesByCurrency).length > 1 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {Object.entries(balancesByCurrency).map(([cur, bal]) => (
+                <span key={cur} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/60 text-muted-foreground text-xs font-medium">
+                  {showBalance ? formatCurrency(bal, cur) : '•••'}
+                </span>
+              ))}
+            </div>
+          )}
+          {currenciesWithoutRate.length > 0 && (
+            <p className="text-xs text-amber-500 mt-1.5">
+              Без курса: {currenciesWithoutRate.map(([cur]) => cur).join(', ')} — задайте курс в Настройках
+            </p>
+          )}
           {totalFrozen > 0 && (
             <p className="text-xs text-amber-500 mt-1">
-              {t('balance.frozen_for_goals')}: {showBalance ? formatCurrency(totalFrozen) : '••••'} • {t('balance.available')}: {showBalance ? formatCurrency(totalBalance - totalFrozen) : '••••'}
+              {t('balance.frozen_for_goals')}: {showBalance ? formatCurrency(totalFrozen) : '••••'} • {t('balance.available')}: {showBalance ? formatCurrency(displayBalance - totalFrozen) : '••••'}
             </p>
           )}
           <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -87,7 +121,7 @@ export default function BalanceCard({
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: t('balance.accounts'), value: formatCurrency(totalBalance - totalFrozen), icon: Wallet, color: 'text-violet-500', bg: 'bg-violet-500/10', link: 'Accounts' },
+            { label: t('balance.accounts'), value: formatCurrency(displayBalance - totalFrozen), icon: Wallet, color: 'text-violet-500', bg: 'bg-violet-500/10', link: 'Accounts' },
             { label: t('balance.investments'), value: formatCurrency(investmentValue), icon: BarChart2, color: 'text-cyan-500', bg: 'bg-cyan-500/10', link: 'Investments' },
             { label: t('balance.income'), value: formatCurrency(monthIncome), icon: ArrowUpRight, color: 'text-emerald-500', bg: 'bg-emerald-500/10', link: 'Transactions' },
             { label: t('balance.expenses'), value: formatCurrency(monthExpenses), icon: ArrowDownRight, color: 'text-rose-500', bg: 'bg-rose-500/10', link: 'Transactions' },
