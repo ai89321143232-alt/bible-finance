@@ -96,6 +96,15 @@ export default function Accounts() {
 
   const activeWorkspaceId = useActiveWorkspaceId();
 
+  // Подставляем валюту профиля при создании нового счёта
+  useEffect(() => {
+    if (!showAddModal || editAccount) return;
+    base44.auth.me().then(u => {
+      const c = u?.currency || u?.data?.currency;
+      if (c && c !== formData.currency) setFormData(f => ({ ...f, currency: c }));
+    }).catch(() => {});
+  }, [showAddModal, editAccount]);
+
   const { data: allAccounts = [], isLoading } = useQuery({
     queryKey: ['accounts'],
     queryFn: () => base44.entities.Account.list()

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CheckCircle, Wallet, CreditCard, Banknote, PiggyBank, ChevronRight, ChevronLeft, Plus, Trash2, ArrowRight } from 'lucide-react';
+import { getCurrencySymbol } from '@/lib/formatCurrency';
 
 const ACCOUNT_TYPES = [
   { value: 'cash', label: 'Наличные', icon: '💵', color: '#22c55e' },
@@ -189,13 +190,18 @@ export default function Onboarding() {
                           <option key={t.value} value={t.value} className="bg-gray-900">{t.label}</option>
                         ))}
                       </select>
-                      <Input
-                        type="number"
-                        value={acc.balance}
-                        onChange={e => updateAccount(i, 'balance', e.target.value)}
-                        placeholder="Начальный баланс"
-                        className="flex-1 bg-white/5 border-white/10 text-white placeholder:text-white/30"
-                      />
+                      <div className="relative flex-1">
+                        <Input
+                          type="number"
+                          value={acc.balance}
+                          onChange={e => updateAccount(i, 'balance', e.target.value)}
+                          placeholder="Начальный баланс"
+                          className="bg-white/5 border-white/10 text-white placeholder:text-white/30 pr-8"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 text-sm">
+                          {getCurrencySymbol(currency)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}

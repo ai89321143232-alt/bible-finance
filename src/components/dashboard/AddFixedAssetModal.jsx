@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import MobileSelect from '@/components/mobile/MobileSelect';
+import { useCurrencySymbol } from '@/lib/formatCurrency';
 
 const ASSET_TYPES = [
   { value: 'real_estate', label: 'Недвижимость' },
@@ -19,6 +20,7 @@ export default function AddFixedAssetModal({ open, onClose, onSaved }) {
   const [value, setValue] = useState('');
   const [valueDate, setValueDate] = useState(new Date().toISOString().split('T')[0]);
   const [saving, setSaving] = useState(false);
+  const currencySymbol = useCurrencySymbol();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,7 +62,10 @@ export default function AddFixedAssetModal({ open, onClose, onSaved }) {
           </div>
           <div>
             <Label>Рыночная стоимость</Label>
-            <Input type="number" value={value} onChange={(e) => setValue(e.target.value)} placeholder="0" required />
+            <div className="relative">
+              <Input type="number" value={value} onChange={(e) => setValue(e.target.value)} placeholder="0" className="pr-8" required />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{currencySymbol}</span>
+            </div>
           </div>
           <div>
             <Label>Дата внесения</Label>
