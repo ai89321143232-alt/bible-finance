@@ -610,7 +610,7 @@ export default function Dashboard() {
           }
 
         {balanceMode === 'family' && family && memberBalances.length > 0 &&
-          <div className="mb-6"><MemberSpendingBreakdown transactions={monthTransactions} familyMembers={familyMembers} formatCurrency={formatCurrency} /></div>
+          <div className="mb-6"><MemberSpendingBreakdown transactions={monthTransactions} familyMembers={familyMembers} accounts={allAccounts} formatCurrency={formatCurrency} /></div>
           }
 
         {balanceMode === 'family' && family && memberBalances.length > 0 &&
