@@ -502,7 +502,7 @@ export default function Dashboard() {
                 </Link>
               </motion.div>
               <SafeDailyLimit budgets={budgets} accounts={displayAccounts} subscriptions={subscriptions} formatCurrency={formatCurrency} />
-              <EmergencyFund totalBalance={totalBalance} transactions={transactions} formatCurrency={formatCurrency} />
+              <EmergencyFund totalBalance={totalBalance} transactions={transactions} accounts={allAccounts} formatCurrency={formatCurrency} />
             </div>
           </section>
         );
@@ -645,7 +645,7 @@ export default function Dashboard() {
             onBudgetUpdated={() => queryClient.invalidateQueries({ queryKey: ['budgets'] })} />
           
 
-        <MonthForecast transactions={transactions} totalBalance={totalBalance} formatCurrency={formatCurrency} />
+        <MonthForecast transactions={transactions} totalBalance={totalBalance} accounts={allAccounts} formatCurrency={formatCurrency} />
         </section>
 
         {user?.subscription_tier === 'premium' || user?.subscription_tier === 'family' ?
