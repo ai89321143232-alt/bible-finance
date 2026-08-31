@@ -4,6 +4,16 @@ import { buildAssistantSystemPrompt, invokeAssistantModel, computeFinancialConte
 
 const EXPENSE_CATEGORIES = 'Еда и рестораны, Транспорт, Здоровье, Развлечения, Одежда, ЖКХ, Связь, Образование, Зарплата, Другое';
 
+// Модель может вернуть type по-русски ("расход"/"доход") — приводим к enum сущности Transaction,
+// иначе create бросит ошибку валидации и весь список тихо упадёт без ответа пользователю.
+function normalizeType(raw) {
+  const t = String(raw || '').toLowerCase().trim();
+  if (['расход', 'трата', 'потратил', 'spent', 'expense'].includes(t)) return 'expense';
+  if (['доход', 'прибыль', 'получил', 'income', 'earning'].includes(t)) return 'income';
+  if (['transfer', 'перевод'].includes(t)) return 'transfer';
+  return t === 'income' || t === 'expense' || t === 'transfer' ? t : 'expense';
+}
+
 async function sendMessage(botToken, chatId, text, replyMarkup) {
   try {
     await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -183,7 +193,9 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
   let replyText = parsed.reply || '';
 
   if (action === 'create_transactions' && Array.isArray(parsed.transactions) && parsed.transactions.length > 0) {
-    const items = parsed.transactions.filter(t => t.amount && t.type);
+    const items = parsed.transactions
+      .map(t => ({ ...t, type: normalizeType(t.type), amount: Number(t.amount) }))
+      .filter(t => t.amount && t.type);
     if (items.length === 0) {
       replyText = replyText || 'Не удалось распознать операции из списка.';
     } else {
@@ -202,18 +214,23 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
       }
       await sendMessage(botToken, chatId, `📝 Записываю ${items.length} операци(й/ии)…`);
       let created = 0;
+      const errors = [];
       for (const t of items) {
         const matchedAccountId = matchAccount(accounts, t.account_hint);
         const targetAccount = accounts.find(a => a.id === matchedAccountId) || account;
-        if (!targetAccount) continue;
-        await createTransactionRecord({ entities, parsed: t, account: targetAccount, ownerId });
-        created++;
+        if (!targetAccount) { errors.push('нет счёта'); continue; }
+        try {
+          await createTransactionRecord({ entities, parsed: t, account: targetAccount, ownerId });
+          created++;
+        } catch (e) {
+          errors.push(`${t.description || t.category || 'операция'}: ${e.message || 'ошибка'}`);
+        }
       }
       const total = items.reduce((s, t) => s + (t.amount || 0), 0);
-      replyText = replyText || `✅ Записано ${created} из ${items.length} операций на сумму ${total.toLocaleString()} ₽`;
+      replyText = replyText || `✅ Записано ${created} из ${items.length} операций на сумму ${total.toLocaleString()} ₽${errors.length ? `\n⚠️ Не записано: ${errors.join('; ')}` : ''}`;
     }
   } else if (action === 'create_transaction' && parsed.transaction) {
-    const t = parsed.transaction;
+    const t = { ...parsed.transaction, type: normalizeType(parsed.transaction.type), amount: Number(parsed.transaction.amount) };
     if (!t.amount || !t.type) {
       replyText = replyText || 'Не удалось распознать сумму или тип операции.';
     } else {
