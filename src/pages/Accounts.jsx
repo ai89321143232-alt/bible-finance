@@ -46,6 +46,16 @@ const ACCOUNT_COLORS = [
   '#6366F1', '#EF4444', '#14B8A6', '#84CC16', '#A855F7'
 ];
 
+const CURRENCIES = [
+  { code: 'RUB', label: '🇷🇺 RUB' },
+  { code: 'USD', label: '🇺🇸 USD' },
+  { code: 'EUR', label: '🇪🇺 EUR' },
+  { code: 'KZT', label: '🇰🇿 KZT' },
+  { code: 'BYN', label: '🇧🇾 BYN' },
+  { code: 'UAH', label: '🇺🇦 UAH' },
+  { code: 'UZS', label: '🇺🇿 UZS' },
+];
+
 // ============================================================
 // pages/Accounts.jsx — СТРАНИЦА СЧЕТОВ
 // ============================================================
@@ -85,6 +95,8 @@ export default function Accounts() {
   const [relatedTransactionsCount, setRelatedTransactionsCount] = useState(0);
   const [showOnlyMine, setShowOnlyMine] = useState(false);
 
+  const [profileCurrency, setProfileCurrency] = useState('RUB');
+
   const [formData, setFormData] = useState({
     name: '',
     type: 'card',
@@ -96,14 +108,20 @@ export default function Accounts() {
 
   const activeWorkspaceId = useActiveWorkspaceId();
 
-  // Подставляем валюту профиля при создании нового счёта
+  // Загружаем валюту профиля один раз
   useEffect(() => {
-    if (!showAddModal || editAccount) return;
     base44.auth.me().then(u => {
-      const c = u?.currency || u?.data?.currency;
-      if (c && c !== formData.currency) setFormData(f => ({ ...f, currency: c }));
+      const c = u?.currency || u?.data?.currency || 'RUB';
+      setProfileCurrency(c);
     }).catch(() => {});
-  }, [showAddModal, editAccount]);
+  }, []);
+
+  // Подставляем валюту профиля при открытии формы создания
+  useEffect(() => {
+    if (showAddModal && !editAccount) {
+      setFormData(f => ({ ...f, currency: f.currency !== 'RUB' || f.currency === profileCurrency ? f.currency : profileCurrency }));
+    }
+  }, [showAddModal, editAccount, profileCurrency]);
 
   const { data: allAccounts = [], isLoading } = useQuery({
     queryKey: ['accounts'],
@@ -230,7 +248,7 @@ export default function Accounts() {
       name: '',
       type: 'card',
       balance: '',
-      currency: 'RUB',
+      currency: profileCurrency,
       color: ACCOUNT_COLORS[0],
       credit_limit: ''
     });
@@ -557,6 +575,24 @@ export default function Accounts() {
                 </div>
               </div>
             )}
+            <div>
+              <Label>{t('settings.currency') || 'Валюта'}</Label>
+              <Select
+                value={formData.currency}
+                onValueChange={(v) => setFormData({ ...formData, currency: v })}
+              >
+                <SelectTrigger className="rounded-xl mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map(c => (
+                    <SelectItem key={c.code} value={c.code}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label>{t('accounts.color_label')}</Label>
               <div className="flex gap-2 mt-2 flex-wrap">
