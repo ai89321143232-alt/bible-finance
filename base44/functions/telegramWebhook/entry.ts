@@ -14,6 +14,15 @@ function normalizeType(raw) {
   return t === 'income' || t === 'expense' || t === 'transfer' ? t : 'expense';
 }
 
+// Модель может вернуть сумму строкой с пробелом-разделителем ("1 472") или с символом валюты ("633 ₽") —
+// Number("1 472") даёт NaN, поэтому чистим строку: оставляем только цифры, точку и минус.
+function normalizeAmount(raw) {
+  if (typeof raw === 'number') return raw;
+  const cleaned = String(raw || '').replace(/[^\d.\-]/g, '').replace(',', '.');
+  const n = parseFloat(cleaned);
+  return isNaN(n) ? 0 : n;
+}
+
 async function sendMessage(botToken, chatId, text, replyMarkup) {
   try {
     await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -194,7 +203,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
 
   if (action === 'create_transactions' && Array.isArray(parsed.transactions) && parsed.transactions.length > 0) {
     const items = parsed.transactions
-      .map(t => ({ ...t, type: normalizeType(t.type), amount: Number(t.amount) }))
+      .map(t => ({ ...t, type: normalizeType(t.type), amount: normalizeAmount(t.amount) }))
       .filter(t => t.amount && t.type);
     if (items.length === 0) {
       replyText = replyText || 'Не удалось распознать операции из списка.';
@@ -230,7 +239,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
       replyText = replyText || `✅ Записано ${created} из ${items.length} операций на сумму ${total.toLocaleString()} ₽${errors.length ? `\n⚠️ Не записано: ${errors.join('; ')}` : ''}`;
     }
   } else if (action === 'create_transaction' && parsed.transaction) {
-    const t = { ...parsed.transaction, type: normalizeType(parsed.transaction.type), amount: Number(parsed.transaction.amount) };
+    const t = { ...parsed.transaction, type: normalizeType(parsed.transaction.type), amount: normalizeAmount(parsed.transaction.amount) };
     if (!t.amount || !t.type) {
       replyText = replyText || 'Не удалось распознать сумму или тип операции.';
     } else {
@@ -580,7 +589,12 @@ Deno.serve(async (req) => {
         await sendMessage(botToken, chatId, 'Привет! 👋 Я твой финансовый ассистент. Спроси меня об операциях, попроси отчёт, отправь голосовое/фото чека/PDF или CSV выписку — или просто опиши покупку текстом, и я всё запишу. Если счетов несколько — предложу выбрать нужный кнопками.');
         return Response.json({ ok: true });
       }
-      await handleTextMessage({ base44, config, account, accounts, ownerId, botToken, chatId, text: message.text });
+      try {
+        await handleTextMessage({ base44, config, account, accounts, ownerId, botToken, chatId, text: message.text });
+      } catch (e) {
+        console.error('handleTextMessage error:', e);
+        await sendMessage(botToken, chatId, '⚠️ Не удалось обработать сообщение. Попробуйте ещё раз или переформулируйте.');
+      }
     }
 
     return Response.json({ ok: true });
