@@ -88,7 +88,7 @@ async function createTransactionRecord({ entities, parsed, account, ownerId }) {
   await entities.Transaction.create({
     type: parsed.type,
     amount: parsed.amount,
-    currency: account.currency || 'RUB',
+    currency: parsed.currency || account.currency || 'RUB',
     category: parsed.category || 'Другое',
     description: parsed.description || 'Операция из Telegram',
     date: txDate.toISOString(),
@@ -214,7 +214,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
       if (needAccountSelection) {
         await requestAccountSelection({
           entities, config, accounts,
-          transactions: items.map(t => ({ type: t.type, amount: t.amount, category: t.category || 'Другое', description: t.description || 'Операция из списка', date: t.date })),
+          transactions: items.map(t => ({ type: t.type, amount: t.amount, currency: t.currency, category: t.category || 'Другое', description: t.description || 'Операция из списка', date: t.date })),
           botToken, chatId
         });
         const newHistory = [...history, { role: 'user', content: text }, { role: 'assistant', content: 'Уточняю счёт для записи операций…' }].slice(-20);
@@ -248,7 +248,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         // AI не смог определить счёт по подсказке — просим выбрать кнопками
         await requestAccountSelection({
           entities, config, accounts,
-          transactions: [{ type: t.type, amount: t.amount, category: t.category || 'Другое', description: t.description || 'Операция из Telegram', date: t.date }],
+          transactions: [{ type: t.type, amount: t.amount, currency: t.currency, category: t.category || 'Другое', description: t.description || 'Операция из Telegram', date: t.date }],
           botToken, chatId
         });
         const newHistory = [...history, { role: 'user', content: text }, { role: 'assistant', content: 'Уточняю счёт для записи операции…' }].slice(-20);

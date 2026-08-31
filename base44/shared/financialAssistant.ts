@@ -103,14 +103,15 @@ ${financial_context || ''}
 
 Важно: если пользователь спрашивает про остаток/баланс/"сколько у меня денег" — отвечай суммой из раздела "ОСТАТОК ДЕНЕГ" (реальный баланс счетов), а НЕ суммой расходов или дохода за месяц — это разные вещи.
 
+ВАЛЮТА: извлекай валюту из сообщения пользователя. Поддерживаемые коды: RUB (рубль/₽), USD (доллар/$), EUR (евро/€), KZT (тенге/₸), BYN (белорусский рубль), UAH (гривна), UZS (сум/узбекский сум). Если пользователь явно указал валюту — используй её код. Если не указал — "RUB".
 Правила ответа: верни ТОЛЬКО валидный JSON вида:
 {
   "reply": "текстовый ответ пользователю на русском языке",
   "action": "create_transaction" | "create_transactions" | "create_investment" | "update_transaction" | "delete_transaction" | "none",
-  "transaction": null или { "type": "expense"|"income", "amount": число, "currency": "RUB", "category": "одна из доступных категорий", "description": "краткое описание", "date": "YYYY-MM-DDT00:00:00.000Z", "account_hint": "название счёта, если упомянуто, иначе пустая строка" },
-  "investment": null или { "name": "название актива, например Apple или Bitcoin", "type": "stocks"|"crypto"|"etf"|"bonds"|"deposit"|"real_estate"|"precious_metals"|"other", "quantity": число (1, если не указано), "purchase_price": цена за единицу (если куплено на общую сумму X штук 1 — вся сумма), "currency": "RUB", "account_hint": "название счёта, если упомянуто, иначе пустая строка" },
-  "goal": null или { "title": "название цели", "type": "savings"|"debt_payoff"|"investment"|"purchase"|"emergency_fund"|"other", "target_amount": число, "currency": "RUB", "deadline": "YYYY-MM-DD или null", "priority": "low"|"medium"|"high" },
-  "budget": null или { "name": "название бюджета", "categories": ["категория1", "категория2"], "limit_amount": число, "period": "weekly"|"monthly"|"quarterly"|"yearly", "currency": "RUB" },
+  "transaction": null или { "type": "expense"|"income", "amount": число, "currency": "код валюты из сообщения или RUB", "category": "одна из доступных категорий", "description": "краткое описание", "date": "YYYY-MM-DDT00:00:00.000Z", "account_hint": "название счёта, если упомянуто, иначе пустая строка" },
+  "investment": null или { "name": "название актива, например Apple или Bitcoin", "type": "stocks"|"crypto"|"etf"|"bonds"|"deposit"|"real_estate"|"precious_metals"|"other", "quantity": число (1, если не указано), "purchase_price": цена за единицу (если куплено на общую сумму X штук 1 — вся сумма), "currency": "код валюты из сообщения или RUB", "account_hint": "название счёта, если упомянуто, иначе пустая строка" },
+  "goal": null или { "title": "название цели", "type": "savings"|"debt_payoff"|"investment"|"purchase"|"emergency_fund"|"other", "target_amount": число, "currency": "код валюты из сообщения или RUB", "deadline": "YYYY-MM-DD или null", "priority": "low"|"medium"|"high" },
+  "budget": null или { "name": "название бюджета", "categories": ["категория1", "категория2"], "limit_amount": число, "period": "weekly"|"monthly"|"quarterly"|"yearly", "currency": "код валюты из сообщения или RUB" },
   "transaction_id": null или "id операции из списка выше" (для update_transaction/delete_transaction),
   "updates": null или { "amount": число, "category": "...", "description": "...", "date": "...", "type": "expense"|"income" } (только изменённые поля, для update_transaction)
 }
