@@ -43,6 +43,7 @@ const EducationLesson = React.lazy(() => import('./pages/EducationLesson'));
 const FamilyChat = React.lazy(() => import('./pages/FamilyChat'));
 const Subscriptions = React.lazy(() => import('./pages/Subscriptions'));
 const AIPlanning = React.lazy(() => import('./pages/AIPlanning'));
+const Backup = React.lazy(() => import('./pages/Backup'));
 import SplashScreen from './components/SplashScreen';
 import PushNotificationManager from '@/components/PushNotificationManager';
 import GlobalCacheSync from './components/GlobalCacheSync';
@@ -137,6 +138,7 @@ const AuthenticatedApp = () => {
         {/* Подписки и регулярные платежи */}
         <Route path="/Subscriptions" element={<LayoutWrapper currentPageName="Subscriptions"><Subscriptions /></LayoutWrapper>} />
         <Route path="/AIPlanning" element={<LayoutWrapper currentPageName="AIPlanning"><AIPlanning /></LayoutWrapper>} />
+        <Route path="/Backup" element={<LayoutWrapper currentPageName="Backup"><Backup /></LayoutWrapper>} />
       </Route>
 
       {/* 404 */}

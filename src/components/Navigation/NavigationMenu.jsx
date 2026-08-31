@@ -6,7 +6,7 @@ import {
   Home, Wallet, ArrowLeftRight, CreditCard, BarChart2, PieChart, Repeat,
   Target, Lightbulb, AlertTriangle, TrendingUp, TrendingDown, Users, Baby, MessageSquare,
   Bot, MessageCircle, Sparkles, CheckSquare, ListTodo, FileText,
-  GraduationCap, Library, Settings, ChevronDown
+  GraduationCap, Library, Settings, ChevronDown, Cloud
 } from 'lucide-react';
 import useUnreadFamilyChat from '@/hooks/useUnreadFamilyChat';
 import { useTranslation } from '@/lib/LanguageContext';
@@ -62,6 +62,7 @@ const MENU_STRUCTURE = [
   },
   { type: 'link', name: 'Education', labelKey: 'nav.education', icon: GraduationCap },
   { type: 'link', name: 'HelpCenter', labelKey: 'nav.library', icon: Library },
+  { type: 'link', name: 'Backup', label: 'Резервные копии', icon: Cloud },
   { type: 'link', name: 'Settings', labelKey: 'nav.settings', icon: Settings },
 ];
 
@@ -133,7 +134,7 @@ export default function NavigationMenu({ currentPageName, onNavigate, isChildMod
         `}
       >
         <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`} />
-        <span>{t(item.labelKey)}</span>
+        <span>{item.label || t(item.labelKey)}</span>
         {item.name === 'FamilyChat' && unreadChatCount > 0 && (
           <span className="ml-auto flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-fuchsia-600 text-white text-[10px] font-semibold">
             {unreadChatCount > 9 ? '9+' : unreadChatCount}
