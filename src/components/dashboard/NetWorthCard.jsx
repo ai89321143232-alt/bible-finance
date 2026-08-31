@@ -72,7 +72,7 @@ export default function NetWorthCard({
           <span className="text-muted-foreground text-xs uppercase tracking-widest font-medium">
             {t('networth.title')}
           </span>
-          {isMultiCurrency && Object.keys(balancesByCurrency).length > 1 && (
+          {Object.keys(balancesByCurrency).length > 1 && (
             <span className="text-muted-foreground/50 text-xs ml-auto">в {profileCurrency}</span>
           )}
         </div>
@@ -82,7 +82,7 @@ export default function NetWorthCard({
             {formatCurrency(netWorth)}
           </h3>
           {/* Разбивка по валютам */}
-          {isMultiCurrency && Object.keys(balancesByCurrency).length > 1 && (
+          {Object.keys(balancesByCurrency).length > 1 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
               {Object.entries(balancesByCurrency).map(([cur, bal]) => (
                 <span key={cur} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/60 text-muted-foreground text-xs font-medium">

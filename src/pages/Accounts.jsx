@@ -103,7 +103,8 @@ export default function Accounts() {
     balance: '',
     currency: 'RUB',
     color: ACCOUNT_COLORS[0],
-    credit_limit: ''
+    credit_limit: '',
+    exchange_rate: ''
   });
 
   const activeWorkspaceId = useActiveWorkspaceId();
@@ -250,7 +251,8 @@ export default function Accounts() {
       balance: '',
       currency: profileCurrency,
       color: ACCOUNT_COLORS[0],
-      credit_limit: ''
+      credit_limit: '',
+      exchange_rate: ''
     });
     setShowAddModal(false);
     setEditAccount(null);
@@ -269,7 +271,8 @@ export default function Accounts() {
       balance: account.balance?.toString() || '0',
       currency: account.currency || 'RUB',
       color: account.color || ACCOUNT_COLORS[0],
-      credit_limit: account.credit_limit?.toString() || ''
+      credit_limit: account.credit_limit?.toString() || '',
+      exchange_rate: account.exchange_rate?.toString() || ''
     });
     setShowAddModal(true);
   };
@@ -279,8 +282,26 @@ export default function Accounts() {
       ...formData,
       balance: parseFloat(formData.balance) || 0,
       credit_limit: formData.type === 'credit' ? (parseFloat(formData.credit_limit) || null) : null,
+      exchange_rate: formData.currency !== profileCurrency && formData.exchange_rate
+        ? parseFloat(formData.exchange_rate) || null
+        : null,
       is_active: true
     };
+
+    // Сохраняем курс валюты в профиль пользователя, чтобы он сразу использовался на дашборде
+    if (formData.currency !== profileCurrency && formData.exchange_rate) {
+      const rate = parseFloat(formData.exchange_rate);
+      if (!isNaN(rate) && rate > 0) {
+        try {
+          const user = await base44.auth.me();
+          const currentRates = user?.exchange_rates || user?.data?.exchange_rates || {};
+          await base44.auth.updateMe({ exchange_rates: { ...currentRates, [formData.currency]: rate } });
+          queryClient.invalidateQueries({ queryKey: ['auth-me'] });
+        } catch (e) {
+          // не блокируем создание счёта при ошибке сохранения курса
+        }
+      }
+    }
 
     if (editAccount) {
       updateMutation.mutate({ id: editAccount.id, data });
@@ -579,7 +600,7 @@ export default function Accounts() {
               <Label>{t('settings.currency') || 'Валюта'}</Label>
               <Select
                 value={formData.currency}
-                onValueChange={(v) => setFormData({ ...formData, currency: v })}
+                onValueChange={(v) => setFormData({ ...formData, currency: v, exchange_rate: v === profileCurrency ? '' : formData.exchange_rate })}
               >
                 <SelectTrigger className="rounded-xl mt-1">
                   <SelectValue />
@@ -593,6 +614,29 @@ export default function Accounts() {
                 </SelectContent>
               </Select>
             </div>
+            {formData.currency !== profileCurrency && (
+              <div>
+                <Label>
+                  {t('accounts.exchange_rate_label') || 'Курс к'} {profileCurrency}
+                </Label>
+                <div className="relative mt-1">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={formData.exchange_rate}
+                    onChange={(e) => setFormData({ ...formData, exchange_rate: e.target.value })}
+                    placeholder="0"
+                    className="rounded-xl pr-16"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs whitespace-nowrap">
+                    {profileCurrency} / {formData.currency}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  1 {formData.currency} = {formData.exchange_rate || '?'} {profileCurrency}. {t('accounts.exchange_rate_hint') || 'Курс сохранится в профиль и будет использоваться для сводных расчётов.'}
+                </p>
+              </div>
+            )}
             <div>
               <Label>{t('accounts.color_label')}</Label>
               <div className="flex gap-2 mt-2 flex-wrap">

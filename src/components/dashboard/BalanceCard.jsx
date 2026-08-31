@@ -44,7 +44,8 @@ export default function BalanceCard({
   const currenciesWithoutRate = Object.entries(balancesByCurrency)
     .filter(([cur]) => cur !== profileCurrency && !hasRate(cur));
 
-  const displayBalance = isMultiCurrency ? totalBalanceConverted : totalBalance;
+  const hasMultipleCurrencies = Object.keys(balancesByCurrency).length > 1;
+  const displayBalance = hasMultipleCurrencies ? totalBalanceConverted : totalBalance;
 
   return (
     <motion.div
@@ -81,7 +82,7 @@ export default function BalanceCard({
             {showBalance ? formatCurrency(displayBalance + (isMultiCurrency ? convert(investmentValue, investments[0]?.currency || profileCurrency, profileCurrency) ?? investmentValue : investmentValue)) : '••••••'}
           </h2>
           {/* Разбивка по валютам */}
-          {isMultiCurrency && Object.keys(balancesByCurrency).length > 1 && (
+          {hasMultipleCurrencies && (
             <div className="flex flex-wrap gap-1.5 mt-2">
               {Object.entries(balancesByCurrency).map(([cur, bal]) => (
                 <span key={cur} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/60 text-muted-foreground text-xs font-medium">
@@ -97,7 +98,7 @@ export default function BalanceCard({
           )}
           {totalFrozen > 0 && (
             <p className="text-xs text-amber-500 mt-1">
-              {t('balance.frozen_for_goals')}: {showBalance ? formatCurrency(totalFrozen) : '••••'} • {t('balance.available')}: {showBalance ? formatCurrency(displayBalance - totalFrozen) : '••••'}
+              {t('balance.frozen_for_goals')}: {showBalance ? formatCurrency(totalFrozen) : '••••'} • {t('balance.available')}: {showBalance ? formatCurrency((hasMultipleCurrencies ? totalBalanceConverted : totalBalance) - totalFrozen) : '••••'}
             </p>
           )}
           <div className="flex items-center gap-2 mt-2 flex-wrap">
