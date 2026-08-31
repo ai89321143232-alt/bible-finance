@@ -88,7 +88,7 @@ async function createTransactionRecord({ entities, parsed, account, ownerId }) {
   await entities.Transaction.create({
     type: parsed.type,
     amount: parsed.amount,
-    currency: parsed.currency || account.currency || 'RUB',
+    currency: parsed.currency || account.currency || owner?.currency || 'RUB',
     category: parsed.category || 'Другое',
     description: parsed.description || 'Операция из Telegram',
     date: txDate.toISOString(),
@@ -199,7 +199,10 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
   }
 
   const action = parsed.action || 'none';
-  let replyText = parsed.reply || '';
+  // Не используем parsed.reply напрямую: если действие реально не выполнено
+  // (LLM вернула action='none' или не распознала данные), честно сообщаем об этом,
+  // а не повторяем обманчивый текст LLM вроде «я добавил».
+  let replyText = action === 'none' ? (parsed.reply || 'Не удалось распознать команду.') : '';
 
   if (action === 'create_transactions' && Array.isArray(parsed.transactions) && parsed.transactions.length > 0) {
     const items = parsed.transactions
@@ -236,12 +239,14 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         }
       }
       const total = items.reduce((s, t) => s + (t.amount || 0), 0);
-      replyText = replyText || `✅ Записано ${created} из ${items.length} операций на сумму ${total.toLocaleString()} ₽${errors.length ? `\n⚠️ Не записано: ${errors.join('; ')}` : ''}`;
+      replyText = created > 0
+        ? `✅ Записано ${created} из ${items.length} операций на сумму ${total.toLocaleString()} ₽${errors.length ? `\n⚠️ Не записано: ${errors.join('; ')}` : ''}`
+        : `❌ Не удалось записать ни одной операции${errors.length ? `: ${errors.join('; ')}` : ''}`;
     }
   } else if (action === 'create_transaction' && parsed.transaction) {
     const t = { ...parsed.transaction, type: normalizeType(parsed.transaction.type), amount: normalizeAmount(parsed.transaction.amount) };
     if (!t.amount || !t.type) {
-      replyText = replyText || 'Не удалось распознать сумму или тип операции.';
+      replyText = '❌ Не удалось распознать сумму или тип операции. Укажите: сумму, тип (расход/доход) и категорию.';
     } else {
       const matchedAccountId = matchAccount(accounts, t.account_hint);
       if (!matchedAccountId && accounts.length > 1) {
@@ -257,12 +262,12 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
       }
       const targetAccount = accounts.find(a => a.id === matchedAccountId) || account;
       if (!targetAccount) {
-        replyText = 'Не найден счёт для записи операции. Добавьте счёт в приложении.';
+        replyText = '❌ Не найден счёт для записи операции. Добавьте счёт в приложении.';
       } else {
         await entities.Transaction.create({
           type: t.type,
           amount: t.amount,
-          currency: t.currency || targetAccount.currency || 'RUB',
+          currency: t.currency || targetAccount.currency || owner?.currency || 'RUB',
           category: t.category || 'Другое',
           description: t.description || 'Операция из Telegram',
           date: t.date || new Date().toISOString(),
@@ -274,13 +279,13 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         });
         await applyBalanceDelta(entities, targetAccount.id, effect(t.type, t.amount), ownerId);
         if (t.type === 'expense') await applyBudgetDelta(entities, ownerId, t.category, t.amount);
-        replyText = replyText || `✅ Записал: ${t.type === 'expense' ? '-' : '+'}${t.amount} ₽ (${t.category || 'Другое'})`;
+        replyText = `✅ Записал: ${t.type === 'expense' ? '-' : '+'}${t.amount} ₽ (${t.category || 'Другое'})`;
       }
     }
   } else if (action === 'create_investment' && parsed.investment) {
     const inv = parsed.investment;
     if (!inv.name || !inv.type) {
-      replyText = replyText || 'Не удалось распознать данные об инвестиции.';
+      replyText = '❌ Не удалось распознать данные об инвестиции.';
     } else {
       const matchedAccountId = matchAccount(accounts, inv.account_hint);
       const targetAccount = accounts.find(a => a.id === matchedAccountId) || account;
@@ -296,7 +301,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
           quantity,
           purchase_price: purchasePrice,
           current_price: purchasePrice,
-          currency: inv.currency || 'RUB',
+          currency: inv.currency || owner?.currency || 'RUB',
           purchase_date: new Date().toISOString().split('T')[0],
           user_id: ownerId,
           family_id: owner?.family_id || undefined,
@@ -304,20 +309,20 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         });
         // Явно дублируем created_by_id — платформа может перезаписать его при service-role create.
         await applyBalanceDelta(entities, targetAccount.id, -totalCost, ownerId);
-        replyText = replyText || `✅ Записал покупку инвестиции: ${inv.name} на ${totalCost.toLocaleString()} ₽ (счёт: ${targetAccount.name})`;
+        replyText = `✅ Записал покупку инвестиции: ${inv.name} на ${totalCost.toLocaleString()} ₽ (счёт: ${targetAccount.name})`;
       }
     }
   } else if (action === 'create_goal' && parsed.goal) {
     const g = parsed.goal;
     if (!g.title || !g.target_amount) {
-      replyText = replyText || 'Не удалось распознать название или сумму цели.';
+      replyText = '❌ Не удалось распознать название или сумму цели.';
     } else {
       await entities.Goal.create({
         title: g.title,
         type: g.type || 'savings',
         target_amount: g.target_amount,
         current_amount: 0,
-        currency: g.currency || 'RUB',
+        currency: g.currency || owner?.currency || 'RUB',
         deadline: g.deadline || undefined,
         priority: g.priority || 'medium',
         user_id: ownerId,
@@ -326,12 +331,12 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         visibility: 'private',
         status: 'active'
       });
-      replyText = replyText || `✅ Создал цель: ${g.title} — накопить ${g.target_amount.toLocaleString()} ₽`;
+      replyText = `✅ Создал цель: ${g.title} — накопить ${g.target_amount.toLocaleString()} ₽`;
     }
   } else if (action === 'create_budget' && parsed.budget) {
     const b = parsed.budget;
     if (!b.name || !b.limit_amount) {
-      replyText = replyText || 'Не удалось распознать название или лимит бюджета.';
+      replyText = '❌ Не удалось распознать название или лимит бюджета.';
     } else {
       await entities.Budget.create({
         name: b.name,
@@ -339,7 +344,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         limit_amount: b.limit_amount,
         spent_amount: 0,
         period: b.period || 'monthly',
-        currency: b.currency || 'RUB',
+        currency: b.currency || owner?.currency || 'RUB',
         user_id: ownerId,
         created_by_id: ownerId,
         family_id: owner?.family_id || undefined,
@@ -347,12 +352,12 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         is_active: true,
         start_date: new Date().toISOString().split('T')[0]
       });
-      replyText = replyText || `✅ Создал бюджет: ${b.name} — лимит ${b.limit_amount.toLocaleString()} ₽`;
+      replyText = `✅ Создал бюджет: ${b.name} — лимит ${b.limit_amount.toLocaleString()} ₽`;
     }
   } else if (action === 'update_transaction' && parsed.transaction_id && parsed.updates) {
     const existing = recentTx.find(t => t.id === parsed.transaction_id);
     if (!existing) {
-      replyText = replyText || 'Не удалось найти указанную операцию.';
+      replyText = '❌ Не удалось найти указанную операцию. Укажите точный id из списка ваших последних операций.';
     } else {
       const u = parsed.updates;
       const newType = u.type || existing.type;
@@ -372,17 +377,17 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
       if (u.description !== undefined) updatePayload.description = u.description;
       if (u.date) updatePayload.date = u.date;
       await entities.Transaction.update(existing.id, updatePayload);
-      replyText = replyText || '✅ Операция обновлена';
+      replyText = '✅ Операция обновлена';
     }
   } else if (action === 'delete_transaction' && parsed.transaction_id) {
     const existing = recentTx.find(t => t.id === parsed.transaction_id);
     if (!existing) {
-      replyText = replyText || 'Не удалось найти указанную операцию.';
+      replyText = '❌ Не удалось найти указанную операцию. Укажите точный id из списка ваших последних операций.';
     } else {
       await applyBalanceDelta(entities, existing.account_id, -effect(existing.type, existing.amount), ownerId);
       if (existing.type === 'expense') await applyBudgetDelta(entities, ownerId, existing.category, -existing.amount);
       await entities.Transaction.delete(existing.id);
-      replyText = replyText || '🗑️ Операция удалена';
+      replyText = '🗑️ Операция удалена';
     }
   }
 

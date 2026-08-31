@@ -19,15 +19,18 @@ Deno.serve(async (req) => {
     // === Finalize: user picked an account for a pending new transaction ===
     if (finalize && pendingTransaction && account_id) {
       const t = pendingTransaction;
+      const acct = accounts.find(a => a.id === account_id);
       const transaction = await base44.entities.Transaction.create({
         type: t.type,
         amount: t.amount,
-        currency: t.currency || 'RUB',
+        currency: t.currency || acct?.currency || user.currency || 'RUB',
         category: t.category,
         description: t.description,
         date: t.date || new Date().toISOString(),
         account_id,
-        user_id: user.id
+        user_id: user.id,
+        created_by_id: user.id,
+        source: 'app'
       });
       await applyBalanceDelta(entities, account_id, effect(t.type, t.amount), user.id);
       if (t.type === 'expense') await applyBudgetDelta(entities, user.id, t.category, t.amount);
@@ -109,15 +112,17 @@ Deno.serve(async (req) => {
         const matchedAccountId = matchAccount(accounts, t.account_hint);
         const targetAccountId = matchedAccountId || (accounts[0]?.id);
         if (!targetAccountId) continue;
+        const targetAccount = accounts.find(a => a.id === targetAccountId);
         const transaction = await base44.entities.Transaction.create({
           type: t.type,
           amount: t.amount,
-          currency: t.currency || 'RUB',
+          currency: t.currency || targetAccount?.currency || user.currency || 'RUB',
           category: t.category || 'Другое',
           description: t.description || 'Операция из списка',
           date: t.date || new Date().toISOString(),
           account_id: targetAccountId,
           user_id: user.id,
+          created_by_id: user.id,
           source: 'app'
         });
         await applyBalanceDelta(entities, targetAccountId, effect(t.type, t.amount), user.id);
@@ -132,7 +137,7 @@ Deno.serve(async (req) => {
     if (action === 'create_transaction' && parsed.transaction) {
       const t = parsed.transaction;
       if (!t.amount || !t.type) {
-        return Response.json({ reply: parsed.reply || 'Не удалось распознать сумму или тип операции' });
+        return Response.json({ reply: '❌ Не удалось распознать сумму или тип операции. Укажите: сумму, тип (расход/доход) и категорию.' });
       }
 
       const matchedAccountId = matchAccount(accounts, t.account_hint);
@@ -146,27 +151,30 @@ Deno.serve(async (req) => {
         });
       }
 
+      const targetAccount = accounts.find(a => a.id === matchedAccountId);
       const transaction = await base44.entities.Transaction.create({
         type: t.type,
         amount: t.amount,
-        currency: t.currency || 'RUB',
+        currency: t.currency || targetAccount?.currency || user.currency || 'RUB',
         category: t.category,
         description: t.description,
         date: t.date || new Date().toISOString(),
         account_id: matchedAccountId,
-        user_id: user.id
+        user_id: user.id,
+        created_by_id: user.id,
+        source: 'app'
       });
       await applyBalanceDelta(entities, matchedAccountId, effect(t.type, t.amount), user.id);
       if (t.type === 'expense') await applyBudgetDelta(entities, user.id, t.category, t.amount);
 
-      return Response.json({ reply: parsed.reply, action: 'created', transaction });
+      return Response.json({ reply: parsed.reply || `✅ Записал: ${t.type === 'expense' ? '-' : '+'}${t.amount} ₽ (${t.category})`, action: 'created', transaction });
     }
 
     // === Create investment purchase (not a regular expense) ===
     if (action === 'create_investment' && parsed.investment) {
       const inv = parsed.investment;
       if (!inv.name || !inv.type) {
-        return Response.json({ reply: parsed.reply || 'Не удалось распознать данные об инвестиции' });
+        return Response.json({ reply: '❌ Не удалось распознать данные об инвестиции.' });
       }
 
       const matchedAccountId = matchAccount(accounts, inv.account_hint);
@@ -202,14 +210,14 @@ Deno.serve(async (req) => {
     if (action === 'create_goal' && parsed.goal) {
       const g = parsed.goal;
       if (!g.title || !g.target_amount) {
-        return Response.json({ reply: parsed.reply || 'Не удалось распознать название или сумму цели' });
+        return Response.json({ reply: '❌ Не удалось распознать название или сумму цели.' });
       }
       const goal = await base44.entities.Goal.create({
         title: g.title,
         type: g.type || 'savings',
         target_amount: g.target_amount,
         current_amount: 0,
-        currency: g.currency || 'RUB',
+        currency: g.currency || user.currency || 'RUB',
         deadline: g.deadline || undefined,
         priority: g.priority || 'medium',
         user_id: user.id,
@@ -223,7 +231,7 @@ Deno.serve(async (req) => {
     if (action === 'create_budget' && parsed.budget) {
       const b = parsed.budget;
       if (!b.name || !b.limit_amount) {
-        return Response.json({ reply: parsed.reply || 'Не удалось распознать название или лимит бюджета' });
+        return Response.json({ reply: '❌ Не удалось распознать название или лимит бюджета.' });
       }
       const budget = await base44.entities.Budget.create({
         name: b.name,
@@ -231,8 +239,9 @@ Deno.serve(async (req) => {
         limit_amount: b.limit_amount,
         spent_amount: 0,
         period: b.period || 'monthly',
-        currency: b.currency || 'RUB',
+        currency: b.currency || user.currency || 'RUB',
         user_id: user.id,
+        created_by_id: user.id,
         visibility: 'private',
         is_active: true,
         start_date: new Date().toISOString().split('T')[0]
@@ -244,7 +253,7 @@ Deno.serve(async (req) => {
     if (action === 'update_transaction' && parsed.transaction_id && parsed.updates) {
       const existing = recentTx.find(t => t.id === parsed.transaction_id);
       if (!existing) {
-        return Response.json({ reply: parsed.reply || 'Не удалось найти указанную операцию.' });
+        return Response.json({ reply: '❌ Не удалось найти указанную операцию.' });
       }
       const u = parsed.updates;
       const newType = u.type || existing.type;
@@ -273,7 +282,7 @@ Deno.serve(async (req) => {
     if (action === 'delete_transaction' && parsed.transaction_id) {
       const existing = recentTx.find(t => t.id === parsed.transaction_id);
       if (!existing) {
-        return Response.json({ reply: parsed.reply || 'Не удалось найти указанную операцию.' });
+        return Response.json({ reply: '❌ Не удалось найти указанную операцию.' });
       }
       await applyBalanceDelta(entities, existing.account_id, -effect(existing.type, existing.amount), user.id);
       if (existing.type === 'expense') await applyBudgetDelta(entities, user.id, existing.category, -existing.amount);
