@@ -46,6 +46,7 @@ import FamilyVisibilityToggle from '@/components/shared/FamilyVisibilityToggle';
 import { getCategoryEmoji } from '@/lib/categoryIcon';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 
 const GOAL_TYPES = [
   { value: 'savings', labelKey: 'goals.type_savings', icon: '💰', color: '#10B981' },
@@ -145,12 +146,17 @@ export default function Goals() {
     staleTime: 30000
   });
 
+  const { isSubmitting, lock: lockSubmit, release: releaseSubmit } = useSubmitGuard();
+
   const createMutation = useMutation({
     mutationFn: (data) => GoalService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-goals'] });
       queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
       resetForm();
+    },
+    onError: (err) => {
+      toast.error(err?.message || t('common.error'));
     }
   });
 
@@ -162,6 +168,9 @@ export default function Goals() {
       resetForm();
       setShowAddFundsModal(null);
       setAddFundsAmount('');
+    },
+    onError: (err) => {
+      toast.error(err?.message || t('common.error'));
     }
   });
 
@@ -209,7 +218,7 @@ export default function Goals() {
     setShowAddModal(true);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Проверяем ошибки распределения инвестиций
     const newErrors = {};
     (formData.linked_investment_ids || []).forEach(id => {
@@ -234,8 +243,15 @@ export default function Goals() {
           : (investments.find(i => i.id === id)?.quantity || 0) * (investments.find(i => i.id === id)?.current_price || investments.find(i => i.id === id)?.purchase_price || 0))
       })).filter(item => item.amount > 0)
     };
-    if (editGoal) updateMutation.mutate({ id: editGoal.id, data });
-    else createMutation.mutate(data);
+    if (!lockSubmit()) return;
+    try {
+      if (editGoal) await updateMutation.mutateAsync({ id: editGoal.id, data });
+      else await createMutation.mutateAsync(data);
+    } catch {
+      // ошибка уже показана в onError
+    } finally {
+      releaseSubmit();
+    }
   };
 
   const handleAddFunds = async () => {
@@ -596,7 +612,7 @@ export default function Goals() {
 
             <SubgoalsManager subgoals={formData.subgoals} onChange={(subgoals) => setFormData({ ...formData, subgoals })} formatCurrency={formatCurrency} />
 
-            <Button onClick={handleSubmit} disabled={!formData.title || !formData.target_amount || createMutation.isPending || updateMutation.isPending}
+            <Button onClick={handleSubmit} disabled={!formData.title || !formData.target_amount || isSubmitting}
               className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600">
               <Check className="w-4 h-4 mr-2" />{editGoal ? t('common.save') : t('goals.create')}
             </Button>

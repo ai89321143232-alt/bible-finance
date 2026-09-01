@@ -6,6 +6,7 @@ import {
   Plus, Edit2, Trash2, Check, X, Tag, ChevronRight, Link2, AlertCircle
 } from 'lucide-react';
 import BulkBudgetLinkModal from '@/components/categories/BulkBudgetLinkModal';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -181,11 +182,16 @@ export default function Categories() {
     queryFn: () => base44.entities.Transaction.list('-date', 100)
   });
 
+  const { isSubmitting, lock: lockSubmit, release: releaseSubmit } = useSubmitGuard();
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Category.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       resetForm();
+    },
+    onError: (err) => {
+      alert(err?.message || 'Ошибка сохранения');
     }
   });
 
@@ -194,6 +200,9 @@ export default function Categories() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       resetForm();
+    },
+    onError: (err) => {
+      alert(err?.message || 'Ошибка сохранения');
     }
   });
 
@@ -316,14 +325,21 @@ export default function Categories() {
       is_system: editCategory?.is_system || false
     };
 
-    if (editCategory) {
-      updateMutation.mutate({ id: editCategory.id, data });
-    } else {
-      createMutation.mutate(data);
-    }
+    if (!lockSubmit()) return;
+    try {
+      if (editCategory) {
+        await updateMutation.mutateAsync({ id: editCategory.id, data });
+      } else {
+        await createMutation.mutateAsync(data);
+      }
 
-    if (formData.type === 'expense') {
-      await syncBudgetCategories(formData.name, formData.budget_ids);
+      if (formData.type === 'expense') {
+        await syncBudgetCategories(formData.name, formData.budget_ids);
+      }
+    } catch {
+      // ошибка уже показана в onError
+    } finally {
+      releaseSubmit();
     }
   };
 
@@ -624,7 +640,7 @@ export default function Categories() {
             )}
             <Button
               onClick={handleSubmit}
-              disabled={!formData.name}
+              disabled={!formData.name || isSubmitting}
               className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"
             >
               <Check className="w-4 h-4 mr-2" />

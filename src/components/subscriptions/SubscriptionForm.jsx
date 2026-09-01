@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/use-toast';
 import MobileSelect from '@/components/mobile/MobileSelect';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 
 const PERIOD_OPTIONS = [
   { value: 'weekly', label: 'Еженедельно' },
@@ -25,7 +26,7 @@ const CATEGORY_OPTIONS = [
 export default function SubscriptionForm({ initial, accounts, onClose, onSaved }) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [saving, setSaving] = useState(false);
+  const { isSubmitting: saving, lock: lockSubmit, release: releaseSubmit } = useSubmitGuard();
   const [form, setForm] = useState({
     name: '',
     amount: '',
@@ -71,7 +72,7 @@ export default function SubscriptionForm({ initial, accounts, onClose, onSaved }
       toast({ variant: 'destructive', title: 'Заполните название и сумму' });
       return;
     }
-    setSaving(true);
+    if (!lockSubmit()) return;
     try {
       const payload = {
         ...form,
@@ -92,7 +93,7 @@ export default function SubscriptionForm({ initial, accounts, onClose, onSaved }
     } catch (err) {
       toast({ variant: 'destructive', title: 'Ошибка', description: err.message });
     } finally {
-      setSaving(false);
+      releaseSubmit();
     }
   };
 

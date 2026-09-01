@@ -11,6 +11,7 @@ import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useFormatCurrency } from '@/lib/formatCurrency';
 import { useTranslation } from '@/lib/LanguageContext';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 
 const DEBT_TYPES = [
   { value: 'credit_card', icon: CreditCard },
@@ -71,7 +72,7 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
   const { user: authUser } = useAuth();
   const [newAccountName, setNewAccountName] = useState('');
   const [newAccountCurrency, setNewAccountCurrency] = useState(authUser?.currency || 'RUB');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { isSubmitting, lock: lockSubmit, release: releaseSubmit } = useSubmitGuard();
 
   const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -82,8 +83,7 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isSubmitting) return;
-    setIsSubmitting(true);
+    if (!lockSubmit()) return;
     try {
       let linkedAccountId = form.linked_account_id;
 
@@ -102,7 +102,6 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
       }
 
       if (!linkedAccountId) {
-        setIsSubmitting(false);
         return;
       }
 
@@ -127,7 +126,7 @@ export default function DebtForm({ open, onClose, onSave, initialData }) {
       }
       await onSave(payload);
     } finally {
-      setIsSubmitting(false);
+      releaseSubmit();
     }
   };
 

@@ -19,6 +19,7 @@ import { Progress } from "@/components/ui/progress";
 import BudgetCard from '@/components/budgets/BudgetCard';
 import BudgetTransactionsModal from '@/components/budgets/BudgetTransactionsModal';
 import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/WorkspaceContext';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import {
   Select,
   SelectContent,
@@ -211,11 +212,16 @@ export default function Budgets() {
     queryClient.invalidateQueries({ queryKey: ['shared-budgets'] });
   };
 
+  const { isSubmitting, lock: lockSubmit, release: releaseSubmit } = useSubmitGuard();
+
   const createMutation = useMutation({
     mutationFn: (data) => BudgetService.create(data),
     onSuccess: () => {
       invalidateBudgets();
       resetForm();
+    },
+    onError: (err) => {
+      toast.error(err?.message || t('common.error'));
     }
   });
 
@@ -224,6 +230,9 @@ export default function Budgets() {
     onSuccess: () => {
       invalidateBudgets();
       resetForm();
+    },
+    onError: (err) => {
+      toast.error(err?.message || t('common.error'));
     }
   });
 
@@ -267,7 +276,7 @@ export default function Budgets() {
     setShowAddModal(true);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const data = {
       ...formData,
       limit_amount: parseFloat(formData.limit_amount),
@@ -275,10 +284,17 @@ export default function Budgets() {
       share_with: shareWithUsers
     };
 
-    if (editBudget) {
-      updateMutation.mutate({ id: editBudget.id, data });
-    } else {
-      createMutation.mutate(data);
+    if (!lockSubmit()) return;
+    try {
+      if (editBudget) {
+        await updateMutation.mutateAsync({ id: editBudget.id, data });
+      } else {
+        await createMutation.mutateAsync(data);
+      }
+    } catch {
+      // ошибка уже показана в onError
+    } finally {
+      releaseSubmit();
     }
   };
 
@@ -689,7 +705,7 @@ export default function Budgets() {
 
             <Button
               onClick={handleSubmit}
-              disabled={!formData.name || !formData.limit_amount || createMutation.isPending || updateMutation.isPending}
+              disabled={!formData.name || !formData.limit_amount || isSubmitting}
               className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"
             >
               <Check className="w-4 h-4 mr-2" />

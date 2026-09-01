@@ -36,6 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/WorkspaceContext';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import CreatorTag from '@/components/shared/CreatorTag';
 import FamilyVisibilityToggle from '@/components/shared/FamilyVisibilityToggle';
 import { useLanguage } from '@/lib/LanguageContext';
@@ -172,6 +173,8 @@ export default function Accounts() {
     queryFn: () => base44.entities.Transaction.list('-date', 100)
   });
 
+  const { isSubmitting, lock: lockSubmit, release: releaseSubmit } = useSubmitGuard();
+
   const createMutation = useMutation({
     mutationFn: (data) => AccountService.create(data),
     onMutate: async (newAccount) => {
@@ -186,13 +189,16 @@ export default function Accounts() {
         created_by: currentUser?.email || ''
       };
       queryClient.setQueryData(['accounts'], (old) => [...(old || []), optimisticAccount]);
-      resetForm();
       return { prevAccounts };
     },
-    onError: (_err, _data, context) => {
+    onSuccess: () => {
+      resetForm();
+    },
+    onError: (err, _data, context) => {
       if (context?.prevAccounts) {
         queryClient.setQueryData(['accounts'], context.prevAccounts);
       }
+      toast.error(err?.message || t('common.error'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
@@ -207,13 +213,16 @@ export default function Accounts() {
       queryClient.setQueryData(['accounts'], (old) =>
         old ? old.map(a => a.id === id ? { ...a, ...data } : a) : []
       );
-      resetForm();
       return { prevAccounts };
     },
-    onError: (_err, _vars, context) => {
+    onSuccess: () => {
+      resetForm();
+    },
+    onError: (err, _vars, context) => {
       if (context?.prevAccounts) {
         queryClient.setQueryData(['accounts'], context.prevAccounts);
       }
+      toast.error(err?.message || t('common.error'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
@@ -307,10 +316,17 @@ export default function Accounts() {
       }
     }
 
-    if (editAccount) {
-      updateMutation.mutate({ id: editAccount.id, data });
-    } else {
-      createMutation.mutate(data);
+    if (!lockSubmit()) return;
+    try {
+      if (editAccount) {
+        await updateMutation.mutateAsync({ id: editAccount.id, data });
+      } else {
+        await createMutation.mutateAsync(data);
+      }
+    } catch {
+      // ошибка уже показана в onError мутации
+    } finally {
+      releaseSubmit();
     }
   };
 
@@ -692,7 +708,7 @@ export default function Accounts() {
             </div>
             <Button
               onClick={handleSubmit}
-              disabled={!formData.name || createMutation.isPending || updateMutation.isPending}
+              disabled={!formData.name || isSubmitting}
               className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"
             >
               <Check className="w-4 h-4 mr-2" />
