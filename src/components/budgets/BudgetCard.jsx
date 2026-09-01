@@ -56,6 +56,11 @@ export default function BudgetCard({
                       👨‍👩‍👧 Семья
                     </span>
                   )}
+                  {budget.scope === 'business' && (
+                    <span className="px-2 py-1 text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full">
+                      💼 Бизнес
+                    </span>
+                  )}
                   {!isEditable && (
                     <Lock className="w-4 h-4 text-slate-400" />
                   )}

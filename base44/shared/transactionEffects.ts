@@ -22,6 +22,10 @@ export async function applyBudgetDelta(entities, userId, category, delta) {
   const budgets = await entities.Budget.filter({ is_active: true, user_id: userId });
   const now = new Date();
   const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  // Карта scope по счёту: чтобы бизнес-бюджет считал только бизнес-расходы,
+  // а личный — только личные (scope операции = scope счёта).
+  const accounts = await entities.Account.filter({ user_id: userId });
+  const accountScope = new Map(accounts.map(a => [a.id, a.scope || 'personal']));
   for (const budget of budgets) {
     // Бот/AI-ассистент не могут спросить пользователя, в какой бюджет (личный/семейный)
     // засчитать расход, поэтому по умолчанию засчитываем только в личные бюджеты —
@@ -29,6 +33,7 @@ export async function applyBudgetDelta(entities, userId, category, delta) {
     if (budget.is_family_budget) continue;
     const cats = budget.categories?.length > 0 ? budget.categories : (budget.category ? [budget.category] : []);
     if (!cats.includes(category)) continue;
+    const budgetScope = budget.scope || 'personal';
     // Идемпотентный пересчёт из реальных операций текущего периода —
     // не накапливаем инкрементально, чтобы избежать задвоения при гонке
     // с автоматизацией updateBudgetOnTransaction.
@@ -38,7 +43,10 @@ export async function applyBudgetDelta(entities, userId, category, delta) {
         if (t.type !== 'expense') return false;
         if (cats.length > 0 && !cats.includes(t.category)) return false;
         if (new Date(t.date) < periodStart) return false;
-        return t.budget_scope !== 'family';
+        if (t.budget_scope === 'family') return false;
+        // Фильтр по области: бюджет business считает только расходы с бизнес-счетов.
+        const txScope = t.account_id ? (accountScope.get(t.account_id) || 'personal') : 'personal';
+        return txScope === budgetScope;
       })
       .reduce((sum, t) => sum + (t.amount || 0), 0);
     await entities.Budget.update(budget.id, { spent_amount: realSpent });

@@ -63,7 +63,9 @@ export function useScopeMode() {
     return transactions.filter((t) => {
       const fromIn = t.account_id && ids.has(t.account_id);
       const toIn = t.to_account_id ? ids.has(t.to_account_id) : true;
-      if (t.type === 'transfer') return fromIn && toIn;
+      // Кросс-областной перевод виден в обеих областях: достаточно,
+      // чтобы хотя бы один счёт (источник ИЛИ получатель) был в области.
+      if (t.type === 'transfer') return fromIn || toIn;
       return fromIn;
     });
   }, [scopeMode, buildScopedAccountIds]);

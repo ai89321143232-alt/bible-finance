@@ -47,6 +47,7 @@ import {
 
 import { BUDGET_CATEGORIES, findBudgetCategory } from '@/lib/budgetCategories';
 import { getCategoryEmoji } from '@/lib/categoryIcon';
+import { useScopeMode } from '@/hooks/useScopeMode';
 
 // ============================================================
 // pages/Budgets.jsx — СТРАНИЦА БЮДЖЕТОВ
@@ -98,7 +99,8 @@ export default function Budgets() {
     period: 'monthly',
     notify_at_percent: 80,
     is_family_budget: false,
-    share_with: []
+    share_with: [],
+    scope: 'personal'
   });
 
   useEffect(() => {
@@ -186,6 +188,21 @@ export default function Budgets() {
       .map(c => ({ name: c.name, icon: c.icon, color: c.color, id: c.id }))
   ];
 
+  // Счета пользователя — нужны для определения scope операции (scope = scope счёта)
+  const { data: accounts = [] } = useQuery({
+    queryKey: ['accounts', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const all = await base44.entities.Account.filter({ is_active: true });
+      return all.filter(a => a.created_by_id === user.id || a.user_id === user.id);
+    },
+    enabled: !!user,
+    staleTime: 30000
+  });
+  const accountScopeMap = new Map(accounts.map(a => [a.id, a.scope || 'personal']));
+
+  const { scopeMode, filterAccounts: filterAccountsByScope } = useScopeMode();
+
   // Фильтрация по активному пространству — как на дашборде
   const transactions = filterByWorkspace(rawTransactions, activeWorkspaceId);
 
@@ -226,7 +243,8 @@ export default function Budgets() {
       period: 'monthly',
       notify_at_percent: 80,
       is_family_budget: false,
-      share_with: []
+      share_with: [],
+      scope: 'personal'
     });
     setShowAddModal(false);
     setEditBudget(null);
@@ -242,7 +260,8 @@ export default function Budgets() {
       period: budget.period || 'monthly',
       notify_at_percent: budget.notify_at_percent || 80,
       is_family_budget: budget.is_family_budget || false,
-      share_with: budget.share_with || []
+      share_with: budget.share_with || [],
+      scope: budget.scope || 'personal'
     });
     setShareWithUsers(budget.share_with || []);
     setShowAddModal(true);
@@ -320,6 +339,7 @@ export default function Budgets() {
 
     const budgetCategories = budget.categories || (budget.category ? [budget.category] : []);
     
+    const budgetScope = budget.scope || 'personal';
     return transactions
       .filter(t => {
         if (t.type !== 'expense') return false;
@@ -331,7 +351,11 @@ export default function Budgets() {
         if (budget.is_family_budget) {
           return t.budget_scope !== 'personal';
         }
-        return (t.created_by_id === user?.id || t.user_id === user?.id) && t.budget_scope !== 'family';
+        if (t.budget_scope === 'family') return false;
+        // Фильтр по области: бюджет business считает только расходы с бизнес-счетов,
+        // бюджет personal — только с личных. Scope операции = scope счёта.
+        const txScope = t.account_id ? (accountScopeMap.get(t.account_id) || 'personal') : 'personal';
+        return txScope === budgetScope;
       })
       .reduce((sum, t) => sum + t.amount, 0);
   };
@@ -339,14 +363,21 @@ export default function Budgets() {
   const formatCurrency = useFormatCurrency();
   const currencySymbol = useCurrencySymbol();
 
+  // В режиме просмотра по области фильтруем бюджеты: personal — только личные,
+  // business — только бизнес, all — все.
+  const scopeFilteredBudgets = (budgets) => {
+    if (scopeMode === 'all') return budgets;
+    return budgets.filter(b => (b.scope || 'personal') === scopeMode);
+  };
+
   const displayBudgets = filterByWorkspace(
-    viewMode === 'personal' ? myBudgets : sharedBudgets,
+    scopeFilteredBudgets(viewMode === 'personal' ? myBudgets : sharedBudgets),
     activeWorkspaceId
   );
 
   // Общая сводка: личные + семейные бюджеты вместе, и по отдельности
-  const personalBudgets = filterByWorkspace(myBudgets, activeWorkspaceId);
-  const familyBudgets = filterByWorkspace(sharedBudgets, activeWorkspaceId);
+  const personalBudgets = filterByWorkspace(scopeFilteredBudgets(myBudgets), activeWorkspaceId);
+  const familyBudgets = filterByWorkspace(scopeFilteredBudgets(sharedBudgets), activeWorkspaceId);
   const personalTotal = personalBudgets.reduce((sum, b) => sum + (b.limit_amount || 0), 0);
   const familyTotal = familyBudgets.reduce((sum, b) => sum + (b.limit_amount || 0), 0);
   const totalBudget = personalTotal + familyTotal;
@@ -580,6 +611,34 @@ export default function Budgets() {
                 <SelectItem value="quarterly">{t('budgets.period_quarterly')}</SelectItem>
                 <SelectItem value="yearly">{t('budgets.period_yearly')}</SelectItem>
               </MobileSelect>
+            </div>
+
+            <div>
+              <Label>Область</Label>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, scope: 'personal' })}
+                  className={`py-2.5 px-4 rounded-xl font-medium text-sm transition-all ${
+                    formData.scope === 'personal'
+                      ? 'bg-violet-600 text-white shadow-md'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  👤 Личные
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, scope: 'business' })}
+                  className={`py-2.5 px-4 rounded-xl font-medium text-sm transition-all ${
+                    formData.scope === 'business'
+                      ? 'bg-violet-600 text-white shadow-md'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  💼 Бизнес
+                </button>
+              </div>
             </div>
 
             {family && (
