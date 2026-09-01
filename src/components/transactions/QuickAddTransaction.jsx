@@ -237,13 +237,19 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
       return;
     }
     if (type !== 'transfer' && !category) return;
-    if (type === 'transfer' && !toAccountId) return;
+    if (type === 'transfer' && !toAccountId) {
+      toast.error('Выберите счёт или цель назначения');
+      return;
+    }
     if (submitLockRef.current) return;
 
     submitLockRef.current = true;
     setIsSubmitting(true);
     try {
       await handleSubmitInternal();
+    } catch (e) {
+      console.error('Transfer/entry save failed:', e);
+      toast.error('Не удалось выполнить перенос. Попробуйте ещё раз.');
     } finally {
       submitLockRef.current = false;
       setIsSubmitting(false);
