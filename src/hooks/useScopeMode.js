@@ -31,11 +31,13 @@ export function useScopeMode() {
   const scopeMode = user?.scope_mode || user?.data?.scope_mode || 'all';
 
   const setScopeMode = useCallback(async (mode) => {
+    const prev = queryClient.getQueryData(['auth-me']);
+    queryClient.setQueryData(['auth-me'], (old) => (old ? { ...old, scope_mode: mode } : old));
     try {
       await base44.auth.updateMe({ scope_mode: mode });
-      queryClient.invalidateQueries({ queryKey: ['auth-me'] });
     } catch (e) {
       console.error('Failed to save scope_mode:', e);
+      queryClient.setQueryData(['auth-me'], prev);
     }
   }, [queryClient]);
 
