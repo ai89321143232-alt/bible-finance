@@ -46,6 +46,8 @@ import MemberSpendingBreakdown from '@/components/dashboard/MemberSpendingBreakd
 import { INVESTMENT_CATEGORY } from '@/lib/investmentConstants';
 import { useExchangeRates } from '@/hooks/useExchangeRates';
 import { groupBalancesByCurrency, buildAccountCurrencyMap, groupTransactionsByCurrency } from '@/lib/groupByCurrency';
+import { useScopeMode } from '@/hooks/useScopeMode';
+import ScopeModeSwitcher from '@/components/settings/ScopeModeSwitcher';
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -69,6 +71,7 @@ export default function Dashboard() {
 
   const isMobile = useIsMobile();
   const activeWorkspaceId = useActiveWorkspaceId();
+  const { filterAccounts, filterTransactions } = useScopeMode();
 
   const [visibleBlocks, setVisibleBlocks] = useState({
     balance: true,
@@ -268,8 +271,11 @@ export default function Dashboard() {
   });
 
   // Этап 3: фильтрация по активному пространству (безопасна к старым записям без workspace_id)
-  const transactions = filterByWorkspace(rawTransactions, activeWorkspaceId);
-  const allAccounts = filterByWorkspace(rawAllAccounts, activeWorkspaceId);
+  const wsTransactions = filterByWorkspace(rawTransactions, activeWorkspaceId);
+  const wsAccounts = filterByWorkspace(rawAllAccounts, activeWorkspaceId);
+  // Этап 4: фильтрация по области (Личные / Бизнес / Всё вместе)
+  const transactions = filterTransactions(wsTransactions, wsAccounts);
+  const allAccounts = filterAccounts(wsAccounts);
   const budgets = filterByWorkspace(rawBudgets, activeWorkspaceId);
   const goals = filterByWorkspace(rawGoals, activeWorkspaceId);
   const investments = filterByWorkspace(rawInvestments, activeWorkspaceId);
@@ -285,13 +291,13 @@ export default function Dashboard() {
   );
   // Семейный режим: мои счета + счета всех членов семьи.
   // Берём из rawAllAccounts (без фильтра по пространству), чтобы чужие счета не отсекались.
-  const familyAccounts = rawAllAccounts.filter((acc) =>
+  const familyAccounts = filterAccounts(rawAllAccounts.filter((acc) =>
   acc.created_by_id === user?.id ||
   acc.user_id === user?.id ||
   family?.id && acc.family_id === family.id ||
   memberIds.includes(acc.created_by_id) ||
   memberIds.includes(acc.user_id)
-  );
+  ));
   const displayAccounts = balanceMode === 'family' ? familyAccounts : personalAccounts;
 
   // Мультивалютная поддержка: хук курсов и группировка по валюте
@@ -570,6 +576,10 @@ export default function Dashboard() {
         <GamificationWidget />
 
         <FamilyTierBanner user={user} hasFamily={!!family} />
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }} className="mb-4">
+          <ScopeModeSwitcher />
+        </motion.div>
 
         {family &&
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-4">

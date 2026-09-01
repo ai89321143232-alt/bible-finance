@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
   Plus, Wallet, CreditCard, Building2, PiggyBank, 
-  Edit2, Trash2, Check, ArrowUpRight, ArrowDownRight, AlertCircle, Lock
+  Edit2, Trash2, Check, ArrowUpRight, ArrowDownRight, AlertCircle, Lock, Briefcase, User as UserIcon
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,7 +104,8 @@ export default function Accounts() {
     currency: 'RUB',
     color: ACCOUNT_COLORS[0],
     credit_limit: '',
-    exchange_rate: ''
+    exchange_rate: '',
+    scope: 'personal'
   });
 
   const activeWorkspaceId = useActiveWorkspaceId();
@@ -252,7 +253,8 @@ export default function Accounts() {
       currency: profileCurrency,
       color: ACCOUNT_COLORS[0],
       credit_limit: '',
-      exchange_rate: ''
+      exchange_rate: '',
+      scope: 'personal'
     });
     setShowAddModal(false);
     setEditAccount(null);
@@ -272,7 +274,8 @@ export default function Accounts() {
       currency: account.currency || 'RUB',
       color: account.color || ACCOUNT_COLORS[0],
       credit_limit: account.credit_limit?.toString() || '',
-      exchange_rate: account.exchange_rate?.toString() || ''
+      exchange_rate: account.exchange_rate?.toString() || '',
+      scope: account.scope || 'personal'
     });
     setShowAddModal(true);
   };
@@ -285,6 +288,7 @@ export default function Accounts() {
       exchange_rate: formData.currency !== profileCurrency && formData.exchange_rate
         ? parseFloat(formData.exchange_rate) || null
         : null,
+      scope: formData.scope || 'personal',
       is_active: true
     };
 
@@ -428,8 +432,13 @@ export default function Accounts() {
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <h3 className="font-semibold text-slate-900 dark:text-white">
+                              <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
                                 {account.name}
+                                {(account.scope === 'business') && (
+                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-md bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-[10px] font-bold" title="Бизнес-счёт">
+                                    Б
+                                  </span>
+                                )}
                               </h3>
                               {!isEditable && (
                                 <Lock className="w-4 h-4 text-slate-400" />
@@ -561,6 +570,35 @@ export default function Accounts() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>Область счёта</Label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, scope: 'personal' })}
+                  className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all ${
+                    (formData.scope || 'personal') === 'personal'
+                      ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300'
+                      : 'border-border text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <UserIcon className="w-4 h-4" />
+                  Личный
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, scope: 'business' })}
+                  className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all ${
+                    formData.scope === 'business'
+                      ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300'
+                      : 'border-border text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Briefcase className="w-4 h-4" />
+                  Бизнес
+                </button>
+              </div>
             </div>
             <div>
               <Label>{t('accounts.balance_label')}</Label>

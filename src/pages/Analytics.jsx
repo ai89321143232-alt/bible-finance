@@ -6,6 +6,7 @@ import { format, startOfMonth, endOfMonth, subMonths, eachDayOfInterval, eachMon
 import { ru, enUS } from 'date-fns/locale';
 import { useLanguage } from '@/lib/LanguageContext';
 import { useFormatCurrency } from '@/lib/formatCurrency';
+import { useScopeMode } from '@/hooks/useScopeMode';
 import {
   TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
   Calendar, Download, ChevronLeft, ChevronRight
@@ -43,6 +44,13 @@ export default function Analytics() {
     queryFn: () => base44.entities.Transaction.list('-date', 500)
   });
 
+  const { data: accounts = [] } = useQuery({
+    queryKey: ['accounts'],
+    queryFn: () => base44.entities.Account.list()
+  });
+
+  const { filterPLTransactions, scopeMode } = useScopeMode();
+
   const formatCurrency = useFormatCurrency();
 
   // Filter transactions by period
@@ -61,10 +69,11 @@ export default function Analytics() {
       endDate = now;
     }
 
-    return transactions.filter(t => {
+    const periodTx = transactions.filter(t => {
       const date = new Date(t.date);
       return date >= startDate && date <= endDate;
     });
+    return filterPLTransactions(periodTx, accounts);
   };
 
   const filteredTransactions = getFilteredTransactions();
@@ -208,9 +217,14 @@ export default function Analytics() {
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"
         >
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-            {t('analytics.title')}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+              {t('analytics.title')}
+            </h1>
+            <span className="px-2.5 py-1 rounded-md bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-xs font-medium">
+              {scopeMode === 'business' ? 'Бизнес' : scopeMode === 'personal' ? 'Личные' : 'Все счета'}
+            </span>
+          </div>
           <div className="flex items-center gap-3">
             <Tabs value={period} onValueChange={setPeriod}>
               <TabsList className="bg-white/80 dark:bg-slate-800/80">

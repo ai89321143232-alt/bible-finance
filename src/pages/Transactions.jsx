@@ -31,6 +31,7 @@ import MobileSelect from '@/components/mobile/MobileSelect';
 import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/WorkspaceContext';
 import { TransactionService } from '@/services';
 import FamilyVisibilityToggle from '@/components/shared/FamilyVisibilityToggle';
+import { useScopeMode } from '@/hooks/useScopeMode';
 
 const CATEGORY_ICONS = {
   'Еда': '🍔', 'Транспорт': '🚗', 'Жильё': '🏠', 'Развлечения': '🎮',
@@ -113,6 +114,9 @@ export default function Transactions() {
     enabled: !!user
   });
 
+  const { filterTransactions: filterScopeTx } = useScopeMode();
+  const scopedTransactions = filterScopeTx(transactions, accounts);
+
   const deleteMutation = useMutation({
     mutationFn: (id) => TransactionService.remove(id),
     onMutate: async (id) => {
@@ -135,7 +139,7 @@ export default function Transactions() {
 
   const isFamilyTier = family?.subscription_tier === 'family' || family?.subscription_tier === 'premium';
   const familyMemberIds = (family?.members || []).map(m => m.user_id).filter(id => id && id !== user?.id);
-  const displayedTransactions = transactions.filter(t => {
+  const displayedTransactions = scopedTransactions.filter(t => {
     if (showOnlyMine && isFamilyTier) {
       return t.created_by_id === user?.id || t.user_id === user?.id;
     }
