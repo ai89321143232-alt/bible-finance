@@ -71,7 +71,9 @@ export default function Dashboard() {
 
   const isMobile = useIsMobile();
   const activeWorkspaceId = useActiveWorkspaceId();
-  const { filterAccounts, filterTransactions } = useScopeMode();
+  const { scopeMode, setScopeMode, filterAccounts, filterTransactions } = useScopeMode();
+  const businessEnabled = user?.business_enabled !== false;
+  const scopeModes = ['personal', 'business', 'all'];
 
   const [visibleBlocks, setVisibleBlocks] = useState({
     balance: true,
@@ -458,7 +460,31 @@ export default function Dashboard() {
       case 'balance':
         return (
           <section key="balance" className="mb-6 glass-card rounded-2xl p-4 sm:p-5 space-y-4">
-            {family ? (
+            {businessEnabled ? (
+              <>
+                {/* Индикатор областей — точки */}
+                <div className="flex items-center justify-center gap-2">
+                  {scopeModes.map((m) => (
+                    <span key={m} className={`h-1.5 rounded-full transition-all ${scopeMode === m ? 'w-6 bg-primary' : 'w-1.5 bg-muted-foreground/30'}`} />
+                  ))}
+                </div>
+                <motion.div drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.6}
+                  onDragEnd={(event, info) => {
+                    const idx = scopeModes.indexOf(scopeMode);
+                    if (info.offset.x < -60 || info.velocity.x < -300) {
+                      setScopeMode(scopeModes[(idx + 1) % scopeModes.length]);
+                    } else if (info.offset.x > 60 || info.velocity.x > 300) {
+                      setScopeMode(scopeModes[(idx - 1 + scopeModes.length) % scopeModes.length]);
+                    }
+                  }}>
+                  <AnimatePresence mode="wait">
+                    <motion.div key={scopeMode} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.2 }}>
+                      <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} />
+                    </motion.div>
+                  </AnimatePresence>
+                </motion.div>
+              </>
+            ) : family ? (
               <motion.div drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.6}
                 onDragEnd={(event, info) => {
                   if (info.offset.x < -60 || info.velocity.x < -300) setBalanceMode('family');
@@ -577,9 +603,11 @@ export default function Dashboard() {
 
         <FamilyTierBanner user={user} hasFamily={!!family} />
 
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }} className="mb-4">
-          <ScopeModeSwitcher />
-        </motion.div>
+        {businessEnabled &&
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }} className="mb-4">
+            <ScopeModeSwitcher />
+          </motion.div>
+        }
 
         {family &&
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-4">
