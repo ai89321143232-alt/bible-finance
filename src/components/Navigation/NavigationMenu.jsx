@@ -31,8 +31,7 @@ const MENU_STRUCTURE = [
     children: [
       { name: 'FinancialPlanning', labelKey: 'nav.financial_planning', icon: Lightbulb },
       { name: 'Goals', labelKey: 'nav.goals', icon: Target },
-      { name: 'DebtAnalytics', labelKey: 'nav.debt_analytics', icon: AlertTriangle },
-      { name: 'DebtPlanner', labelKey: 'nav.debt_planner', icon: TrendingDown },
+      { name: 'Debts', labelKey: 'nav.debts', icon: TrendingDown },
       { name: 'Investments', labelKey: 'nav.investments', icon: TrendingUp, hideInChildMode: true },
     ],
   },

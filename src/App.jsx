@@ -38,6 +38,7 @@ const Onboarding = React.lazy(() => import('./pages/Onboarding'));
 const HelpCenter = React.lazy(() => import('./pages/HelpCenter'));
 const DebtAnalytics = React.lazy(() => import('./pages/DebtAnalytics'));
 const DebtPlanner = React.lazy(() => import('./pages/DebtPlanner'));
+const Debts = React.lazy(() => import('./pages/Debts'));
 const Education = React.lazy(() => import('./pages/Education'));
 const EducationLesson = React.lazy(() => import('./pages/EducationLesson'));
 const FamilyChat = React.lazy(() => import('./pages/FamilyChat'));
@@ -124,10 +125,12 @@ const AuthenticatedApp = () => {
         <Route path="/Onboarding" element={<Onboarding />} />
         {/* База знаний */}
         <Route path="/HelpCenter" element={<LayoutWrapper currentPageName="HelpCenter"><HelpCenter /></LayoutWrapper>} />
-        {/* Анализ долгов */}
-        <Route path="/DebtAnalytics" element={<LayoutWrapper currentPageName="DebtAnalytics"><DebtAnalytics /></LayoutWrapper>} />
-        {/* Планировщик долгов */}
-        <Route path="/DebtPlanner" element={<LayoutWrapper currentPageName="DebtPlanner"><DebtPlanner /></LayoutWrapper>} />
+        {/* Анализ долгов — редирект на единую страницу */}
+        <Route path="/DebtAnalytics" element={<LayoutWrapper currentPageName="Debts"><Debts initialTab="analytics" /></LayoutWrapper>} />
+        {/* Планировщик долгов — редирект на единую страницу */}
+        <Route path="/DebtPlanner" element={<LayoutWrapper currentPageName="Debts"><Debts initialTab="plan" /></LayoutWrapper>} />
+        {/* Единая страница долгов */}
+        <Route path="/Debts" element={<LayoutWrapper currentPageName="Debts"><Debts /></LayoutWrapper>} />
         {/* Обучение */}
         <Route path="/Education" element={<LayoutWrapper currentPageName="Education"><Education /></LayoutWrapper>} />
         <Route path="/Education/:lessonId" element={<LayoutWrapper currentPageName="Education"><EducationLesson /></LayoutWrapper>} />

@@ -16,7 +16,8 @@ export default function BalanceCard({
   investmentProfit,
   formatCurrency,
   accounts = [],
-  investments = []
+  investments = [],
+  debtAccounts = []
 }) {
   const [showBalance, setShowBalance] = useState(true);
   const { t } = useLanguage();
@@ -24,9 +25,12 @@ export default function BalanceCard({
   const isPositive = netFlow >= 0;
 
   const totalFrozen = accounts.reduce((sum, a) => sum + (a.frozen_amount || 0), 0);
-  const totalDebt = accounts
-    .filter(a => (a.balance || 0) < 0)
-    .reduce((sum, a) => sum + Math.abs(a.balance || 0), 0);
+  // Долг — из DebtAccount (единый источник правды), fallback на отрицательный баланс
+  const activeDebts = debtAccounts.filter(d => d.status !== 'paid_off' && d.remaining_amount > 0);
+  const linkedIds = new Set(activeDebts.map(d => d.linked_account_id));
+  const totalDebt = activeDebts.reduce((s, d) => s + (d.remaining_amount || 0), 0) +
+    accounts.filter(a => a.type === 'credit' && (a.balance || 0) < 0 && !linkedIds.has(a.id))
+      .reduce((s, a) => s + Math.abs(a.balance || 0), 0);
   const hasDebt = totalDebt > 0;
 
   // Мультивалютная разбивка балансов

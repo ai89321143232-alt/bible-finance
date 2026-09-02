@@ -14,6 +14,7 @@ export default function NetWorthCard({
   accounts = [],
   investments = [],
   fixedAssets = [],
+  debtAccounts = [],
   formatCurrency,
   onFixedAssetAdded
 }) {
@@ -31,9 +32,24 @@ export default function NetWorthCard({
     return converted != null ? sum + converted : sum;
   }, 0);
 
-  const totalDebts = Object.entries(balancesByCurrency).reduce((sum, [cur, bal]) => {
-    if (bal >= 0) return sum;
-    const abs = Math.abs(bal);
+  // Долги берём из DebtAccount.remaining_amount (единый источник правды)
+  // Для кредитных счетов без DebtAccount — fallback на |отрицательный баланс|
+  const activeDebts = debtAccounts.filter(d => d.status !== 'paid_off' && d.remaining_amount > 0);
+  const linkedAccountIds = new Set(activeDebts.map(d => d.linked_account_id));
+
+  // Непривязанные кредитные счета (fallback)
+  const unlinkedCreditAccounts = accounts.filter(a =>
+    a.type === 'credit' && (a.balance || 0) < 0 && !linkedAccountIds.has(a.id)
+  );
+
+  const totalDebts = activeDebts.reduce((sum, d) => {
+    const cur = d.currency || profileCurrency;
+    if (cur === profileCurrency) return sum + (d.remaining_amount || 0);
+    const converted = convert(d.remaining_amount || 0, cur, profileCurrency);
+    return converted != null ? sum + converted : sum;
+  }, 0) + unlinkedCreditAccounts.reduce((sum, a) => {
+    const abs = Math.abs(a.balance || 0);
+    const cur = a.currency || profileCurrency;
     if (cur === profileCurrency) return sum + abs;
     const converted = convert(abs, cur, profileCurrency);
     return converted != null ? sum + converted : sum;
@@ -44,7 +60,7 @@ export default function NetWorthCard({
     .filter(cur => cur !== profileCurrency && !hasRate(cur));
 
   const assetAccounts = accounts.filter(a => (a.balance || 0) > 0);
-  const debtAccounts = accounts.filter(a => (a.balance || 0) < 0);
+  const debtAccountsList = activeDebts.length > 0 ? activeDebts : accounts.filter(a => (a.balance || 0) < 0);
 
   const investmentValue = investments.reduce((sum, inv) =>
     sum + (inv.quantity * (inv.current_price || inv.purchase_price || 0)), 0
@@ -137,7 +153,7 @@ export default function NetWorthCard({
                   <span className="text-muted-foreground text-xs">{t('networth.debts')}</span>
                 </div>
                 <p className="text-rose-500 font-bold text-lg">{formatCurrency(-totalDebts)}</p>
-                <p className="text-muted-foreground/70 text-xs mt-0.5">{debtAccounts.length} {t('networth.accounts_count')}</p>
+                <p className="text-muted-foreground/70 text-xs mt-0.5">{debtAccountsList.length} {t('networth.accounts_count')}</p>
               </div>
             </Link>
           ) : (

@@ -272,6 +272,21 @@ export default function Dashboard() {
     enabled: !!user
   });
 
+  const { data: rawDebtAccounts = [] } = useQuery({
+    queryKey: ['debtAccounts', user?.id, family?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const all = await base44.entities.DebtAccount.list();
+      return all.filter(
+        (d) =>
+        d.created_by_id === user.id ||
+        d.user_id === user.id ||
+        family?.id && d.family_id === family.id
+      );
+    },
+    enabled: !!user
+  });
+
   // Этап 3: фильтрация по активному пространству (безопасна к старым записям без workspace_id)
   const wsTransactions = filterByWorkspace(rawTransactions, activeWorkspaceId);
   const wsAccounts = filterByWorkspace(rawAllAccounts, activeWorkspaceId);
@@ -283,6 +298,7 @@ export default function Dashboard() {
   const investments = filterByWorkspace(rawInvestments, activeWorkspaceId);
   const fixedAssets = filterByWorkspace(rawFixedAssets, activeWorkspaceId);
   const subscriptions = filterByWorkspace(rawSubscriptions, activeWorkspaceId);
+  const debtAccounts = filterByWorkspace(rawDebtAccounts, activeWorkspaceId);
 
   const familyMembers = family?.members || [];
   const memberIds = familyMembers.map((m) => m.user_id);
