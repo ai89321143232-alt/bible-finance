@@ -72,8 +72,6 @@ export default function Dashboard() {
   const isMobile = useIsMobile();
   const activeWorkspaceId = useActiveWorkspaceId();
   const { scopeMode, setScopeMode, filterAccounts, filterTransactions } = useScopeMode();
-  const businessEnabled = user?.business_enabled !== false;
-  const scopeModes = ['personal', 'business', 'all'];
 
   const [visibleBlocks, setVisibleBlocks] = useState({
     balance: true,
@@ -94,6 +92,8 @@ export default function Dashboard() {
   });
 
   const themePreference = localThemeOverride ?? user?.theme_preference ?? null;
+  const businessEnabled = user?.business_enabled !== false;
+  const scopeModes = ['personal', 'business', 'all'];
 
   useEffect(() => {
     if (!user) return;
