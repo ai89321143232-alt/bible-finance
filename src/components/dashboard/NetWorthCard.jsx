@@ -62,11 +62,22 @@ export default function NetWorthCard({
   const assetAccounts = accounts.filter(a => (a.balance || 0) > 0);
   const debtAccountsList = activeDebts.length > 0 ? activeDebts : accounts.filter(a => (a.balance || 0) < 0);
 
-  const investmentValue = investments.reduce((sum, inv) =>
-    sum + (inv.quantity * (inv.current_price || inv.purchase_price || 0)), 0
-  );
+  // Конвертируем стоимость инвестиций в валюту профиля
+  const investmentValue = investments.reduce((sum, inv) => {
+    const val = inv.quantity * (inv.current_price || inv.purchase_price || 0);
+    const cur = inv.currency || profileCurrency;
+    if (cur === profileCurrency) return sum + val;
+    const converted = convert(val, cur, profileCurrency);
+    return converted != null ? sum + converted : sum;
+  }, 0);
 
-  const fixedAssetsValue = fixedAssets.reduce((sum, fa) => sum + (fa.value || 0), 0);
+  const fixedAssetsValue = fixedAssets.reduce((sum, fa) => {
+    const val = fa.value || 0;
+    const cur = fa.currency || profileCurrency;
+    if (cur === profileCurrency) return sum + val;
+    const converted = convert(val, cur, profileCurrency);
+    return converted != null ? sum + converted : sum;
+  }, 0);
 
   const netWorth = totalAssets + investmentValue + fixedAssetsValue - totalDebts;
   const isNegative = netWorth < 0;

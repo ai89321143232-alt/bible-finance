@@ -394,13 +394,22 @@ export default function Dashboard() {
   );
   const modeInvestments = family && balanceMode === 'family' ? investments : personalInvestments;
 
-  const investmentValue = modeInvestments.reduce((sum, inv) =>
-  sum + inv.quantity * (inv.current_price || inv.purchase_price), 0
-  );
+  // Стоимость инвестиций — конвертируем каждую в валюту профиля
+  const investmentValue = modeInvestments.reduce((sum, inv) => {
+    const val = inv.quantity * (inv.current_price || inv.purchase_price);
+    const cur = inv.currency || hookCurrency;
+    if (cur === hookCurrency) return sum + val;
+    const converted = convert(val, cur, hookCurrency);
+    return converted != null ? sum + converted : sum;
+  }, 0);
 
-  const investmentProfit = modeInvestments.reduce((sum, inv) =>
-  sum + inv.quantity * ((inv.current_price || inv.purchase_price) - inv.purchase_price), 0
-  );
+  const investmentProfit = modeInvestments.reduce((sum, inv) => {
+    const val = inv.quantity * ((inv.current_price || inv.purchase_price) - inv.purchase_price);
+    const cur = inv.currency || hookCurrency;
+    if (cur === hookCurrency) return sum + val;
+    const converted = convert(val, cur, hookCurrency);
+    return converted != null ? sum + converted : sum;
+  }, 0);
 
   // Личный режим: только мои фиксированные активы. Семейный режим: мои + семьи.
   const personalFixedAssets = fixedAssets.filter((fa) => fa.created_by_id === user?.id);
@@ -495,7 +504,7 @@ export default function Dashboard() {
                   }}>
                   <AnimatePresence mode="wait">
                     <motion.div key={scopeMode} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.2 }}>
-                      <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} />
+                      <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} debtAccounts={debtAccounts} />
                     </motion.div>
                   </AnimatePresence>
                 </motion.div>
@@ -508,14 +517,14 @@ export default function Dashboard() {
                 }}>
                 <AnimatePresence mode="wait">
                   <motion.div key={balanceMode} initial={{ opacity: 0, x: balanceMode === 'family' ? 40 : -40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: balanceMode === 'family' ? -40 : 40 }} transition={{ duration: 0.2 }}>
-                    <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} />
+                    <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} debtAccounts={debtAccounts} />
                   </motion.div>
                 </AnimatePresence>
               </motion.div>
             ) : (
-              <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} />
+              <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} debtAccounts={debtAccounts} />
             )}
-            <NetWorthCard accounts={displayAccounts} investments={modeInvestments} fixedAssets={modeFixedAssets} formatCurrency={formatCurrency} onFixedAssetAdded={() => queryClient.invalidateQueries({ queryKey: ['fixed-assets'] })} />
+            <NetWorthCard accounts={displayAccounts} investments={modeInvestments} fixedAssets={modeFixedAssets} debtAccounts={debtAccounts} formatCurrency={formatCurrency} onFixedAssetAdded={() => queryClient.invalidateQueries({ queryKey: ['fixed-assets'] })} />
           </section>
         );
       case 'quickStats':

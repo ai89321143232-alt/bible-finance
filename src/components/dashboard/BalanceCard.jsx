@@ -24,18 +24,38 @@ export default function BalanceCard({
   const netFlow = monthIncome - monthExpenses;
   const isPositive = netFlow >= 0;
 
-  const totalFrozen = accounts.reduce((sum, a) => sum + (a.frozen_amount || 0), 0);
+  const { convert, hasRate, profileCurrency, isMultiCurrency } = useExchangeRates();
+
+  // Замороженные средства — конвертируем в валюту профиля
+  const totalFrozen = accounts.reduce((sum, a) => {
+    const val = a.frozen_amount || 0;
+    const cur = a.currency || profileCurrency;
+    if (cur === profileCurrency) return sum + val;
+    const converted = convert(val, cur, profileCurrency);
+    return converted != null ? sum + converted : sum;
+  }, 0);
+
   // Долг — из DebtAccount (единый источник правды), fallback на отрицательный баланс
   const activeDebts = debtAccounts.filter(d => d.status !== 'paid_off' && d.remaining_amount > 0);
   const linkedIds = new Set(activeDebts.map(d => d.linked_account_id));
-  const totalDebt = activeDebts.reduce((s, d) => s + (d.remaining_amount || 0), 0) +
-    accounts.filter(a => a.type === 'credit' && (a.balance || 0) < 0 && !linkedIds.has(a.id))
-      .reduce((s, a) => s + Math.abs(a.balance || 0), 0);
+  const totalDebt = activeDebts.reduce((s, d) => {
+    const val = d.remaining_amount || 0;
+    const cur = d.currency || profileCurrency;
+    if (cur === profileCurrency) return s + val;
+    const converted = convert(val, cur, profileCurrency);
+    return converted != null ? s + converted : s;
+  }, 0) + accounts.filter(a => a.type === 'credit' && (a.balance || 0) < 0 && !linkedIds.has(a.id))
+    .reduce((s, a) => {
+      const val = Math.abs(a.balance || 0);
+      const cur = a.currency || profileCurrency;
+      if (cur === profileCurrency) return s + val;
+      const converted = convert(val, cur, profileCurrency);
+      return converted != null ? s + converted : s;
+    }, 0);
   const hasDebt = totalDebt > 0;
 
   // Мультивалютная разбивка балансов
   const balancesByCurrency = groupBalancesByCurrency(accounts);
-  const { convert, hasRate, profileCurrency, isMultiCurrency } = useExchangeRates();
 
   // Общий баланс в валюте профиля (с конвертацией по ручным курсам)
   const totalBalanceConverted = Object.entries(balancesByCurrency).reduce((sum, [cur, bal]) => {
@@ -83,7 +103,7 @@ export default function BalanceCard({
           className="mb-6"
         >
           <h2 className="text-4xl sm:text-5xl font-bold text-foreground tracking-tight">
-            {showBalance ? formatCurrency(displayBalance + (isMultiCurrency ? convert(investmentValue, investments[0]?.currency || profileCurrency, profileCurrency) ?? investmentValue : investmentValue)) : '••••••'}
+            {showBalance ? formatCurrency(displayBalance + investmentValue) : '••••••'}
           </h2>
           {/* Разбивка по валютам */}
           {hasMultipleCurrencies && (
