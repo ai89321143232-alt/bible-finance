@@ -50,7 +50,7 @@ import TelegramBotSettings from '@/components/settings/TelegramBotSettings';
 import TextSizeControl from '@/components/settings/TextSizeControl';
 import LiquidGlassToggle from '@/components/settings/LiquidGlassToggle';
 import LanguageSwitcher from '@/components/settings/LanguageSwitcher';
-import ScopeModeSwitcher from '@/components/settings/ScopeModeSwitcher';
+import BusinessToggle from '@/components/settings/BusinessToggle';
 import { useLanguage, useTranslation } from '@/lib/LanguageContext';
 import { useFontScale } from '@/hooks/useFontScale';
 import { Layout, Bot } from 'lucide-react';
@@ -432,13 +432,7 @@ export default function Settings() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div>
-                  <p className="font-medium text-slate-900 dark:text-white">Режим просмотра</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-                    Личные, бизнес или все счета вместе. Фильтрует балансы, операции и аналитику.
-                  </p>
-                  <ScopeModeSwitcher />
-                </div>
+                <BusinessToggle />
               </CardContent>
             </Card>
           </motion.div>
