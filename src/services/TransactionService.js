@@ -54,8 +54,21 @@ export const TransactionService = {
     let effectiveBalance = account.balance ?? 0;
     if (existingId) {
       const prev = await repo().get(existingId).catch(() => null);
-      if (prev && prev.account_id === account_id && prev.type !== 'transfer') {
-        effectiveBalance = prev.type === 'expense' ? effectiveBalance + prev.amount : effectiveBalance - prev.amount;
+      if (prev && prev.type !== 'transfer') {
+        if (prev.account_id === account_id) {
+          // Тот же счёт — откатываем в рамках effectiveBalance
+          effectiveBalance = prev.type === 'expense' ? effectiveBalance + prev.amount : effectiveBalance - prev.amount;
+        } else {
+          // Счёт сменился — откатываем старый счёт в БД, новый счёт не трогаем
+          const prevAccount = await AccountService.get(prev.account_id).catch(() => null);
+          if (prevAccount) {
+            const reverted =
+              prev.type === 'expense'
+                ? (prevAccount.balance ?? 0) + prev.amount
+                : (prevAccount.balance ?? 0) - prev.amount;
+            await AccountService.setBalance(prevAccount.id, reverted);
+          }
+        }
       }
     }
 
@@ -184,7 +197,8 @@ export const TransactionService = {
 
     if (isDestGoal) {
       const goalId = toAccountId.replace('goal_', '');
-      const goal = goals.find((g) => g.id === goalId);
+      // Перезагружаем цель из БД — после отката старый объект из props устарел
+      const goal = await goalRepo().get(goalId).catch(() => null) || goals.find((g) => g.id === goalId);
       if (goal) {
         const newAmount = (goal.current_amount || 0) + amountNum;
         await goalRepo().update(goalId, {
@@ -195,7 +209,8 @@ export const TransactionService = {
         eventBus.emit(EVENTS.GOAL_CHANGED, { id: goalId });
       }
     } else {
-      const dest = accounts.find((a) => a.id === toAccountId);
+      // Перезагружаем счёт-получатель из БД — после отката баланс в props устарел
+      const dest = await AccountService.get(toAccountId).catch(() => null) || accounts.find((a) => a.id === toAccountId);
       if (dest) {
         await AccountService.setBalance(dest.id, (dest.balance || 0) + destAmount);
         destName = dest.name;
