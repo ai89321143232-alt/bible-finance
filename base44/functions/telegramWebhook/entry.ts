@@ -23,12 +23,21 @@ function normalizeAmount(raw) {
   return isNaN(n) ? 0 : n;
 }
 
+const REPLY_KEYBOARD = {
+  keyboard: [
+    [{ text: '💰 Баланс' }, { text: '📊 Аналитика' }],
+    [{ text: '📋 Операции' }]
+  ],
+  resize_keyboard: true,
+  one_time: false
+};
+
 async function sendMessage(botToken, chatId, text, replyMarkup) {
   try {
     await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, reply_markup: replyMarkup })
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML', reply_markup: replyMarkup ?? REPLY_KEYBOARD })
     });
   } catch (e) {
     // best-effort — webhook must still respond ok to Telegram
@@ -105,12 +114,9 @@ async function createTransactionRecord({ entities, parsed, account, ownerId }) {
 
 async function finalizeTransaction({ entities, parsed, account, ownerId, botToken, chatId }) {
   await createTransactionRecord({ entities, parsed, account, ownerId });
-  const emoji = parsed.type === 'expense' ? '💸' : '💰';
-  await sendMessage(
-    botToken,
-    chatId,
-    `${emoji} Записано: ${parsed.description || 'Операция'}\nСумма: ${parsed.amount} ${account.currency || 'RUB'}\nКатегория: ${parsed.category || 'Другое'}\nСчёт: ${account.name}`
-  );
+  const accounts = await entities.Account.filter({ user_id: ownerId });
+  const freshAccount = accounts.find(a => a.id === account.id) || account;
+  await sendMessage(botToken, chatId, await buildTransactionReceipt(parsed, freshAccount, accounts));
 }
 
 // Отправляет список счетов кнопками и сохраняет операции, ожидающие выбора счёта
@@ -121,6 +127,26 @@ async function requestAccountSelection({ entities, config, accounts, transaction
     ? `${transactions[0].type === 'expense' ? '💸' : '💰'} ${transactions[0].description || 'Операция'} — ${transactions[0].amount} ₽`
     : `Найдено операций: ${transactions.length} на сумму ${transactions.reduce((s, t) => s + (t.amount || 0), 0)} ₽`;
   await sendMessage(botToken, chatId, `${summary}\n\nВыберите счёт для записи:`, { inline_keyboard: keyboard });
+}
+
+async function buildTransactionReceipt(parsed, account, allAccounts) {
+  const isExpense = parsed.type === 'expense';
+  const emoji = isExpense ? '💸' : '💰';
+  const sign = isExpense ? '−' : '+';
+  const totalBalance = (allAccounts || []).reduce((s, a) => s + (a.balance || 0), 0);
+  const currency = account?.currency || 'RUB';
+
+  const lines = [
+    `📝 <b>${parsed.description || 'Операция из Telegram'}</b>`,
+    '',
+    `${emoji} <b>${sign}${parsed.amount.toLocaleString()} ${currency}</b>`,
+    `📂 Категория: ${parsed.category || 'Другое'}`,
+    `🏦 Счёт: ${account?.name || '—'}`,
+    '──────────────',
+    `💳 Остаток на счёте: <code>${account?.balance.toLocaleString()} ${currency}</code>`,
+    `💰 Общий баланс: <code>${totalBalance.toLocaleString()} ${currency}</code>`
+  ];
+  return lines.join('\n');
 }
 
 // Если счёт один — сразу проводит операцию(и), иначе просит выбрать счёт кнопками
@@ -161,11 +187,16 @@ async function handleAccountCallback({ base44, config, accounts, ownerId, botTok
   await answerCallbackQuery(botToken, callbackQueryId, 'Записано ✅');
   await removeInlineKeyboard(botToken, chatId, messageId);
 
-  const total = pending.reduce((s, t) => s + (t.amount || 0), 0);
-  const label = pending.length === 1
-    ? `${pending[0].type === 'expense' ? '💸' : '💰'} Записано: ${pending[0].description || 'Операция'}\nСумма: ${pending[0].amount} ${account.currency || 'RUB'}\nКатегория: ${pending[0].category || 'Другое'}\nСчёт: ${account.name}`
-    : `✅ Записано ${pending.length} операций на сумму ${total} ${account.currency || 'RUB'}\nСчёт: ${account.name}`;
-  await sendMessage(botToken, chatId, label);
+  const freshAccounts = await entities.Account.filter({ user_id: ownerId });
+  const freshAccount = freshAccounts.find(a => a.id === accountId) || account;
+
+  if (pending.length === 1) {
+    await sendMessage(botToken, chatId, await buildTransactionReceipt(pending[0], freshAccount, freshAccounts));
+  } else {
+    const total = pending.reduce((s, t) => s + (t.amount || 0), 0);
+    const summary = pending.map(t => `  ${t.type === 'expense' ? '💸' : '💰'} ${t.description || 'Операция'} — <b>${t.amount.toLocaleString()} ${account.currency || 'RUB'}</b>`).join('\n');
+    await sendMessage(botToken, chatId, `📝 <b>Записано ${pending.length} операций</b>\n\n${summary}\n\n──────────────\n💳 <b>Остаток на счёте:</b> <code>${freshAccount.balance.toLocaleString()} ${freshAccount.currency || 'RUB'}</code>\n💰 <b>Общий баланс:</b> <code>${freshAccounts.reduce((s, a) => s + (a.balance || 0), 0).toLocaleString()} ${account.currency || 'RUB'}</code>`);
+  }
 }
 
 // Полноценный AI-чат в Telegram — те же вопросы/отчёты/создание/правка/удаление операций,
@@ -239,8 +270,9 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         }
       }
       const total = items.reduce((s, t) => s + (t.amount || 0), 0);
+      const freshAccounts = await entities.Account.filter({ user_id: ownerId });
       replyText = created > 0
-        ? `✅ Записано ${created} из ${items.length} операций на сумму ${total.toLocaleString()} ₽${errors.length ? `\n⚠️ Не записано: ${errors.join('; ')}` : ''}`
+        ? `📝 <b>Записано ${created} из ${items.length} операций</b>\n💰 Сумма: <b>${total.toLocaleString()} ₽</b>${errors.length ? `\n⚠️ Не записано: ${errors.join('; ')}` : ''}\n──────────────\n💰 <b>Общий баланс:</b> <code>${freshAccounts.reduce((s, a) => s + (a.balance || 0), 0).toLocaleString()} ₽</code>`
         : `❌ Не удалось записать ни одной операции${errors.length ? `: ${errors.join('; ')}` : ''}`;
     }
   } else if (action === 'create_transaction' && parsed.transaction) {
@@ -279,7 +311,9 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         });
         await applyBalanceDelta(entities, targetAccount.id, effect(t.type, t.amount), ownerId);
         if (t.type === 'expense') await applyBudgetDelta(entities, ownerId, t.category, t.amount);
-        replyText = `✅ Записал: ${t.type === 'expense' ? '-' : '+'}${t.amount} ₽ (${t.category || 'Другое'})`;
+        const freshAccounts = await entities.Account.filter({ user_id: ownerId });
+        const freshAccount = freshAccounts.find(a => a.id === targetAccount.id) || targetAccount;
+        replyText = await buildTransactionReceipt(t, freshAccount, freshAccounts);
       }
     }
   } else if (action === 'create_investment' && parsed.investment) {
@@ -395,6 +429,107 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
 
   const newHistory = [...history, { role: 'user', content: text }, { role: 'assistant', content: replyText }].slice(-20);
   await entities.TelegramBotConfig.update(config.id, { chat_history: newHistory });
+}
+
+function accountTypeIcon(type) {
+  const icons = { cash: '💵', card: '💳', bank_account: '🏦', savings: '🐖', credit: '🔴' };
+  return icons[type] || '💳';
+}
+
+async function handleBalanceButton({ entities, accounts, ownerId, botToken, chatId }) {
+  if (!accounts.length) {
+    await sendMessage(botToken, chatId, '❌ Не найдено ни одного счёта. Добавьте счёт в приложении.');
+    return;
+  }
+  const total = accounts.reduce((s, a) => s + (a.balance || 0), 0);
+  const currency = accounts[0]?.currency || 'RUB';
+  const lines = [
+    '💰 <b>Ваши балансы</b>',
+    '',
+    ...accounts.map(a => `${accountTypeIcon(a.type)} ${a.name}: <code>${(a.balance || 0).toLocaleString()} ${a.currency || currency}</code>${a.is_active === false ? ' (неактивен)' : ''}`),
+    '──────────────',
+    `📊 <b>Общий баланс:</b> <code>${total.toLocaleString()} ${currency}</code>`
+  ];
+  await sendMessage(botToken, chatId, lines.join('\n'));
+}
+
+async function handleAnalyticsButton({ entities, accounts, ownerId, config, botToken, chatId }) {
+  const timezone = config.timezone || 'Europe/Moscow';
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const allTx = await entities.Transaction.list('-date', 200);
+  const myTx = allTx.filter(t => (t.created_by_id === ownerId || t.user_id === ownerId) && new Date(t.date) >= monthStart);
+
+  const expenses = myTx.filter(t => t.type === 'expense');
+  const totalSpent = expenses.reduce((s, t) => s + (t.amount || 0), 0);
+
+  if (!expenses.length) {
+    await sendMessage(botToken, chatId, `📊 <b>Аналитика за месяц</b>\n\nРасходов за текущий месяц не найдено.\n\n💰 Доход: <code>${myTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0).toLocaleString()} ₽</code>`);
+    return;
+  }
+
+  const byCategory = {};
+  for (const t of expenses) {
+    const cat = t.category || 'Другое';
+    byCategory[cat] = (byCategory[cat] || 0) + (t.amount || 0);
+  }
+  const sorted = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  const lines = [
+    `📊 <b>Аналитика за месяц</b>`,
+    '',
+    `💸 Всего расходов: <code>${totalSpent.toLocaleString()} ₽</code> в ${expenses.length} операциях`,
+    `💰 Доход: <code>${myTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0).toLocaleString()} ₽</code>`,
+    '',
+    '<b>Топ-5 категорий:</b>',
+    ''
+  ];
+  for (const [cat, amount] of sorted) {
+    const pct = totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0;
+    const filled = Math.round(pct / 10);
+    const bar = '▓'.repeat(filled) + '░'.repeat(10 - filled);
+    lines.push(`${bar} <b>${cat}</b> — <code>${amount.toLocaleString()} ₽</code> (${pct}%)`);
+  }
+
+  const budgets = await entities.Budget.filter({ user_id: ownerId });
+  const activeBudgets = budgets.filter(b => b.is_active !== false);
+  if (activeBudgets.length) {
+    lines.push('', '<b>Бюджеты:</b>', '');
+    for (const b of activeBudgets.slice(0, 5)) {
+      const limit = b.limit_amount || 0;
+      const spent = b.spent_amount || 0;
+      const pct = limit > 0 ? Math.min(100, Math.round((spent / limit) * 100)) : 0;
+      const status = pct >= 100 ? '🔴' : pct >= 80 ? '🟠' : '🟢';
+      const filled = Math.round(pct / 10);
+      const bar = '▓'.repeat(filled) + '░'.repeat(10 - filled);
+      lines.push(`${status} ${b.name}: <code>${spent.toLocaleString()} / ${limit.toLocaleString()} ₽</code> (${pct}%)`);
+      lines.push(`   ${bar}`);
+    }
+  }
+
+  await sendMessage(botToken, chatId, lines.join('\n'));
+}
+
+async function handleOperationsButton({ entities, ownerId, botToken, chatId }) {
+  const allTx = await entities.Transaction.list('-date', 30);
+  const myTx = allTx.filter(t => t.created_by_id === ownerId || t.user_id === ownerId).slice(0, 10);
+
+  if (!myTx.length) {
+    await sendMessage(botToken, chatId, '📋 <b>Последние операции</b>\n\nОпераций пока нет. Отправьте голосовое, фото чека или опишите покупку текстом.');
+    return;
+  }
+
+  const lines = ['📋 <b>Последние 10 операций</b>', ''];
+  for (let i = 0; i < myTx.length; i++) {
+    const t = myTx[i];
+    const emoji = t.type === 'expense' ? '💸' : t.type === 'income' ? '💰' : '🔄';
+    const sign = t.type === 'expense' ? '−' : '+';
+    const date = t.date ? new Date(t.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '';
+    const desc = t.description ? ` — ${t.description.length > 30 ? t.description.slice(0, 30) + '…' : t.description}` : '';
+    lines.push(`${i + 1}. ${emoji} ${date} <b>${sign}${t.amount.toLocaleString()} ₽</b>\n   📂 ${t.category || 'Другое'}${desc}`);
+  }
+
+  await sendMessage(botToken, chatId, lines.join('\n'));
 }
 
 function mimeAndNameFromDocument(doc) {
@@ -590,10 +725,27 @@ Deno.serve(async (req) => {
 
     // Текстовое сообщение — полноценный AI-чат (вопросы, отчёты, создание/правка/удаление операций)
     if (message.text) {
-      if (message.text.trim() === '/start') {
-        await sendMessage(botToken, chatId, 'Привет! 👋 Я твой финансовый ассистент. Спроси меня об операциях, попроси отчёт, отправь голосовое/фото чека/PDF или CSV выписку — или просто опиши покупку текстом, и я всё запишу. Если счетов несколько — предложу выбрать нужный кнопками.');
+      const text = message.text.trim();
+
+      if (text === '/start') {
+        await sendMessage(botToken, chatId, 'Привет! 👋 Я твой финансовый ассистент.\n\nОтравь голосовое, фото чека, PDF/CSV выписку или просто опиши покупку текстом — и я всё запишу.\n\nИспользуй кнопки внизу для быстрого доступа:\n💰 <b>Баланс</b> — остатки по всем счетам\n📊 <b>Аналитика</b> — расходы за месяц по категориям\n📋 <b>Операции</b> — последние 10 транзакций');
         return Response.json({ ok: true });
       }
+
+      // Обработка кнопок основной клавиатуры — до AI, чтобы не тратить LLM-вызовы
+      if (text === '💰 Баланс') {
+        await handleBalanceButton({ entities, accounts, ownerId, botToken, chatId });
+        return Response.json({ ok: true });
+      }
+      if (text === '📊 Аналитика') {
+        await handleAnalyticsButton({ entities, accounts, ownerId, config, botToken, chatId });
+        return Response.json({ ok: true });
+      }
+      if (text === '📋 Операции') {
+        await handleOperationsButton({ entities, ownerId, botToken, chatId });
+        return Response.json({ ok: true });
+      }
+
       try {
         await handleTextMessage({ base44, config, account, accounts, ownerId, botToken, chatId, text: message.text });
       } catch (e) {
