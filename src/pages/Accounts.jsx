@@ -342,17 +342,23 @@ export default function Accounts() {
     return { income, expenses };
   };
 
-  const totalBalance = displayedAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
-  
-  // Net worth breakdown — all balances summed directly: positive = assets, negative = debts
-  const positiveBalance = displayedAccounts
-    .filter(a => (a.balance || 0) > 0)
-    .reduce((sum, a) => sum + (a.balance || 0), 0);
-  const negativeBalance = displayedAccounts
-    .filter(a => (a.balance || 0) < 0)
-    .reduce((sum, a) => sum + (a.balance || 0), 0);
-  // netWorth is simply the sum of all balances (already equals positiveBalance + negativeBalance)
-  const netWorth = totalBalance;
+  // Группируем счета по валюте — без перекрёстного сложения разных валют
+  const balancesByCurrency = displayedAccounts.reduce((acc, a) => {
+    const cur = a.currency || 'RUB';
+    if (!acc[cur]) acc[cur] = { total: 0, assets: 0, debts: 0, count: 0 };
+    const bal = a.balance || 0;
+    acc[cur].total += bal;
+    acc[cur].count += 1;
+    if (bal > 0) acc[cur].assets += bal;
+    if (bal < 0) acc[cur].debts += bal;
+    return acc;
+  }, {});
+  // Профильная валюта — первой в списке, остальные по алфавиту
+  const currencyEntries = Object.entries(balancesByCurrency).sort(([a], [b]) => {
+    if (a === profileCurrency) return -1;
+    if (b === profileCurrency) return 1;
+    return a.localeCompare(b);
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -393,21 +399,26 @@ export default function Accounts() {
             <CardContent className="p-6">
               <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-violet-500/20 to-transparent rounded-full blur-3xl pointer-events-none" />
               <div className="relative">
-                <p className="text-slate-400 text-sm mb-1">{t('accounts.net_worth')}</p>
-                <p className={`text-4xl font-bold ${netWorth >= 0 ? 'text-white' : 'text-rose-400'}`}>
-                  {formatCurrency(netWorth)}
-                </p>
-                <div className="flex items-center gap-4 mt-3 text-sm">
-                  <div>
-                    <span className="text-slate-500">{t('accounts.assets')}: </span>
-                    <span className="text-emerald-400 font-semibold">{formatCurrency(positiveBalance)}</span>
-                  </div>
-                  {negativeBalance < 0 && (
-                    <div>
-                      <span className="text-slate-500">{t('accounts.debts')}: </span>
-                      <span className="text-rose-400 font-semibold">{formatCurrency(negativeBalance)}</span>
+                <p className="text-slate-400 text-sm mb-3">{t('accounts.net_worth')}</p>
+                <div className="space-y-3">
+                  {currencyEntries.map(([cur, { total, assets, debts, count }]) => (
+                    <div key={cur}>
+                      <p className={`text-2xl font-bold ${total >= 0 ? 'text-white' : 'text-rose-400'}`}>
+                        {formatCurrency(total, cur)}
+                      </p>
+                      <div className="flex items-center gap-4 mt-1 text-sm">
+                        <span className="text-slate-500">{t('accounts.assets')}: </span>
+                        <span className="text-emerald-400 font-semibold">{formatCurrency(assets, cur)}</span>
+                        {debts < 0 && (
+                          <>
+                            <span className="text-slate-500">{t('accounts.debts')}: </span>
+                            <span className="text-rose-400 font-semibold">{formatCurrency(debts, cur)}</span>
+                          </>
+                        )}
+                        <span className="text-slate-500 ml-auto">{count} {t('accounts.accounts_count')}</span>
+                      </div>
                     </div>
-                  )}
+                  ))}
                 </div>
                 <p className="text-slate-400 text-xs mt-2">{displayedAccounts.length} {t('accounts.accounts_count')}</p>
               </div>
