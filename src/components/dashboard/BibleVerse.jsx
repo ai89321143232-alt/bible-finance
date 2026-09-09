@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useModalQueue } from '@/lib/modalQueue';
 import { base44 } from '@/api/base44Client';
 import { motion } from 'framer-motion';
 import { X, Save, BookOpen } from 'lucide-react';
@@ -55,10 +56,19 @@ export default function BibleVerse() {
   const [todayVerse, setTodayVerse] = useState(null);
   const [saveNoteTitle, setSaveNoteTitle] = useState('');
   const [saving, setSaving] = useState(false);
+  const { activeId, requestShow, dismiss } = useModalQueue();
+  const registeredRef = useRef(false);
 
   useEffect(() => {
     checkAndShowVerse();
   }, []);
+
+  // Показываем модалку только когда очередь дошла до нас
+  useEffect(() => {
+    if (registeredRef.current && activeId === 'bible_verse' && !showModal) {
+      setShowModal(true);
+    }
+  }, [activeId]);
 
   const checkAndShowVerse = () => {
     try {
@@ -77,10 +87,12 @@ export default function BibleVerse() {
         // New day - show new verse
         showTodayVerse();
       } else if (!shown) {
-        // Same day but not shown yet - show it
+        // Same day but not shown yet - register in queue
         setTodayVerse(verse);
-        markVerseAsShown(verse);
-        setShowModal(true);
+        if (!registeredRef.current) {
+          registeredRef.current = true;
+          requestShow('bible_verse', 1);
+        }
       } else {
         // Same day and already shown - don't show modal
         setTodayVerse(verse);
@@ -105,7 +117,7 @@ export default function BibleVerse() {
   const showTodayVerse = () => {
     const verse = BIBLE_VERSES[Math.floor(Math.random() * BIBLE_VERSES.length)];
     setTodayVerse(verse);
-    
+
     try {
       localStorage.setItem('bible_verse_cache', JSON.stringify({
         verse,
@@ -116,7 +128,11 @@ export default function BibleVerse() {
       console.error('Failed to cache verse');
     }
 
-    setShowModal(true);
+    // Регистрируем в очереди модалок — покажется, когда подойдёт
+    if (!registeredRef.current) {
+      registeredRef.current = true;
+      requestShow('bible_verse', 1);
+    }
   };
 
   const handleSaveNote = async () => {
@@ -132,6 +148,7 @@ export default function BibleVerse() {
       });
       markVerseAsShown(todayVerse);
       setShowModal(false);
+      dismiss('bible_verse');
       setSaveNoteTitle('');
     } catch (error) {
       console.error('Failed to save note:', error);
@@ -141,7 +158,13 @@ export default function BibleVerse() {
   }
 
   return (
-    <Dialog open={showModal} onOpenChange={setShowModal}>
+    <Dialog open={showModal} onOpenChange={(open) => {
+      setShowModal(open);
+      if (!open && todayVerse) {
+        markVerseAsShown(todayVerse);
+        dismiss('bible_verse');
+      }
+    }}>
       <DialogContent className="rounded-2xl max-w-md border-0 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20">
         {todayVerse && (
           <>

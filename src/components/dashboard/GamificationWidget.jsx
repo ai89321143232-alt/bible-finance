@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { Flame, Star, Award, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -8,6 +9,7 @@ import { TITLES, FAMILY_TITLES, ACHIEVEMENTS, getTitleForPoints, getNextTitle, g
 import AchievementsModal from '@/components/dashboard/AchievementsModal';
 import RewardPopup from '@/components/dashboard/RewardPopup';
 import { eventBus, EVENTS } from '@/lib/eventBus';
+import { useModalQueue } from '@/lib/modalQueue';
 
 const PersonalTitleCard = ({ p, currentTitle, nextTitle, progressToNext, unlockedCount, totalCount, hasPrayedToday, onPray, onShowAchievements }) => (
   <div className="rounded-2xl border border-border bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 shadow-lg overflow-hidden">
@@ -164,6 +166,9 @@ export default function GamificationWidget() {
   const [praying, setPraying] = useState(false);
   const [prayerContext, setPrayerContext] = useState(null); // null | 'family'
   const [activeIndex, setActiveIndex] = useState(0); // 0 = personal, 1 = family
+  const { activeId, requestShow, dismiss } = useModalQueue();
+  const rewardRegistered = useRef(false);
+  const prayerRegistered = useRef(false);
 
   const { data: profile } = useQuery({
     queryKey: ['gamification'],
@@ -208,7 +213,7 @@ export default function GamificationWidget() {
 
   useEffect(() => {
     if (!profile) return;
-    if (profile.awarded) {
+    if (profile.awarded && !rewardRegistered.current) {
       const hasTitleChange = profile.titleChanged || profile.familyTitleChanged;
       setToast({
         points: profile.points,
@@ -219,27 +224,40 @@ export default function GamificationWidget() {
         newFamilyTitle: profile.newFamilyTitle,
         isTitleUp: hasTitleChange,
       });
-      if (hasTitleChange) {
-        setTimeout(fireConfetti, 100);
-      }
-      const timer = setTimeout(() => setToast(null), hasTitleChange ? 7000 : 5000);
-      return () => clearTimeout(timer);
+      rewardRegistered.current = true;
+      requestShow('reward', 2);
     }
   }, [profile]);
 
-  // Reminder to pray on first daily entry
+  // Авто-закрытие попапа награды
+  useEffect(() => {
+    if (!toast || activeId !== 'reward') return;
+    const hasTitleChange = toast.titleChanged || toast.familyTitleChanged;
+    const timer = setTimeout(() => {
+      setToast(null);
+      dismiss('reward');
+    }, hasTitleChange ? 7000 : 5000);
+    return () => clearTimeout(timer);
+  }, [toast, activeId]);
+
+  // Reminder to pray on first daily entry — регистрируем в очереди
   useEffect(() => {
     if (!profile || !profile.profile) return;
     const p = profile.profile;
     const today = new Date().toISOString().slice(0, 10);
-    if (p.last_daily_login === today && p.last_prayer_date !== today) {
-      const timer = setTimeout(() => {
-        setPrayerContext(activeIndex === 1 ? 'family' : null);
-        setShowPrayer(true);
-      }, 1500);
-      return () => clearTimeout(timer);
+    if (p.last_daily_login === today && p.last_prayer_date !== today && !prayerRegistered.current) {
+      prayerRegistered.current = true;
+      setPrayerContext(activeIndex === 1 ? 'family' : null);
+      requestShow('prayer', 3);
     }
   }, [profile, activeIndex]);
+
+  // Показываем молитву, когда очередь дошла до нас
+  useEffect(() => {
+    if (activeId === 'prayer' && !showPrayer) {
+      setShowPrayer(true);
+    }
+  }, [activeId]);
 
   const handlePray = async () => {
     setPraying(true);
@@ -250,6 +268,7 @@ export default function GamificationWidget() {
       });
       eventBus.emit(EVENTS.GAMIFICATION_UPDATED);
       setShowPrayer(false);
+      dismiss('prayer');
     } catch (e) {
       // ignore
     } finally {
@@ -380,8 +399,8 @@ export default function GamificationWidget() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
-            onClick={() => setShowPrayer(false)}
+            className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4"
+            onClick={() => { setShowPrayer(false); dismiss('prayer'); }}
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
@@ -420,7 +439,7 @@ export default function GamificationWidget() {
                 {praying ? '...' : '🙏 Благодарю, Господи!'}
               </button>
               <button
-                onClick={() => setShowPrayer(false)}
+                onClick={() => { setShowPrayer(false); dismiss('prayer'); }}
                 className="w-full mt-2 py-2 text-slate-500 dark:text-slate-400 text-xs"
               >
                 Позже
@@ -430,7 +449,7 @@ export default function GamificationWidget() {
         )}
       </AnimatePresence>
 
-      <RewardPopup toast={toast} onClose={() => setToast(null)} />
+      <RewardPopup toast={toast} onClose={() => { setToast(null); dismiss('reward'); }} />
 
       <AchievementsModal
         open={showAchievements}

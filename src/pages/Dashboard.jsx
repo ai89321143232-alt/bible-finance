@@ -25,6 +25,7 @@ import AllGoalsProgress from '@/components/dashboard/AllGoalsProgress';
 import BudgetOverview from '@/components/dashboard/BudgetOverview';
 import AIInsights from '@/components/dashboard/AIInsights';
 import BibleVerse from '@/components/dashboard/BibleVerse';
+import { ModalQueueProvider } from '@/lib/modalQueue';
 import GamificationWidget from '@/components/dashboard/GamificationWidget';
 import ThemeSelector from '@/components/onboarding/ThemeSelector';
 import ChildDashboard from '@/components/child/ChildDashboard';
@@ -598,6 +599,7 @@ export default function Dashboard() {
   return (
     <PullToRefresh onRefresh={handleRefresh}>
     <div className="min-h-screen">
+      <ModalQueueProvider>
       <BibleVerse />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 sm:pb-6">
         <motion.div
@@ -734,6 +736,7 @@ export default function Dashboard() {
           onUseTemplate={handleUseTemplate}
           accounts={allAccounts} />
         
+      </ModalQueueProvider>
     </div>
     </PullToRefresh>);
 

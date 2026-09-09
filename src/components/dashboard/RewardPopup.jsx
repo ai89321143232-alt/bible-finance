@@ -80,7 +80,7 @@ export default function RewardPopup({ toast, onClose }) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/70 z-[110] flex items-center justify-center p-4"
         >
           <motion.div
             initial={{ scale: 0.85, y: 24, opacity: 0 }}
