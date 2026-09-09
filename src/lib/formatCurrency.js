@@ -38,7 +38,7 @@ export function getCurrencySymbol(code = 'RUB', language = 'ru') {
   }
 }
 
-export function useCurrencySymbol() {
+export function useCurrencySymbol(currencyOverride) {
   const { language } = useLanguage();
   const { data: user } = useQuery({
     queryKey: ['auth-me'],
@@ -46,8 +46,22 @@ export function useCurrencySymbol() {
     staleTime: 5 * 60 * 1000,
   });
   const profileCurrency = user?.currency || user?.data?.currency || 'RUB';
-  return getCurrencySymbol(profileCurrency, language);
+  return getCurrencySymbol(currencyOverride || profileCurrency, language);
 }
+
+// Поддерживаемые валюты для селекторов в формах
+export const CURRENCIES = [
+  { code: 'RUB', symbol: '₽', label: 'Российский рубль' },
+  { code: 'USD', symbol: '$', label: 'Доллар США' },
+  { code: 'EUR', symbol: '€', label: 'Евро' },
+  { code: 'GBP', symbol: '£', label: 'Фунт стерлингов' },
+  { code: 'KZT', symbol: '₸', label: 'Тенге' },
+  { code: 'UZS', symbol: 'сум', label: 'Узбекский сум' },
+  { code: 'BYN', symbol: 'Br', label: 'Белорусский рубль' },
+  { code: 'UAH', symbol: '₴', label: 'Гривна' },
+  { code: 'GEL', symbol: '₾', label: 'Грузинский лари' },
+  { code: 'CNY', symbol: '¥', label: 'Китайский юань' },
+];
 
 export function useFormatCurrency() {
   const { language } = useLanguage();

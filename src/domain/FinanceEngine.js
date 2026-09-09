@@ -41,10 +41,14 @@ export const investmentsProfit = (investments = []) =>
 export const netWorth = (accounts = [], investments = []) =>
   totalBalance(accounts) + investmentsValue(investments);
 
-/** Транзакции в диапазоне дат [start, end]. */
+/** Транзакции в диапазоне дат [start, end]. Невалидные даты логируются и исключаются. */
 export const transactionsInRange = (transactions = [], start, end) =>
   transactions.filter((t) => {
     const d = new Date(t.date);
+    if (isNaN(d.getTime())) {
+      console.warn(`[FinanceEngine] Transaction ${t.id || 'unknown'} has invalid date: ${t.date}`);
+      return false;
+    }
     return d >= start && d <= end;
   });
 

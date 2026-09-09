@@ -49,6 +49,8 @@ import { useExchangeRates } from '@/hooks/useExchangeRates';
 import { groupBalancesByCurrency, buildAccountCurrencyMap, groupTransactionsByCurrency } from '@/lib/groupByCurrency';
 import { useScopeMode } from '@/hooks/useScopeMode';
 import ScopeModeSwitcher from '@/components/settings/ScopeModeSwitcher';
+import { TransactionService } from '@/services';
+import { toast } from 'sonner';
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -436,28 +438,28 @@ export default function Dashboard() {
     const account = allAccounts.find((a) => a.id === accountId);
     if (!account) return;
 
-    // For expense, check non-credit account balance
-    if (template.type === 'expense' && account.type !== 'credit' && (account.balance || 0) - template.amount < 0) {
-
-
-
-
-
-
-
-
-
-
-
-      // Don't block, but could show a warning — for now just proceed
-    }await base44.entities.Transaction.create({ type: template.type, amount: template.amount, category: template.category, subcategory: template.subcategory || undefined, description: template.description || template.name, account_id: accountId, date: new Date().toISOString(), user_id: user?.id, family_id: family?.id || undefined
-      });
-
-    // Update account balance
-    const delta = template.type === 'income' ? template.amount : -template.amount;
-    await base44.entities.Account.update(accountId, {
-      balance: (account.balance || 0) + delta
+    const result = await TransactionService.saveEntry({
+      type: template.type,
+      amount: template.amount,
+      category: template.category,
+      description: template.description || template.name,
+      date: new Date(),
+      account_id: accountId,
+      accounts: allAccounts,
     });
+    if (!result.ok) {
+      toast.error(result.error || t('common.error'));
+    }
+
+
+
+
+
+
+
+
+
+
 
     queryClient.invalidateQueries();
   };
@@ -584,7 +586,7 @@ export default function Dashboard() {
       case 'budgets':
         return <div key="budgets" className="mb-6"><BudgetOverview budgets={budgets} transactions={transactions} formatCurrency={formatCurrency} currentUser={user} /></div>;
       case 'goals':
-        return <div key="goals" className="mb-6"><AllGoalsProgress goals={goals} formatCurrency={formatCurrency} /></div>;
+        return <div key="goals" className="mb-6"><AllGoalsProgress goals={goals} formatCurrency={formatCurrency} convert={convert} profileCurrency={profileCurrency} /></div>;
       case 'aiInsights':
         return (
           <motion.div key="aiInsights" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mb-6">

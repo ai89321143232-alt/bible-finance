@@ -48,6 +48,7 @@ import { getCategoryEmoji } from '@/lib/categoryIcon';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useSubmitGuard } from '@/hooks/useSubmitGuard';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
 
 const GOAL_TYPES = [
   { value: 'savings', labelKey: 'goals.type_savings', icon: '💰', color: '#10B981' },
@@ -314,6 +315,7 @@ export default function Goals() {
   }, [myGoals, sharedGoals, user?.email, viewMode]);
 
   const formatCurrency = useFormatCurrency();
+  const { convert, profileCurrency } = useExchangeRates();
   const goalCurrencySymbol = getCurrencySymbol(formData.currency, language);
   const addFundsAccount = accounts.find(a => a.id === selectedAccount);
   const addFundsCurrencySymbol = getCurrencySymbol(addFundsAccount?.currency || user?.currency || 'RUB', language);
@@ -401,7 +403,7 @@ export default function Goals() {
         {activeGoals.length > 0 && (
           <>
           <div className="mb-6">
-            <GoalsPieChart goals={activeGoals} formatCurrency={formatCurrency} />
+            <GoalsPieChart goals={activeGoals} formatCurrency={formatCurrency} convert={convert} profileCurrency={profileCurrency} />
           </div>
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">{t('goals.active_goals')}</h2>

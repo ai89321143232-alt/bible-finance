@@ -30,10 +30,21 @@ export const validateAccountOwnership = (account, user) => {
   return { ok: true };
 };
 
-/** Достаточно ли средств для списания (кредитным счетам разрешён минус). */
+/** Достаточно ли средств для списания (кредитным счетам разрешён минус в пределах credit_limit). */
 export const validateSufficientFunds = (account, amount) => {
   if (!account) return { ok: true };
-  if (account.type !== 'credit' && (account.balance || 0) - (amount || 0) < 0) {
+  const balance = account.balance || 0;
+  const amt = amount || 0;
+  if (account.type === 'credit') {
+    // Кредитный счёт: разрешён минус, но не ниже -credit_limit
+    const limit = account.credit_limit || 0;
+    const available = balance + limit;
+    if (amt > available) {
+      return { ok: false, error: `Недостаточно средств: доступно ${available.toFixed(0)} ₽ (с учётом кредитного лимита)` };
+    }
+    return { ok: true };
+  }
+  if (balance - amt < 0) {
     return { ok: false, error: 'Недостаточно средств на счёте для выполнения операции' };
   }
   return { ok: true };

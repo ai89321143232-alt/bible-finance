@@ -1,9 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { calcBudgetSpent } from '../../shared/budgetSpent.ts';
 
 // Однократный пересчёт spent_amount для всех активных бюджетов из реальных
-// операций текущего периода. Исправляет накопленные инкрементальные задвоения,
-// возникавшие из-за гонки между applyBudgetDelta (telegramWebhook/aiChatAssistant)
-// и автоматизацией updateBudgetOnTransaction.
+// операций текущего периода. Использует единую формулу calcBudgetSpent
+// (ту же, что и UI и updateBudgetOnTransaction).
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -12,8 +12,8 @@ export default async function(req) {
     if (user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
 
     const budgets = await base44.asServiceRole.entities.Budget.filter({ is_active: true });
-    const now = new Date();
-    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const accounts = await base44.asServiceRole.entities.Account.list();
+    const accountScopeMap = new Map(accounts.map(a => [a.id, a.scope || 'personal']));
 
     let checked = 0;
     let fixed = 0;
@@ -21,20 +21,11 @@ export default async function(req) {
 
     for (const budget of budgets) {
       checked++;
-      const cats = budget.categories?.length > 0 ? budget.categories : (budget.category ? [budget.category] : []);
       const ownerId = budget.user_id || budget.created_by_id;
       if (!ownerId) continue;
 
       const allTransactions = await base44.asServiceRole.entities.Transaction.filter({ user_id: ownerId });
-      const realSpent = allTransactions
-        .filter(t => {
-          if (t.type !== 'expense') return false;
-          if (cats.length > 0 && !cats.includes(t.category)) return false;
-          if (new Date(t.date) < periodStart) return false;
-          if (budget.is_family_budget) return t.budget_scope !== 'personal';
-          return t.budget_scope !== 'family';
-        })
-        .reduce((sum, t) => sum + (t.amount || 0), 0);
+      const realSpent = calcBudgetSpent(budget, allTransactions, ownerId, accountScopeMap);
 
       const current = budget.spent_amount || 0;
       if (Math.abs(current - realSpent) > 0.01) {

@@ -59,7 +59,7 @@ export const TransactionService = {
           // Тот же счёт — откатываем в рамках effectiveBalance
           effectiveBalance = prev.type === 'expense' ? effectiveBalance + prev.amount : effectiveBalance - prev.amount;
         } else {
-          // Счёт сменился — откатываем старый счёт в БД, новый счёт не трогаем
+          // Счёт сменился — откатываем старый счёт в БД, новый счёт перезагружаем из БД
           const prevAccount = await AccountService.get(prev.account_id).catch(() => null);
           if (prevAccount) {
             const reverted =
@@ -68,6 +68,9 @@ export const TransactionService = {
                 : (prevAccount.balance ?? 0) - prev.amount;
             await AccountService.setBalance(prevAccount.id, reverted);
           }
+          // Перезагружаем целевой счёт из БД — баланс в props может быть устаревшим
+          const refreshed = await AccountService.get(account_id).catch(() => account);
+          if (refreshed) effectiveBalance = refreshed.balance ?? 0;
         }
       }
     }

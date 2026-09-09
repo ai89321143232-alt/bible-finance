@@ -194,12 +194,9 @@ export function compareStrategies(debts, extraPayment = 0) {
   };
 }
 
-// Добавить месяцы к дате
-function addMonths(date, months) {
-  const d = new Date(date);
-  d.setMonth(d.getMonth() + months);
-  return d;
-}
+// Добавить месяцы к дате (использует date-fns для корректной обработки
+// краевых случаев — например, 31 января + 1 месяц = 28 февраля, а не 3 марта)
+import { addMonths } from 'date-fns';
 
 // Форматирование валюты (по умолчанию RUB, можно передать код валюты и язык)
 export function formatDebtCurrency(amount, currency = 'RUB', language = 'ru') {

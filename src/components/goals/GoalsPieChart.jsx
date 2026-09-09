@@ -3,20 +3,35 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 const GOAL_COLORS = ['#10B981', '#EF4444', '#8B5CF6', '#F59E0B', '#3B82F6', '#64748B', '#EC4899', '#14B8A6', '#F97316', '#A855F7'];
 
-export default function GoalsPieChart({ goals, formatCurrency }) {
+export default function GoalsPieChart({ goals, formatCurrency, convert, profileCurrency }) {
   if (!goals || goals.length === 0) return null;
 
-  const data = goals.map((goal, idx) => ({
-    name: goal.title,
-    value: goal.current_amount || 0,
-    target: goal.target_amount || 0,
-    color: GOAL_COLORS[idx % GOAL_COLORS.length],
-  })).filter(d => d.value > 0);
+  // Конвертируем current_amount каждой цели в валюту профиля для корректного суммирования
+  const toProfile = (amount, goal) => {
+    const cur = goal.currency || profileCurrency || 'RUB';
+    if (!convert || cur === profileCurrency) return amount;
+    const converted = convert(amount, cur, profileCurrency);
+    return converted != null ? converted : 0;
+  };
+
+  const data = goals.map((goal, idx) => {
+    const convertedValue = toProfile(goal.current_amount || 0, goal);
+    return {
+      name: goal.title,
+      value: convertedValue,
+      rawValue: goal.current_amount || 0,
+      target: goal.target_amount || 0,
+      rawTarget: goal.target_amount || 0,
+      currency: goal.currency || profileCurrency || 'RUB',
+      color: GOAL_COLORS[idx % GOAL_COLORS.length],
+    };
+  }).filter(d => d.value > 0);
 
   if (data.length === 0) return null;
 
   const totalSaved = data.reduce((sum, d) => sum + d.value, 0);
-  const totalTarget = goals.reduce((sum, g) => sum + (g.target_amount || 0), 0);
+  const totalTarget = goals.reduce((sum, g) => sum + toProfile(g.target_amount || 0, g), 0);
+  const isMultiCurrency = data.some(d => d.currency !== (profileCurrency || 'RUB'));
 
   return (
     <div className="rounded-2xl border border-border bg-card shadow-sm p-4">
@@ -40,10 +55,20 @@ export default function GoalsPieChart({ goals, formatCurrency }) {
             <Tooltip
               offset={20}
               wrapperStyle={{ zIndex: 1000 }}
-              formatter={(value, name, props) => [
-                `${formatCurrency(value)} из ${formatCurrency(props.payload.target)}`,
-                name
-              ]}
+              formatter={(value, name, props) => {
+                const d = props.payload;
+                const rawCur = d.currency;
+                if (isMultiCurrency && convert && rawCur !== profileCurrency) {
+                  return [
+                    `${formatCurrency(d.rawValue, rawCur)} (~${formatCurrency(d.value)}) из ${formatCurrency(d.rawTarget, rawCur)}`,
+                    name
+                  ];
+                }
+                return [
+                  `${formatCurrency(d.rawValue)} из ${formatCurrency(d.rawTarget)}`,
+                  name
+                ];
+              }}
               contentStyle={{
                 borderRadius: '12px',
                 border: '1px solid hsl(var(--border))',

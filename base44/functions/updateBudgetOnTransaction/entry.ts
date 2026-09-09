@@ -1,4 +1,5 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { calcBudgetSpent } from '../../shared/budgetSpent.ts';
 
 Deno.serve(async (req) => {
     try {
@@ -7,10 +8,7 @@ Deno.serve(async (req) => {
 
         const { event, data, old_data } = payload;
 
-        // Не доверяем полям из тела запроса (data.user_id/category/family_id/amount и т.д.) —
-        // внешний злоумышленник мог бы подделать их, чтобы повлиять на чужой бюджет.
-        // Определяем транзакцию по event.entity_id и берём ВСЕ поля из реальной записи БД.
-        // Для события delete запись уже удалена — используем old_data (снимок до удаления).
+        // Не доверяем полям из тела запроса — берём ВСЕ поля из реальной записи БД.
         const entityId = event?.entity_id || data?.id;
         if (!entityId) {
             return Response.json({ message: 'No entity_id, skipping' });
@@ -25,7 +23,7 @@ Deno.serve(async (req) => {
             return Response.json({ message: 'Transaction not found, skipping' });
         }
 
-        // Обрабатываем только расходы (включая transfer, т.к. старая логика тоже их фильтровала)
+        // Обрабатываем только расходы (transfer исключён — переводы не являются расходами бюджета)
         if (source.type !== 'expense') {
             return Response.json({ message: 'Not an expense, skipping' });
         }
@@ -40,6 +38,11 @@ Deno.serve(async (req) => {
         const category = source.category;
         const familyId = source.family_id;
         const budgetScope = source.budget_scope;
+
+        // #4: Отсутствующий budget_scope трактуется как 'personal' (нет family_id)
+        // или 'family' (есть family_id) — это исключает задвоение расхода
+        // одновременно в личном и семейном бюджете.
+        const effectiveBudgetScope = budgetScope || (familyId ? 'family' : 'personal');
 
         // Получаем все активные бюджеты пользователя/семьи
         const allBudgets = await base44.asServiceRole.entities.Budget.list();
@@ -56,30 +59,28 @@ Deno.serve(async (req) => {
             const categoryMatches = budgetCategories.length === 0 || budgetCategories.includes(category);
             if (!categoryMatches) return false;
 
-            // Семейный и личный бюджет с одинаковой категорией не должны оба получать один
-            // и тот же расход — budget_scope (выбор пользователя при вводе операции) решает,
-            // в какой именно бюджет засчитать расход, если есть совпадение.
+            // Семейный и личный бюджет с одинаковой категорией не должны оба получать
+            // один и тот же расход — effectiveBudgetScope решает, в какой именно.
             if (b.is_family_budget) {
                 const belongsToFamily = familyId && b.family_id === familyId;
                 if (!belongsToFamily) return false;
-                if (budgetScope === 'personal') return false;
-                return true;
+                return effectiveBudgetScope !== 'personal';
             }
 
             const belongsToUser = b.user_id === ownerId || b.created_by_id === ownerId;
             if (!belongsToUser) return false;
-            if (budgetScope === 'family') return false;
-            return true;
+            return effectiveBudgetScope !== 'family';
         });
 
         if (matchingBudgets.length === 0) {
-            // Fallback: если категория не привязана ни к одному бюджету,
-            // ищем бюджет "Прочее" (или "Другое") у того же пользователя/семьи
-            // и засчитываем расход туда
+            // #8: Fallback — бюджет "Прочее" с проверкой периода (как в основном matching)
             const fallbackBudget = allBudgets.find(b => {
                 if (!b.is_active) return false;
                 const name = (b.name || '').toLowerCase();
                 if (name !== 'прочее' && name !== 'другое') return false;
+                // Проверяем попадание даты операции в период бюджета
+                if (b.start_date && transactionDate < b.start_date) return false;
+                if (b.end_date && transactionDate > b.end_date) return false;
                 if (b.is_family_budget) {
                     return familyId && b.family_id === familyId;
                 }
@@ -92,32 +93,21 @@ Deno.serve(async (req) => {
             }
         }
 
-        // Идемпотентный пересчёт: вместо инкрементального обновления (которое
-        // даёт задвоение при повторном срабатывании автоматизации), полностью
-        // пересчитываем spent_amount из реальных транзакций текущего периода.
-        const now = new Date();
-        const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        // Идемпотентный пересчёт: используем единую формулу calcBudgetSpent
+        // (тот же код, что и в UI — BudgetOverview).
+        // Загружаем аккаунты для построения карты scope (personal/business).
+        const accounts = await base44.asServiceRole.entities.Account.list();
+        const accountScopeMap = new Map(accounts.map(a => [a.id, a.scope || 'personal']));
 
         for (const budget of matchingBudgets) {
-            const budgetCategories = budget.categories || (budget.category ? [budget.category] : []);
-
-            // Загружаем все транзакции владельца бюджета за текущий период
             const budgetOwnerId = budget.user_id || budget.created_by_id;
+
+            // Загружаем все транзакции владельца бюджета
             const allTransactions = await base44.asServiceRole.entities.Transaction.filter({
                 user_id: budgetOwnerId
             });
 
-            const realSpent = allTransactions
-                .filter(t => {
-                    if (t.type !== 'expense') return false;
-                    if (budgetCategories.length > 0 && !budgetCategories.includes(t.category)) return false;
-                    if (new Date(t.date) < periodStart) return false;
-                    if (budget.is_family_budget) {
-                        return t.budget_scope !== 'personal';
-                    }
-                    return t.budget_scope !== 'family';
-                })
-                .reduce((sum, t) => sum + (t.amount || 0), 0);
+            const realSpent = calcBudgetSpent(budget, allTransactions, budgetOwnerId, accountScopeMap);
 
             await base44.asServiceRole.entities.Budget.update(budget.id, {
                 spent_amount: realSpent

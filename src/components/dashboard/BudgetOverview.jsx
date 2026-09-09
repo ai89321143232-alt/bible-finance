@@ -4,23 +4,7 @@ import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { ChevronRight, Plus, AlertCircle, Layers } from 'lucide-react';
 import { useLanguage } from '@/lib/LanguageContext';
-
-function calcBudgetSpent(budget, transactions, currentUserId) {
-  const now = new Date();
-  const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const categories = budget.categories || (budget.category ? [budget.category] : []);
-  return transactions
-    .filter(t => {
-      if (t.type !== 'expense') return false;
-      if (categories.length > 0 && !categories.includes(t.category)) return false;
-      if (new Date(t.date) < periodStart) return false;
-      // Личный бюджет считает только свои транзакции, семейный — все транзакции семьи.
-      // budget_scope разделяет расход между личным и семейным бюджетом, если категория совпадает у обоих.
-      if (budget.is_family_budget) return t.budget_scope !== 'personal';
-      return (t.created_by_id === currentUserId || t.user_id === currentUserId) && t.budget_scope !== 'family';
-    })
-    .reduce((sum, t) => sum + t.amount, 0);
-}
+import { calcBudgetSpent } from '@/lib/budgetSpent';
 
 export default function BudgetOverview({ budgets, transactions = [], formatCurrency, currentUser }) {
   const currentUserId = currentUser?.id;

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import MobileSelect from '@/components/mobile/MobileSelect';
-import { useCurrencySymbol } from '@/lib/formatCurrency';
+import { useCurrencySymbol, CURRENCIES } from '@/lib/formatCurrency';
 
 const ASSET_TYPES = [
   { value: 'real_estate', label: 'Недвижимость' },
@@ -18,9 +18,10 @@ export default function AddFixedAssetModal({ open, onClose, onSaved }) {
   const [name, setName] = useState('');
   const [type, setType] = useState('real_estate');
   const [value, setValue] = useState('');
+  const [currency, setCurrency] = useState('RUB');
   const [valueDate, setValueDate] = useState(new Date().toISOString().split('T')[0]);
   const [saving, setSaving] = useState(false);
-  const currencySymbol = useCurrencySymbol();
+  const currencySymbol = useCurrencySymbol(currency);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,6 +32,7 @@ export default function AddFixedAssetModal({ open, onClose, onSaved }) {
       name: name.trim(),
       type,
       value: parseFloat(value),
+      currency,
       value_date: valueDate,
       family_id: user?.family_id || undefined
     });
@@ -63,9 +65,17 @@ export default function AddFixedAssetModal({ open, onClose, onSaved }) {
           <div>
             <Label>Рыночная стоимость</Label>
             <div className="relative">
-              <Input type="number" value={value} onChange={(e) => setValue(e.target.value)} placeholder="0" className="pr-8" required />
+              <Input type="number" value={value} onChange={(e) => setValue(e.target.value)} placeholder="0" className="pr-20" required />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{currencySymbol}</span>
             </div>
+          </div>
+          <div>
+            <Label>Валюта</Label>
+            <MobileSelect value={currency} onValueChange={setCurrency} title="Валюта">
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>{c.code} — {c.symbol}</option>
+              ))}
+            </MobileSelect>
           </div>
           <div>
             <Label>Дата внесения</Label>

@@ -15,7 +15,7 @@ const GOAL_COLORS = {
   other:          { bar: 'from-slate-500 to-slate-400',  dot: '#6b7280' },
 };
 
-export default function AllGoalsProgress({ goals, formatCurrency }) {
+export default function AllGoalsProgress({ goals, formatCurrency, convert, profileCurrency }) {
   const { t } = useLanguage();
   if (goals.length === 0) {
     return (
@@ -35,8 +35,14 @@ export default function AllGoalsProgress({ goals, formatCurrency }) {
     );
   }
 
-  const totalTarget = goals.reduce((sum, g) => sum + g.target_amount, 0);
-  const totalCurrent = goals.reduce((sum, g) => sum + (g.current_amount || 0), 0);
+  const toProfile = (amount, goal) => {
+    const cur = goal.currency || profileCurrency || 'RUB';
+    if (!convert || cur === profileCurrency) return amount;
+    const converted = convert(amount, cur, profileCurrency);
+    return converted != null ? converted : 0;
+  };
+  const totalTarget = goals.reduce((sum, g) => sum + toProfile(g.target_amount || 0, g), 0);
+  const totalCurrent = goals.reduce((sum, g) => sum + toProfile(g.current_amount || 0, g), 0);
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>

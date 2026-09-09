@@ -17,38 +17,21 @@ export async function applyBalanceDelta(entities, accountId, delta, ownerId) {
   await entities.Account.update(accountId, { balance: (account.balance || 0) + delta });
 }
 
+// Идемпотентный пересчёт spent_amount через единую формулу calcBudgetSpent.
+// Бот/AI-ассистент не могут спросить пользователя, в какой бюджет (личный/семейный)
+// засчитать расход, поэтому по умолчанию засчитываем только в личные бюджеты.
 export async function applyBudgetDelta(entities, userId, category, delta) {
   if (!category) return;
+  const { calcBudgetSpent } = await import('../shared/budgetSpent.ts');
   const budgets = await entities.Budget.filter({ is_active: true, user_id: userId });
-  const now = new Date();
-  const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  // Карта scope по счёту: чтобы бизнес-бюджет считал только бизнес-расходы,
-  // а личный — только личные (scope операции = scope счёта).
   const accounts = await entities.Account.filter({ user_id: userId });
   const accountScope = new Map(accounts.map(a => [a.id, a.scope || 'personal']));
   for (const budget of budgets) {
-    // Бот/AI-ассистент не могут спросить пользователя, в какой бюджет (личный/семейный)
-    // засчитать расход, поэтому по умолчанию засчитываем только в личные бюджеты —
-    // иначе один и тот же расход задваивался бы и в личном, и в семейном бюджете.
     if (budget.is_family_budget) continue;
     const cats = budget.categories?.length > 0 ? budget.categories : (budget.category ? [budget.category] : []);
     if (!cats.includes(category)) continue;
-    const budgetScope = budget.scope || 'personal';
-    // Идемпотентный пересчёт из реальных операций текущего периода —
-    // не накапливаем инкрементально, чтобы избежать задвоения при гонке
-    // с автоматизацией updateBudgetOnTransaction.
     const allTransactions = await entities.Transaction.filter({ user_id: userId });
-    const realSpent = allTransactions
-      .filter(t => {
-        if (t.type !== 'expense') return false;
-        if (cats.length > 0 && !cats.includes(t.category)) return false;
-        if (new Date(t.date) < periodStart) return false;
-        if (t.budget_scope === 'family') return false;
-        // Фильтр по области: бюджет business считает только расходы с бизнес-счетов.
-        const txScope = t.account_id ? (accountScope.get(t.account_id) || 'personal') : 'personal';
-        return txScope === budgetScope;
-      })
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    const realSpent = calcBudgetSpent(budget, allTransactions, userId, accountScope);
     await entities.Budget.update(budget.id, { spent_amount: realSpent });
   }
 }

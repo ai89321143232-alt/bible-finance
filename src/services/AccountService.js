@@ -12,7 +12,6 @@
 import { getRepository } from '@/data/repositories';
 import { getCurrentUser, enrichWithOwnership } from './context';
 import { validateAccountOwnership, validateAccountInput, isOwner } from '@/domain/validators';
-import { applyTransactionToBalance } from '@/domain/FinanceEngine';
 import { eventBus, EVENTS } from '@/lib/eventBus';
 
 const repo = () => getRepository('Account');
@@ -54,16 +53,6 @@ export const AccountService = {
     const updated = await repo().update(id, data);
     eventBus.emit(EVENTS.ACCOUNT_CHANGED, { id, action: 'update' });
     return updated;
-  },
-
-  /**
-   * Изменить только баланс счёта на дельту согласно типу операции.
-   * Используется TransactionService — не эмитит отдельного события.
-   */
-  async applyBalanceDelta(account, type, amount) {
-    if (!account) return null;
-    const newBalance = applyTransactionToBalance(account.balance, type, amount);
-    return repo().update(account.id, { balance: newBalance });
   },
 
   /** Прямая установка баланса (для откатов/переносов). */
