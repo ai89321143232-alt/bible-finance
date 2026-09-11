@@ -237,8 +237,7 @@ export default function Investments() {
     }).format(amount);
   };
 
-  const isFamilyTier = family?.subscription_tier === 'family' || family?.subscription_tier === 'premium';
-  const displayedInvestments = (showOnlyMine && isFamilyTier && currentUser)
+  const displayedInvestments = (showOnlyMine && currentUser)
     ? investments.filter(inv => inv.created_by_id === currentUser.id || inv.user_id === currentUser.id)
     : investments;
 

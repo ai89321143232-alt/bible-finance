@@ -137,10 +137,9 @@ export default function Transactions() {
 
   const formatCurrency = useFormatCurrency();
 
-  const isFamilyTier = family?.subscription_tier === 'family' || family?.subscription_tier === 'premium';
   const familyMemberIds = (family?.members || []).map(m => m.user_id).filter(id => id && id !== user?.id);
   const displayedTransactions = scopedTransactions.filter(t => {
-    if (showOnlyMine && isFamilyTier) {
+    if (showOnlyMine) {
       return t.created_by_id === user?.id || t.user_id === user?.id;
     }
     if (ownerFilter === 'mine') return t.created_by_id === user?.id || t.user_id === user?.id;

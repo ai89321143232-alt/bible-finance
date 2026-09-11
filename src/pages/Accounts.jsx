@@ -163,8 +163,7 @@ export default function Accounts() {
     (family?.id && acc.family_id === family.id)
   );
   const accounts = filterByWorkspace(myAccounts, activeWorkspaceId);
-  const isFamilyTier = family?.subscription_tier === 'family' || family?.subscription_tier === 'premium';
-  const displayedAccounts = (showOnlyMine && isFamilyTier)
+  const displayedAccounts = showOnlyMine
     ? accounts.filter(acc => acc.created_by_id === currentUser?.id)
     : accounts;
 
