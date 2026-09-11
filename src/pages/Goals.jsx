@@ -8,6 +8,7 @@ import { format, differenceInDays } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import { useLanguage } from '@/lib/LanguageContext';
 import { useFormatCurrency, getCurrencySymbol } from '@/lib/formatCurrency';
+import { getInvestmentValue } from '@/lib/investmentValue';
 import {
   Plus, Target, Edit2, Trash2, Check, Calendar, TrendingUp, Coins, MinusCircle,
   Users, Zap
@@ -527,7 +528,7 @@ export default function Goals() {
                 <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
                   {investments.map(inv => {
                     const isDeposit = inv.type === 'deposit';
-                    const invValue = isDeposit ? (inv.current_price || inv.purchase_price) : inv.quantity * (inv.current_price || inv.purchase_price);
+                    const invValue = getInvestmentValue(inv);
                     const isChecked = formData.linked_investment_ids.includes(inv.id);
                     return (
                       <div key={inv.id} className="p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30">

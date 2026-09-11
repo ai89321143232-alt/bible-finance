@@ -9,6 +9,7 @@ import {
   ChevronRight, X, Edit2, Check, UserPlus, Link as LinkIcon, PiggyBank, BarChart2, Shield
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getInvestmentValue, getInvestmentCost } from '@/lib/investmentValue';
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -181,7 +182,7 @@ export default function FamilyFinances() {
     const expense = memberTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
     const goalsTotal = memberGoals.reduce((sum, g) => sum + (g.current_amount || 0), 0);
     const investmentsTotal = memberInvestments.reduce((sum, inv) => 
-      sum + (inv.quantity * (inv.current_price || inv.purchase_price)), 0
+      sum + getInvestmentValue(inv), 0
     );
 
     return {
@@ -203,7 +204,7 @@ export default function FamilyFinances() {
   const totalExpense = allTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const totalGoals = allGoals.reduce((sum, g) => sum + (g.current_amount || 0), 0);
   const totalInvestments = allInvestments.reduce((sum, inv) => 
-    sum + (inv.quantity * (inv.current_price || inv.purchase_price)), 0
+    sum + getInvestmentValue(inv), 0
   );
 
   const createFamilyMutation = useMutation({
@@ -711,8 +712,8 @@ export default function FamilyFinances() {
 
                   <TabsContent value="investments" className="space-y-3">
                     {stats.investments.map((investment) => {
-                      const value = investment.quantity * (investment.current_price || investment.purchase_price);
-                      const cost = investment.quantity * investment.purchase_price;
+                      const value = getInvestmentValue(investment);
+                      const cost = getInvestmentCost(investment);
                       const profit = value - cost;
                       return (
                         <Card key={investment.id}>

@@ -7,6 +7,7 @@ import {
 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getInvestmentValue } from '@/lib/investmentValue';
 import {
   Select,
   SelectContent,
@@ -129,7 +130,7 @@ export default function AIAssistant() {
     const activeGoals = goals.filter((g) => g.status === 'active');
 
     const investmentValue = investments.reduce((sum, inv) =>
-    sum + inv.quantity * (inv.current_price || inv.purchase_price), 0
+    sum + getInvestmentValue(inv), 0
     );
 
     // Расходы по каждому члену семьи за месяц, отсортированные по сумме —

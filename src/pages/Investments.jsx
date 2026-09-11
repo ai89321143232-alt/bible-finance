@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getInvestmentValue, getInvestmentCost } from '@/lib/investmentValue';
 import {
   Select,
   SelectContent,
@@ -242,17 +243,17 @@ export default function Investments() {
     : investments;
 
   const totalValue = displayedInvestments.reduce((sum, inv) => 
-    sum + (inv.type === 'deposit' ? (inv.current_price || inv.purchase_price) : inv.quantity * (inv.current_price || inv.purchase_price)), 0
+    sum + getInvestmentValue(inv), 0
   );
   const totalCost = displayedInvestments.reduce((sum, inv) => 
-    sum + (inv.type === 'deposit' ? inv.purchase_price : inv.quantity * inv.purchase_price), 0
+    sum + getInvestmentCost(inv), 0
   );
   const totalProfit = totalValue - totalCost;
   const profitPercent = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
 
   const portfolioByType = displayedInvestments.reduce((acc, inv) => {
     const type = inv.type;
-    const value = inv.type === 'deposit' ? (inv.current_price || inv.purchase_price) : inv.quantity * (inv.current_price || inv.purchase_price);
+    const value = getInvestmentValue(inv);
     const typeInfo = INVESTMENT_TYPES.find(t => t.value === type) || INVESTMENT_TYPES[7];
     if (!acc[type]) {
       acc[type] = { name: typeInfo.label, value: 0, color: typeInfo.color, icon: typeInfo.icon };
@@ -389,8 +390,8 @@ export default function Investments() {
               const typeInfo = INVESTMENT_TYPES.find(t => t.value === investment.type) || INVESTMENT_TYPES[7];
               const isDepositItem = investment.type === 'deposit';
               const currentPrice = investment.current_price || investment.purchase_price;
-              const value = isDepositItem ? currentPrice : investment.quantity * currentPrice;
-              const cost = isDepositItem ? investment.purchase_price : investment.quantity * investment.purchase_price;
+              const value = getInvestmentValue(investment);
+              const cost = getInvestmentCost(investment);
               const profit = value - cost;
               const profitPct = cost > 0 ? (profit / cost) * 100 : 0;
               const isEditable = investment.created_by_id === currentUser?.id;

@@ -8,6 +8,7 @@ import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import { useLanguage } from '@/lib/LanguageContext';
 import { formatCurrencyFor } from '@/lib/formatCurrency';
+import { getInvestmentValue, getInvestmentCost, convertInvestmentValue } from '@/lib/investmentValue';
 import {
   ArrowUpRight, ArrowDownRight, TrendingUp, Plus, Wallet,
   PiggyBank, Target, ChevronRight, Sparkles, CreditCard, Calendar } from
@@ -399,19 +400,15 @@ export default function Dashboard() {
 
   // Стоимость инвестиций — конвертируем каждую в валюту профиля
   const investmentValue = modeInvestments.reduce((sum, inv) => {
-    const val = inv.quantity * (inv.current_price || inv.purchase_price);
+    const val = getInvestmentValue(inv);
     const cur = inv.currency || hookCurrency;
-    if (cur === hookCurrency) return sum + val;
-    const converted = convert(val, cur, hookCurrency);
-    return converted != null ? sum + converted : sum;
+    return sum + convertInvestmentValue(val, cur, hookCurrency, convert);
   }, 0);
 
   const investmentProfit = modeInvestments.reduce((sum, inv) => {
-    const val = inv.quantity * ((inv.current_price || inv.purchase_price) - inv.purchase_price);
+    const val = getInvestmentValue(inv) - getInvestmentCost(inv);
     const cur = inv.currency || hookCurrency;
-    if (cur === hookCurrency) return sum + val;
-    const converted = convert(val, cur, hookCurrency);
-    return converted != null ? sum + converted : sum;
+    return sum + convertInvestmentValue(val, cur, hookCurrency, convert);
   }, 0);
 
   // Личный режим: только мои фиксированные активы. Семейный режим: мои + семьи.

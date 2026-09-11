@@ -7,6 +7,7 @@ import AddFixedAssetModal from './AddFixedAssetModal';
 import { useLanguage } from '@/lib/LanguageContext';
 import { groupBalancesByCurrency } from '@/lib/groupByCurrency';
 import { useExchangeRates } from '@/hooks/useExchangeRates';
+import { getInvestmentValue, convertInvestmentValue } from '@/lib/investmentValue';
 
 const FIXED_ASSET_ICONS = { real_estate: Home, auto: Car, gold: Gem, other: Box };
 
@@ -64,11 +65,9 @@ export default function NetWorthCard({
 
   // Конвертируем стоимость инвестиций в валюту профиля
   const investmentValue = investments.reduce((sum, inv) => {
-    const val = inv.quantity * (inv.current_price || inv.purchase_price || 0);
+    const val = getInvestmentValue(inv);
     const cur = inv.currency || profileCurrency;
-    if (cur === profileCurrency) return sum + val;
-    const converted = convert(val, cur, profileCurrency);
-    return converted != null ? sum + converted : sum;
+    return sum + convertInvestmentValue(val, cur, profileCurrency, convert);
   }, 0);
 
   const fixedAssetsValue = fixedAssets.reduce((sum, fa) => {

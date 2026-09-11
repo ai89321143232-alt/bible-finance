@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import CreatorTag from '@/components/shared/CreatorTag';
+import { getInvestmentValue as computeInvestmentValue } from '@/lib/investmentValue';
 
 const GOAL_TYPES = [
   { value: 'savings', label: 'Накопления', icon: '💰', color: '#10B981' },
@@ -42,10 +43,9 @@ export default function GoalCard({
     .filter(Boolean);
   const getInvestmentValue = (inv) => {
     if (investmentAmountMap[inv.id] != null) return investmentAmountMap[inv.id];
-    return inv.type === 'deposit'
-      ? (inv.current_price || inv.purchase_price)
-      : inv.quantity * (inv.current_price || inv.purchase_price);
+    return computeInvestmentValue(inv);
   };
+
   const linkedInvestmentsValue = linkedInvestments.reduce((sum, inv) =>
     sum + getInvestmentValue(inv), 0);
 
