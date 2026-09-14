@@ -107,7 +107,7 @@ export default function Goals() {
       if (!user) return [];
       const goals = await base44.entities.Goal.list();
       // Личные цели: созданы мной И не отмечены как семейные (иначе дублируются в "Семейные")
-      return goals.filter(g => g.created_by_id === user?.id && !g.is_family_goal);
+      return goals.filter(g => (g.created_by_id === user?.id || g.user_id === user?.id) && !g.is_family_goal);
     },
     enabled: !!user,
     staleTime: 30000
@@ -411,7 +411,7 @@ export default function Goals() {
             <div className="grid gap-4 sm:grid-cols-2">
               {activeGoals.map((goal, index) => (
                 <GoalCard key={goal.id} goal={goal} index={index}
-                  isEditable={viewMode === 'personal' || goal.created_by_id === user?.id}
+                  isEditable={viewMode === 'personal' || goal.created_by_id === user?.id || goal.user_id === user?.id}
                   onEdit={handleEdit} onDelete={(id) => setDeleteId(id)}
                   onAddFunds={setShowAddFundsModal} onSpend={setShowSpendModal}
                   formatCurrency={formatCurrency} family={family} currentUser={user}

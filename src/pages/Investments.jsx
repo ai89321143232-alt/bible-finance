@@ -393,7 +393,7 @@ export default function Investments() {
               const cost = getInvestmentCost(investment);
               const profit = value - cost;
               const profitPct = cost > 0 ? (profit / cost) * 100 : 0;
-              const isEditable = investment.created_by_id === currentUser?.id;
+              const isEditable = investment.created_by_id === currentUser?.id || investment.user_id === currentUser?.id;
               const isDeposit = investment.type === 'deposit';
               const daysToMaturity = investment.maturity_date ? differenceInDays(new Date(investment.maturity_date), new Date()) : null;
 

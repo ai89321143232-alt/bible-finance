@@ -511,7 +511,7 @@ export default function Budgets() {
                 budget={budget}
                 index={index}
                 spent={getBudgetSpent(budget)}
-                isEditable={viewMode === 'personal' || budget.created_by_id === user?.id}
+                isEditable={viewMode === 'personal' || budget.created_by_id === user?.id || budget.user_id === user?.id}
                 onEdit={handleEdit}
                 onDelete={(id) => setDeleteId(id)}
                 onClick={() => setSelectedBudget(budget)}

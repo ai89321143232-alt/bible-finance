@@ -83,6 +83,16 @@ async function downloadTelegramFile(botToken, fileId) {
   return await fileRes.arrayBuffer();
 }
 
+// Платформа при service-role create перезаписывает created_by_id системным service-ID,
+// поэтому бот-записи оказываются нередактируемыми в приложении. После создания — явным
+// update проставляем настоящего владельца (update не затирает created_by_id, в отличие от create).
+async function reassignOwnership(entities, entityName, recordId, ownerId, familyId) {
+  await entities[entityName].update(recordId, {
+    created_by_id: ownerId,
+    family_id: familyId || undefined
+  });
+}
+
 async function createTransactionRecord({ entities, parsed, account, ownerId }) {
   let txDate = new Date();
   if (parsed.date) {
@@ -94,7 +104,7 @@ async function createTransactionRecord({ entities, parsed, account, ownerId }) {
   // остальные члены семьи не увидят её ни в списке, ни в семейных финансах.
   const owner = await entities.User.get(ownerId).catch(() => null);
 
-  await entities.Transaction.create({
+  const created = await entities.Transaction.create({
     type: parsed.type,
     amount: parsed.amount,
     currency: parsed.currency || account.currency || owner?.currency || 'RUB',
@@ -107,6 +117,7 @@ async function createTransactionRecord({ entities, parsed, account, ownerId }) {
     family_id: owner?.family_id || undefined,
     source: 'telegram_bot'
   });
+  await reassignOwnership(entities, 'Transaction', created.id, ownerId, owner?.family_id);
 
   await applyBalanceDelta(entities, account.id, effect(parsed.type, parsed.amount), ownerId);
   if (parsed.type === 'expense') await applyBudgetDelta(entities, ownerId, parsed.category, parsed.amount);
@@ -296,7 +307,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
       if (!targetAccount) {
         replyText = '❌ Не найден счёт для записи операции. Добавьте счёт в приложении.';
       } else {
-        await entities.Transaction.create({
+        const createdTx = await entities.Transaction.create({
           type: t.type,
           amount: t.amount,
           currency: t.currency || targetAccount.currency || owner?.currency || 'RUB',
@@ -309,6 +320,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
           family_id: owner?.family_id || undefined,
           source: 'telegram_bot'
         });
+        await reassignOwnership(entities, 'Transaction', createdTx.id, ownerId, owner?.family_id);
         await applyBalanceDelta(entities, targetAccount.id, effect(t.type, t.amount), ownerId);
         if (t.type === 'expense') await applyBudgetDelta(entities, ownerId, t.category, t.amount);
         const freshAccounts = await entities.Account.filter({ user_id: ownerId });
@@ -329,7 +341,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         const quantity = inv.quantity || 1;
         const purchasePrice = inv.purchase_price || 0;
         const totalCost = quantity * purchasePrice;
-        await entities.Investment.create({
+        const createdInv = await entities.Investment.create({
           name: inv.name,
           type: inv.type,
           quantity,
@@ -341,7 +353,8 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
           family_id: owner?.family_id || undefined,
           created_by_id: ownerId
         });
-        // Явно дублируем created_by_id — платформа может перезаписать его при service-role create.
+        // Платформа перезаписывает created_by_id при service-role create — возвращаем настоящего владельца.
+        await reassignOwnership(entities, 'Investment', createdInv.id, ownerId, owner?.family_id);
         await applyBalanceDelta(entities, targetAccount.id, -totalCost, ownerId);
         replyText = `✅ Записал покупку инвестиции: ${inv.name} на ${totalCost.toLocaleString()} ₽ (счёт: ${targetAccount.name})`;
       }
@@ -351,7 +364,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
     if (!g.title || !g.target_amount) {
       replyText = '❌ Не удалось распознать название или сумму цели.';
     } else {
-      await entities.Goal.create({
+      const createdGoal = await entities.Goal.create({
         title: g.title,
         type: g.type || 'savings',
         target_amount: g.target_amount,
@@ -365,6 +378,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         visibility: 'private',
         status: 'active'
       });
+      await reassignOwnership(entities, 'Goal', createdGoal.id, ownerId, owner?.family_id);
       replyText = `✅ Создал цель: ${g.title} — накопить ${g.target_amount.toLocaleString()} ₽`;
     }
   } else if (action === 'create_budget' && parsed.budget) {
@@ -372,7 +386,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
     if (!b.name || !b.limit_amount) {
       replyText = '❌ Не удалось распознать название или лимит бюджета.';
     } else {
-      await entities.Budget.create({
+      const createdBudget = await entities.Budget.create({
         name: b.name,
         categories: b.categories || [],
         limit_amount: b.limit_amount,
@@ -386,6 +400,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         is_active: true,
         start_date: new Date().toISOString().split('T')[0]
       });
+      await reassignOwnership(entities, 'Budget', createdBudget.id, ownerId, owner?.family_id);
       replyText = `✅ Создал бюджет: ${b.name} — лимит ${b.limit_amount.toLocaleString()} ₽`;
     }
   } else if (action === 'update_transaction' && parsed.transaction_id && parsed.updates) {
