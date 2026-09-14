@@ -113,6 +113,9 @@
           "created_by_id": "{{user.id}}"
         },
         {
+          "data.user_id": "{{user.id}}"
+        },
+        {
           "$and": [
             {
               "data.family_id": "{{user.data.family_id}}"
@@ -132,6 +135,9 @@
           "created_by_id": "{{user.id}}"
         },
         {
+          "data.user_id": "{{user.id}}"
+        },
+        {
           "$and": [
             {
               "data.family_id": "{{user.data.family_id}}"
@@ -146,7 +152,14 @@
       ]
     },
     "delete": {
-      "created_by_id": "{{user.id}}"
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.user_id": "{{user.id}}"
+        }
+      ]
     }
   }
 }
