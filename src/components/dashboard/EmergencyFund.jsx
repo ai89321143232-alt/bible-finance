@@ -32,7 +32,7 @@ export default function EmergencyFund({ totalBalance, transactions, accounts = [
     const monthTotal = transactions
       .filter(tx => {
         const d = new Date(tx.date);
-        return tx.type === 'expense' && d >= monthStart && d <= monthEnd;
+        return tx.type === 'expense' && tx.category !== 'Инвестиции' && d >= monthStart && d <= monthEnd;
       })
       .reduce((sum, tx) => {
         const cur = tx.currency || accountCurrencyMap[tx.account_id] || profileCurrency;

@@ -50,6 +50,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import { useExchangeRates } from '@/hooks/useExchangeRates';
+import { useScopeMode } from '@/hooks/useScopeMode';
 
 const GOAL_TYPES = [
   { value: 'savings', labelKey: 'goals.type_savings', icon: '💰', color: '#10B981' },
@@ -89,6 +90,7 @@ export default function Goals() {
   });
   const [investmentAmounts, setInvestmentAmounts] = useState({});
   const [investmentErrors, setInvestmentErrors] = useState({});
+  const { scopeMode } = useScopeMode();
 
   const { data: family } = useQuery({
     queryKey: ['my-family', user?.id],
@@ -237,6 +239,7 @@ export default function Goals() {
       current_amount: parseFloat(formData.current_amount) || 0,
       deadline: formData.deadline ? format(formData.deadline, 'yyyy-MM-dd') : null,
       status: 'active', share_with: shareWithUsers,
+      scope: editGoal?.scope || (scopeMode === 'all' ? 'personal' : scopeMode),
       linked_account_ids: parseFloat(formData.current_amount) > 0 ? formData.linked_account_ids : [],
       linked_investment_ids: formData.linked_investment_ids || [],
       linked_investment_amounts: (formData.linked_investment_ids || []).map(id => ({
@@ -352,9 +355,10 @@ export default function Goals() {
   };
 
   const rawDisplayGoals = viewMode === 'personal' ? myGoals : sharedGoals;
+  const scopedGoals = scopeMode === 'all' ? rawDisplayGoals : rawDisplayGoals.filter((goal) => (goal.scope || 'personal') === scopeMode);
   const displayGoals = (showOnlyMine && viewMode === 'family')
-    ? rawDisplayGoals.filter(g => g.created_by_id === user?.id)
-    : rawDisplayGoals;
+    ? scopedGoals.filter(g => g.created_by_id === user?.id || g.user_id === user?.id)
+    : scopedGoals;
   const activeGoals = displayGoals.filter(g => g.status === 'active');
   const completedGoals = displayGoals.filter(g => g.status === 'completed');
   const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);

@@ -41,6 +41,7 @@ import {
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { INVESTMENT_CATEGORY } from '@/lib/investmentConstants';
 import FamilyVisibilityToggle from '@/components/shared/FamilyVisibilityToggle';
+import { useScopeMode } from '@/hooks/useScopeMode';
 
 const INVESTMENT_TYPES = [
   { value: 'stocks', label: 'Акции', icon: '📈', color: '#8B5CF6' },
@@ -70,6 +71,7 @@ export default function Investments() {
   const [showOnlyMine, setShowOnlyMine] = useState(false);
 
   const [formData, setFormData] = useState({ ...INITIAL_FORM });
+  const { scopeMode } = useScopeMode();
 
   const { data: investments = [], isLoading } = useQuery({
     queryKey: ['investments'],
@@ -179,7 +181,8 @@ export default function Investments() {
         ? format(formData.maturity_date, 'yyyy-MM-dd') : null,
       allows_top_up: formData.type === 'deposit' ? formData.allows_top_up : false,
       account_id: formData.account_id || undefined,
-      deduct_from_account: formData.deduct_from_account
+      deduct_from_account: formData.deduct_from_account,
+      scope: editInvestment?.scope || (scopeMode === 'all' ? 'personal' : scopeMode)
     };
     if (editInvestment) {
       await updateMutation.mutateAsync({ id: editInvestment.id, data: {
@@ -237,9 +240,10 @@ export default function Investments() {
     }).format(amount);
   };
 
+  const scopedInvestments = scopeMode === 'all' ? investments : investments.filter((inv) => (inv.scope || 'personal') === scopeMode);
   const displayedInvestments = (showOnlyMine && currentUser)
-    ? investments.filter(inv => inv.created_by_id === currentUser.id || inv.user_id === currentUser.id)
-    : investments;
+    ? scopedInvestments.filter(inv => inv.created_by_id === currentUser.id || inv.user_id === currentUser.id)
+    : scopedInvestments;
 
   const totalValue = displayedInvestments.reduce((sum, inv) => 
     sum + getInvestmentValue(inv), 0

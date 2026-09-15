@@ -6,11 +6,13 @@ import { ChevronRight, Plus, AlertCircle, Layers } from 'lucide-react';
 import { useLanguage } from '@/lib/LanguageContext';
 import { calcBudgetSpent } from '@/lib/budgetSpent';
 
-export default function BudgetOverview({ budgets, transactions = [], formatCurrency, currentUser }) {
+export default function BudgetOverview({ budgets, transactions = [], accounts = [], formatCurrency, currentUser, convert }) {
   const currentUserId = currentUser?.id;
+  const accountScopeMap = new Map(accounts.map((account) => [account.id, account.scope || 'personal']));
+  const calculate = (budget) => calcBudgetSpent(budget, transactions, currentUserId, accountScopeMap, convert);
   const { t } = useLanguage();
   const totalLimit = budgets.reduce((sum, b) => sum + (b.limit_amount || 0), 0);
-  const totalSpent = budgets.reduce((sum, b) => sum + calcBudgetSpent(b, transactions, currentUserId), 0);
+  const totalSpent = budgets.reduce((sum, b) => sum + calculate(b), 0);
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
@@ -36,7 +38,7 @@ export default function BudgetOverview({ budgets, transactions = [], formatCurre
         {budgets.length > 0 ? (
           <div className="p-4 space-y-4">
             {budgets.slice(0, 4).map((budget, idx) => {
-              const spent = calcBudgetSpent(budget, transactions, currentUserId);
+              const spent = calculate(budget);
               const progress = budget.limit_amount > 0 ? (spent / budget.limit_amount) * 100 : 0;
               const isOver = progress > 100;
               const isWarn = progress >= (budget.notify_at_percent || 80) && !isOver;

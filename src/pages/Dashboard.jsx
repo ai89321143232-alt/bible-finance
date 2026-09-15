@@ -76,6 +76,7 @@ export default function Dashboard() {
   const isMobile = useIsMobile();
   const activeWorkspaceId = useActiveWorkspaceId();
   const { scopeMode, setScopeMode, filterAccounts, filterTransactions } = useScopeMode();
+  const filterScopedRecords = (records) => scopeMode === 'all' ? records : records.filter((record) => (record.scope || 'personal') === scopeMode);
 
   const [visibleBlocks, setVisibleBlocks] = useState({
     balance: true,
@@ -221,8 +222,8 @@ export default function Dashboard() {
       if (!user) return [];
       const all = await base44.entities.Goal.filter({ status: 'active' });
       return all.filter((g) =>
-      g.created_by_id === user.id ||
-      family?.id && g.is_family_goal && g.family_id === family.id ||
+      g.created_by_id === user.id || g.user_id === user.id ||
+             family?.id && g.is_family_goal && g.family_id === family.id ||
       family?.id && g.share_with?.includes(user.id)
       );
     },
@@ -235,8 +236,8 @@ export default function Dashboard() {
       if (!user) return [];
       const all = await base44.entities.Investment.list();
       return all.filter((inv) =>
-      inv.created_by_id === user.id ||
-      family?.id && inv.family_id === family.id
+      inv.created_by_id === user.id || inv.user_id === user.id ||
+             family?.id && inv.family_id === family.id
       );
     },
     enabled: !!user
@@ -297,12 +298,12 @@ export default function Dashboard() {
   // Этап 4: фильтрация по области (Личные / Бизнес / Всё вместе)
   const transactions = filterTransactions(wsTransactions, wsAccounts);
   const allAccounts = filterAccounts(wsAccounts);
-  const budgets = filterByWorkspace(rawBudgets, activeWorkspaceId);
-  const goals = filterByWorkspace(rawGoals, activeWorkspaceId);
-  const investments = filterByWorkspace(rawInvestments, activeWorkspaceId);
-  const fixedAssets = filterByWorkspace(rawFixedAssets, activeWorkspaceId);
+  const budgets = filterScopedRecords(filterByWorkspace(rawBudgets, activeWorkspaceId));
+  const goals = filterScopedRecords(filterByWorkspace(rawGoals, activeWorkspaceId));
+  const investments = filterScopedRecords(filterByWorkspace(rawInvestments, activeWorkspaceId));
+  const fixedAssets = filterScopedRecords(filterByWorkspace(rawFixedAssets, activeWorkspaceId));
   const subscriptions = filterByWorkspace(rawSubscriptions, activeWorkspaceId);
-  const debtAccounts = filterByWorkspace(rawDebtAccounts, activeWorkspaceId);
+  const debtAccounts = filterScopedRecords(filterByWorkspace(rawDebtAccounts, activeWorkspaceId));
 
   const familyMembers = family?.members || [];
   const memberIds = familyMembers.map((m) => m.user_id);
@@ -524,7 +525,7 @@ export default function Dashboard() {
             ) : (
               <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} debtAccounts={debtAccounts} />
             )}
-            <NetWorthCard accounts={displayAccounts} investments={modeInvestments} fixedAssets={modeFixedAssets} debtAccounts={debtAccounts} formatCurrency={formatCurrency} onFixedAssetAdded={() => queryClient.invalidateQueries({ queryKey: ['fixed-assets'] })} />
+            <NetWorthCard accounts={displayAccounts} investments={modeInvestments} fixedAssets={modeFixedAssets} debtAccounts={debtAccounts} formatCurrency={formatCurrency} onFixedAssetAdded={() => queryClient.invalidateQueries({ queryKey: ['fixed-assets'] })} scope={scopeMode === 'all' ? 'personal' : scopeMode} />
           </section>
         );
       case 'quickStats':
@@ -558,7 +559,7 @@ export default function Dashboard() {
                   </div>
                 </Link>
               </motion.div>
-              <SafeDailyLimit budgets={budgets} accounts={displayAccounts} subscriptions={subscriptions} formatCurrency={formatCurrency} />
+              <SafeDailyLimit budgets={budgets} accounts={allAccounts} transactions={transactions} currentUser={user} subscriptions={subscriptions} formatCurrency={formatCurrency} />
               <EmergencyFund totalBalance={totalBalance} transactions={transactions} accounts={allAccounts} formatCurrency={formatCurrency} />
             </div>
           </section>
@@ -581,7 +582,7 @@ export default function Dashboard() {
       case 'transactions':
         return <div key="transactions" className="mb-6"><RecentTransactions transactions={(filterAccount || filterCategory ? filteredTransactions : transactions).slice(0, 5)} formatCurrency={formatCurrency} onEdit={(t) => { setEditTransaction(t); setShowQuickAdd(true); }} /></div>;
       case 'budgets':
-        return <div key="budgets" className="mb-6"><BudgetOverview budgets={budgets} transactions={transactions} formatCurrency={formatCurrency} currentUser={user} /></div>;
+        return <div key="budgets" className="mb-6"><BudgetOverview budgets={budgets} transactions={transactions} accounts={allAccounts} formatCurrency={formatCurrency} currentUser={user} convert={convert} /></div>;
       case 'goals':
         return <div key="goals" className="mb-6"><AllGoalsProgress goals={goals} formatCurrency={formatCurrency} convert={convert} profileCurrency={profileCurrency} /></div>;
       case 'aiInsights':

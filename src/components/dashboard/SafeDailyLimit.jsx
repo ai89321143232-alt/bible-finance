@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Wallet, Snowflake, Repeat } from 'lucide-react';
 import { useLanguage } from '@/lib/LanguageContext';
 import { useExchangeRates } from '@/hooks/useExchangeRates';
+import { calcBudgetSpent } from '@/lib/budgetSpent';
 
 // ============================================================
 // SafeDailyLimit — Безопасный дневной лимит
@@ -13,7 +14,7 @@ import { useExchangeRates } from '@/hooks/useExchangeRates';
 //   2. Доступный баланс (баланс - замороженные суммы) — в валюте профиля (с конвертацией)
 //   3. Предстоящие списания подписок в этом периоде
 // ============================================================
-export default function SafeDailyLimit({ budgets, accounts, subscriptions, formatCurrency }) {
+export default function SafeDailyLimit({ budgets, accounts, subscriptions, transactions = [], currentUser, formatCurrency }) {
   const { t } = useLanguage();
   const { convert, profileCurrency } = useExchangeRates();
   const now = new Date();
@@ -21,8 +22,9 @@ export default function SafeDailyLimit({ budgets, accounts, subscriptions, forma
   const daysLeft = Math.max(1, endOfMonth.getDate() - now.getDate() + 1);
 
   // --- 1. Бюджетный лимит ---
+  const accountScopeMap = new Map((accounts || []).map((account) => [account.id, account.scope || 'personal']));
   const totalLimit = budgets.reduce((sum, b) => sum + (b.limit_amount || 0), 0);
-  const totalSpent = budgets.reduce((sum, b) => sum + (b.spent_amount || 0), 0);
+  const totalSpent = budgets.reduce((sum, b) => sum + calcBudgetSpent(b, transactions, currentUser?.id, accountScopeMap, convert), 0);
   const budgetRemaining = Math.max(0, totalLimit - totalSpent);
   const budgetDaily = budgetRemaining / daysLeft;
   const usagePercent = totalLimit > 0 ? (totalSpent / totalLimit) * 100 : 0;

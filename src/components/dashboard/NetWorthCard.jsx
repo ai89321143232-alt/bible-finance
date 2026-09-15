@@ -17,7 +17,8 @@ export default function NetWorthCard({
   fixedAssets = [],
   debtAccounts = [],
   formatCurrency,
-  onFixedAssetAdded
+  onFixedAssetAdded,
+  scope = 'personal'
 }) {
   const [showAddAsset, setShowAddAsset] = useState(false);
   const { t } = useLanguage();
@@ -210,7 +211,7 @@ export default function NetWorthCard({
       <AddFixedAssetModal
         open={showAddAsset}
         onClose={() => setShowAddAsset(false)}
-        onSaved={() => onFixedAssetAdded && onFixedAssetAdded()}
+        onSaved={() => onFixedAssetAdded && onFixedAssetAdded()} scope={scope} scope={scope}
       />
     </motion.div>
   );

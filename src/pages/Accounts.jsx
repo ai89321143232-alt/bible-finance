@@ -41,6 +41,7 @@ import CreatorTag from '@/components/shared/CreatorTag';
 import FamilyVisibilityToggle from '@/components/shared/FamilyVisibilityToggle';
 import { useLanguage } from '@/lib/LanguageContext';
 import { useFormatCurrency, getCurrencySymbol } from '@/lib/formatCurrency';
+import { useScopeMode } from '@/hooks/useScopeMode';
 
 const ACCOUNT_COLORS = [
   '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6',
@@ -110,6 +111,7 @@ export default function Accounts() {
   });
 
   const activeWorkspaceId = useActiveWorkspaceId();
+  const { filterAccounts: filterAccountsByScope } = useScopeMode();
 
   // Загружаем валюту профиля один раз
   useEffect(() => {
@@ -162,9 +164,9 @@ export default function Accounts() {
     acc.created_by_id === currentUser?.id ||
     (family?.id && acc.family_id === family.id)
   );
-  const accounts = filterByWorkspace(myAccounts, activeWorkspaceId);
+  const accounts = filterAccountsByScope(filterByWorkspace(myAccounts, activeWorkspaceId));
   const displayedAccounts = showOnlyMine
-    ? accounts.filter(acc => acc.created_by_id === currentUser?.id)
+    ? accounts.filter(acc => acc.created_by_id === currentUser?.id || acc.user_id === currentUser?.id)
     : accounts;
 
   const { data: transactions = [] } = useQuery({

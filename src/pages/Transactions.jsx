@@ -114,7 +114,8 @@ export default function Transactions() {
     enabled: !!user
   });
 
-  const { filterTransactions: filterScopeTx } = useScopeMode();
+  const { filterTransactions: filterScopeTx, filterAccounts: filterAccountsByScope } = useScopeMode();
+  const scopedAccounts = filterAccountsByScope(accounts);
   const scopedTransactions = filterScopeTx(transactions, accounts);
 
   const deleteMutation = useMutation({
@@ -282,7 +283,7 @@ export default function Transactions() {
       <AnimatePresence>
         {showAddModal && (
           <QuickAddTransaction transaction={editTransaction}
-            onClose={() => { setShowAddModal(false); setEditTransaction(null); }} accounts={accounts} />
+            onClose={() => { setShowAddModal(false); setEditTransaction(null); }} accounts={scopedAccounts} />
         )}
         {showExportModal && user && (
           <ExportRangeModal user={user} activeWorkspaceId={activeWorkspaceId} onClose={() => setShowExportModal(false)} />

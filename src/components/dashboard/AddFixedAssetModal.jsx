@@ -14,7 +14,7 @@ const ASSET_TYPES = [
   { value: 'other', label: 'Другое' }
 ];
 
-export default function AddFixedAssetModal({ open, onClose, onSaved }) {
+export default function AddFixedAssetModal({ open, onClose, onSaved, scope = 'personal' }) {
   const [name, setName] = useState('');
   const [type, setType] = useState('real_estate');
   const [value, setValue] = useState('');
@@ -34,7 +34,8 @@ export default function AddFixedAssetModal({ open, onClose, onSaved }) {
       value: parseFloat(value),
       currency,
       value_date: valueDate,
-      family_id: user?.family_id || undefined
+      family_id: user?.family_id || undefined,
+      scope
     });
     setSaving(false);
     setName('');
