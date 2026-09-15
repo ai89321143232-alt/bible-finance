@@ -72,7 +72,7 @@ export default function AIAdvisors() {
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-colors border ${
                 isActive
                   ? 'bg-muted border-border text-foreground'
-                  : 'bg-transparent border-border text-muted-foreground hover:text-foreground'
+                  : 'bg-card border-border text-foreground hover:bg-muted'
               }`}
             >
               <Icon className="w-4 h-4" />
