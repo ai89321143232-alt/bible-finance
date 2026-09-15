@@ -135,6 +135,13 @@ export default function BibleVerse() {
     }
   };
 
+  const closeVerse = () => {
+    if (!todayVerse) return;
+    markVerseAsShown(todayVerse);
+    dismiss('bible_verse');
+    setShowModal(false);
+  };
+
   const handleSaveNote = async () => {
     if (!saveNoteTitle.trim() || !todayVerse) return;
 
@@ -220,7 +227,7 @@ export default function BibleVerse() {
 
               {/* Close Button */}
               <Button
-                onClick={() => setShowModal(false)}
+                onClick={closeVerse}
                 variant="ghost"
                 className="w-full text-amber-700 dark:text-amber-300 hover:bg-amber-100/50 dark:hover:bg-amber-900/20 rounded-lg"
               >
