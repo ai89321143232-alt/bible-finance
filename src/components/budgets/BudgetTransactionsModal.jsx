@@ -10,6 +10,7 @@ import {
 import { getCategoryEmoji } from '@/lib/categoryIcon';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { getBudgetPeriod } from '@/lib/budgetSpent';
 
 export default function BudgetTransactionsModal({
   budget,
@@ -21,33 +22,14 @@ export default function BudgetTransactionsModal({
   if (!budget) return null;
 
   const budgetCategories = budget.categories || (budget.category ? [budget.category] : []);
-  const now = new Date();
-  let periodStart;
-
-  switch (budget.period) {
-    case 'weekly': {
-      const day = now.getDay();
-      periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day);
-      break;
-    }
-    case 'quarterly': {
-      const quarter = Math.floor(now.getMonth() / 3);
-      periodStart = new Date(now.getFullYear(), quarter * 3, 1);
-      break;
-    }
-    case 'yearly':
-      periodStart = new Date(now.getFullYear(), 0, 1);
-      break;
-    case 'monthly':
-    default:
-      periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  }
+  const { periodStart, periodEnd } = getBudgetPeriod(budget);
 
   const budgetTx = transactions
     .filter(t => {
       if (t.type !== 'expense') return false;
       if (budgetCategories.length > 0 && !budgetCategories.includes(t.category)) return false;
-      if (new Date(t.date) < periodStart) return false;
+      const transactionDate = new Date(t.date);
+      if (transactionDate < periodStart || transactionDate > periodEnd) return false;
       if (budget.is_family_budget) {
         return t.budget_scope !== 'personal';
       }

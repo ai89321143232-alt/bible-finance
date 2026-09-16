@@ -13,19 +13,25 @@
  * @param {Map<string,string>} [accountScopeMap] — карта accountId → scope
  * @returns {number}
  */
-export function calcBudgetSpent(budget, transactions, currentUserId, accountScopeMap, convert) {
-  const now = new Date();
-  const periodStart = budget.start_date ? new Date(budget.start_date) : new Date(
-    budget.period === 'yearly' ? now.getFullYear() : now.getFullYear(),
-    budget.period === 'yearly' ? 0 : budget.period === 'quarterly' ? Math.floor(now.getMonth() / 3) * 3 : now.getMonth(),
-    budget.period === 'weekly' ? now.getDate() - now.getDay() : 1
+export function getBudgetPeriod(budget, now = new Date()) {
+  const period = budget.period || 'monthly';
+  const periodStart = new Date(
+    now.getFullYear(),
+    period === 'yearly' ? 0 : period === 'quarterly' ? Math.floor(now.getMonth() / 3) * 3 : now.getMonth(),
+    period === 'weekly' ? now.getDate() - now.getDay() : 1
   );
-  const periodEnd = budget.end_date ? new Date(budget.end_date) : new Date(
-    budget.period === 'yearly' ? now.getFullYear() : now.getFullYear(),
-    budget.period === 'yearly' ? 11 : budget.period === 'quarterly' ? Math.floor(now.getMonth() / 3) * 3 + 3 : now.getMonth() + 1,
-    budget.period === 'weekly' ? now.getDate() - now.getDay() + 7 : 0,
+  const periodEnd = new Date(
+    now.getFullYear(),
+    period === 'yearly' ? 11 : period === 'quarterly' ? Math.floor(now.getMonth() / 3) * 3 + 3 : now.getMonth() + 1,
+    period === 'weekly' ? now.getDate() - now.getDay() + 7 : 0,
     23, 59, 59, 999
   );
+
+  return { periodStart, periodEnd };
+}
+
+export function calcBudgetSpent(budget, transactions, currentUserId, accountScopeMap) {
+  const { periodStart, periodEnd } = getBudgetPeriod(budget);
 
   const categories = budget.categories?.length > 0
     ? budget.categories

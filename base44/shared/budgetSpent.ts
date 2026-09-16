@@ -16,13 +16,25 @@
  * @param {Map<string,string>} [accountScopeMap] — карта accountId → scope (personal/business)
  * @returns {number} — сумма расходов по бюджету за период
  */
-export function calcBudgetSpent(budget, transactions, currentUserId, accountScopeMap) {
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+export function getBudgetPeriod(budget, now = new Date()) {
+  const period = budget.period || 'monthly';
+  const periodStart = new Date(
+    now.getFullYear(),
+    period === 'yearly' ? 0 : period === 'quarterly' ? Math.floor(now.getMonth() / 3) * 3 : now.getMonth(),
+    period === 'weekly' ? now.getDate() - now.getDay() : 1
+  );
+  const periodEnd = new Date(
+    now.getFullYear(),
+    period === 'yearly' ? 11 : period === 'quarterly' ? Math.floor(now.getMonth() / 3) * 3 + 3 : now.getMonth() + 1,
+    period === 'weekly' ? now.getDate() - now.getDay() + 7 : 0,
+    23, 59, 59, 999
+  );
 
-  const periodStart = budget.start_date ? new Date(budget.start_date) : monthStart;
-  const periodEnd = budget.end_date ? new Date(budget.end_date) : monthEnd;
+  return { periodStart, periodEnd };
+}
+
+export function calcBudgetSpent(budget, transactions, currentUserId, accountScopeMap) {
+  const { periodStart, periodEnd } = getBudgetPeriod(budget);
 
   const categories = budget.categories?.length > 0
     ? budget.categories

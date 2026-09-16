@@ -37,7 +37,7 @@ export default async function(req) {
       }
     }
 
-    return Response.json({ checked, fixed, periodStart: periodStart.toISOString(), corrections });
+    return Response.json({ checked, fixed, corrections });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
