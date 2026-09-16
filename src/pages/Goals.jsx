@@ -438,7 +438,7 @@ export default function Goals() {
             <div className="grid gap-4 sm:grid-cols-2">
               {activeGoals.map((goal, index) => (
                 <GoalCard key={goal.id} goal={goal} index={index}
-                  isEditable={viewMode === 'personal' || goal.created_by_id === user?.id || goal.user_id === user?.id}
+                  isEditable={viewMode === 'personal' || goal.is_family_goal || goal.created_by_id === user?.id || goal.user_id === user?.id}
                   onEdit={handleEdit} onDelete={(id) => setDeleteId(id)}
                   onAddFunds={setShowAddFundsModal} onSpend={setShowSpendModal}
                   formatCurrency={formatCurrency} family={family} currentUser={user}
