@@ -587,6 +587,7 @@ export default function Dashboard() {
               items={showIncomeBreakdown ? incomeAccountData : expenseCategoryData}
               formatCurrency={formatCurrency}
               title={showIncomeBreakdown ? 'Доходы по счетам' : 'Расходы по категориям'}
+              onClose={() => { setShowIncomeBreakdown(false); setShowExpenseBreakdown(false); }}
             />
           </section>
         );
