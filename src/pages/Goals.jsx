@@ -124,7 +124,8 @@ export default function Goals() {
       const familyId = family?.id;
       return goals.filter(g =>
         (g.is_family_goal && g.family_id && familyId && g.family_id === familyId) ||
-        (g.share_with?.includes(user?.id) && g.created_by_id !== user?.id)
+        (g.is_family_goal && (g.created_by_id === user?.id || g.user_id === user?.id)) ||
+        g.share_with?.includes(user?.id)
       );
     },
     enabled: !!user && !!family,

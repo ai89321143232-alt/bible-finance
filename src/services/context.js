@@ -95,23 +95,38 @@ export const resolveWorkspaceContext = async (user) => {
  * Гарантирует, что запись попадёт именно в активное пространство.
  */
 export const enrichWithOwnership = async (data, user) => {
-  const ws = await resolveWorkspaceContext(user);
+  const isFamilyGoal = data.is_family_goal === true;
+  const ws = isFamilyGoal
+    ? (await base44.functions.invoke('resolveWorkspace', { scope: 'family' }))?.data
+    : await resolveWorkspaceContext(user);
+
   if (!ws) {
-    // Фолбэк, если сервер недоступен: family_id проставляем только
-    // когда активно именно семейное пространство, а не по факту наличия семьи.
-    const active = await resolveActiveWorkspace(user);
-    const base = { ...data, currency: data.currency || user?.currency || 'RUB' };
-    return active.type === 'family' && user?.family_id
-      ? { ...base, family_id: user.family_id, user_id: user.id }
-      : { ...base, family_id: undefined, user_id: user?.id };
+    throw new Error('Не удалось определить рабочее пространство');
   }
-  const familyFields =
-    ws.type === 'family'
-      ? { family_id: ws.family_id || user.family_id }
-      : { family_id: undefined };
+
+  if (isFamilyGoal) {
+    const families = await base44.entities.Family.list();
+    const family = families.find((item) =>
+      item.id === ws.family_id || item.owner_id === user.id || item.members?.some((member) => member.user_id === user.id)
+    );
+    const familyId = ws.family_id || family?.id;
+    if (!familyId) throw new Error('Семья для цели не найдена');
+
+    const familyMemberIds = [family?.owner_id, ...(family?.members || []).map((member) => member.user_id)].filter(Boolean);
+    return {
+      ...data,
+      family_id: familyId,
+      user_id: user.id,
+      workspace_id: ws.workspace_id,
+      visibility: 'shared',
+      share_with: [...new Set([...(data.share_with || []), ...familyMemberIds])],
+      currency: data.currency || user?.currency || 'RUB',
+    };
+  }
+
   return {
     ...data,
-    ...familyFields,
+    family_id: undefined,
     user_id: user.id,
     workspace_id: ws.workspace_id,
     visibility: ws.visibility,
