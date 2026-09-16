@@ -215,7 +215,10 @@ export async function computeFinancialContext(entities, ownerId, timezone = 'UTC
       return acc;
     }, {});
 
-  const investmentValue = investments.reduce((sum, inv) => sum + (inv.quantity * (inv.current_price || inv.purchase_price)), 0);
+  const investmentValue = investments.reduce((sum, inv) => {
+    const price = Number(inv.current_price || inv.purchase_price) || 0;
+    return sum + (inv.type === 'deposit' ? price : (Number(inv.quantity) || 0) * price);
+  }, 0);
 
   // Расходы по каждому члену семьи за текущий месяц, отсортированные по сумме —
   // чтобы ассистент мог рассказать, кто и куда тратит деньги в семье.
