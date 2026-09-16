@@ -22,6 +22,10 @@ export function formatCurrencyFor(amount, language = 'ru', currency = 'RUB') {
   }).format(amount);
 }
 
+export function formatAccountBalance(account, language = 'ru') {
+  return formatCurrencyFor(account?.balance || 0, language, account?.currency || 'RUB');
+}
+
 // Узкий символ валюты (₽, $, €, сум и т.д.) — для полей ввода форм
 export function getCurrencySymbol(code = 'RUB', language = 'ru') {
   const locale = language === 'en' ? 'en-US' : 'ru-RU';

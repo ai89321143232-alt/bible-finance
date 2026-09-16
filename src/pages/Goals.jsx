@@ -522,7 +522,7 @@ export default function Goals() {
                           else setFormData({ ...formData, linked_account_ids: formData.linked_account_ids.filter(id => id !== account.id) });
                         }} className="rounded" />
                       <span className="text-sm text-slate-700 dark:text-slate-300 flex-1">{account.name}</span>
-                      <span className="text-xs text-slate-400">{formatCurrency(account.balance || 0)}</span>
+                      <span className="text-xs text-slate-400">{formatCurrency(account.balance || 0, account.currency)}</span>
                     </label>
                   ))}
                 </div>

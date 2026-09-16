@@ -11,7 +11,7 @@ import ReceiptReviewModal from './ReceiptReviewModal';
 import { parseFlexibleDate } from '@/lib/parseDate';
 import { compressImage } from '@/lib/compressImage';
 import { getCategoryEmoji } from '@/lib/categoryIcon';
-import { getCurrencySymbol } from '@/lib/formatCurrency';
+import { getCurrencySymbol, formatAccountBalance } from '@/lib/formatCurrency';
 import QRReceiptScanner from './QRReceiptScanner';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -629,7 +629,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                     <NativeSelect value={accountId} onChange={setAccountId} placeholder="Выберите ваш счёт">
                       {myAccounts.map((acc) => (
                         <option key={acc.id} value={acc.id}>
-                          {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
+                          {acc.name} ({formatAccountBalance(acc)})
                         </option>
                       ))}
                     </NativeSelect>
@@ -639,7 +639,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                     <NativeSelect value={toAccountId} onChange={setToAccountId} placeholder="Выберите счёт или цель">
                       {myAccounts.filter(a => a.id !== accountId).map((acc) => (
                         <option key={acc.id} value={acc.id}>
-                          {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
+                          {acc.name} ({formatAccountBalance(acc)})
                         </option>
                       ))}
                       {(accounts || []).filter(a => a.id !== accountId && !myAccounts.find(ma => ma.id === a.id) && a.family_id).map((acc) => {
@@ -649,7 +649,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                           'Член семьи';
                         return (
                           <option key={acc.id} value={acc.id}>
-                            👤 {memberName}: {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
+                            👤 {memberName}: {acc.name} ({formatAccountBalance(acc)})
                           </option>
                         );
                       })}
@@ -657,7 +657,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                         const progress = goal.target_amount > 0 ? Math.min((goal.current_amount / goal.target_amount) * 100, 100) : 0;
                         return (
                           <option key={`goal_${goal.id}`} value={`goal_${goal.id}`}>
-                            🎯 {goal.title} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(goal.current_amount || 0)} / {progress.toFixed(0)}%)
+                            🎯 {goal.title} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: goal.currency || 'RUB', maximumFractionDigits: 0 }).format(goal.current_amount || 0)} / {progress.toFixed(0)}%)
                           </option>
                         );
                       })}
@@ -778,7 +778,7 @@ export default function QuickAddTransaction({ transaction, onClose, accounts, de
                     <NativeSelect value={accountId} onChange={setAccountId} placeholder="Выберите ваш счёт">
                       {myAccounts.map((acc) => (
                         <option key={acc.id} value={acc.id}>
-                          {acc.name} ({new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(acc.balance)})
+                          {acc.name} ({formatAccountBalance(acc)})
                         </option>
                       ))}
                     </NativeSelect>

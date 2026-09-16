@@ -793,7 +793,7 @@ export default function Investments() {
                       <SelectContent>
                         {accounts.map(acc => (
                           <SelectItem key={acc.id} value={acc.id}>
-                            {acc.name} · {formatCurrency(acc.balance || 0)}
+                            {acc.name} · {formatCurrency(acc.balance || 0, acc.currency)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -851,7 +851,7 @@ export default function Investments() {
                 <SelectContent>
                   {transferAccounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
-                      {account.name} · {formatCurrency(account.balance || 0)}
+                      {account.name} · {formatCurrency(account.balance || 0, account.currency)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -895,7 +895,7 @@ export default function Investments() {
                 <Select value={transferAccountId} onValueChange={setTransferAccountId}>
                   <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="Выберите счёт" /></SelectTrigger>
                   <SelectContent>
-                    {transferAccounts.map((account) => <SelectItem key={account.id} value={account.id}>{account.name} · {formatCurrency(account.balance || 0)}</SelectItem>)}
+                    {transferAccounts.map((account) => <SelectItem key={account.id} value={account.id}>{account.name} · {formatCurrency(account.balance || 0, account.currency)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
