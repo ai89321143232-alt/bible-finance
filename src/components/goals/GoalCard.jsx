@@ -176,6 +176,7 @@ export default function GoalCard({
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">
                   {formatCurrency(effectiveAmount)}
                 </p>
+                <p className="text-sm text-slate-500 mt-1">из {formatCurrency(goal.target_amount)}</p>
                 <p className="text-xs text-slate-500 mt-1">Источники: накопления {formatCurrency(goal.current_amount || 0)} · активы {formatCurrency(linkedInvestmentsValue)} · выплаты {formatCurrency(payoutsValue)}</p>
                 <p className="text-sm font-medium text-violet-700 dark:text-violet-300 mt-1">Осталось докладывать: {formatCurrency(remainingAmount)}{daysLeft > 0 ? ` · ${formatCurrency(remainingAmount / Math.max(1, Math.ceil(daysLeft / 30)))} / мес.` : ''}</p>
                 {linkedInvestmentsValue > 0 ? (
