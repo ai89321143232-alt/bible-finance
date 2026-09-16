@@ -10,4 +10,5 @@ export { AccountService } from './AccountService';
 export { BudgetService } from './BudgetService';
 export { GoalService } from './GoalService';
 export { InvestmentService } from './InvestmentService';
+export { InvestmentCashFlowService } from './InvestmentCashFlowService';
 export * from './context';

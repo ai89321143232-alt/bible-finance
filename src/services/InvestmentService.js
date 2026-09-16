@@ -14,6 +14,20 @@ import { INVESTMENT_CATEGORY } from '@/lib/investmentConstants';
 const repo = () => getRepository('Investment');
 const txRepo = () => getRepository('Transaction');
 const accountRepo = () => getRepository('Account');
+const goalRepo = () => getRepository('Goal');
+
+const syncGoalLinks = async (investment, previousGoalIds = []) => {
+  const nextGoalIds = investment.linked_goal_ids || [];
+  const affectedIds = [...new Set([...previousGoalIds, ...nextGoalIds])];
+  await Promise.all(affectedIds.map(async (goalId) => {
+    const goal = await goalRepo().get(goalId);
+    const current = goal.linked_investment_ids || [];
+    const linked_investment_ids = nextGoalIds.includes(goalId)
+      ? [...new Set([...current, investment.id])]
+      : current.filter((id) => id !== investment.id);
+    await goalRepo().update(goalId, { linked_investment_ids });
+  }));
+};
 
 export const InvestmentService = {
   list() {
@@ -39,7 +53,9 @@ export const InvestmentService = {
       user
     );
     const created = await repo().create(data);
+    await syncGoalLinks(created);
     eventBus.emit(EVENTS.ACCOUNT_CHANGED, { id: created?.id, action: 'investment-create' });
+    eventBus.emit(EVENTS.GOAL_CHANGED, { action: 'investment-create' });
     return created;
   },
 
@@ -87,18 +103,18 @@ export const InvestmentService = {
   },
 
   async update(id, input) {
+    const existing = await repo().get(id);
     const user = await getCurrentUser();
-    const data = await enrichWithOwnership(
-      {
-        ...input,
-        quantity: parseFloat(input.quantity),
-        purchase_price: parseFloat(input.purchase_price),
-        current_price: parseFloat(input.current_price) || parseFloat(input.purchase_price),
-      },
-      user
-    );
+    const data = await enrichWithOwnership({
+      ...input,
+      quantity: parseFloat(input.quantity),
+      purchase_price: parseFloat(input.purchase_price),
+      current_price: parseFloat(input.current_price) || parseFloat(input.purchase_price),
+    }, user);
     const updated = await repo().update(id, data);
+    await syncGoalLinks(updated, existing?.linked_goal_ids || []);
     eventBus.emit(EVENTS.ACCOUNT_CHANGED, { id, action: 'investment-update' });
+    eventBus.emit(EVENTS.GOAL_CHANGED, { action: 'investment-update' });
     return updated;
   },
 

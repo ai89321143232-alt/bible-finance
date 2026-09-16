@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { InvestmentService } from '@/services';
+import { InvestmentService, InvestmentCashFlowService } from '@/services';
 import CreatorTag from '@/components/shared/CreatorTag';
+import InvestmentPayoutDialog from '@/components/investments/InvestmentPayoutDialog';
 import { motion } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -57,7 +58,8 @@ const INVESTMENT_TYPES = [
 const INITIAL_FORM = {
   name: '', type: 'stocks', ticker: '', quantity: '', purchase_price: '',
   current_price: '', broker: '', interest_rate: '', maturity_date: null,
-  allows_top_up: false,
+  allows_top_up: false, coupon_per_unit: '', dividend_yield: '', payout_frequency: '',
+  next_payout_date: '', nominal_value: '', linked_goal_ids: [],
   account_id: '', deduct_from_account: false
 };
 
@@ -72,6 +74,8 @@ export default function Investments() {
   const [topUpInvestment, setTopUpInvestment] = useState(null);
   const [topUpAmount, setTopUpAmount] = useState('');
   const [showOnlyMine, setShowOnlyMine] = useState(false);
+  const [payoutInvestment, setPayoutInvestment] = useState(null);
+  const [payoutForm, setPayoutForm] = useState({ type: 'dividend', amount: '', date: new Date().toISOString().slice(0, 10), destination: 'income', linked_goal_id: '', account_id: '' });
 
   const [formData, setFormData] = useState({ ...INITIAL_FORM });
   const { scopeMode } = useScopeMode();
@@ -87,9 +91,13 @@ export default function Investments() {
   }, []);
 
   const { data: accounts = [] } = useQuery({
-    queryKey: ['accounts'],
-    queryFn: () => base44.entities.Account.list(),
-    enabled: !!currentUser
+    queryKey: ['accounts'], queryFn: () => base44.entities.Account.list(), enabled: !!currentUser
+  });
+  const { data: goals = [] } = useQuery({
+    queryKey: ['investment-goals'], queryFn: () => base44.entities.Goal.list(), enabled: !!currentUser
+  });
+  const { data: cashFlows = [] } = useQuery({
+    queryKey: ['investment-cash-flows'], queryFn: () => InvestmentCashFlowService.list(), enabled: !!currentUser
   });
 
   const { data: family } = useQuery({
@@ -142,6 +150,17 @@ export default function Investments() {
     }
   });
 
+  const payoutMutation = useMutation({
+    mutationFn: (data) => InvestmentCashFlowService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['investment-cash-flows'] });
+      queryClient.invalidateQueries({ queryKey: ['investment-goals'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      setPayoutInvestment(null);
+    }
+  });
+
   const topUpMutation = useMutation({
     mutationFn: ({ id, data }) => InvestmentService.update(id, data),
     onSuccess: () => {
@@ -169,7 +188,10 @@ export default function Investments() {
       broker: investment.broker || '',
       interest_rate: investment.interest_rate?.toString() || '',
       maturity_date: investment.maturity_date ? new Date(investment.maturity_date) : null,
-      allows_top_up: investment.allows_top_up || false
+      allows_top_up: investment.allows_top_up || false,
+      coupon_per_unit: investment.coupon_per_unit?.toString() || '', dividend_yield: investment.dividend_yield?.toString() || '',
+      payout_frequency: investment.payout_frequency || '', next_payout_date: investment.next_payout_date || '',
+      nominal_value: investment.nominal_value?.toString() || '', linked_goal_ids: investment.linked_goal_ids || []
     });
     setShowAddModal(true);
   };
@@ -187,6 +209,10 @@ export default function Investments() {
       maturity_date: formData.type === 'deposit' && formData.maturity_date
         ? format(formData.maturity_date, 'yyyy-MM-dd') : null,
       allows_top_up: formData.type === 'deposit' ? formData.allows_top_up : false,
+      coupon_per_unit: parseFloat(formData.coupon_per_unit) || undefined,
+      dividend_yield: parseFloat(formData.dividend_yield) || undefined,
+      payout_frequency: formData.payout_frequency || undefined, next_payout_date: formData.next_payout_date || undefined,
+      nominal_value: parseFloat(formData.nominal_value) || undefined, linked_goal_ids: formData.linked_goal_ids,
       account_id: formData.account_id || undefined,
       deduct_from_account: formData.deduct_from_account,
       scope: editInvestment?.scope || (scopeMode === 'all' ? 'personal' : scopeMode)
@@ -197,7 +223,10 @@ export default function Investments() {
         quantity: payload.quantity, purchase_price: payload.purchase_price,
         current_price: payload.current_price, broker: payload.broker,
         interest_rate: payload.interest_rate, maturity_date: payload.maturity_date,
-        allows_top_up: payload.allows_top_up
+        allows_top_up: payload.allows_top_up, coupon_per_unit: payload.coupon_per_unit,
+        dividend_yield: payload.dividend_yield, payout_frequency: payload.payout_frequency,
+        next_payout_date: payload.next_payout_date, nominal_value: payload.nominal_value,
+        linked_goal_ids: payload.linked_goal_ids
       }});
     } else {
       await createMutation.mutateAsync(payload);
@@ -225,6 +254,15 @@ export default function Investments() {
       ? { account_id: transferAccountId, amount: parseFloat(transferAmount) }
       : null;
     deleteMutation.mutate({ id: deleteInvestment.id, transfer });
+  };
+
+  const handlePayoutSave = () => {
+    payoutMutation.mutate({ ...payoutForm, investment_id: payoutInvestment.id, investment_name: payoutInvestment.name,
+      amount: parseFloat(payoutForm.amount), date: new Date(`${payoutForm.date}T12:00:00`).toISOString(),
+      reinvested: payoutForm.destination === 'reinvest', currency: payoutInvestment.currency || 'RUB',
+      linked_goal_id: payoutForm.destination === 'goal' ? payoutForm.linked_goal_id : undefined,
+      account_id: payoutForm.destination === 'goal' ? payoutForm.account_id : undefined,
+      scope: payoutInvestment.scope || 'personal' });
   };
 
   const handleTopUp = async () => {
@@ -432,6 +470,10 @@ export default function Investments() {
               const isEditable = investment.created_by_id === currentUser?.id || investment.user_id === currentUser?.id;
               const isDeposit = investment.type === 'deposit';
               const daysToMaturity = investment.maturity_date ? differenceInDays(new Date(investment.maturity_date), new Date()) : null;
+              const payoutsPerYear = { monthly: 12, quarterly: 4, semiannual: 2, annual: 1 }[investment.payout_frequency] || 1;
+              const forecastPayout = investment.coupon_per_unit
+                ? investment.coupon_per_unit * (investment.type === 'deposit' ? 1 : investment.quantity || 0)
+                : investment.dividend_yield ? (value * investment.dividend_yield / 100 / payoutsPerYear) : 0;
 
               return (
                 <motion.div
@@ -520,6 +562,19 @@ export default function Investments() {
                           )}
                         </div>
                       </div>
+
+                      {(investment.coupon_per_unit || investment.dividend_yield || investment.next_payout_date) && (
+                        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 flex flex-wrap items-center gap-2 text-xs">
+                          {investment.coupon_per_unit != null && <span className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400">Выплата: {formatCurrency(investment.coupon_per_unit)} / ед.</span>}
+                          {investment.dividend_yield != null && <span className="px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400">Доходность: {investment.dividend_yield}% годовых</span>}
+                          {investment.next_payout_date && <span className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400">Следующая: {format(new Date(investment.next_payout_date), 'dd.MM.yyyy')}{forecastPayout > 0 ? ` · ~${formatCurrency(forecastPayout)}` : ''}</span>}
+                        </div>
+                      )}
+                      <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+                        <span>Выплат: {cashFlows.filter((flow) => flow.investment_id === investment.id).length}</span>
+                        {isEditable && <Button variant="outline" size="sm" className="rounded-lg" onClick={(e) => { e.stopPropagation(); setPayoutInvestment(investment); setPayoutForm({ type: investment.type === 'bonds' ? 'coupon' : investment.type === 'deposit' ? 'interest' : 'dividend', amount: '', date: new Date().toISOString().slice(0, 10), destination: 'income', linked_goal_id: investment.linked_goal_ids?.[0] || '', account_id: '' }); }}>Добавить поступление</Button>}
+                      </div>
+                      {cashFlows.filter((flow) => flow.investment_id === investment.id).slice(0, 3).map((flow) => <div key={flow.id} className="mt-1 flex justify-between text-xs text-slate-500"><span>{flow.type === 'coupon' ? 'Купон' : flow.type === 'interest' ? 'Проценты' : flow.type === 'rent' ? 'Аренда' : 'Дивиденды'} · {format(new Date(flow.date), 'dd.MM.yyyy')}</span><span className="font-medium text-emerald-600">+{formatCurrency(flow.amount)}</span></div>)}
 
                       {/* Deposit-specific info */}
                       {isDeposit && (investment.interest_rate || investment.maturity_date || investment.allows_top_up) && (
@@ -722,13 +777,15 @@ export default function Investments() {
             </div>
             <div>
               <Label>{formData.type === 'deposit' ? 'Банк' : 'Брокер'} (опционально)</Label>
-              <Input
-                value={formData.broker}
-                onChange={(e) => setFormData({ ...formData, broker: e.target.value })}
-                placeholder={formData.type === 'deposit' ? 'Например: Сбер' : 'Например: Тинькофф'}
-                className="rounded-xl mt-1"
-              />
+              <Input value={formData.broker} onChange={(e) => setFormData({ ...formData, broker: e.target.value })} placeholder={formData.type === 'deposit' ? 'Например: Сбер' : 'Например: Тинькофф'} className="rounded-xl mt-1" />
             </div>
+            <div className="space-y-3 rounded-xl border border-violet-100 bg-violet-50/50 p-3 dark:border-violet-900/30 dark:bg-violet-900/10">
+              <p className="text-sm font-medium">Параметры выплаты</p>
+              <div className="grid grid-cols-2 gap-3"><div><Label>Купон / ед.</Label><Input className="mt-1 rounded-xl" type="number" value={formData.coupon_per_unit} onChange={(e) => setFormData({ ...formData, coupon_per_unit: e.target.value })} /></div><div><Label>Доходность, %</Label><Input className="mt-1 rounded-xl" type="number" value={formData.dividend_yield} onChange={(e) => setFormData({ ...formData, dividend_yield: e.target.value })} /></div></div>
+              {formData.type === 'bonds' && <div><Label>Номинал</Label><Input className="mt-1 rounded-xl" type="number" value={formData.nominal_value} onChange={(e) => setFormData({ ...formData, nominal_value: e.target.value })} /></div>}
+              <div className="grid grid-cols-2 gap-3"><div><Label>Периодичность</Label><Select value={formData.payout_frequency} onValueChange={(v) => setFormData({ ...formData, payout_frequency: v })}><SelectTrigger className="mt-1 rounded-xl"><SelectValue placeholder="Не указана" /></SelectTrigger><SelectContent><SelectItem value="monthly">Ежемесячно</SelectItem><SelectItem value="quarterly">Ежеквартально</SelectItem><SelectItem value="semiannual">Раз в полгода</SelectItem><SelectItem value="annual">Раз в год</SelectItem></SelectContent></Select></div><div><Label>Следующая дата</Label><Input className="mt-1 rounded-xl" type="date" value={formData.next_payout_date} onChange={(e) => setFormData({ ...formData, next_payout_date: e.target.value })} /></div></div>
+            </div>
+            {goals.length > 0 && <div><Label>Цели, для которых работает актив</Label><div className="mt-2 space-y-2">{goals.map((goal) => (<label className="flex items-center gap-2 text-sm" key={goal.id}><input type="checkbox" checked={formData.linked_goal_ids.includes(goal.id)} onChange={(e) => setFormData({ ...formData, linked_goal_ids: e.target.checked ? [...formData.linked_goal_ids, goal.id] : formData.linked_goal_ids.filter((id) => id !== goal.id) })} />{goal.title}</label>))}</div></div>}
             {/* Account selection for deducting purchase cost */}
             {!editInvestment && accounts.length > 0 && (
               <div className="space-y-2 p-3 rounded-xl bg-violet-50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-900/20">
@@ -815,6 +872,8 @@ export default function Investments() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <InvestmentPayoutDialog investment={payoutInvestment} open={!!payoutInvestment} onOpenChange={(open) => !open && setPayoutInvestment(null)} values={payoutForm} onChange={setPayoutForm} goals={goals.filter((goal) => (goal.scope || 'personal') === (payoutInvestment?.scope || 'personal'))} accounts={transferAccounts} onSave={handlePayoutSave} saving={payoutMutation.isPending} />
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteInvestment} onOpenChange={(open) => !open && closeDeleteDialog()}>

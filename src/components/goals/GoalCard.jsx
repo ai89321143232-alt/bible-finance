@@ -29,7 +29,9 @@ export default function GoalCard({
   family,
   currentUser,
   accounts = [],
-  investments = []
+  investments = [],
+  cashFlows = [],
+  convert = null
 }) {
   const typeInfo = GOAL_TYPES.find(t => t.value === goal.type) || GOAL_TYPES[5];
 
@@ -42,9 +44,12 @@ export default function GoalCard({
     .map(id => investments.find(i => i.id === id))
     .filter(Boolean);
   const getInvestmentValue = (inv) => {
-    if (investmentAmountMap[inv.id] != null) return investmentAmountMap[inv.id];
-    return computeInvestmentValue(inv);
+    const rawValue = computeInvestmentValue(inv);
+    const value = convert && inv.currency && inv.currency !== goal.currency ? (convert(rawValue, inv.currency, goal.currency) ?? 0) : rawValue;
+    return investmentAmountMap[inv.id] != null ? Math.min(value, investmentAmountMap[inv.id]) : value;
   };
+  const goalCashFlows = cashFlows.filter((flow) => flow.linked_goal_id === goal.id && !flow.reinvested);
+  const payoutsValue = goalCashFlows.reduce((sum, flow) => sum + (convert && flow.currency !== goal.currency ? (convert(flow.amount, flow.currency, goal.currency) ?? 0) : flow.amount), 0);
 
   const linkedInvestmentsValue = linkedInvestments.reduce((sum, inv) =>
     sum + getInvestmentValue(inv), 0);
@@ -54,6 +59,7 @@ export default function GoalCard({
   const progress = goal.target_amount > 0
     ? Math.min((effectiveAmount / goal.target_amount) * 100, 100)
     : 0;
+  const remainingAmount = Math.max(0, (goal.target_amount || 0) - effectiveAmount);
 
   const daysLeft = goal.deadline
     ? differenceInDays(new Date(goal.deadline), new Date())
@@ -169,6 +175,8 @@ export default function GoalCard({
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">
                   {formatCurrency(effectiveAmount)}
                 </p>
+                <p className="text-xs text-slate-500 mt-1">Источники: накопления {formatCurrency(goal.current_amount || 0)} · активы {formatCurrency(linkedInvestmentsValue)} · выплаты {formatCurrency(payoutsValue)}</p>
+                <p className="text-sm font-medium text-violet-700 dark:text-violet-300 mt-1">Осталось докладывать: {formatCurrency(remainingAmount)}{daysLeft > 0 ? ` · ${formatCurrency(remainingAmount / Math.max(1, Math.ceil(daysLeft / 30)))} / мес.` : ''}</p>
                 {linkedInvestmentsValue > 0 ? (
                   <p className="text-sm text-slate-500">
                     {formatCurrency(goal.current_amount || 0)} накоплено + {formatCurrency(linkedInvestmentsValue)} во вкладах
@@ -200,6 +208,8 @@ export default function GoalCard({
                 )}
               </div>
             </div>
+
+            {goalCashFlows.length > 0 && <div className="rounded-lg bg-slate-50 p-2 text-xs text-slate-600 dark:bg-slate-700/30 dark:text-slate-300"><span className="font-medium">Поступления от активов</span>{goalCashFlows.slice(0, 3).map((flow) => <div className="mt-1 flex justify-between" key={flow.id}><span>{format(new Date(flow.date), 'dd.MM.yyyy')}</span><span>+{formatCurrency(flow.amount)}</span></div>)}</div>}
 
             {/* Предупреждение: суммарный баланс счетов меньше накопленного */}
             {isBalanceInsufficient && (

@@ -146,9 +146,10 @@ export default function Goals() {
   });
 
   const { data: investments = [] } = useQuery({
-    queryKey: ['investments'],
-    queryFn: () => InvestmentService.list(),
-    staleTime: 30000
+    queryKey: ['investments'], queryFn: () => InvestmentService.list(), staleTime: 30000
+  });
+  const { data: cashFlows = [] } = useQuery({
+    queryKey: ['investment-cash-flows'], queryFn: () => base44.entities.InvestmentCashFlow.list(), enabled: !!user, staleTime: 30000
   });
 
   const { isSubmitting, lock: lockSubmit, release: releaseSubmit } = useSubmitGuard();
@@ -419,7 +420,7 @@ export default function Goals() {
                   onEdit={handleEdit} onDelete={(id) => setDeleteId(id)}
                   onAddFunds={setShowAddFundsModal} onSpend={setShowSpendModal}
                   formatCurrency={formatCurrency} family={family} currentUser={user}
-                  accounts={accounts} investments={investments} />
+                  accounts={accounts} investments={investments} cashFlows={cashFlows} convert={convert} />
               ))}
             </div>
           </div>

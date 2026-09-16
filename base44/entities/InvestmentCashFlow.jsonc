@@ -1,0 +1,129 @@
+{
+  "name": "InvestmentCashFlow",
+  "type": "object",
+  "properties": {
+    "investment_id": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "dividend",
+        "coupon",
+        "interest",
+        "rent"
+      ]
+    },
+    "amount": {
+      "type": "number"
+    },
+    "currency": {
+      "type": "string",
+      "default": "RUB"
+    },
+    "date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reinvested": {
+      "type": "boolean",
+      "default": false
+    },
+    "account_id": {
+      "type": "string"
+    },
+    "linked_goal_id": {
+      "type": "string"
+    },
+    "family_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "workspace_id": {
+      "type": "string"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "private",
+        "shared"
+      ],
+      "default": "private"
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "personal",
+        "business"
+      ],
+      "default": "personal"
+    }
+  },
+  "required": [
+    "investment_id",
+    "type",
+    "amount",
+    "date"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "$and": [
+            {
+              "data.family_id": "{{user.data.family_id}}"
+            },
+            {
+              "data.family_id": {
+                "$ne": null
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "$and": [
+            {
+              "data.family_id": "{{user.data.family_id}}"
+            },
+            {
+              "data.family_id": {
+                "$ne": null
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.user_id": "{{user.id}}"
+        }
+      ]
+    }
+  }
+}
