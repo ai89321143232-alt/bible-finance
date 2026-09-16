@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,10 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 export default function AnalyticsBreakdown({ type, items, formatCurrency, title, onClose }) {
   const isIncome = type === 'income';
 
-  return (
+  return createPortal(
     <AnimatePresence initial={false}>
       {type && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
           <button aria-label="Закрыть" onClick={onClose} className="absolute inset-0 bg-black/50" />
           <motion.div initial={{ opacity: 0, y: 24, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 24, scale: 0.98 }} className="relative w-full max-w-md max-h-[75vh] overflow-y-auto">
             <Card className="border-0 shadow-2xl bg-white dark:bg-slate-800">
@@ -32,6 +33,7 @@ export default function AnalyticsBreakdown({ type, items, formatCurrency, title,
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
