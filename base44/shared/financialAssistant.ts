@@ -273,5 +273,10 @@ ${goals.map(g => `- id=${g.id} | ${g.title}: накоплено ${(g.current_amo
 
 ИНВЕСТИЦИОННЫЙ ПОРТФЕЛЬ:
 - Общая стоимость: ${investmentValue.toLocaleString()} ₽
+${investments.map(inv => {
+  const price = Number(inv.current_price || inv.purchase_price) || 0;
+  const value = inv.type === 'deposit' ? price : (Number(inv.quantity) || 0) * price;
+  return `- id=${inv.id} | ${inv.name} (${inv.type}): ${value.toLocaleString()} ₽`;
+}).join('\n') || '- Нет инвестиций'}
 ${familySection}`;
 }
