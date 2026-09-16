@@ -88,7 +88,7 @@ export default function Transactions() {
     queryKey: ['transactions', user?.id, family?.id, activeWorkspaceId],
     queryFn: async () => {
       if (!user) return [];
-      const all = await base44.entities.Transaction.list('-date', 100);
+      const all = await base44.entities.Transaction.list('-date');
       const mine = all.filter(t =>
         t.created_by_id === user.id ||
         t.user_id === user.id ||
