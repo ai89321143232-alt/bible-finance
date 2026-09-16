@@ -65,7 +65,10 @@ export default function Investments() {
   const queryClient = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editInvestment, setEditInvestment] = useState(null);
-  const [deleteId, setDeleteId] = useState(null);
+  const [deleteInvestment, setDeleteInvestment] = useState(null);
+  const [deleteMode, setDeleteMode] = useState('delete');
+  const [transferAmount, setTransferAmount] = useState('');
+  const [transferAccountId, setTransferAccountId] = useState('');
   const [topUpInvestment, setTopUpInvestment] = useState(null);
   const [topUpAmount, setTopUpAmount] = useState('');
   const [showOnlyMine, setShowOnlyMine] = useState(false);
@@ -128,10 +131,14 @@ export default function Investments() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => InvestmentService.remove(id),
+    mutationFn: ({ id, transfer }) => transfer
+      ? InvestmentService.removeWithTransfer(id, transfer)
+      : InvestmentService.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['investments'] });
-      setDeleteId(null);
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      closeDeleteDialog();
     }
   });
 
@@ -198,6 +205,28 @@ export default function Investments() {
     resetForm();
   };
 
+  const openDeleteDialog = (investment) => {
+    setDeleteInvestment(investment);
+    setDeleteMode('delete');
+    setTransferAmount(getInvestmentValue(investment).toString());
+    setTransferAccountId('');
+  };
+
+  const closeDeleteDialog = () => {
+    setDeleteInvestment(null);
+    setDeleteMode('delete');
+    setTransferAmount('');
+    setTransferAccountId('');
+  };
+
+  const handleDelete = () => {
+    if (!deleteInvestment) return;
+    const transfer = deleteMode === 'transfer'
+      ? { account_id: transferAccountId, amount: parseFloat(transferAmount) }
+      : null;
+    deleteMutation.mutate({ id: deleteInvestment.id, transfer });
+  };
+
   const handleTopUp = async () => {
     if (!topUpInvestment || !topUpAmount) return;
     const amount = parseFloat(topUpAmount);
@@ -241,6 +270,9 @@ export default function Investments() {
   };
 
   const scopedInvestments = scopeMode === 'all' ? investments : investments.filter((inv) => (inv.scope || 'personal') === scopeMode);
+  const transferAccounts = scopeMode === 'all'
+    ? accounts
+    : accounts.filter((account) => (account.scope || 'personal') === scopeMode);
   const displayedInvestments = (showOnlyMine && currentUser)
     ? scopedInvestments.filter(inv => inv.created_by_id === currentUser.id || inv.user_id === currentUser.id)
     : scopedInvestments;
@@ -478,7 +510,7 @@ export default function Investments() {
                                 size="icon"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setDeleteId(investment.id);
+                                  openDeleteDialog(investment);
                                 }}
                                 className="h-8 w-8 text-rose-600"
                               >
@@ -785,21 +817,43 @@ export default function Investments() {
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+      <AlertDialog open={!!deleteInvestment} onOpenChange={(open) => !open && closeDeleteDialog()}>
         <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Удалить актив?</AlertDialogTitle>
             <AlertDialogDescription>
-              Это действие нельзя отменить.
+              Выберите, удалить актив без следа или вернуть средства на счёт.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="grid grid-cols-2 gap-2">
+            <Button type="button" variant={deleteMode === 'delete' ? 'default' : 'outline'} onClick={() => setDeleteMode('delete')} className="rounded-xl">Удалить бесследно</Button>
+            <Button type="button" variant={deleteMode === 'transfer' ? 'default' : 'outline'} onClick={() => setDeleteMode('transfer')} className="rounded-xl">Перенести на счёт</Button>
+          </div>
+          {deleteMode === 'transfer' && (
+            <div className="space-y-3">
+              <div>
+                <Label>Сумма возврата</Label>
+                <Input type="number" min="0" value={transferAmount} onChange={(e) => setTransferAmount(e.target.value)} className="rounded-xl mt-1" />
+              </div>
+              <div>
+                <Label>Счёт получателя</Label>
+                <Select value={transferAccountId} onValueChange={setTransferAccountId}>
+                  <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="Выберите счёт" /></SelectTrigger>
+                  <SelectContent>
+                    {transferAccounts.map((account) => <SelectItem key={account.id} value={account.id}>{account.name} · {formatCurrency(account.balance || 0)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-xl">Отмена</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteMutation.mutate(deleteId)}
-              className="bg-rose-600 hover:bg-rose-700 rounded-xl"
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending || (deleteMode === 'transfer' && (!transferAccountId || parseFloat(transferAmount) <= 0))}
+              className={deleteMode === 'transfer' ? 'bg-emerald-600 hover:bg-emerald-700 rounded-xl' : 'bg-rose-600 hover:bg-rose-700 rounded-xl'}
             >
-              Удалить
+              {deleteMode === 'transfer' ? 'Перенести и удалить' : 'Удалить бесследно'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -106,6 +106,28 @@ export const InvestmentService = {
     await repo().delete(id);
     eventBus.emit(EVENTS.ACCOUNT_CHANGED, { id, action: 'investment-delete' });
   },
+
+  async removeWithTransfer(id, { account_id, amount }) {
+    const investment = await this.get(id);
+    const account = await accountRepo().get(account_id);
+    const transferAmount = parseFloat(amount);
+    const user = await getCurrentUser();
+
+    const transaction = await txRepo().create(await enrichWithOwnership({
+      type: 'income',
+      amount: transferAmount,
+      category: INVESTMENT_CATEGORY,
+      description: `Продажа актива: ${investment.name}`,
+      date: new Date().toISOString(),
+      account_id,
+      scope: investment.scope || 'personal'
+    }, user));
+
+    await accountRepo().update(account_id, { balance: (account.balance || 0) + transferAmount });
+    await repo().delete(id);
+    eventBus.emit(EVENTS.TRANSACTION_CHANGED, { action: 'create', transaction });
+    eventBus.emit(EVENTS.ACCOUNT_CHANGED, { id: account_id, action: 'investment-transfer' });
+  },
 };
 
 export default InvestmentService;
