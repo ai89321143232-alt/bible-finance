@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { format, differenceInDays } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import { useLanguage } from '@/lib/LanguageContext';
-import { useFormatCurrency, getCurrencySymbol } from '@/lib/formatCurrency';
+import { useFormatCurrency, getCurrencySymbol, formatAccountBalance } from '@/lib/formatCurrency';
 import { getInvestmentValue } from '@/lib/investmentValue';
 import {
   Plus, Target, Edit2, Trash2, Check, Calendar, TrendingUp, Coins, MinusCircle,
@@ -672,9 +672,15 @@ export default function Goals() {
             <div>
               <Label>{t('goals.source_account_label')}</Label>
               <MobileSelect value={spendAccountId} onValueChange={setSpendAccountId} placeholder={t('goals.pick_account_label')} title={t('goals.source_account_label')} triggerClassName="rounded-xl mt-1 w-full">
-                {accounts.map(account => (
-                  <option key={account.id} value={account.id}>{account.name} — {t('accounts.frozen')}: {formatCurrency(account.frozen_amount || 0)}</option>
-                ))}
+                {accounts.map(account => {
+                  const frozenAmount = account.frozen_amount || 0;
+                  const availableAmount = (account.balance || 0) - frozenAmount;
+                  return (
+                    <option key={account.id} value={account.id}>
+                      {account.name} — Баланс: {formatAccountBalance(account, language)}, доступно: {formatCurrency(availableAmount, account.currency)}{frozenAmount > 0 ? `, ${t('accounts.frozen')}: ${formatCurrency(frozenAmount, account.currency)}` : ''}
+                    </option>
+                  );
+                })}
               </MobileSelect>
               <p className="text-xs text-slate-400 mt-1">{t('goals.funds_will_be_unfrozen')}</p>
             </div>
