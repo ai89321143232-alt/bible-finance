@@ -11,6 +11,7 @@ import MobileTabShell from '@/components/MobileTabShell';
 import BottomTabBar from '@/components/BottomTabBar';
 import { useBottomTabs } from '@/components/bottomTabsConfig';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsTablet } from '@/hooks/use-tablet';
 import { base44 } from '@/api/base44Client';
 import OfflineBanner from '@/components/OfflineBanner';
 import { useWorkspaceProvision } from '@/components/workspace/WorkspaceContext';
@@ -46,6 +47,8 @@ export default function Layout({ children, currentPageName }) {
   const [themePreference, setThemePreference] = useState(null);
   const [backgroundImageUrl, setBackgroundImageUrl] = useState(null);
   const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  const compactNavigation = isMobile || isTablet;
   const bottomTabs = useBottomTabs();
   const tabPages = bottomTabs.filter((t) => !t.isCenter).map((t) => t.page);
   const isTabPage = tabPages.includes(currentPageName);
@@ -104,8 +107,8 @@ export default function Layout({ children, currentPageName }) {
       </aside>
 
       {/* Main Content */}
-      <main className="lg:ml-64 pt-[calc(4rem+env(safe-area-inset-top,0px))] lg:pt-0">
-        {isMobile && isTabPage ? (
+      <main className="lg:ml-64 pt-[calc(4rem+env(safe-area-inset-top,0px))] pb-24 lg:pt-0 lg:pb-0">
+        {compactNavigation && isTabPage ? (
           <MobileTabShell initialTab={
             currentPageName === 'Dashboard' ? 0 :
             currentPageName === 'Transactions' ? 1 :
@@ -197,7 +200,7 @@ export default function Layout({ children, currentPageName }) {
       </AnimatePresence>
 
       {/* Mobile Bottom Tab Bar — only on non-tab pages, same look as main screen (desktop never shows) */}
-      {isMobile && !isTabPage && (
+      {compactNavigation && !isTabPage && (
         <BottomTabBar
           activeIndex={bottomTabs.findIndex((t) => t.page === currentPageName)}
           onTabClick={(index, path) => navigate(path)}
