@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { GoalService, InvestmentService } from '@/services';
@@ -81,6 +81,7 @@ export default function Goals() {
   const [viewMode, setViewMode] = useState('personal');
   const [showOnlyMine, setShowOnlyMine] = useState(false);
   const [shareWithUsers, setShareWithUsers] = useState([]);
+  const notifiedGoalIds = useRef(new Set());
 
   const [formData, setFormData] = useState({
     title: '', type: 'savings', target_amount: '', current_amount: '0',
@@ -299,25 +300,26 @@ export default function Goals() {
   };
 
   useEffect(() => {
-    const checkNotifications = () => {
-      const allGoals = viewMode === 'personal' ? myGoals : sharedGoals;
-      allGoals.forEach(goal => {
-        if (goal.status === 'active' && goal.deadline && !goal.notification_sent) {
-          const daysLeft = differenceInDays(new Date(goal.deadline), new Date());
-          if (daysLeft === 7 || daysLeft === 3 || daysLeft === 1) {
-            base44.integrations.Core.SendEmail({
-              to: user?.email, subject: `${t('goals.deadline_subject')}: ${goal.title}`,
-              body: `${t('goals.deadline_body')} ${daysLeft} ${t('goals.days_until_deadline')} "${goal.title}". ${t('goals.current_progress')}: ${((goal.current_amount / goal.target_amount) * 100).toFixed(0)}%`
-            });
-            updateMutation.mutate({ id: goal.id, data: { notification_sent: true }, enrich: false });
-          }
-        }
-      });
+    const checkNotifications = async () => {
+      const allGoals = [...myGoals, ...sharedGoals];
+      for (const goal of allGoals) {
+        const daysLeft = goal.deadline ? differenceInDays(new Date(goal.deadline), new Date()) : null;
+        if (goal.status !== 'active' || goal.notification_sent || notifiedGoalIds.current.has(goal.id) || ![7, 3, 1].includes(daysLeft)) continue;
+
+        // Ставим блокировку до отправки: повторный рендер не создаст дубликат письма.
+        notifiedGoalIds.current.add(goal.id);
+        await GoalService.update(goal.id, { notification_sent: true }, { enrich: false });
+        await base44.integrations.Core.SendEmail({
+          to: user?.email,
+          subject: `${t('goals.deadline_subject')}: ${goal.title}`,
+          body: `${t('goals.deadline_body')} ${daysLeft} ${t('goals.days_until_deadline')} "${goal.title}". ${t('goals.current_progress')}: ${((goal.current_amount / goal.target_amount) * 100).toFixed(0)}%`
+        });
+      }
     };
-    checkNotifications();
+    if (user?.email) checkNotifications();
     const interval = setInterval(checkNotifications, 86400000);
     return () => clearInterval(interval);
-  }, [myGoals, sharedGoals, user?.email, viewMode]);
+  }, [myGoals, sharedGoals, user?.email, t]);
 
   const formatCurrency = useFormatCurrency();
   const { convert, profileCurrency } = useExchangeRates();
@@ -356,7 +358,9 @@ export default function Goals() {
   };
 
   const rawDisplayGoals = viewMode === 'personal' ? myGoals : sharedGoals;
-  const scopedGoals = scopeMode === 'all' ? rawDisplayGoals : rawDisplayGoals.filter((goal) => (goal.scope || 'personal') === scopeMode);
+  const filteredGoals = scopeMode === 'all' ? rawDisplayGoals : rawDisplayGoals.filter((goal) => (goal.scope || 'personal') === scopeMode);
+  // Не скрываем сохранённые цели целиком при устаревшем режиме области.
+  const scopedGoals = filteredGoals.length > 0 || rawDisplayGoals.length === 0 ? filteredGoals : rawDisplayGoals;
   const displayGoals = (showOnlyMine && viewMode === 'family')
     ? scopedGoals.filter(g => g.created_by_id === user?.id || g.user_id === user?.id)
     : scopedGoals;

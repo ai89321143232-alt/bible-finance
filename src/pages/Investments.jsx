@@ -307,7 +307,9 @@ export default function Investments() {
     }).format(amount);
   };
 
-  const scopedInvestments = scopeMode === 'all' ? investments : investments.filter((inv) => (inv.scope || 'personal') === scopeMode);
+  const filteredInvestments = scopeMode === 'all' ? investments : investments.filter((inv) => (inv.scope || 'personal') === scopeMode);
+  // Не скрываем сохранённый портфель целиком при устаревшем режиме области.
+  const scopedInvestments = filteredInvestments.length > 0 || investments.length === 0 ? filteredInvestments : investments;
   const transferAccounts = scopeMode === 'all'
     ? accounts
     : accounts.filter((account) => (account.scope || 'personal') === scopeMode);
