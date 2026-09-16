@@ -25,9 +25,7 @@ export default function GoalsPieChart({ goals, formatCurrency, convert, profileC
       currency: goal.currency || profileCurrency || 'RUB',
       color: GOAL_COLORS[idx % GOAL_COLORS.length],
     };
-  }).filter(d => d.value > 0);
-
-  if (data.length === 0) return null;
+  });
 
   const totalSaved = data.reduce((sum, d) => sum + d.value, 0);
   const totalTarget = goals.reduce((sum, g) => sum + toProfile(g.target_amount || 0, g), 0);
