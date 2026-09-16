@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import AnalyticsBreakdown from '@/components/analytics/AnalyticsBreakdown';
 import { format, startOfMonth, endOfMonth, subMonths, eachDayOfInterval, eachMonthOfInterval, subDays } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import { useLanguage } from '@/lib/LanguageContext';
@@ -37,8 +36,6 @@ const CATEGORY_ICONS = {
 export default function Analytics() {
   const [period, setPeriod] = useState('month');
   const [selectedMonth, setSelectedMonth] = useState(new Date());
-  const [showIncomeBreakdown, setShowIncomeBreakdown] = useState(false);
-  const [showExpenseBreakdown, setShowExpenseBreakdown] = useState(false);
   const { t, language } = useLanguage();
   const dateLocale = language === 'en' ? enUS : ru;
 
@@ -103,16 +100,6 @@ export default function Analytics() {
       percent: totalExpenses > 0 ? (value / totalExpenses * 100).toFixed(1) : 0
     }))
     .sort((a, b) => b.value - a.value);
-
-  const incomeAccountData = Object.values(filteredTransactions
-    .filter((tx) => tx.type === 'income')
-    .reduce((result, tx) => {
-      const account = accounts.find((item) => item.id === tx.account_id);
-      const key = tx.account_id || 'unassigned';
-      if (!result[key]) result[key] = { id: key, name: account?.name || t('analytics.other'), value: 0 };
-      result[key].value += tx.amount;
-      return result;
-    }, {})).sort((a, b) => b.value - a.value);
 
   // Income by category
   const incomeByCategory = filteredTransactions
@@ -285,7 +272,7 @@ export default function Analytics() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <Card onClick={() => { setShowIncomeBreakdown((open) => !open); setShowExpenseBreakdown(false); }} className={`border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm cursor-pointer transition-all ${showIncomeBreakdown ? 'ring-2 ring-emerald-500/50' : 'hover:shadow-md'}`}>
+            <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
               <CardContent className="p-5">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
@@ -311,7 +298,7 @@ export default function Analytics() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
           >
-            <Card onClick={() => { setShowExpenseBreakdown((open) => !open); setShowIncomeBreakdown(false); }} className={`border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm cursor-pointer transition-all ${showExpenseBreakdown ? 'ring-2 ring-rose-500/50' : 'hover:shadow-md'}`}>
+            <Card className="border-0 shadow-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
               <CardContent className="p-5">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="p-2 rounded-xl bg-rose-100 dark:bg-rose-900/30">
@@ -356,12 +343,6 @@ export default function Analytics() {
           </motion.div>
         </div>
 
-        <AnalyticsBreakdown
-          type={showIncomeBreakdown ? 'income' : showExpenseBreakdown ? 'expense' : null}
-          items={showIncomeBreakdown ? incomeAccountData : categoryData}
-          formatCurrency={formatCurrency}
-          title={showIncomeBreakdown ? 'Доходы по счетам' : 'Расходы по категориям'}
-        />
 
         {/* Month-over-Month Comparison */}
         {period === 'month' && (expenseChange !== null || incomeChange !== null) && (

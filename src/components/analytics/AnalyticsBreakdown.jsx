@@ -15,7 +15,7 @@ export default function AnalyticsBreakdown({ type, items, formatCurrency, title 
               {items.length ? items.map((item) => (
                 <div key={item.id || item.name} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 dark:bg-slate-700/40 px-4 py-3">
                   <div className="flex items-center gap-2 min-w-0">
-                    {!isIncome && <span className="text-lg">{item.icon}</span>}
+                    {!isIncome && <span className="text-lg">{item.icon || '📦'}</span>}
                     <span className="font-medium text-slate-900 dark:text-white truncate">{item.name}</span>
                   </div>
                   <div className="flex items-baseline gap-2 shrink-0">

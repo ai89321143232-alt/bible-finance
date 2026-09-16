@@ -39,6 +39,7 @@ import QuickFilters from '@/components/dashboard/QuickFilters';
 import MonthForecast from '@/components/dashboard/MonthForecast';
 import BudgetMonthEndBanner from '@/components/dashboard/BudgetMonthEndBanner';
 import FamilyTierBanner from '@/components/dashboard/FamilyTierBanner';
+import AnalyticsBreakdown from '@/components/analytics/AnalyticsBreakdown';
 import { useIsMobile } from '@/hooks/use-mobile';
 import TemplatesManager from '@/components/transactions/TemplatesManager';
 import PullToRefresh from '@/components/PullToRefresh';
@@ -60,6 +61,8 @@ export default function Dashboard() {
 
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [editTransaction, setEditTransaction] = useState(null);
+  const [showIncomeBreakdown, setShowIncomeBreakdown] = useState(false);
+  const [showExpenseBreakdown, setShowExpenseBreakdown] = useState(false);
   const [quickAddType, setQuickAddType] = useState('expense');
   const [showTemplatesManager, setShowTemplatesManager] = useState(false);
   const [filterAccount, setFilterAccount] = useState(null);
@@ -393,6 +396,23 @@ export default function Dashboard() {
     return converted != null ? sum + converted : sum;
   }, 0);
 
+  const convertTransactionAmount = (transaction) => {
+    const currency = transaction.currency || accountCurrencyMap[transaction.account_id] || hookCurrency;
+    return currency === hookCurrency ? transaction.amount : (convert(transaction.amount, currency, hookCurrency) ?? 0);
+  };
+  const incomeAccountData = Object.values(monthTransactions.filter((tx) => tx.type === 'income').reduce((result, tx) => {
+    const key = tx.account_id || 'unassigned';
+    if (!result[key]) result[key] = { id: key, name: allAccounts.find((account) => account.id === tx.account_id)?.name || 'Без счёта', value: 0 };
+    result[key].value += convertTransactionAmount(tx);
+    return result;
+  }, {})).sort((a, b) => b.value - a.value);
+  const expenseCategoryData = Object.values(monthTransactions.filter((tx) => tx.type === 'expense' && tx.category !== INVESTMENT_CATEGORY).reduce((result, tx) => {
+    const name = tx.category || 'Другое';
+    if (!result[name]) result[name] = { name, value: 0 };
+    result[name].value += convertTransactionAmount(tx);
+    return result;
+  }, {})).map((item) => ({ ...item, percent: monthExpenses ? (item.value / monthExpenses * 100).toFixed(1) : 0 })).sort((a, b) => b.value - a.value);
+
   // Личный режим: только мои инвестиции. Семейный режим: все инвестиции (мои + семьи), как раньше.
   const personalInvestments = investments.filter((inv) =>
   inv.created_by_id === user?.id || inv.user_id === user?.id
@@ -532,11 +552,11 @@ export default function Dashboard() {
         return (
           <section key="quickStats" className="mb-6 p-0 sm:p-0">
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="glass-card rounded-2xl p-4 cursor-pointer hover:shadow-md transition-all" onClick={() => { setQuickAddType('income'); setShowQuickAdd(true); }}>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className={`glass-card rounded-2xl p-4 cursor-pointer transition-all ${showIncomeBreakdown ? 'ring-2 ring-emerald-500/50' : 'hover:shadow-md'}`} onClick={() => { setShowIncomeBreakdown((open) => !open); setShowExpenseBreakdown(false); }}>
                 <div className="flex items-center gap-2 mb-3"><div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center"><ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" /></div><span className="text-muted-foreground text-xs">{t('dashboard.income')}</span></div>
                 <p className="text-emerald-500 font-bold text-lg">{formatCurrency(monthIncome)}</p>
               </motion.div>
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }} className="glass-card rounded-2xl p-4 cursor-pointer hover:shadow-md transition-all" onClick={() => { setQuickAddType('expense'); setShowQuickAdd(true); }}>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }} className={`glass-card rounded-2xl p-4 cursor-pointer transition-all ${showExpenseBreakdown ? 'ring-2 ring-rose-500/50' : 'hover:shadow-md'}`} onClick={() => { setShowExpenseBreakdown((open) => !open); setShowIncomeBreakdown(false); }}>
                 <div className="flex items-center gap-2 mb-3"><div className="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center"><ArrowDownRight className="w-3.5 h-3.5 text-rose-500" /></div><span className="text-muted-foreground text-xs">{t('dashboard.expense')}</span></div>
                 <p className="text-rose-500 font-bold text-lg">{formatCurrency(monthExpenses)}</p>
               </motion.div>
@@ -562,6 +582,12 @@ export default function Dashboard() {
               <SafeDailyLimit budgets={budgets} accounts={allAccounts} transactions={transactions} currentUser={user} subscriptions={subscriptions} formatCurrency={formatCurrency} />
               <EmergencyFund totalBalance={totalBalance} transactions={transactions} accounts={allAccounts} formatCurrency={formatCurrency} />
             </div>
+            <AnalyticsBreakdown
+              type={showIncomeBreakdown ? 'income' : showExpenseBreakdown ? 'expense' : null}
+              items={showIncomeBreakdown ? incomeAccountData : expenseCategoryData}
+              formatCurrency={formatCurrency}
+              title={showIncomeBreakdown ? 'Доходы по счетам' : 'Расходы по категориям'}
+            />
           </section>
         );
       case 'spendingChart':
