@@ -13,6 +13,7 @@ export default function SwipeableTransaction({
   onDelete,
   onEdit,
   formatCurrency,
+  accountCurrency,
   family,
   currentUser,
   isOpen = false,
@@ -122,7 +123,7 @@ export default function SwipeableTransaction({
               : 'text-rose-600 dark:text-rose-400'
           }`}>
             {isIncoming ? '+' : '-'}
-            {formatCurrency(transaction.amount)}
+            {formatCurrency(transaction.amount, accountCurrency || transaction.currency)}
           </p>
           {isOwner && (
             <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">

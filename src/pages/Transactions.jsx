@@ -258,7 +258,8 @@ export default function Transactions() {
                     {groupedTransactions[dateKey].map((transaction, index) => (
                       <SwipeableTransaction key={transaction.id} transaction={transaction} index={index}
                         onDelete={setDeleteId} onEdit={(t) => { setEditTransaction(t); setShowAddModal(true); }}
-                        formatCurrency={formatCurrency} showActions={false} family={family} currentUser={user}
+                        formatCurrency={formatCurrency} accountCurrency={scopedAccounts.find((account) => account.id === transaction.account_id)?.currency}
+                        showActions={false} family={family} currentUser={user}
                         isOpen={openSwipeId === transaction.id}
                         onOpenChange={(open) => setOpenSwipeId(open ? transaction.id : null)} />
                     ))}

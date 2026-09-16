@@ -91,6 +91,7 @@ export const TransactionService = {
         description,
         date: date instanceof Date ? date.toISOString() : date,
         account_id: account_id || undefined,
+        currency: account.currency || 'RUB',
         budget_scope,
       },
       user
