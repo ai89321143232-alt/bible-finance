@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import CreatorTag from '@/components/shared/CreatorTag';
 import { getInvestmentValue as computeInvestmentValue } from '@/lib/investmentValue';
+import GoalPhotoGallery from '@/components/goals/GoalPhotoGallery';
 
 const GOAL_TYPES = [
   { value: 'savings', label: 'Накопления', icon: '💰', color: '#10B981' },
@@ -253,6 +254,8 @@ export default function GoalCard({
                 </div>
               </div>
             )}
+
+            <GoalPhotoGallery goalId={goal.id} photoUris={goal.photo_uris || []} />
 
             {isDeadlineNear && (
               <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20">

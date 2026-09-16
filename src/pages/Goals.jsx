@@ -11,7 +11,7 @@ import { useFormatCurrency, getCurrencySymbol, formatAccountBalance } from '@/li
 import { getInvestmentValue } from '@/lib/investmentValue';
 import {
   Plus, Target, Edit2, Trash2, Check, Calendar, TrendingUp, Coins, MinusCircle,
-  Users, Zap
+  Users, Zap, ImagePlus, X
 } from 'lucide-react';
 import CalendarExport from '@/components/CalendarExport';
 import { Button } from "@/components/ui/button";
@@ -81,12 +81,13 @@ export default function Goals() {
   const [viewMode, setViewMode] = useState('personal');
   const [showOnlyMine, setShowOnlyMine] = useState(false);
   const [shareWithUsers, setShareWithUsers] = useState([]);
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
   const notifiedGoalIds = useRef(new Set());
 
   const [formData, setFormData] = useState({
     title: '', type: 'savings', target_amount: '', current_amount: '0',
     currency: user?.currency || 'RUB',
-    deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: [],
+    deadline: null, priority: 'medium', is_family_goal: false, share_with: [], photo_uris: [], subgoals: [],
     linked_account_ids: [], linked_investment_ids: [], linked_investment_amounts: []
   });
   const [investmentAmounts, setInvestmentAmounts] = useState({});
@@ -192,7 +193,7 @@ export default function Goals() {
   });
 
   const resetForm = () => {
-    setFormData({ title: '', type: 'savings', target_amount: '', current_amount: '0', currency: user?.currency || 'RUB', deadline: null, priority: 'medium', is_family_goal: false, share_with: [], subgoals: [], linked_account_ids: [], linked_investment_ids: [], linked_investment_amounts: [] });
+    setFormData({ title: '', type: 'savings', target_amount: '', current_amount: '0', currency: user?.currency || 'RUB', deadline: null, priority: 'medium', is_family_goal: false, share_with: [], photo_uris: [], subgoals: [], linked_account_ids: [], linked_investment_ids: [], linked_investment_amounts: [] });
     setShowAddModal(false);
     setEditGoal(null);
     setShareWithUsers([]);
@@ -206,7 +207,7 @@ export default function Goals() {
       title: goal.title, type: goal.type, target_amount: goal.target_amount.toString(),
       current_amount: (goal.current_amount || 0).toString(), currency: goal.currency || user?.currency || 'RUB', deadline: goal.deadline ? new Date(goal.deadline) : null,
       priority: goal.priority || 'medium', is_family_goal: goal.is_family_goal || false,
-      share_with: goal.share_with || [], subgoals: goal.subgoals || [],
+      share_with: goal.share_with || [], photo_uris: goal.photo_uris || [], subgoals: goal.subgoals || [],
       linked_account_ids: goal.linked_account_ids?.length ? goal.linked_account_ids : (goal.linked_account_id ? [goal.linked_account_id] : []),
       linked_investment_ids: goal.linked_investment_ids || [],
       linked_investment_amounts: goal.linked_investment_amounts || []
@@ -224,6 +225,22 @@ export default function Goals() {
     });
     setInvestmentErrors(errs);
     setShowAddModal(true);
+  };
+
+  const handlePhotoUpload = async (event) => {
+    const files = Array.from(event.target.files || []).filter((file) => file.type.startsWith('image/'));
+    const available = Math.max(0, 10 - formData.photo_uris.length);
+    if (files.length === 0 || available === 0) return;
+    setIsUploadingPhotos(true);
+    try {
+      const uploads = await Promise.all(files.slice(0, available).map((file) => base44.integrations.Core.UploadPrivateFile({ file })));
+      setFormData((current) => ({ ...current, photo_uris: [...current.photo_uris, ...uploads.map((upload) => upload.file_uri)] }));
+    } catch (error) {
+      toast.error(error?.message || t('common.error'));
+    } finally {
+      setIsUploadingPhotos(false);
+      event.target.value = '';
+    }
   };
 
   const handleSubmit = async () => {
@@ -584,6 +601,28 @@ export default function Goals() {
               </div>
             )}
             <div>
+              <Label>Фотографии цели</Label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {formData.photo_uris.map((uri, index) => (
+                  <div key={uri} className="flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-1 text-xs dark:bg-slate-800">
+                    <span>Фото {index + 1}</span>
+                    <button type="button" onClick={() => setFormData({ ...formData, photo_uris: formData.photo_uris.filter((item) => item !== uri) })} aria-label="Удалить фотографию">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {formData.photo_uris.length < 10 && (
+                  <label className="flex cursor-pointer items-center gap-1 rounded-lg border border-dashed border-violet-300 px-3 py-1.5 text-xs text-violet-700 dark:text-violet-300">
+                    <ImagePlus className="h-4 w-4" />
+                    {isUploadingPhotos ? 'Загрузка...' : 'Добавить фото'}
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload} disabled={isUploadingPhotos} />
+                  </label>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-slate-400">До 10 фотографий</p>
+            </div>
+
+            <div>
               <Label>{t('goals.deadline')}</Label>
               <MobilePopover title={t('goals.pick_date')}
                 trigger={
@@ -626,7 +665,7 @@ export default function Goals() {
 
             <SubgoalsManager subgoals={formData.subgoals} onChange={(subgoals) => setFormData({ ...formData, subgoals })} formatCurrency={formatCurrency} />
 
-            <Button onClick={handleSubmit} disabled={!formData.title || !formData.target_amount || isSubmitting}
+            <Button onClick={handleSubmit} disabled={!formData.title || !formData.target_amount || isSubmitting || isUploadingPhotos}
               className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600">
               <Check className="w-4 h-4 mr-2" />{editGoal ? t('common.save') : t('goals.create')}
             </Button>
