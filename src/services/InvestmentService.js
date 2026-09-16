@@ -7,7 +7,7 @@
 
 import { getRepository } from '@/data/repositories';
 import { getCurrentUser, enrichWithOwnership } from './context';
-import { validateInvestmentInput } from '@/domain/validators';
+import { validateAccountOwnership, validateInvestmentInput, validateSufficientFunds } from '@/domain/validators';
 import { eventBus, EVENTS } from '@/lib/eventBus';
 import { INVESTMENT_CATEGORY } from '@/lib/investmentConstants';
 
@@ -115,6 +115,32 @@ export const InvestmentService = {
     await syncGoalLinks(updated, existing?.linked_goal_ids || []);
     eventBus.emit(EVENTS.ACCOUNT_CHANGED, { id, action: 'investment-update' });
     eventBus.emit(EVENTS.GOAL_CHANGED, { action: 'investment-update' });
+    return updated;
+  },
+
+  async topUpWithTransaction(id, { account_id, amount }) {
+    const investment = await this.get(id);
+    const account = await accountRepo().get(account_id);
+    const user = await getCurrentUser();
+    const topUpAmount = parseFloat(amount);
+    const ownership = validateAccountOwnership(account, user);
+    if (!ownership.ok) throw new Error(ownership.error);
+    const funds = validateSufficientFunds(account, topUpAmount);
+    if (!funds.ok) throw new Error(funds.error);
+
+    const updated = await repo().update(id, {
+      quantity: (investment.quantity || 0) + topUpAmount,
+      purchase_price: (investment.purchase_price || 0) + topUpAmount,
+      current_price: (investment.current_price || investment.purchase_price || 0) + topUpAmount
+    });
+    await accountRepo().update(account_id, { balance: (account.balance || 0) - topUpAmount });
+    const transaction = await txRepo().create(await enrichWithOwnership({
+      type: 'expense', amount: topUpAmount, category: INVESTMENT_CATEGORY,
+      description: `Пополнение вклада: ${investment.name}`, date: new Date().toISOString(), account_id,
+      scope: investment.scope || 'personal'
+    }, user));
+    eventBus.emit(EVENTS.TRANSACTION_CHANGED, { action: 'create', transaction });
+    eventBus.emit(EVENTS.ACCOUNT_CHANGED, { id: account_id, action: 'investment-top-up' });
     return updated;
   },
 

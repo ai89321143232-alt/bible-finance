@@ -73,6 +73,7 @@ export default function Investments() {
   const [transferAccountId, setTransferAccountId] = useState('');
   const [topUpInvestment, setTopUpInvestment] = useState(null);
   const [topUpAmount, setTopUpAmount] = useState('');
+  const [topUpAccountId, setTopUpAccountId] = useState('');
   const [showOnlyMine, setShowOnlyMine] = useState(false);
   const [payoutInvestment, setPayoutInvestment] = useState(null);
   const [payoutForm, setPayoutForm] = useState({ type: 'dividend', amount: '', date: new Date().toISOString().slice(0, 10), destination: 'income', linked_goal_id: '', account_id: '' });
@@ -162,11 +163,14 @@ export default function Investments() {
   });
 
   const topUpMutation = useMutation({
-    mutationFn: ({ id, data }) => InvestmentService.update(id, data),
+    mutationFn: ({ id, account_id, amount }) => InvestmentService.topUpWithTransaction(id, { account_id, amount }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['investments'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setTopUpInvestment(null);
       setTopUpAmount('');
+      setTopUpAccountId('');
     }
   });
 
@@ -266,37 +270,10 @@ export default function Investments() {
   };
 
   const handleTopUp = async () => {
-    if (!topUpInvestment || !topUpAmount) return;
+    if (!topUpInvestment || !topUpAccountId || !topUpAmount) return;
     const amount = parseFloat(topUpAmount);
     if (amount <= 0) return;
-    const isDeposit = topUpInvestment.type === 'deposit';
-    const currentPrice = topUpInvestment.current_price || topUpInvestment.purchase_price;
-    if (isDeposit) {
-      // Для вкладов: current_price = текущая сумма, purchase_price = стартовая сумма
-      const newCurrent = (topUpInvestment.current_price || topUpInvestment.purchase_price) + amount;
-      const newPurchase = topUpInvestment.purchase_price + amount;
-      await topUpMutation.mutateAsync({
-        id: topUpInvestment.id,
-        data: {
-          quantity: newPurchase,
-          purchase_price: newPurchase,
-          current_price: newCurrent
-        }
-      });
-    } else {
-      // Для обычных активов: пересчёт количества и средней цены
-      const addedQty = amount / currentPrice;
-      const newQuantity = topUpInvestment.quantity + addedQty;
-      const newPurchasePrice = (topUpInvestment.quantity * topUpInvestment.purchase_price + amount) / newQuantity;
-      await topUpMutation.mutateAsync({
-        id: topUpInvestment.id,
-        data: {
-          quantity: newQuantity,
-          purchase_price: newPurchasePrice,
-          current_price: currentPrice
-        }
-      });
-    }
+    await topUpMutation.mutateAsync({ id: topUpInvestment.id, account_id: topUpAccountId, amount });
   };
 
   const formatCurrency = (amount) => {
@@ -610,6 +587,7 @@ export default function Investments() {
                                 e.stopPropagation();
                                 setTopUpInvestment(investment);
                                 setTopUpAmount('');
+                                setTopUpAccountId('');
                               }}
                               className="ml-auto h-7 rounded-lg text-xs border-violet-200 text-violet-700 dark:text-violet-400"
                             >
@@ -840,7 +818,7 @@ export default function Investments() {
       </Dialog>
 
       {/* Top-up Deposit Modal */}
-      <Dialog open={!!topUpInvestment} onOpenChange={() => { setTopUpInvestment(null); setTopUpAmount(''); }}>
+      <Dialog open={!!topUpInvestment} onOpenChange={() => { setTopUpInvestment(null); setTopUpAmount(''); setTopUpAccountId(''); }}>
         <DialogContent className="rounded-2xl max-w-sm">
           <DialogHeader>
             <DialogTitle>Пополнить вклад</DialogTitle>
@@ -848,7 +826,7 @@ export default function Investments() {
           <div className="space-y-4">
             {topUpInvestment && (
               <p className="text-slate-500 text-sm">
-                {topUpInvestment.name} · Текущая сумма: {formatCurrency(topUpInvestment.quantity * (topUpInvestment.current_price || topUpInvestment.purchase_price))}
+                {topUpInvestment.name} · Текущая сумма: {formatCurrency(getInvestmentValue(topUpInvestment))}
               </p>
             )}
             <div>
@@ -864,9 +842,25 @@ export default function Investments() {
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
               </div>
             </div>
+            <div>
+              <Label>Счёт списания</Label>
+              <Select value={topUpAccountId} onValueChange={setTopUpAccountId}>
+                <SelectTrigger className="rounded-xl mt-1">
+                  <SelectValue placeholder="Выберите счёт" />
+                </SelectTrigger>
+                <SelectContent>
+                  {transferAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name} · {formatCurrency(account.balance || 0)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-400 mt-1">Сумма будет списана со счёта и сохранена как расход на инвестиции.</p>
+            </div>
             <Button
               onClick={handleTopUp}
-              disabled={!topUpAmount || topUpMutation.isPending}
+              disabled={!topUpAmount || !topUpAccountId || topUpMutation.isPending}
               className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600"
             >
               <Wallet className="w-4 h-4 mr-2" />Пополнить

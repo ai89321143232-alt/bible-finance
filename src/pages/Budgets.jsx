@@ -50,6 +50,7 @@ import {
 import { BUDGET_CATEGORIES, findBudgetCategory } from '@/lib/budgetCategories';
 import { getCategoryEmoji } from '@/lib/categoryIcon';
 import { useScopeMode } from '@/hooks/useScopeMode';
+import { calcBudgetSpent } from '@/lib/budgetSpent';
 
 // ============================================================
 // pages/Budgets.jsx — СТРАНИЦА БЮДЖЕТОВ
@@ -330,52 +331,13 @@ export default function Budgets() {
     return () => clearInterval(interval);
   }, [myBudgets, viewMode, user]);
 
-  // Calculate spent for each budget based on its period
-  const getBudgetSpent = (budget) => {
-    const now = new Date();
-    let periodStart;
-
-    switch (budget.period) {
-      case 'weekly': {
-        const day = now.getDay(); // 0=Sun
-        periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day);
-        break;
-      }
-      case 'quarterly': {
-        const quarter = Math.floor(now.getMonth() / 3);
-        periodStart = new Date(now.getFullYear(), quarter * 3, 1);
-        break;
-      }
-      case 'yearly':
-        periodStart = new Date(now.getFullYear(), 0, 1);
-        break;
-      case 'monthly':
-      default:
-        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    }
-
-    const budgetCategories = budget.categories || (budget.category ? [budget.category] : []);
-    
-    const budgetScope = budget.scope || 'personal';
-    return transactions
-      .filter(t => {
-        if (t.type !== 'expense') return false;
-        if (budgetCategories.length > 0 && !budgetCategories.includes(t.category)) return false;
-        if (new Date(t.date) < periodStart) return false;
-        // Личный бюджет считает только свои транзакции, семейный — все транзакции семьи.
-        // budget_scope позволяет явно отнести расход к одному из бюджетов, если категория
-        // совпадает и с личным, и с семейным бюджетом — тогда он не дублируется в обоих.
-        if (budget.is_family_budget) {
-          return t.budget_scope !== 'personal';
-        }
-        if (t.budget_scope === 'family') return false;
-        // Фильтр по области: бюджет business считает только расходы с бизнес-счетов,
-        // бюджет personal — только с личных. Scope операции = scope счёта.
-        const txScope = t.account_id ? (accountScopeMap.get(t.account_id) || 'personal') : 'personal';
-        return txScope === budgetScope;
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
-  };
+  // Та же формула, что на дашборде и в фоновых расчётах.
+  const getBudgetSpent = (budget) => calcBudgetSpent(
+    budget,
+    transactions,
+    user?.id,
+    accountScopeMap
+  );
 
   const formatCurrency = useFormatCurrency();
   const currencySymbol = useCurrencySymbol();
