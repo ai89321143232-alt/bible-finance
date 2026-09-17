@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import { ALL_TABS, DEFAULT_TAB_ORDER } from '@/components/bottomTabsConfig';
+import DashboardVariantPicker from '@/components/settings/DashboardVariantPicker';
 
 // Все пункты меню с метаданными
 const ALL_MENU_ITEMS = [
@@ -65,6 +66,7 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
   const [dashboardBlocks, setDashboardBlocks] = useState(DEFAULT_DASHBOARD_BLOCKS);
   const [blockOrder, setBlockOrder] = useState(DEFAULT_BLOCK_ORDER);
   const [bottomTabOrder, setBottomTabOrder] = useState(DEFAULT_TAB_ORDER);
+  const [dashboardVariant, setDashboardVariant] = useState('dark_scene');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -85,6 +87,7 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
       setBlockOrder(merged);
     }
     setBottomTabOrder(user.bottom_tab_order || user.data?.bottom_tab_order || DEFAULT_TAB_ORDER);
+    setDashboardVariant(user.dashboard_view_variant || user.data?.dashboard_view_variant || 'dark_scene');
   };
 
   const toggleMenuItem = (name) => {
@@ -126,7 +129,8 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
       visible_dashboard_blocks: dashboardBlocks,
       dashboard_block_order: blockOrder,
       bottom_tab_order: bottomTabOrder,
-    });
+      dashboard_view_variant: dashboardVariant,
+      });
     setSaving(false);
     toast.success('Настройки сохранены');
     onOpenChange(false);
@@ -145,6 +149,10 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
             Персонализация
           </DialogTitle>
         </DialogHeader>
+
+        <DashboardVariantPicker initialVariant={dashboardVariant} onSaved={setDashboardVariant} />
+
+        <Separator className="my-4" />
 
         {/* Блоки дашборда — drag-and-drop */}
         <div>

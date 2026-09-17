@@ -54,6 +54,10 @@ import ScopeModeSwitcher from '@/components/settings/ScopeModeSwitcher';
 import { TransactionService } from '@/services';
 import { toast } from 'sonner';
 import { isFamilyVisibleRecord, isOwnRecord } from '@/lib/recordOwnership';
+import { getDashboardVariant } from '@/lib/dashboardVariants';
+import DashboardProfile from '@/components/dashboard/gallery/DashboardProfile';
+import DashboardHero from '@/components/dashboard/gallery/DashboardHero';
+import DashboardGallerySection from '@/components/dashboard/gallery/DashboardGallerySection';
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -76,6 +80,7 @@ export default function Dashboard() {
 
   const [localThemeOverride, setLocalThemeOverride] = useState(null);
   const [balanceMode, setBalanceMode] = useState('personal');
+  const [showGalleryBalance, setShowGalleryBalance] = useState(true);
 
   const isMobile = useIsMobile();
   const activeWorkspaceId = useActiveWorkspaceId();
@@ -101,6 +106,7 @@ export default function Dashboard() {
   });
 
   const themePreference = localThemeOverride ?? user?.theme_preference ?? null;
+  const dashboardVariant = getDashboardVariant(user?.dashboard_view_variant || user?.data?.dashboard_view_variant);
   const businessEnabled = user?.business_enabled !== false;
   const scopeModes = ['personal', 'business', 'all'];
 
@@ -638,33 +644,43 @@ export default function Dashboard() {
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-    <div className="min-h-screen">
+    <div className={`ds-dash ${dashboardVariant.className}`}>
       <ModalQueueProvider>
-      <BibleVerse />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 sm:pb-6">
-        <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between mb-6 pt-2 lg:pt-0">
-            
-          <div className="bg-card/70 backdrop-blur-sm rounded-xl px-3 py-2 -mx-3 -my-2">
-            <h1 className="text-xl sm:text-2xl font-semibold text-foreground">{t('dashboard.title')}</h1>
-            <p className="text-foreground/70 text-sm mt-0.5">
-              {format(new Date(), "EEEE, d MMMM", { locale: dateLocale })}
-              {family && <span className="ml-2 text-foreground/70">· {family.name}</span>}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <VoiceTransactionButton onTransactionCreated={() => queryClient.invalidateQueries()} />
-            <Button
-                onClick={() => {setQuickAddType('expense');setShowQuickAdd(true);}}
-                className="rounded-lg h-9 px-4 text-sm font-semibold transition-colors bg-white text-violet-600 hover:bg-violet-600 hover:text-white dark:bg-violet-600 dark:text-white dark:hover:bg-slate-400 dark:hover:text-white">
-                
-              <Plus className="w-4 h-4 mr-1.5" />
-              <span className="hidden sm:inline">{t('common.add')}</span>
-            </Button>
-          </div>
-        </motion.div>
+      <div className="ds-content">
+        <div className="ds-gallery">
+          <DashboardProfile user={user} family={family} />
+          <DashboardHero
+            balance={formatCurrency(totalBalance + investmentValue)}
+            income={formatCurrency(monthIncome)}
+            expenses={formatCurrency(monthExpenses)}
+            showBalance={showGalleryBalance}
+            onToggleBalance={() => setShowGalleryBalance((value) => !value)}
+            onAdd={() => { setQuickAddType('expense'); setShowQuickAdd(true); }}
+          />
+          <DashboardGallerySection title="Избранное" accent="indigo" items={[
+            { label: 'Мои счета', icon: '💳', page: 'Accounts', accent: 'indigo' },
+            { label: 'Инвестиции', icon: '📈', page: 'Investments', accent: 'cyan' },
+            { label: 'Обучение', icon: '📚', page: 'Education', accent: 'green' },
+            { label: 'ИИ-советник', icon: '✨', page: 'AIAdvisors', accent: 'pink' },
+          ]} />
+          <DashboardGallerySection title="Цели" accent="green" items={[
+            { label: 'Желания', icon: '💭', page: 'Goals', accent: 'pink' },
+            { label: 'Финплан', icon: '🗓️', page: 'FinancialPlanning', accent: 'green' },
+            { label: 'Фин. цели', icon: '🎯', page: 'Goals', accent: 'amber' },
+            { label: 'Чек-листы', icon: '✅', page: 'Tasks', accent: 'cyan' },
+            { label: 'Заметки', icon: '📝', page: 'Notes', accent: 'indigo' },
+          ]} />
+          <DashboardGallerySection title="Бюджет" accent="amber" items={[
+            { label: 'Планирование', icon: '🗓️', page: 'Budgets', accent: 'indigo' },
+            { label: 'Аналитика', icon: '📊', page: 'Analytics', accent: 'cyan' },
+            { label: 'ИИ-ассистент', icon: '🤖', page: 'AIAssistant', accent: 'pink' },
+            { label: 'Резерв', icon: '🛟', page: 'FinancialPlanning', accent: 'amber' },
+          ]} />
+        </div>
+        <div className="flex justify-end gap-2 my-5">
+          <VoiceTransactionButton onTransactionCreated={() => queryClient.invalidateQueries()} />
+        </div>
+        <BibleVerse />
 
         <GamificationWidget />
 
