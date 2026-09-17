@@ -20,7 +20,7 @@ import { toast } from 'sonner';
 import { ALL_TABS, DEFAULT_TAB_ORDER } from '@/components/bottomTabsConfig';
 import MobileSelect from '@/components/mobile/MobileSelect';
 import { SelectItem } from '@/components/ui/select';
-import { ICON_STYLES, DEFAULT_ICON_STYLE } from '@/lib/modernIconStyles';
+import { ICON_STYLES, DEFAULT_ICON_STYLE, getModernIconStyle } from '@/lib/modernIconStyles';
 
 // Все пункты меню с метаданными
 const ALL_MENU_ITEMS = [
@@ -91,7 +91,7 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
     }
     setBottomTabOrder(user.bottom_tab_order || user.data?.bottom_tab_order || DEFAULT_TAB_ORDER);
     setDashboardStyle(user.dashboard_style || user.data?.dashboard_style || 'classic');
-    setModernIconStyle(user.modern_icon_style || user.data?.modern_icon_style || DEFAULT_ICON_STYLE);
+    setModernIconStyle(getModernIconStyle(user.modern_icon_style || user.data?.modern_icon_style || DEFAULT_ICON_STYLE).key);
   };
 
   const toggleMenuItem = (name) => {
@@ -178,7 +178,7 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
               <MobileSelect value={modernIconStyle} onValueChange={setModernIconStyle} title="Стиль иконок" triggerClassName="w-full text-foreground">
                 {ICON_STYLES.map((style) => <SelectItem key={style.key} value={style.key}>{style.label}</SelectItem>)}
               </MobileSelect>
-              <p className="mt-2 text-sm text-muted-foreground">Статические иконки без генерации и фоновых изображений.</p>
+              <p className="mt-2 text-sm text-muted-foreground">Настоящие 3D-иконки с прозрачным фоном для всех плиток.</p>
             </div>
           </div>
         )}

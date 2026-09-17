@@ -239,20 +239,10 @@
   html.dark .gt-tile:active { box-shadow: 0 7px 13px rgba(0,0,0,.34), inset 0 2px 5px rgba(0,0,0,.32); }
   html.dark .gt-pedestal { filter: brightness(.8) saturate(.9); }
 
-  /* Статические иконки плиток «Модерн» — прозрачный фон и собственная тень */
-  .modern-icon { position: relative; z-index: 1; display: grid; place-items: center; width: 46px; height: 46px; margin-top: -12px; color: #4f46e5; filter: drop-shadow(0 5px 4px rgba(31, 48, 78, .22)); }
-  .modern-icon-glyph { width: 32px; height: 32px; }
-  .modern-icon-glass_3d { color: #4f8df7; filter: drop-shadow(0 5px 4px rgba(52, 123, 220, .30)); }
-  .modern-icon-soft_clay { color: #e5739a; filter: drop-shadow(0 5px 3px rgba(190, 82, 124, .28)); }
-  .modern-icon-liquid_chrome { color: #64748b; filter: drop-shadow(0 5px 4px rgba(30, 41, 59, .30)); }
-  .modern-icon-iridescent_pearl { color: #9b7bd6; filter: drop-shadow(0 5px 4px rgba(151, 105, 210, .28)); }
-  .modern-icon-paper_craft { color: #d97706; filter: drop-shadow(0 4px 3px rgba(180, 83, 9, .25)); }
-  .modern-icon-plush_toy { color: #db6b86; filter: drop-shadow(0 5px 4px rgba(190, 60, 100, .26)); }
-  .modern-icon-crystal_gem { color: #06b6d4; filter: drop-shadow(0 5px 4px rgba(8, 145, 178, .30)); }
-  .modern-icon-ceramic_glaze { color: #0f766e; filter: drop-shadow(0 5px 3px rgba(15, 118, 110, .25)); }
-  .modern-icon-wooden_toy { color: #a16207; filter: drop-shadow(0 5px 3px rgba(133, 77, 14, .28)); }
-  .modern-icon-holographic { color: #b63df1; filter: drop-shadow(0 0 7px rgba(189, 56, 255, .45)); }
-  html.dark .modern-icon { color: #a5b4fc; }
+  /* Настоящие 3D-иконки плиток «Модерн» — прозрачный фон, без CSS-перекрашивания */
+  .modern-icon { position: relative; z-index: 1; display: grid; place-items: center; width: 54px; height: 54px; margin-top: -18px; }
+  .modern-icon-image { width: 54px; height: 54px; object-fit: contain; filter: drop-shadow(0 5px 4px rgba(91, 51, 12, .20)); }
+  .modern-icon-glyph { width: 32px; height: 32px; color: #f7941e; }
 
   /* Светлая тема: подложка для цветных сводных карточек долгов */
   html:not(.dark) .debt-summary-card {

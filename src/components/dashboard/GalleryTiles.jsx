@@ -62,7 +62,7 @@ export default function GalleryTiles() {
             return (
               <Link key={item.name} to={createPageUrl(item.name)} className="gt-tile snap-start">
                 <span className={`gt-pedestal ${pedestalClass}`}>
-                  <ModernTileIcon icon={Icon} styleKey={modernIconStyle} />
+                  <ModernTileIcon icon={Icon} tileName={item.name} styleKey={modernIconStyle} />
                 </span>
                 <span className="gt-label">{item.label || t(item.labelKey)}</span>
               </Link>
