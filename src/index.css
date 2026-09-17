@@ -253,7 +253,7 @@
     overflow: hidden;
     border: 0;
     border-radius: 18px;
-    background: #F5F5F5 !important;
+    background: #F4F4F4 !important;
     box-shadow: none !important;
   }
   .gt-tile::before, .gt-tile::after { display: none; }
