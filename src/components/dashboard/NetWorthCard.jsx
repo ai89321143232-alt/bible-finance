@@ -211,7 +211,7 @@ export default function NetWorthCard({
       <AddFixedAssetModal
         open={showAddAsset}
         onClose={() => setShowAddAsset(false)}
-        onSaved={() => onFixedAssetAdded && onFixedAssetAdded()} scope={scope} scope={scope}
+        onSaved={() => onFixedAssetAdded && onFixedAssetAdded()} scope={scope}
       />
     </motion.div>
   );

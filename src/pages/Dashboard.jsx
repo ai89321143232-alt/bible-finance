@@ -53,6 +53,7 @@ import { useScopeMode } from '@/hooks/useScopeMode';
 import ScopeModeSwitcher from '@/components/settings/ScopeModeSwitcher';
 import { TransactionService } from '@/services';
 import { toast } from 'sonner';
+import { isFamilyVisibleRecord, isOwnRecord } from '@/lib/recordOwnership';
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -210,10 +211,10 @@ export default function Dashboard() {
     queryFn: async () => {
       if (!user) return [];
       const all = await base44.entities.Budget.filter({ is_active: true });
-      return all.filter((b) =>
-      b.created_by_id === user.id || b.user_id === user.id ||
-      family?.id && b.is_family_budget && b.family_id === family.id ||
-      family?.id && b.share_with?.includes(user.id)
+      return all.filter((budget) =>
+        isOwnRecord(budget, user) ||
+        isFamilyVisibleRecord(budget, user, family) ||
+        family?.id && budget.share_with?.includes(user.id)
       );
     },
     enabled: !!user
@@ -224,10 +225,10 @@ export default function Dashboard() {
     queryFn: async () => {
       if (!user) return [];
       const all = await base44.entities.Goal.filter({ status: 'active' });
-      return all.filter((g) =>
-      g.created_by_id === user.id || g.user_id === user.id ||
-             family?.id && g.is_family_goal && g.family_id === family.id ||
-      family?.id && g.share_with?.includes(user.id)
+      return all.filter((goal) =>
+        isOwnRecord(goal, user) ||
+        isFamilyVisibleRecord(goal, user, family) ||
+        family?.id && goal.share_with?.includes(user.id)
       );
     },
     enabled: !!user
@@ -312,17 +313,10 @@ export default function Dashboard() {
   const memberIds = familyMembers.map((m) => m.user_id);
 
   // Личный режим: только мои счета (проходят через фильтр пространства)
-  const personalAccounts = allAccounts.filter((acc) =>
-  acc.created_by_id === user?.id || acc.user_id === user?.id
-  );
-  // Семейный режим: мои счета + счета всех членов семьи.
-  // Берём из rawAllAccounts (без фильтра по пространству), чтобы чужие счета не отсекались.
-  const familyAccounts = filterAccounts(rawAllAccounts.filter((acc) =>
-  acc.created_by_id === user?.id ||
-  acc.user_id === user?.id ||
-  family?.id && acc.family_id === family.id ||
-  memberIds.includes(acc.created_by_id) ||
-  memberIds.includes(acc.user_id)
+  const personalAccounts = allAccounts.filter((account) => isOwnRecord(account, user));
+  // Семейный режим: собственные и открытые для семьи счета.
+  const familyAccounts = filterAccounts(rawAllAccounts.filter((account) =>
+    isOwnRecord(account, user) || isFamilyVisibleRecord(account, user, family)
   ));
   const displayAccounts = balanceMode === 'family' ? familyAccounts : personalAccounts;
 
@@ -413,11 +407,12 @@ export default function Dashboard() {
     return result;
   }, {})).map((item) => ({ ...item, percent: monthExpenses ? (item.value / monthExpenses * 100).toFixed(1) : 0 })).sort((a, b) => b.value - a.value);
 
-  // Личный режим: только мои инвестиции. Семейный режим: все инвестиции (мои + семьи), как раньше.
-  const personalInvestments = investments.filter((inv) =>
-  inv.created_by_id === user?.id || inv.user_id === user?.id
+  // Личный режим: только собственные инвестиции; семейный — только открытые для семьи.
+  const personalInvestments = investments.filter((investment) => isOwnRecord(investment, user));
+  const familyInvestments = investments.filter((investment) =>
+    isOwnRecord(investment, user) || isFamilyVisibleRecord(investment, user, family)
   );
-  const modeInvestments = family && balanceMode === 'family' ? investments : personalInvestments;
+  const modeInvestments = family && balanceMode === 'family' ? familyInvestments : personalInvestments;
 
   // Стоимость инвестиций — конвертируем каждую в валюту профиля
   const investmentValue = modeInvestments.reduce((sum, inv) => {
@@ -432,9 +427,27 @@ export default function Dashboard() {
     return sum + convertInvestmentValue(val, cur, hookCurrency, convert);
   }, 0);
 
-  // Личный режим: только мои фиксированные активы. Семейный режим: мои + семьи.
-  const personalFixedAssets = fixedAssets.filter((fa) => fa.created_by_id === user?.id);
-  const modeFixedAssets = family && balanceMode === 'family' ? fixedAssets : personalFixedAssets;
+  // Личный режим: только собственные фиксированные активы; семейный — только открытые для семьи.
+  const personalFixedAssets = fixedAssets.filter((asset) => isOwnRecord(asset, user));
+  const familyFixedAssets = fixedAssets.filter((asset) =>
+    isOwnRecord(asset, user) || isFamilyVisibleRecord(asset, user, family)
+  );
+  const modeFixedAssets = family && balanceMode === 'family' ? familyFixedAssets : personalFixedAssets;
+  const personalDebtAccounts = debtAccounts.filter((debt) => isOwnRecord(debt, user));
+  const familyDebtAccounts = debtAccounts.filter((debt) =>
+    isOwnRecord(debt, user) || isFamilyVisibleRecord(debt, user, family)
+  );
+  const modeDebtAccounts = family && balanceMode === 'family' ? familyDebtAccounts : personalDebtAccounts;
+  const personalBudgets = budgets.filter((budget) => isOwnRecord(budget, user));
+  const familyBudgets = budgets.filter((budget) =>
+    isOwnRecord(budget, user) || isFamilyVisibleRecord(budget, user, family)
+  );
+  const displayBudgets = family && balanceMode === 'family' ? familyBudgets : personalBudgets;
+  const personalGoals = goals.filter((goal) => isOwnRecord(goal, user));
+  const familyGoals = goals.filter((goal) =>
+    isOwnRecord(goal, user) || isFamilyVisibleRecord(goal, user, family)
+  );
+  const displayGoals = family && balanceMode === 'family' ? familyGoals : personalGoals;
 
   // Валюта профиля — дефолт для всех агрегатов (общий баланс, net worth, доход/расход)
   const profileCurrency = hookCurrency;
@@ -525,7 +538,7 @@ export default function Dashboard() {
                   }}>
                   <AnimatePresence mode="wait">
                     <motion.div key={scopeMode} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.2 }}>
-                      <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} debtAccounts={debtAccounts} />
+                      <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} debtAccounts={modeDebtAccounts} />
                     </motion.div>
                   </AnimatePresence>
                 </motion.div>
@@ -538,14 +551,14 @@ export default function Dashboard() {
                 }}>
                 <AnimatePresence mode="wait">
                   <motion.div key={balanceMode} initial={{ opacity: 0, x: balanceMode === 'family' ? 40 : -40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: balanceMode === 'family' ? -40 : 40 }} transition={{ duration: 0.2 }}>
-                    <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} debtAccounts={debtAccounts} />
+                    <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} debtAccounts={modeDebtAccounts} />
                   </motion.div>
                 </AnimatePresence>
               </motion.div>
             ) : (
-              <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} debtAccounts={debtAccounts} />
+              <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} debtAccounts={modeDebtAccounts} />
             )}
-            <NetWorthCard accounts={displayAccounts} investments={modeInvestments} fixedAssets={modeFixedAssets} debtAccounts={debtAccounts} formatCurrency={formatCurrency} onFixedAssetAdded={() => queryClient.invalidateQueries({ queryKey: ['fixed-assets'] })} scope={scopeMode === 'all' ? 'personal' : scopeMode} />
+            <NetWorthCard accounts={displayAccounts} investments={modeInvestments} fixedAssets={modeFixedAssets} debtAccounts={modeDebtAccounts} formatCurrency={formatCurrency} onFixedAssetAdded={() => queryClient.invalidateQueries({ queryKey: ['fixed-assets'] })} scope={scopeMode === 'all' ? 'personal' : scopeMode} />
           </section>
         );
       case 'quickStats':
@@ -609,9 +622,9 @@ export default function Dashboard() {
       case 'transactions':
         return <div key="transactions" className="mb-6"><RecentTransactions transactions={(filterAccount || filterCategory ? filteredTransactions : transactions).slice(0, 5)} formatCurrency={formatCurrency} onEdit={(t) => { setEditTransaction(t); setShowQuickAdd(true); }} /></div>;
       case 'budgets':
-        return <div key="budgets" className="mb-6"><BudgetOverview budgets={budgets} transactions={transactions} accounts={allAccounts} formatCurrency={formatCurrency} currentUser={user} convert={convert} /></div>;
-      case 'goals':
-        return <div key="goals" className="mb-6"><AllGoalsProgress goals={goals} formatCurrency={formatCurrency} convert={convert} profileCurrency={profileCurrency} /></div>;
+               return <div key="budgets" className="mb-6"><BudgetOverview budgets={displayBudgets} transactions={transactions} accounts={allAccounts} formatCurrency={formatCurrency} currentUser={user} convert={convert} /></div>;
+             case 'goals':
+               return <div key="goals" className="mb-6"><AllGoalsProgress goals={displayGoals} formatCurrency={formatCurrency} convert={convert} profileCurrency={profileCurrency} /></div>;
       case 'aiInsights':
         return (
           <motion.div key="aiInsights" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mb-6">

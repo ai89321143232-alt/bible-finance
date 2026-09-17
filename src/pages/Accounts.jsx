@@ -42,6 +42,7 @@ import FamilyVisibilityToggle from '@/components/shared/FamilyVisibilityToggle';
 import { useLanguage } from '@/lib/LanguageContext';
 import { useFormatCurrency, getCurrencySymbol } from '@/lib/formatCurrency';
 import { useScopeMode } from '@/hooks/useScopeMode';
+import { hasActiveFamilySubscription, isFamilyVisibleRecord, isOwnRecord } from '@/lib/recordOwnership';
 
 const ACCOUNT_COLORS = [
   '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6',
@@ -95,7 +96,7 @@ export default function Accounts() {
   const [editAccount, setEditAccount] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [relatedTransactionsCount, setRelatedTransactionsCount] = useState(0);
-  const [showOnlyMine, setShowOnlyMine] = useState(false);
+  const [showOnlyMine, setShowOnlyMine] = useState(true);
 
   const [profileCurrency, setProfileCurrency] = useState('RUB');
 
@@ -159,15 +160,14 @@ export default function Accounts() {
     staleTime: 60000
   });
 
-  // Доступные пользователю счета (личные + семейные), затем фильтр по активному пространству
-  const myAccounts = allAccounts.filter(acc =>
-    acc.created_by_id === currentUser?.id ||
-    (family?.id && acc.family_id === family.id)
+  const familyAccessActive = hasActiveFamilySubscription(family);
+  const ownAccounts = allAccounts.filter((account) => isOwnRecord(account, currentUser));
+  const familyAccounts = allAccounts.filter((account) =>
+    isOwnRecord(account, currentUser) || isFamilyVisibleRecord(account, currentUser, family)
   );
-  const accounts = filterAccountsByScope(filterByWorkspace(myAccounts, activeWorkspaceId));
-  const displayedAccounts = showOnlyMine
-    ? accounts.filter(acc => acc.created_by_id === currentUser?.id || acc.user_id === currentUser?.id)
-    : accounts;
+  const visibleAccounts = familyAccessActive && !showOnlyMine ? familyAccounts : ownAccounts;
+  const accounts = filterAccountsByScope(filterByWorkspace(visibleAccounts, activeWorkspaceId));
+  const displayedAccounts = accounts;
 
   const { data: transactions = [] } = useQuery({
     queryKey: ['transactions'],
@@ -335,9 +335,14 @@ export default function Accounts() {
   const { language } = useLanguage();
   const formCurrencySymbol = getCurrencySymbol(formData.currency, language);
 
-  // Calculate account stats
+  // В личном режиме статистика счёта учитывает только собственные операции.
+  const visibleTransactions = transactions.filter((transaction) =>
+    showOnlyMine
+      ? isOwnRecord(transaction, currentUser)
+      : isOwnRecord(transaction, currentUser) || isFamilyVisibleRecord(transaction, currentUser, family)
+  );
   const getAccountStats = (accountId) => {
-    const accountTransactions = transactions.filter(t => t.account_id === accountId);
+    const accountTransactions = visibleTransactions.filter(t => t.account_id === accountId);
     const income = accountTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
     const expenses = accountTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
     return { income, expenses };
@@ -377,7 +382,7 @@ export default function Accounts() {
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{displayedAccounts.length} {displayedAccounts.length === 1 ? t('accounts.count_one') : t('accounts.count_few')}</p>
           </div>
           <div className="flex items-center gap-2">
-            {family && (
+            {familyAccessActive && (
               <FamilyVisibilityToggle showOnlyMine={showOnlyMine} onToggle={() => setShowOnlyMine(v => !v)} />
             )}
             <Button
