@@ -44,7 +44,7 @@ export const TransactionService = {
 
     const amountNum = parseFloat(amount);
     const user = await getCurrentUser();
-    const account = accounts.find((a) => a.id === account_id) || (await AccountService.get(account_id));
+    const account = await AccountService.get(account_id).catch(() => null) || accounts.find((a) => a.id === account_id);
 
     const own = validateAccountOwnership(account, user);
     if (!own.ok) return { ok: false, error: own.error };
@@ -264,7 +264,7 @@ export const TransactionService = {
   async addReceiptItems({ items = [], description, date, account_id, accounts = [] }) {
     if (!account_id) return { ok: false, error: 'Сначала создайте счёт — без счёта сохранить операцию нельзя' };
     const user = await getCurrentUser();
-    const account = accounts.find((a) => a.id === account_id);
+    const account = await AccountService.get(account_id).catch(() => null) || accounts.find((a) => a.id === account_id);
     const createdTx = [];
 
     for (const item of items) {
@@ -276,6 +276,7 @@ export const TransactionService = {
           description: `${description} - ${item.name}`,
           date: date instanceof Date ? date.toISOString() : date,
           account_id: account_id || undefined,
+          currency: account?.currency || 'RUB',
         },
         user
       );
@@ -308,7 +309,7 @@ export const TransactionService = {
   async addBankOperations({ items = [], account_id, accounts = [] }) {
     if (!account_id) return { ok: false, error: 'Сначала создайте счёт — без счёта сохранить операцию нельзя' };
     const user = await getCurrentUser();
-    const account = accounts.find((a) => a.id === account_id);
+    const account = await AccountService.get(account_id).catch(() => null) || accounts.find((a) => a.id === account_id);
     let netDelta = 0;
     const createdTx = [];
 
@@ -324,6 +325,7 @@ export const TransactionService = {
           description: item.name,
           date: txDate.toISOString(),
           account_id: account_id || undefined,
+          currency: account?.currency || 'RUB',
         },
         user
       );
@@ -355,6 +357,7 @@ export const TransactionService = {
    */
   async createRaw({ type, amount, category, description, date, account_id }) {
     const user = await getCurrentUser();
+    const account = account_id ? await AccountService.get(account_id).catch(() => null) : null;
     const data = await enrichWithOwnership(
       {
         type,
@@ -363,6 +366,7 @@ export const TransactionService = {
         description,
         date: date instanceof Date ? date.toISOString() : date,
         account_id: account_id || undefined,
+        currency: account?.currency || 'RUB',
       },
       user
     );
