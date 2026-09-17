@@ -33,7 +33,8 @@ export default function BudgetTransactionsModal({
       if (budget.is_family_budget) {
         return t.budget_scope !== 'personal';
       }
-      return t.budget_scope !== 'family';
+      if (t.budget_scope === 'family') return false;
+      return t.created_by_id === budget.user_id || t.user_id === budget.user_id;
     })
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
