@@ -79,7 +79,7 @@ export default function DebtCard({ debt, onEdit, onDelete, order }) {
             )}
             <h3 className="font-semibold text-foreground text-sm sm:text-base truncate">{debt.name}</h3>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-sm text-muted-foreground mt-0.5">
             {t(`debt.type_${debt.type}`)}
             {debt.creditor && ` · ${debt.creditor}`}
           </p>
@@ -96,26 +96,26 @@ export default function DebtCard({ debt, onEdit, onDelete, order }) {
 
       <div className="grid grid-cols-2 gap-3 mt-4">
         <div>
-          <p className="text-xs text-muted-foreground mb-0.5">{t('debt.card_remaining')}</p>
+          <p className="text-sm text-muted-foreground mb-0.5">{t('debt.card_remaining')}</p>
           <p className="text-lg font-bold text-foreground">{fmt(debt.remaining_amount)}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground mb-0.5">{t('debt.card_payment')}</p>
+          <p className="text-sm text-muted-foreground mb-0.5">{t('debt.card_payment')}</p>
           <p className="text-lg font-bold text-foreground">{fmt(debt.monthly_payment || calcMinPayment(debt))}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-border">
         <div>
-          <p className="text-xs text-muted-foreground">{t('debt.card_rate')}</p>
+          <p className="text-sm text-muted-foreground">{t('debt.card_rate')}</p>
           <p className="text-sm font-medium text-foreground">{debt.interest_rate}%</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">{t('debt.card_rate_monthly')}</p>
+          <p className="text-sm text-muted-foreground">{t('debt.card_rate_monthly')}</p>
           <p className="text-sm font-medium text-amber-500">{fmt(monthlyInterest)}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">{t('debt.card_payment_day')}</p>
+          <p className="text-sm text-muted-foreground">{t('debt.card_payment_day')}</p>
           <p className="text-sm font-medium text-foreground flex items-center gap-1">
             <Calendar className="w-3 h-3" />
             {debt.payment_day || '—'}

@@ -31,7 +31,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-// Нативный select для мобильных
+// Нативный select для мобильных. Он намеренно сохранён: iOS показывает системный picker; dark-оформление задано через dark:bg-slate-800 и dark:text-white.
 function NativeSelect({ value, onChange, placeholder, children, className }) {
   return (
     <select

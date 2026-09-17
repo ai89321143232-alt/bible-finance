@@ -12,7 +12,7 @@ export default function ThemeIconToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="w-9 h-9 rounded-lg bg-muted border border-border text-foreground flex items-center justify-center hover:bg-accent transition-colors"
+      className="w-11 h-11 lg:w-9 lg:h-9 rounded-lg bg-muted border border-border text-foreground flex items-center justify-center hover:bg-accent transition-colors"
       title={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
     >
       {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}

@@ -383,7 +383,7 @@ export default function AIPlanning() {
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-foreground leading-tight">{t(tab.labelKey)}</p>
-                <p className="text-[10px] leading-snug mt-0.5 text-muted-foreground line-clamp-2">{t(tab.descKey)}</p>
+                <p className="text-sm leading-snug mt-0.5 text-muted-foreground line-clamp-2">{t(tab.descKey)}</p>
               </div>
             </motion.button>
           );

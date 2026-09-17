@@ -142,7 +142,7 @@ export default function Goals() {
       return base44.entities.Account.filter({ user_id: user.id });
     },
     enabled: !!user,
-    staleTime: 30000
+    staleTime: 300000
   });
 
   const { data: categories = [] } = useQuery({
@@ -161,27 +161,45 @@ export default function Goals() {
 
   const createMutation = useMutation({
     mutationFn: (data) => GoalService.create(data),
-    onSuccess: () => {
+    onMutate: async (data) => {
+      await queryClient.cancelQueries({ queryKey: ['my-goals'] });
+      const previousGoals = queryClient.getQueryData(['my-goals', user?.id]);
+      queryClient.setQueryData(['my-goals', user?.id], (old = []) => [...old, {
+        ...data, id: `temp-${Date.now()}`, created_by_id: user?.id, current_amount: Number(data.current_amount) || 0
+      }]);
+      return { previousGoals };
+    },
+    onSuccess: () => resetForm(),
+    onError: (err, _data, context) => {
+      queryClient.setQueryData(['my-goals', user?.id], context?.previousGoals);
+      toast.error(err?.message || t('common.error'));
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['my-goals'] });
       queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
-      resetForm();
-    },
-    onError: (err) => {
-      toast.error(err?.message || t('common.error'));
     }
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data, enrich }) => GoalService.update(id, data, { enrich: enrich !== false }),
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['my-goals'] });
+      const previousGoals = queryClient.getQueryData(['my-goals', user?.id]);
+      queryClient.setQueryData(['my-goals', user?.id], (old = []) => old.map((goal) => goal.id === id ? { ...goal, ...data } : goal));
+      return { previousGoals };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-goals'] });
-      queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
       resetForm();
       setShowAddFundsModal(null);
       setAddFundsAmount('');
     },
-    onError: (err) => {
+    onError: (err, _data, context) => {
+      queryClient.setQueryData(['my-goals', user?.id], context?.previousGoals);
       toast.error(err?.message || t('common.error'));
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-goals'] });
+      queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
     }
   });
 

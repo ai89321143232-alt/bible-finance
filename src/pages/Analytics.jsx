@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { format, startOfMonth, endOfMonth, subMonths, eachDayOfInterval, eachMonthOfInterval, subDays } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PullToRefresh from '@/components/PullToRefresh';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar, Legend
@@ -34,6 +35,7 @@ const CATEGORY_ICONS = {
 };
 
 export default function Analytics() {
+  const queryClient = useQueryClient();
   const [period, setPeriod] = useState('month');
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const { t, language } = useLanguage();
@@ -208,7 +210,13 @@ export default function Analytics() {
     return null;
   };
 
+  const handleRefresh = () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+    queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+  ]);
+
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
         {/* Header */}
@@ -221,7 +229,7 @@ export default function Analytics() {
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
               {t('analytics.title')}
             </h1>
-            <span className="px-2.5 py-1 rounded-md bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-xs font-medium">
+            <span className="px-2.5 py-1 rounded-md bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-sm font-medium">
               {scopeMode === 'business' ? 'Бизнес' : scopeMode === 'personal' ? 'Личные' : 'Все счета'}
             </span>
           </div>
@@ -376,21 +384,21 @@ export default function Analytics() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-slate-500 mb-0.5">{t('analytics.expenses_this_month')}</p>
+                      <p className="text-sm text-slate-500 mb-0.5">{t('analytics.expenses_this_month')}</p>
                       <p className="text-lg font-bold text-rose-600">{formatCurrency(totalExpenses)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-slate-500 mb-0.5">{t('analytics.prev_month')}</p>
+                      <p className="text-sm text-slate-500 mb-0.5">{t('analytics.prev_month')}</p>
                       <p className="text-lg font-bold text-slate-400">{formatCurrency(prevExpenses)}</p>
                     </div>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-slate-500 mb-0.5">{t('analytics.income_this_month')}</p>
+                      <p className="text-sm text-slate-500 mb-0.5">{t('analytics.income_this_month')}</p>
                       <p className="text-lg font-bold text-emerald-600">{formatCurrency(totalIncome)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-slate-500 mb-0.5">{t('analytics.prev_month')}</p>
+                      <p className="text-sm text-slate-500 mb-0.5">{t('analytics.prev_month')}</p>
                       <p className="text-lg font-bold text-slate-400">{formatCurrency(prevIncome)}</p>
                     </div>
                   </div>
@@ -499,7 +507,7 @@ export default function Analytics() {
                             <span className="text-sm font-medium text-slate-900 dark:text-white">
                               {formatCurrency(item.value)}
                             </span>
-                            <span className="text-xs text-slate-400 ml-2">
+                            <span className="text-sm text-slate-400 ml-2">
                               {item.percent}%
                             </span>
                           </div>
@@ -567,5 +575,6 @@ export default function Analytics() {
         </motion.div>
       </div>
     </div>
+    </PullToRefresh>
   );
 }

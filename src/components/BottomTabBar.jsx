@@ -49,7 +49,7 @@ export default function BottomTabBar({ activeIndex, onTabClick }) {
               <button
                 key={tab.label}
                 onClick={() => onTabClick(index, tab.path)}
-                className={`flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition-all duration-200 flex-1 ${isActive ? 'bg-accent' : ''}`}
+                className={`flex flex-col items-center gap-1 min-h-11 px-2 py-1 rounded-xl transition-all duration-200 flex-1 ${isActive ? 'bg-accent' : ''}`}
               >
                 <span
                   className={`flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-fuchsia-500 to-cyan-400 transition-all duration-200 ${isActive ? 'scale-110' : ''}`}
@@ -57,7 +57,7 @@ export default function BottomTabBar({ activeIndex, onTabClick }) {
                 >
                   <Icon className="w-3 h-3 text-white" />
                 </span>
-                <span className={`text-[10px] font-medium transition-all duration-200 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
+                <span className={`text-sm font-medium transition-all duration-200 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
                   {tab.label}
                 </span>
               </button>
@@ -68,10 +68,10 @@ export default function BottomTabBar({ activeIndex, onTabClick }) {
             <button
               key={tab.label}
               onClick={() => onTabClick(index, tab.path)}
-              className={`flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition-all duration-200 flex-1 ${isActive ? 'bg-accent' : ''}`}
+              className={`flex flex-col items-center gap-1 min-h-11 px-2 py-1 rounded-xl transition-all duration-200 flex-1 ${isActive ? 'bg-accent' : ''}`}
             >
               <Icon className={`w-5 h-5 transition-all duration-200 ${isActive ? 'text-foreground scale-110' : 'text-muted-foreground'}`} />
-              <span className={`text-[10px] font-medium transition-all duration-200 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
+              <span className={`text-sm font-medium transition-all duration-200 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
                 {tab.label}
               </span>
             </button>

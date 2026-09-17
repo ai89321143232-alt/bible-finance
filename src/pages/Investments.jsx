@@ -43,6 +43,8 @@ import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip } from
 import { INVESTMENT_CATEGORY } from '@/lib/investmentConstants';
 import FamilyVisibilityToggle from '@/components/shared/FamilyVisibilityToggle';
 import { useScopeMode } from '@/hooks/useScopeMode';
+import PullToRefresh from '@/components/PullToRefresh';
+import MobileSelect from '@/components/mobile/MobileSelect';
 
 const INVESTMENT_TYPES = [
   { value: 'stocks', label: 'Акции', icon: '📈', color: '#8B5CF6' },
@@ -316,7 +318,14 @@ export default function Investments() {
 
   const chartData = Object.values(portfolioByType);
 
+  const handleRefresh = () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['investments'] }),
+    queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+    queryClient.invalidateQueries({ queryKey: ['investment-cash-flows'] }),
+  ]);
+
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
         {/* Header */}
@@ -483,7 +492,7 @@ export default function Investments() {
                                 <Lock className="w-4 h-4 text-slate-400" />
                               )}
                               {investment.ticker && (
-                                <span className="text-xs font-mono px-2 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-slate-500">
+                                <span className="text-sm font-mono px-2 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-slate-500">
                                   {investment.ticker}
                                 </span>
                               )}
@@ -508,7 +517,7 @@ export default function Investments() {
                             }`}>
                               {profit >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                               {profit >= 0 ? '+' : ''}{formatCurrency(profit)}
-                              <span className="text-xs opacity-70">
+                              <span className="text-sm opacity-70">
                                 ({profitPct >= 0 ? '+' : ''}{profitPct.toFixed(1)}%)
                               </span>
                             </div>
@@ -543,28 +552,28 @@ export default function Investments() {
                       </div>
 
                       {(investment.coupon_per_unit || investment.dividend_yield || investment.next_payout_date) && (
-                        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 flex flex-wrap items-center gap-2 text-xs">
+                        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 flex flex-wrap items-center gap-2 text-sm">
                           {investment.coupon_per_unit != null && <span className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400">Выплата: {formatCurrency(investment.coupon_per_unit)} / ед.</span>}
                           {investment.dividend_yield != null && <span className="px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400">Доходность: {investment.dividend_yield}% годовых</span>}
                           {investment.next_payout_date && <span className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400">Следующая: {format(new Date(investment.next_payout_date), 'dd.MM.yyyy')}{forecastPayout > 0 ? ` · ~${formatCurrency(forecastPayout)}` : ''}</span>}
                         </div>
                       )}
-                      <div className="mt-3 flex items-center justify-between gap-2 text-xs text-slate-500">
+                      <div className="mt-3 flex items-center justify-between gap-2 text-sm text-slate-500">
                         <span>Выплат: {cashFlows.filter((flow) => flow.investment_id === investment.id).length}</span>
                         {isEditable && <div className="flex gap-2"><Button variant="outline" size="sm" className="rounded-lg" onClick={(e) => { e.stopPropagation(); setTopUpInvestment(investment); setTopUpAmount(''); setTopUpAccountId(''); }}><Plus className="w-3 h-3 mr-1" />Пополнить</Button><Button variant="outline" size="sm" className="rounded-lg" onClick={(e) => { e.stopPropagation(); setPayoutInvestment(investment); setPayoutForm({ type: investment.type === 'bonds' ? 'coupon' : investment.type === 'deposit' ? 'interest' : 'dividend', amount: '', date: new Date().toISOString().slice(0, 10), destination: 'income', linked_goal_id: investment.linked_goal_ids?.[0] || '', account_id: '' }); }}>Добавить поступление</Button></div>}
                       </div>
-                      {cashFlows.filter((flow) => flow.investment_id === investment.id).slice(0, 3).map((flow) => <div key={flow.id} className="mt-1 flex justify-between text-xs text-slate-500"><span>{flow.type === 'coupon' ? 'Купон' : flow.type === 'interest' ? 'Проценты' : flow.type === 'rent' ? 'Аренда' : 'Дивиденды'} · {format(new Date(flow.date), 'dd.MM.yyyy')}</span><span className="font-medium text-emerald-600">+{formatCurrency(flow.amount)}</span></div>)}
+                      {cashFlows.filter((flow) => flow.investment_id === investment.id).slice(0, 3).map((flow) => <div key={flow.id} className="mt-1 flex justify-between text-sm text-slate-500"><span>{flow.type === 'coupon' ? 'Купон' : flow.type === 'interest' ? 'Проценты' : flow.type === 'rent' ? 'Аренда' : 'Дивиденды'} · {format(new Date(flow.date), 'dd.MM.yyyy')}</span><span className="font-medium text-emerald-600">+{formatCurrency(flow.amount)}</span></div>)}
 
                       {/* Deposit-specific info */}
                       {isDeposit && (investment.interest_rate || investment.maturity_date || investment.allows_top_up) && (
                         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 flex flex-wrap items-center gap-2">
                           {investment.interest_rate != null && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-xs font-medium">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-sm font-medium">
                               <TrendingUp className="w-3 h-3" /> {investment.interest_rate}% годовых
                             </span>
                           )}
                           {investment.maturity_date && (
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium ${
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-medium ${
                               daysToMaturity !== null && daysToMaturity <= 0
                                 ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400'
                                 : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
@@ -575,7 +584,7 @@ export default function Investments() {
                             </span>
                           )}
                           {investment.allows_top_up && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 text-xs font-medium">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 text-sm font-medium">
                               <Wallet className="w-3 h-3" /> Пополняемый
                             </span>
                           )}
@@ -629,21 +638,18 @@ export default function Investments() {
             </div>
             <div>
               <Label>Тип актива</Label>
-              <Select 
-                value={formData.type} 
+              <MobileSelect
+                value={formData.type}
                 onValueChange={(v) => setFormData({ ...formData, type: v })}
+                triggerClassName="w-full h-12 rounded-xl mt-1"
+                title="Тип актива"
               >
-                <SelectTrigger className="rounded-xl mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {INVESTMENT_TYPES.map(type => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.icon} {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {INVESTMENT_TYPES.map(type => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.icon} {type.label}
+                  </SelectItem>
+                ))}
+              </MobileSelect>
             </div>
             {formData.type !== 'deposit' && (
               <div>
@@ -783,7 +789,7 @@ export default function Investments() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-sm text-slate-400 mt-1">
                       Будет создана транзакция-расход в категории «{INVESTMENT_CATEGORY}», которая не влияет на статистику повседневных трат.
                     </p>
                   </div>
@@ -841,7 +847,7 @@ export default function Investments() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-slate-400 mt-1">Сумма будет списана со счёта и сохранена как расход на инвестиции. Для ценных бумаг количество будет увеличено по текущей цене.</p>
+              <p className="text-sm text-slate-400 mt-1">Сумма будет списана со счёта и сохранена как расход на инвестиции. Для ценных бумаг количество будет увеличено по текущей цене.</p>
             </div>
             <Button
               onClick={handleTopUp}
@@ -899,5 +905,6 @@ export default function Investments() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </PullToRefresh>
   );
 }

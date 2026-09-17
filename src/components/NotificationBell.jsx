@@ -143,7 +143,7 @@ export default function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(o => !o)}
-        className="relative w-9 h-9 rounded-lg bg-muted border border-border flex items-center justify-center hover:bg-accent transition-colors"
+        className="relative w-11 h-11 lg:w-9 lg:h-9 rounded-lg bg-muted border border-border flex items-center justify-center hover:bg-accent transition-colors"
       >
         <Bell className="w-4 h-4 text-foreground" />
         {count > 0 && (
@@ -172,7 +172,7 @@ export default function NotificationBell() {
                     setDismissed(updated);
                     localStorage.setItem('dismissed_notifications', JSON.stringify(updated));
                   }}
-                  className="text-muted-foreground hover:text-foreground text-xs transition-colors"
+                  className="text-muted-foreground hover:text-foreground text-sm transition-colors"
                 >
                   Скрыть все
                 </button>
@@ -194,11 +194,11 @@ export default function NotificationBell() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-foreground text-sm font-medium leading-tight">{n.title}</p>
-                        <p className="text-muted-foreground text-xs mt-0.5">{n.text}</p>
+                        <p className="text-muted-foreground text-sm mt-0.5">{n.text}</p>
                         <Link
                           to={createPageUrl(n.link)}
                           onClick={() => setOpen(false)}
-                          className="text-violet-500 text-xs mt-1 inline-flex items-center gap-0.5 hover:text-violet-400"
+                          className="text-violet-500 text-sm mt-1 inline-flex items-center gap-0.5 hover:text-violet-400"
                         >
                           Перейти <ChevronRight className="w-3 h-3" />
                         </Link>

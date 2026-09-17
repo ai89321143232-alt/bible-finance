@@ -126,13 +126,13 @@ export default function Layout({ children, currentPageName }) {
         {currentPageName !== 'Dashboard' && (
           <button
             onClick={() => navigate(-1)}
-            className="w-9 h-9 bg-muted border border-border text-foreground rounded-lg flex items-center justify-center">
+            className="w-11 h-11 bg-muted border border-border text-foreground rounded-lg flex items-center justify-center">
             <ArrowLeft className="w-4 h-4" />
           </button>
         )}
         <button
           onClick={() => setShowMobileMenu(!showMobileMenu)}
-          className="w-9 h-9 bg-muted border border-border text-foreground rounded-lg flex items-center justify-center">
+          className="w-11 h-11 bg-muted border border-border text-foreground rounded-lg flex items-center justify-center">
           
           <Menu className="w-5 h-5" />
         </button>
@@ -183,7 +183,7 @@ export default function Layout({ children, currentPageName }) {
                 </div>
                 <button
                 onClick={() => setShowMobileMenu(false)}
-                className="w-7 h-7 rounded-md bg-muted flex items-center justify-center hover:bg-accent transition-colors">
+                className="w-11 h-11 rounded-md bg-muted flex items-center justify-center hover:bg-accent transition-colors">
                 
                   <X className="w-4 h-4 text-muted-foreground" />
                 </button>

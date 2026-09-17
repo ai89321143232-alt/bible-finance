@@ -43,6 +43,8 @@ import { useLanguage } from '@/lib/LanguageContext';
 import { useFormatCurrency, getCurrencySymbol } from '@/lib/formatCurrency';
 import { useScopeMode } from '@/hooks/useScopeMode';
 import { hasActiveFamilySubscription, isFamilyVisibleRecord, isOwnRecord } from '@/lib/recordOwnership';
+import PullToRefresh from '@/components/PullToRefresh';
+import MobileSelect from '@/components/mobile/MobileSelect';
 
 const ACCOUNT_COLORS = [
   '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6',
@@ -131,7 +133,8 @@ export default function Accounts() {
 
   const { data: allAccounts = [], isLoading } = useQuery({
     queryKey: ['accounts'],
-    queryFn: () => base44.entities.Account.list()
+    queryFn: () => base44.entities.Account.list(),
+    staleTime: 300000
   });
 
   const [currentUser, setCurrentUser] = useState(null);
@@ -366,7 +369,13 @@ export default function Accounts() {
     return a.localeCompare(b);
   });
 
+  const handleRefresh = () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+    queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+  ]);
+
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
         {/* Header */}
@@ -426,7 +435,7 @@ export default function Accounts() {
                     </div>
                   ))}
                 </div>
-                <p className="text-slate-400 text-xs mt-2">{displayedAccounts.length} {t('accounts.accounts_count')}</p>
+                <p className="text-slate-400 text-sm mt-2">{displayedAccounts.length} {t('accounts.accounts_count')}</p>
               </div>
             </CardContent>
           </Card>
@@ -517,13 +526,13 @@ export default function Accounts() {
                         {formatCurrency(account.balance || 0, account.currency)}
                       </p>
                       {(account.frozen_amount || 0) > 0 && (
-                        <p className="text-xs text-amber-500 dark:text-amber-400 mb-1 flex items-center gap-1">
+                        <p className="text-sm text-amber-500 dark:text-amber-400 mb-1 flex items-center gap-1">
                           <Lock className="w-3 h-3" />
                            {t('accounts.frozen')}: {formatCurrency(account.frozen_amount || 0, account.currency)} • {t('accounts.available')}: {formatCurrency((account.balance || 0) - (account.frozen_amount || 0), account.currency)}
                         </p>
                       )}
                       {account.type === 'credit' && account.credit_limit > 0 && (
-                        <p className="text-xs text-slate-400 mb-2">
+                        <p className="text-sm text-slate-400 mb-2">
                           {t('accounts.limit')}: {formatCurrency(account.credit_limit, account.currency)} •
                           {t('accounts.available')}: {formatCurrency(account.credit_limit + (account.balance || 0), account.currency)}
                         </p>
@@ -588,21 +597,18 @@ export default function Accounts() {
             </div>
             <div>
               <Label>{t('accounts.type_label')}</Label>
-              <Select 
-                value={formData.type} 
+              <MobileSelect
+                value={formData.type}
                 onValueChange={(v) => setFormData({ ...formData, type: v })}
+                triggerClassName="w-full h-12 rounded-xl mt-1"
+                title={t('accounts.type_label')}
               >
-                <SelectTrigger className="rounded-xl mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ACCOUNT_TYPES.map(type => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.icon} {t(type.labelKey)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {ACCOUNT_TYPES.map(type => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.icon} {t(type.labelKey)}
+                  </SelectItem>
+                ))}
+              </MobileSelect>
             </div>
             <div>
               <Label>Область счёта</Label>
@@ -646,7 +652,7 @@ export default function Accounts() {
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{formCurrencySymbol}</span>
               </div>
               {formData.type === 'credit' && (
-                <p className="text-xs text-rose-500/80 mt-1.5 flex items-center gap-1">
+                <p className="text-sm text-rose-500/80 mt-1.5 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />
                   {t('accounts.credit_balance_hint')}
                 </p>
@@ -699,11 +705,11 @@ export default function Accounts() {
                     placeholder="0"
                     className="rounded-xl pr-16"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs whitespace-nowrap">
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm whitespace-nowrap">
                     {profileCurrency} / {formData.currency}
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1.5">
+                <p className="text-sm text-muted-foreground mt-1.5">
                   1 {formData.currency} = {formData.exchange_rate || '?'} {profileCurrency}. {t('accounts.exchange_rate_hint') || 'Курс сохранится в профиль и будет использоваться для сводных расчётов.'}
                 </p>
               </div>
@@ -762,5 +768,6 @@ export default function Accounts() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </PullToRefresh>
   );
 }

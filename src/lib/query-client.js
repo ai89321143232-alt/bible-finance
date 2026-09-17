@@ -18,11 +18,11 @@ import { QueryClient } from '@tanstack/react-query';
 export const queryClientInstance = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: true,
+      refetchOnWindowFocus: (query) => query.isActive() && query.isStale(),
       refetchOnReconnect: true,
       refetchOnMount: true,
       retry: 1,
-      staleTime: 0,
+      staleTime: 1000 * 60,
       gcTime: 1000 * 60 * 30, // 30 минут — кэш хранится, чтобы показать данные мгновенно при возврате
     },
   },

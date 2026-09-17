@@ -1,21 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import Dashboard from '@/pages/Dashboard';
-import Transactions from '@/pages/Transactions';
-import Accounts from '@/pages/Accounts';
-import Goals from '@/pages/Goals';
-import Budgets from '@/pages/Budgets';
-import Analytics from '@/pages/Analytics';
-import Settings from '@/pages/Settings';
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Transactions = lazy(() => import('@/pages/Transactions'));
+const Accounts = lazy(() => import('@/pages/Accounts'));
+const Goals = lazy(() => import('@/pages/Goals'));
+const Budgets = lazy(() => import('@/pages/Budgets'));
+const Analytics = lazy(() => import('@/pages/Analytics'));
+const Settings = lazy(() => import('@/pages/Settings'));
 import BottomTabBar from '@/components/BottomTabBar';
 import { useBottomTabs } from '@/components/bottomTabsConfig';
 
 // ============================================================
 // components/MobileTabShell.jsx — MOBILE TAB CONTAINER
 // ============================================================
-// Renders all configured tab pages simultaneously and uses
-// CSS display to show/hide them, preserving scroll position
-// and component state when switching tabs.
+// Loads a tab page only on its first visit, then keeps it mounted.
+// CSS display preserves scroll position and component state when switching tabs.
 //
 // Tab configuration comes from useBottomTabs() — user can
 // customize order and which tabs are shown in Personalization.
@@ -36,6 +35,7 @@ export default function MobileTabShell({ initialTab = 0 }) {
   const location = useLocation();
   const allTabs = useBottomTabs();
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [activatedTabs, setActivatedTabs] = useState(() => new Set([initialTab]));
 
   // Only regular tabs (non-center) are rendered as tab pages
   const tabs = allTabs.filter((tab) => !tab.isCenter);
@@ -43,8 +43,10 @@ export default function MobileTabShell({ initialTab = 0 }) {
   // Keep activeTab in sync with the URL
   useEffect(() => {
     const index = tabs.findIndex((t) => t.path === location.pathname);
-    setActiveTab(index >= 0 ? index : 0);
-  }, [location.pathname, tabs]);
+    const nextTab = index >= 0 ? index : 0;
+    setActiveTab(nextTab);
+    setActivatedTabs((previous) => new Set([...previous, nextTab]));
+  }, [location.pathname]);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -52,7 +54,7 @@ export default function MobileTabShell({ initialTab = 0 }) {
       <div className="flex-1 pb-24">
         {tabs.map((tab, index) => {
           const PageComponent = PAGE_COMPONENT_MAP[tab.page];
-          if (!PageComponent) return null;
+          if (!PageComponent || !activatedTabs.has(index)) return null;
           return (
             <div
               key={tab.page}
@@ -61,7 +63,7 @@ export default function MobileTabShell({ initialTab = 0 }) {
                 minHeight: '100vh',
               }}
             >
-              <PageComponent />
+              <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center text-sm text-muted-foreground">Загрузка…</div>}><PageComponent /></Suspense>
             </div>
           );
         })}

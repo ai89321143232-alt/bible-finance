@@ -164,7 +164,12 @@ export default function Budgets() {
     queryFn: async () => {
       if (!user) return [];
       // Синхронно с дашбордом: транзакции пользователя + семьи, а не только user_id
-      const all = await base44.entities.Transaction.list('-date', 1000);
+      const monthStart = new Date();
+      monthStart.setMonth(monthStart.getMonth() - 1);
+      monthStart.setHours(0, 0, 0, 0);
+      const all = await base44.entities.Transaction.filter({
+        date: { $gte: monthStart.toISOString() }
+      }, '-date');
       return all.filter(t =>
         t.created_by_id === user.id ||
         t.user_id === user.id ||
@@ -179,7 +184,7 @@ export default function Budgets() {
   const { data: dbCategories = [] } = useQuery({
     queryKey: ['categories', 'expense'],
     queryFn: () => base44.entities.Category.filter({ type: 'expense' }),
-    staleTime: 30000
+    staleTime: 300000
   });
 
   // Объединяем встроенный список (одинаков для всех) с пользовательскими категориями из БД.
@@ -200,7 +205,7 @@ export default function Budgets() {
       return all.filter(a => a.created_by_id === user.id || a.user_id === user.id);
     },
     enabled: !!user,
-    staleTime: 30000
+    staleTime: 300000
   });
   const accountScopeMap = new Map(accounts.map(a => [a.id, a.scope || 'personal']));
 
@@ -218,24 +223,36 @@ export default function Budgets() {
 
   const createMutation = useMutation({
     mutationFn: (data) => BudgetService.create(data),
-    onSuccess: () => {
-      invalidateBudgets();
-      resetForm();
+    onMutate: async (data) => {
+      await queryClient.cancelQueries({ queryKey: ['my-budgets'] });
+      const previousBudgets = queryClient.getQueryData(['my-budgets', user?.id]);
+      queryClient.setQueryData(['my-budgets', user?.id], (old = []) => [...old, {
+        ...data, id: `temp-${Date.now()}`, created_by_id: user?.id, spent_amount: 0
+      }]);
+      return { previousBudgets };
     },
-    onError: (err) => {
+    onSuccess: () => resetForm(),
+    onError: (err, _data, context) => {
+      queryClient.setQueryData(['my-budgets', user?.id], context?.previousBudgets);
       toast.error(err?.message || t('common.error'));
-    }
+    },
+    onSettled: invalidateBudgets
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data, enrich }) => BudgetService.update(id, data, { enrich: enrich !== false }),
-    onSuccess: () => {
-      invalidateBudgets();
-      resetForm();
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['my-budgets'] });
+      const previousBudgets = queryClient.getQueryData(['my-budgets', user?.id]);
+      queryClient.setQueryData(['my-budgets', user?.id], (old = []) => old.map((budget) => budget.id === id ? { ...budget, ...data } : budget));
+      return { previousBudgets };
     },
-    onError: (err) => {
+    onSuccess: () => resetForm(),
+    onError: (err, _data, context) => {
+      queryClient.setQueryData(['my-budgets', user?.id], context?.previousBudgets);
       toast.error(err?.message || t('common.error'));
-    }
+    },
+    onSettled: invalidateBudgets
   });
 
   const deleteMutation = useMutation({
@@ -450,11 +467,11 @@ export default function Budgets() {
               </div>
               <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-white/20">
                 <div>
-                  <p className="text-violet-200 text-xs">{t('budgets.personal')}</p>
+                  <p className="text-violet-200 text-sm">{t('budgets.personal')}</p>
                   <p className="text-lg font-semibold text-white">{formatCurrency(personalTotal)}</p>
                 </div>
                 <div>
-                  <p className="text-violet-200 text-xs flex items-center gap-1">
+                  <p className="text-violet-200 text-sm flex items-center gap-1">
                     <Users className="w-3 h-3" /> {t('budgets.family')}
                   </p>
                   <p className="text-lg font-semibold text-white">{formatCurrency(familyTotal)}</p>
@@ -558,7 +575,7 @@ export default function Budgets() {
                       }`}
                     >
                       <span className="text-xl drop-shadow-sm">{getCategoryEmoji(cat.icon)}</span>
-                      <span className="text-xs font-medium truncate w-full text-center">{cat.name}</span>
+                      <span className="text-sm font-medium truncate w-full text-center">{cat.name}</span>
                     </button>
                   );
                 })}

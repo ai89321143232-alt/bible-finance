@@ -20,7 +20,9 @@ export default function ExportRangeModal({ user, activeWorkspaceId, onClose }) {
   const handleExport = async () => {
     setLoading(true);
     try {
-      const all = await base44.entities.Transaction.list('-date', 2000);
+      const all = await base44.entities.Transaction.filter({
+        date: { $gte: `${startDate}T00:00:00.000Z`, $lte: `${endDate}T23:59:59.999Z` }
+      }, '-date');
       const mine = all.filter(t =>
         t.created_by_id === user.id ||
         (user.family_id && t.family_id === user.family_id)
@@ -87,7 +89,7 @@ export default function ExportRangeModal({ user, activeWorkspaceId, onClose }) {
 
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">С даты</label>
+                <label className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1 block">С даты</label>
                 <input
                   type="date"
                   value={startDate}
@@ -96,7 +98,7 @@ export default function ExportRangeModal({ user, activeWorkspaceId, onClose }) {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">По дату</label>
+                <label className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1 block">По дату</label>
                 <input
                   type="date"
                   value={endDate}

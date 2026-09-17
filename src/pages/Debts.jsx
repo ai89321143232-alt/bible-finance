@@ -25,6 +25,7 @@ import {
 import { useFormatCurrency } from '@/lib/formatCurrency';
 import { useTranslation } from '@/lib/LanguageContext';
 import { cn } from '@/lib/utils';
+import PullToRefresh from '@/components/PullToRefresh';
 
 const MONTHS_BACK = 12;
 
@@ -230,7 +231,14 @@ export default function Debts({ initialTab }) {
     );
   }
 
+  const handleRefresh = () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+    queryClient.invalidateQueries({ queryKey: ['debtAccounts'] }),
+    queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+  ]);
+
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="min-h-screen pb-24 lg:pb-6">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
         {/* Header */}
@@ -366,6 +374,7 @@ export default function Debts({ initialTab }) {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </PullToRefresh>
   );
 }
 
@@ -393,18 +402,18 @@ function OverviewTab({ activeDebts, unlinkedCreditAccounts, totalDebt, totalMont
         <div className="debt-summary-card glass-card rounded-2xl border border-rose-500/15 bg-rose-500/5 p-4">
           <div className="flex items-center gap-2 mb-2">
             <Wallet className="w-4 h-4 text-rose-500" />
-            <span className="text-muted-foreground text-xs">{t('debt.total_debt')}</span>
+            <span className="text-muted-foreground text-sm">{t('debt.total_debt')}</span>
           </div>
           <p className="text-rose-500 font-bold text-lg sm:text-xl">{fmt(totalDebt)}</p>
-          <p className="text-muted-foreground text-xs mt-0.5">{activeDebts.length} {t('debt.credits_count')}</p>
+          <p className="text-muted-foreground text-sm mt-0.5">{activeDebts.length} {t('debt.credits_count')}</p>
         </div>
         <div className="debt-summary-card glass-card rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4">
           <div className="flex items-center gap-2 mb-2">
             <Calendar className="w-4 h-4 text-amber-500" />
-            <span className="text-muted-foreground text-xs">{t('debt.payments_per_month')}</span>
+            <span className="text-muted-foreground text-sm">{t('debt.payments_per_month')}</span>
           </div>
           <p className="text-amber-500 font-bold text-lg sm:text-xl">{fmt(totalMonthly)}</p>
-          <p className="text-muted-foreground text-xs mt-0.5">{t('debt.minimally')}</p>
+          <p className="text-muted-foreground text-sm mt-0.5">{t('debt.minimally')}</p>
         </div>
       </div>
 
@@ -415,7 +424,7 @@ function OverviewTab({ activeDebts, unlinkedCreditAccounts, totalDebt, totalMont
             <AlertTriangle className="w-4 h-4 text-amber-500" />
             <span className="text-foreground text-sm font-medium">{t('debts.unlinked_accounts')}</span>
           </div>
-          <p className="text-muted-foreground text-xs mb-3">{t('debts.unlinked_desc')}</p>
+          <p className="text-muted-foreground text-sm mb-3">{t('debts.unlinked_desc')}</p>
           <div className="space-y-2">
             {unlinkedCreditAccounts.map(acc => (
               <div key={acc.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30">
@@ -483,34 +492,34 @@ function PlanTab({ activeDebts, strategy, setStrategy, extraPayment, setExtraPay
         <div className="rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center gap-2 mb-2">
             <Wallet className="w-4 h-4 text-rose-500" />
-            <span className="text-muted-foreground text-xs">{t('debt.total_debt')}</span>
+            <span className="text-muted-foreground text-sm">{t('debt.total_debt')}</span>
           </div>
           <p className="text-rose-500 font-bold text-lg sm:text-xl">{fmt(totalDebt)}</p>
-          <p className="text-muted-foreground text-xs mt-0.5">{activeDebts.length} {t('debt.credits_count')}</p>
+          <p className="text-muted-foreground text-sm mt-0.5">{activeDebts.length} {t('debt.credits_count')}</p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center gap-2 mb-2">
             <Calendar className="w-4 h-4 text-amber-500" />
-            <span className="text-muted-foreground text-xs">{t('debt.payments_per_month')}</span>
+            <span className="text-muted-foreground text-sm">{t('debt.payments_per_month')}</span>
           </div>
           <p className="text-amber-500 font-bold text-lg sm:text-xl">{fmt(totalMonthly)}</p>
-          <p className="text-muted-foreground text-xs mt-0.5">{t('debt.minimally')}</p>
+          <p className="text-muted-foreground text-sm mt-0.5">{t('debt.minimally')}</p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-4 h-4 text-orange-500" />
-            <span className="text-muted-foreground text-xs">{t('debt.overpayment')}</span>
+            <span className="text-muted-foreground text-sm">{t('debt.overpayment')}</span>
           </div>
           <p className="text-orange-500 font-bold text-lg sm:text-xl">{fmt(totalOverpayment)}</p>
-          <p className="text-muted-foreground text-xs mt-0.5">{t('debt.interest_to_banks')}</p>
+          <p className="text-muted-foreground text-sm mt-0.5">{t('debt.interest_to_banks')}</p>
         </div>
         <div className={`debt-summary-card glass-card rounded-2xl border p-4 ${burdenColors[burden.level]}`}>
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-4 h-4" />
-            <span className="text-xs">{t('debt.burden')}</span>
+            <span className="text-sm">{t('debt.burden')}</span>
           </div>
           <p className="font-bold text-lg sm:text-xl">{burden.ratio.toFixed(0)}%</p>
-          <p className="text-xs mt-0.5">{burdenLabels[burden.level]}</p>
+          <p className="text-sm mt-0.5">{burdenLabels[burden.level]}</p>
         </div>
       </div>
 
@@ -523,26 +532,26 @@ function PlanTab({ activeDebts, strategy, setStrategy, extraPayment, setExtraPay
             className={`rounded-xl border p-4 text-left transition-all ${strategy === 'avalanche' ? 'border-emerald-500 bg-emerald-500/10' : 'border-border bg-muted/30 hover:bg-muted/50'}`}>
             <TrendingDown className={`w-5 h-5 mb-2 ${strategy === 'avalanche' ? 'text-emerald-500' : 'text-muted-foreground'}`} />
             <p className="font-medium text-foreground text-sm">{t('debt.strategy_avalanche')}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{t('debt.strategy_avalanche_desc')}</p>
+            <p className="text-sm text-muted-foreground mt-0.5">{t('debt.strategy_avalanche_desc')}</p>
           </button>
           <button
             onClick={() => setStrategy('snowball')}
             className={`rounded-xl border p-4 text-left transition-all ${strategy === 'snowball' ? 'border-blue-500 bg-blue-500/10' : 'border-border bg-muted/30 hover:bg-muted/50'}`}>
             <Snowflake className={`w-5 h-5 mb-2 ${strategy === 'snowball' ? 'text-blue-500' : 'text-muted-foreground'}`} />
             <p className="font-medium text-foreground text-sm">{t('debt.strategy_snowball')}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{t('debt.strategy_snowball_desc')}</p>
+            <p className="text-sm text-muted-foreground mt-0.5">{t('debt.strategy_snowball_desc')}</p>
           </button>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label className="text-xs">{t('debt.extra_payment')}</Label>
+            <Label className="text-sm">{t('debt.extra_payment')}</Label>
             <Input type="number" value={extraPayment} onChange={(e) => setExtraPayment(e.target.value)} placeholder="5000" />
-            <p className="text-xs text-muted-foreground mt-1">{t('debt.extra_payment_hint')}</p>
+            <p className="text-sm text-muted-foreground mt-1">{t('debt.extra_payment_hint')}</p>
           </div>
           <div>
-            <Label className="text-xs">{t('debt.monthly_income')}</Label>
+            <Label className="text-sm">{t('debt.monthly_income')}</Label>
             <Input type="number" value={monthlyIncome} onChange={(e) => setMonthlyIncome(e.target.value)} placeholder="80000" />
-            <p className="text-xs text-muted-foreground mt-1">{t('debt.income_hint')}</p>
+            <p className="text-sm text-muted-foreground mt-1">{t('debt.income_hint')}</p>
           </div>
         </div>
       </div>
@@ -567,23 +576,23 @@ function PlanTab({ activeDebts, strategy, setStrategy, extraPayment, setExtraPay
           <h3 className="font-semibold text-foreground mb-3">{t('debt.plan_summary')}</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs text-muted-foreground mb-1">{t('debt.payoff_date_label')}</p>
+              <p className="text-sm text-muted-foreground mb-1">{t('debt.payoff_date_label')}</p>
               <p className="font-bold text-foreground text-sm sm:text-base">
                 {format(simulation.summary.payoffDate, 'd MMMM yyyy', { locale: dateLocale })}
               </p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-1">{t('debt.payoff_term')}</p>
+              <p className="text-sm text-muted-foreground mb-1">{t('debt.payoff_term')}</p>
               <p className="font-bold text-foreground text-sm sm:text-base">
                 {simulation.summary.monthsToPayoff} {t('debt.analytics_months')} ({Math.ceil(simulation.summary.monthsToPayoff / 12)} {t('debt.analytics_months')})
               </p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-1">{t('debt.total_will_pay')}</p>
+              <p className="text-sm text-muted-foreground mb-1">{t('debt.total_will_pay')}</p>
               <p className="font-bold text-amber-500 text-sm sm:text-base">{fmt(simulation.summary.totalPaid)}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-1">{t('debt.interest_part')}</p>
+              <p className="text-sm text-muted-foreground mb-1">{t('debt.interest_part')}</p>
               <p className="font-bold text-orange-500 text-sm sm:text-base">{fmt(simulation.summary.totalInterest)}</p>
             </div>
           </div>
@@ -633,43 +642,43 @@ function AnalyticsTab({ activeDebts, accounts, linkedAccountIds, totalCurrentDeb
         <div className="debt-summary-card glass-card rounded-2xl border border-rose-500/15 bg-rose-500/5 p-4">
           <div className="flex items-center gap-2 mb-2">
             <CreditCard className="w-4 h-4 text-rose-500" />
-            <span className="text-muted-foreground text-xs">{t('debt.analytics_total_debt')}</span>
+            <span className="text-muted-foreground text-sm">{t('debt.analytics_total_debt')}</span>
           </div>
           <p className="text-rose-500 font-bold text-xl">{formatCurrency(totalCurrentDebt, primaryCurrency)}</p>
-          <p className="text-muted-foreground text-xs mt-0.5">{activeDebts.length} {t('debt.analytics_accounts')}</p>
+          <p className="text-muted-foreground text-sm mt-0.5">{activeDebts.length} {t('debt.analytics_accounts')}</p>
         </div>
         <div className="debt-summary-card glass-card rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4">
           <div className="flex items-center gap-2 mb-2">
             <Calendar className="w-4 h-4 text-amber-500" />
-            <span className="text-muted-foreground text-xs">{t('debt.analytics_payments_this_month')}</span>
+            <span className="text-muted-foreground text-sm">{t('debt.analytics_payments_this_month')}</span>
           </div>
           <p className="text-amber-500 font-bold text-xl">{formatCurrency(totalPaymentsThisMonth, primaryCurrency)}</p>
-          <p className="text-muted-foreground text-xs mt-0.5">{ratioThisMonth.toFixed(1)}% {t('debt.analytics_of_income')}</p>
+          <p className="text-muted-foreground text-sm mt-0.5">{ratioThisMonth.toFixed(1)}% {t('debt.analytics_of_income')}</p>
         </div>
         <div className={`debt-summary-card glass-card rounded-2xl border p-4 ${debtTrend === 'down' ? 'border-emerald-500/15 bg-emerald-500/5' : debtTrend === 'up' ? 'border-rose-500/15 bg-rose-500/5' : 'border-border bg-muted/30'}`}>
           <div className="flex items-center gap-2 mb-2">
             {debtTrend === 'down' ? <TrendingDown className="w-4 h-4 text-emerald-500" /> : <TrendingUp className="w-4 h-4 text-rose-500" />}
-            <span className="text-muted-foreground text-xs">{t('debt.analytics_trend_year')}</span>
+            <span className="text-muted-foreground text-sm">{t('debt.analytics_trend_year')}</span>
           </div>
           <p className={`font-bold text-xl ${debtTrend === 'down' ? 'text-emerald-500' : debtTrend === 'up' ? 'text-rose-500' : 'text-muted-foreground'}`}>
             {debtTrend === 'down' ? t('debt.analytics_trend_down') : debtTrend === 'up' ? t('debt.analytics_trend_up') : t('debt.analytics_trend_stable')}
           </p>
-          <p className="text-muted-foreground text-xs mt-0.5">{MONTHS_BACK} {t('debt.analytics_months')}</p>
+          <p className="text-muted-foreground text-sm mt-0.5">{MONTHS_BACK} {t('debt.analytics_months')}</p>
         </div>
         <div className="debt-summary-card glass-card rounded-2xl border border-violet-500/15 bg-violet-500/5 p-4">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-4 h-4 text-violet-500" />
-            <span className="text-muted-foreground text-xs">{t('debt.analytics_avg_burden')}</span>
+            <span className="text-muted-foreground text-sm">{t('debt.analytics_avg_burden')}</span>
           </div>
           <p className="text-violet-500 font-bold text-xl">{avgRatio.toFixed(1)}%</p>
-          <p className="text-muted-foreground text-xs mt-0.5">{avgRatio > 30 ? t('debt.analytics_burden_high') : avgRatio > 15 ? t('debt.analytics_burden_moderate') : t('debt.analytics_burden_low')}</p>
+          <p className="text-muted-foreground text-sm mt-0.5">{avgRatio > 30 ? t('debt.analytics_burden_high') : avgRatio > 15 ? t('debt.analytics_burden_moderate') : t('debt.analytics_burden_low')}</p>
         </div>
       </div>
 
       {/* Credit Accounts List */}
       <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 mb-6">
         <h3 className="text-foreground font-semibold mb-1">{t('debt.analytics_credit_accounts')}</h3>
-        <p className="text-muted-foreground text-xs mb-4">{t('debt.analytics_credit_accounts_desc')}</p>
+        <p className="text-muted-foreground text-sm mb-4">{t('debt.analytics_credit_accounts_desc')}</p>
         <div className="space-y-2">
           {activeDebts.map(debt => {
             const acc = accounts.find(a => a.id === debt.linked_account_id);
@@ -682,7 +691,7 @@ function AnalyticsTab({ activeDebts, accounts, linkedAccountIds, totalCurrentDeb
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-foreground text-sm font-medium">{debt.name}</p>
-                  <p className="text-muted-foreground text-xs">
+                  <p className="text-muted-foreground text-sm">
                     {t(`debt.type_${debt.type}`)}
                     {debt.creditor && ` · ${debt.creditor}`}
                     {limit > 0 && <span className="ml-2">· {t('debt.analytics_limit')} {formatCurrency(limit, debt.currency)}</span>}
@@ -691,7 +700,7 @@ function AnalyticsTab({ activeDebts, accounts, linkedAccountIds, totalCurrentDeb
                 <div className="text-right">
                   <p className="text-rose-500 font-semibold text-sm">{formatCurrency(debt.remaining_amount, debt.currency)}</p>
                   {utilization > 0 && (
-                    <p className={`text-xs font-medium ${utilization > 80 ? 'text-rose-500' : utilization > 50 ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                    <p className={`text-sm font-medium ${utilization > 80 ? 'text-rose-500' : utilization > 50 ? 'text-amber-500' : 'text-muted-foreground'}`}>
                       {utilization.toFixed(0)}% {t('debt.analytics_utilization')}
                     </p>
                   )}
@@ -711,11 +720,11 @@ function AnalyticsTab({ activeDebts, accounts, linkedAccountIds, totalCurrentDeb
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left px-5 py-3 text-muted-foreground text-xs font-medium">{t('debt.analytics_month')}</th>
-                <th className="text-right px-5 py-3 text-muted-foreground text-xs font-medium">{t('debt.analytics_income_col')}</th>
-                <th className="text-right px-5 py-3 text-muted-foreground text-xs font-medium">{t('debt.analytics_payments_col')}</th>
-                <th className="text-right px-5 py-3 text-muted-foreground text-xs font-medium">{t('debt.analytics_new_debts')}</th>
-                <th className="text-right px-5 py-3 text-muted-foreground text-xs font-medium">{t('debt.analytics_pct_income')}</th>
+                <th className="text-left px-5 py-3 text-muted-foreground text-sm font-medium">{t('debt.analytics_month')}</th>
+                <th className="text-right px-5 py-3 text-muted-foreground text-sm font-medium">{t('debt.analytics_income_col')}</th>
+                <th className="text-right px-5 py-3 text-muted-foreground text-sm font-medium">{t('debt.analytics_payments_col')}</th>
+                <th className="text-right px-5 py-3 text-muted-foreground text-sm font-medium">{t('debt.analytics_new_debts')}</th>
+                <th className="text-right px-5 py-3 text-muted-foreground text-sm font-medium">{t('debt.analytics_pct_income')}</th>
               </tr>
             </thead>
             <tbody>

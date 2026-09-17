@@ -35,6 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import MobileSelect from '@/components/mobile/MobileSelect';
 
 const AVAILABLE_ICONS = [
   // Еда и напитки
@@ -152,7 +153,8 @@ export default function Categories() {
 
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ['categories'],
-    queryFn: () => base44.entities.Category.list()
+    queryFn: () => base44.entities.Category.list(),
+    staleTime: 300000
   });
 
   const { data: budgets = [] } = useQuery({
@@ -564,18 +566,15 @@ export default function Categories() {
             </div>
             <div>
               <Label>Тип</Label>
-              <Select 
-                value={formData.type} 
+              <MobileSelect
+                value={formData.type}
                 onValueChange={(v) => setFormData({ ...formData, type: v })}
+                triggerClassName="w-full h-12 rounded-xl mt-1"
+                title="Тип"
               >
-                <SelectTrigger className="rounded-xl mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="expense">Расход</SelectItem>
-                  <SelectItem value="income">Доход</SelectItem>
-                </SelectContent>
-              </Select>
+                <SelectItem value="expense">Расход</SelectItem>
+                <SelectItem value="income">Доход</SelectItem>
+              </MobileSelect>
             </div>
             <div>
               <Label>Иконка</Label>
@@ -584,7 +583,7 @@ export default function Categories() {
                   <button
                     key={icon}
                     onClick={() => setFormData({ ...formData, icon })}
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl transition-all ${
                       formData.icon === icon 
                         ? 'bg-violet-100 dark:bg-violet-900/30 ring-2 ring-violet-500' 
                         : 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200'

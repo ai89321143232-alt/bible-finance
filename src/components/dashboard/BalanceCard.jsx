@@ -84,7 +84,7 @@ export default function BalanceCard({
             <div className="w-5 h-5 rounded-md bg-violet-500/15 flex items-center justify-center">
               <Wallet className="w-3 h-3 text-violet-500" />
             </div>
-            <span className="text-muted-foreground text-xs uppercase tracking-widest font-medium">{t('balance.total_balance')}</span>
+            <span className="text-muted-foreground text-sm uppercase tracking-widest font-medium">{t('balance.total_balance')}</span>
           </div>
           <Button
             variant="ghost"
@@ -109,7 +109,7 @@ export default function BalanceCard({
           {hasMultipleCurrencies && (
             <div className="flex flex-wrap gap-1.5 mt-2">
               {Object.entries(balancesByCurrency).map(([cur, bal]) => (
-                <span key={cur} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/60 text-muted-foreground text-xs font-medium">
+                <span key={cur} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/60 text-muted-foreground text-sm font-medium">
                   {showBalance ? formatCurrency(bal, cur) : '•••'}
                 </span>
               ))}
@@ -156,7 +156,7 @@ export default function BalanceCard({
                 <div className={`w-6 h-6 rounded-md ${stat.bg} flex items-center justify-center mb-2`}>
                   <stat.icon className={`w-3.5 h-3.5 ${stat.color}`} />
                 </div>
-                <p className="text-muted-foreground text-xs mb-1">{stat.label}</p>
+                <p className="text-muted-foreground text-sm mb-1">{stat.label}</p>
                 <p className={`font-semibold text-sm ${stat.color}`}>
                   {showBalance ? stat.value : '••••'}
                 </p>

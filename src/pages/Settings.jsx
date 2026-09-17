@@ -54,6 +54,7 @@ import BusinessToggle from '@/components/settings/BusinessToggle';
 import { useLanguage, useTranslation } from '@/lib/LanguageContext';
 import { useFontScale } from '@/hooks/useFontScale';
 import { Layout, Bot } from 'lucide-react';
+import { toast } from 'sonner';
 
 const PRESET_BACKGROUNDS = [
   { name: 'Сетка', url: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/2d7380dc7_generated_image.png' },
@@ -203,34 +204,11 @@ export default function Settings() {
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
     try {
-      // Delete all user's transactions
-      const userTransactions = await base44.entities.Transaction.filter({});
-      for (const tx of userTransactions) {
-        try { await base44.entities.Transaction.delete(tx.id); } catch(e) {}
-      }
-      // Delete all user's accounts
-      const allAccts = await base44.entities.Account.list();
-      for (const acc of allAccts) {
-        try { await base44.entities.Account.delete(acc.id); } catch(e) {}
-      }
-      // Delete all user's budgets
-      const allBudgets = await base44.entities.Budget.filter({});
-      for (const b of allBudgets) {
-        try { await base44.entities.Budget.delete(b.id); } catch(e) {}
-      }
-      // Delete all user's goals
-      const allGoals = await base44.entities.Goal.filter({});
-      for (const g of allGoals) {
-        try { await base44.entities.Goal.delete(g.id); } catch(e) {}
-      }
-      // Delete all user's investments
-      const allInvs = await base44.entities.Investment.list();
-      for (const inv of allInvs) {
-        try { await base44.entities.Investment.delete(inv.id); } catch(e) {}
-      }
-      base44.auth.logout();
+      const response = await base44.functions.invoke('deleteAccount', {});
+      if (!response.data?.success) throw new Error(response.data?.error || t('common.error'));
+      await base44.auth.logout();
     } catch (error) {
-      console.error('Delete account error:', error);
+      toast.error(error?.message || t('common.error'));
       setIsDeleting(false);
     }
   };
