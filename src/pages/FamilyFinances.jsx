@@ -85,9 +85,10 @@ export default function FamilyFinances() {
     queryKey: ['family-accounts', family?.id],
     queryFn: async () => {
       const accounts = await base44.entities.Account.list();
-      // Filter only accounts from family members
-      return accounts.filter(acc => 
-        family.members.some(m => m.user_id === acc.created_by_id)
+      // Include accounts created by family members and shared family accounts.
+      return accounts.filter(acc =>
+        family.members.some(m => m.user_id === acc.created_by_id) ||
+        acc.family_id === family.id
       );
     },
     enabled: !!family && family.members?.length > 0
@@ -670,15 +671,26 @@ export default function FamilyFinances() {
                       </TabsList>
 
                   <TabsContent value="accounts" className="space-y-3">
-                    {stats.accounts.map((account) => (
-                      <Card key={account.id}>
-                        <CardContent className="p-4 flex justify-between items-center">
-                          <span className="font-medium">{account.name}</span>
-                          <span className="font-semibold text-lg">{formatCurrency(account.balance)}</span>
-                        </CardContent>
-                      </Card>
-                    ))}
-                    {stats.accounts.length === 0 && (
+                    {allAccounts.map((account) => {
+                      const accountOwner = getMemberInfo(account.created_by_id);
+                      const isFamilyAccount = account.family_id === family?.id;
+                      return (
+                        <Card key={account.id}>
+                          <CardContent className="p-4 flex justify-between items-center">
+                            <div>
+                              <span className="font-medium">{account.name}</span>
+                              <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: accountOwner.avatar_color }} />
+                                <span>{accountOwner.display_name || accountOwner.name}</span>
+                                {isFamilyAccount && <span className="text-violet-600 dark:text-violet-400">• Семейный</span>}
+                              </div>
+                            </div>
+                            <span className="font-semibold text-lg">{formatCurrency(account.balance)}</span>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                    {allAccounts.length === 0 && (
                       <p className="text-center text-slate-500 py-4">Нет счетов</p>
                     )}
                   </TabsContent>
