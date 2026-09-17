@@ -64,29 +64,31 @@ export const GoalService = {
    */
   async addFunds(goal, account, amount) {
     const amt = parseFloat(amount);
-    const newAmount = (goal.current_amount || 0) + amt;
-    const isCompleted = newAmount >= goal.target_amount;
+    const freshGoal = await repo().get(goal.id);
+    const freshAccount = account ? await AccountService.get(account.id) : null;
+    const newAmount = (freshGoal.current_amount || 0) + amt;
+    const isCompleted = newAmount >= freshGoal.target_amount;
 
-    if (account) {
-      await AccountService.freezeAmount(account.id, (account.frozen_amount || 0) + amt);
+    if (freshAccount) {
+      await AccountService.freezeAmount(freshAccount.id, (freshAccount.frozen_amount || 0) + amt);
     }
     await TransactionService.createRaw({
       type: 'transfer',
       amount: amt,
       category: 'Перенос на цель',
-      description: `${account?.name || ''} → Цель: ${goal.title}`,
+      description: `${freshAccount?.name || ''} → Цель: ${freshGoal.title}`,
       date: new Date().toISOString(),
-      account_id: account?.id,
+      account_id: freshAccount?.id,
     });
     const updated = await this.update(
-      goal.id,
+      freshGoal.id,
       { current_amount: newAmount, status: isCompleted ? 'completed' : 'active' },
       { enrich: false }
     );
-    eventBus.emit(EVENTS.ACCOUNT_CHANGED, { id: account?.id, action: 'update' });
+    eventBus.emit(EVENTS.ACCOUNT_CHANGED, { id: freshAccount?.id, action: 'update' });
 
     if (isCompleted) {
-      base44.functions.invoke('gamificationDailyCheckin', { action: 'goal_completed', context: goal.family_id ? 'family' : undefined })
+      base44.functions.invoke('gamificationDailyCheckin', { action: 'goal_completed', context: freshGoal.family_id ? 'family' : undefined })
         .then(() => eventBus.emit(EVENTS.GAMIFICATION_UPDATED))
         .catch(() => {});
     }
@@ -99,22 +101,24 @@ export const GoalService = {
    */
   async spend(goal, { amount, category, description, account_id }) {
     const amt = parseFloat(amount);
-    const newAmount = Math.max((goal.current_amount || 0) - amt, 0);
+    const freshGoal = await repo().get(goal.id);
+    const freshAccount = account_id ? await AccountService.get(account_id) : null;
+    const newAmount = Math.max((freshGoal.current_amount || 0) - amt, 0);
 
-    if (account_id) {
-      await AccountService.unfreezeAndDeduct(account_id, amt);
-      eventBus.emit(EVENTS.ACCOUNT_CHANGED, { id: account_id, action: 'update' });
+    if (freshAccount) {
+      await AccountService.unfreezeAndDeduct(freshAccount.id, amt);
+      eventBus.emit(EVENTS.ACCOUNT_CHANGED, { id: freshAccount.id, action: 'update' });
     }
 
     await TransactionService.createRaw({
       type: 'expense',
       amount: amt,
       category,
-      description: `${description || ''} (из цели: ${goal.title})`,
+      description: `${description || ''} (из цели: ${freshGoal.title})`,
       date: new Date().toISOString(),
-      account_id,
+      account_id: freshAccount?.id,
     });
-    return this.update(goal.id, { current_amount: newAmount }, { enrich: false });
+    return this.update(freshGoal.id, { current_amount: newAmount }, { enrich: false });
   },
 };
 

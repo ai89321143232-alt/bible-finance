@@ -12,7 +12,8 @@ export default function AutoDistributeModal({
   goals, 
   availableAmount,
   onDistribute,
-  formatCurrency
+  formatCurrency,
+  isSubmitting = false
 }) {
   const currencySymbol = useCurrencySymbol();
   const [amount, setAmount] = useState('');
@@ -118,7 +119,7 @@ export default function AutoDistributeModal({
 
           <Button
             onClick={handleDistribute}
-            disabled={!amount || parseFloat(amount) <= 0 || totalDistributed === 0}
+            disabled={!amount || parseFloat(amount) <= 0 || totalDistributed === 0 || isSubmitting}
             className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"
           >
             Распределить

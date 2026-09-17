@@ -281,40 +281,59 @@ export default function Goals() {
   };
 
   const handleAddFunds = async () => {
-    if (!showAddFundsModal || !addFundsAmount || !selectedAccount) return;
-    const account = accounts.find(a => a.id === selectedAccount);
-    await GoalService.addFunds(showAddFundsModal, account, addFundsAmount);
-    queryClient.invalidateQueries({ queryKey: ['my-goals'] });
-    queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
-    queryClient.invalidateQueries({ queryKey: ['accounts'] });
-    queryClient.invalidateQueries({ queryKey: ['transactions'] });
-    setShowAddFundsModal(null);
-    setAddFundsAmount(''); setSelectedAccount('');
+    if (!showAddFundsModal || !addFundsAmount || !selectedAccount || !lockSubmit()) return;
+    try {
+      const account = accounts.find(a => a.id === selectedAccount);
+      await GoalService.addFunds(showAddFundsModal, account, addFundsAmount);
+      queryClient.invalidateQueries({ queryKey: ['my-goals'] });
+      queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      setShowAddFundsModal(null);
+      setAddFundsAmount(''); setSelectedAccount('');
+    } catch (error) {
+      toast.error(error?.message || t('common.error'));
+    } finally {
+      releaseSubmit();
+    }
   };
 
   const handleAutoDistribute = async (distribution, totalAmount) => {
-    for (const [goalId, amount] of Object.entries(distribution)) {
-      if (amount > 0) {
-        const goal = (viewMode === 'personal' ? myGoals : sharedGoals).find(g => g.id === goalId);
-        if (goal) {
-          const newAmount = (goal.current_amount || 0) + amount;
-          await GoalService.update(goalId, { current_amount: newAmount, status: newAmount >= goal.target_amount ? 'completed' : 'active' }, { enrich: false });
+    if (!lockSubmit()) return;
+    try {
+      for (const [goalId, amount] of Object.entries(distribution)) {
+        if (amount > 0) {
+          const goal = await GoalService.get(goalId);
+          if (goal) {
+            const newAmount = (goal.current_amount || 0) + amount;
+            await GoalService.update(goalId, { current_amount: newAmount, status: newAmount >= goal.target_amount ? 'completed' : 'active' }, { enrich: false });
+          }
         }
       }
+      queryClient.invalidateQueries({ queryKey: ['my-goals'] });
+      queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
+      setShowAutoDistribute(false);
+    } catch (error) {
+      toast.error(error?.message || t('common.error'));
+    } finally {
+      releaseSubmit();
     }
-    queryClient.invalidateQueries({ queryKey: ['my-goals'] });
-    queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
-    setShowAutoDistribute(false);
   };
 
   const handleSpendFromGoal = async () => {
-    if (!showSpendModal || !spendAmount || !spendCategory) return;
-    await GoalService.spend(showSpendModal, { amount: spendAmount, category: spendCategory, description: spendDescription, account_id: spendAccountId || undefined });
-    queryClient.invalidateQueries({ queryKey: ['my-goals'] });
-    queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
-    queryClient.invalidateQueries({ queryKey: ['transactions'] });
-    queryClient.invalidateQueries({ queryKey: ['accounts'] });
-    setShowSpendModal(null); setSpendAmount(''); setSpendCategory(''); setSpendDescription(''); setSpendAccountId('');
+    if (!showSpendModal || !spendAmount || !spendCategory || !lockSubmit()) return;
+    try {
+      await GoalService.spend(showSpendModal, { amount: spendAmount, category: spendCategory, description: spendDescription, account_id: spendAccountId || undefined });
+      queryClient.invalidateQueries({ queryKey: ['my-goals'] });
+      queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      setShowSpendModal(null); setSpendAmount(''); setSpendCategory(''); setSpendDescription(''); setSpendAccountId('');
+    } catch (error) {
+      toast.error(error?.message || t('common.error'));
+    } finally {
+      releaseSubmit();
+    }
   };
 
   useEffect(() => {
@@ -422,7 +441,7 @@ export default function Goals() {
 
         {viewMode === 'personal' && activeGoals.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-6">
-            <Button onClick={() => setShowAutoDistribute(true)} variant="outline" className="w-full rounded-xl border-violet-200 text-violet-700 dark:text-violet-400">
+            <Button onClick={() => setShowAutoDistribute(true)} disabled={isSubmitting} variant="outline" className="w-full rounded-xl border-violet-200 text-violet-700 dark:text-violet-400">
               <Zap className="w-4 h-4 mr-2" />{t('goals.distribute')} {formatCurrency(totalBalance)} {t('goals.between_goals')}
             </Button>
           </motion.div>
@@ -674,7 +693,7 @@ export default function Goals() {
       </Dialog>
 
       <AutoDistributeModal open={showAutoDistribute} onOpenChange={setShowAutoDistribute} goals={activeGoals}
-        availableAmount={totalBalance} onDistribute={handleAutoDistribute} formatCurrency={formatCurrency} />
+        availableAmount={totalBalance} onDistribute={handleAutoDistribute} formatCurrency={formatCurrency} isSubmitting={isSubmitting} />
 
       <Dialog open={!!showAddFundsModal} onOpenChange={() => { setShowAddFundsModal(null); setAddFundsAmount(''); setSelectedAccount(''); }}>
         <DialogContent className="rounded-2xl max-w-sm">
@@ -696,7 +715,7 @@ export default function Goals() {
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{addFundsCurrencySymbol}</span>
               </div>
             </div>
-            <Button onClick={handleAddFunds} disabled={!addFundsAmount || !selectedAccount || updateMutation.isPending} className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600">
+            <Button onClick={handleAddFunds} disabled={!addFundsAmount || !selectedAccount || isSubmitting} className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600">
               <Coins className="w-4 h-4 mr-2" />{t('goals.add_funds_btn')}
             </Button>
           </div>
@@ -749,7 +768,7 @@ export default function Goals() {
               <Input value={spendDescription} onChange={(e) => setSpendDescription(e.target.value)} placeholder={t('goals.comment_placeholder')} className="rounded-xl mt-1" />
             </div>
             <Button onClick={handleSpendFromGoal}
-              disabled={!spendAmount || !spendCategory || parseFloat(spendAmount) > (showSpendModal?.current_amount || 0) || updateMutation.isPending}
+              disabled={!spendAmount || !spendCategory || parseFloat(spendAmount) > (showSpendModal?.current_amount || 0) || isSubmitting}
               className="w-full rounded-xl bg-gradient-to-r from-rose-600 to-pink-600">
               <MinusCircle className="w-4 h-4 mr-2" />{t('goals.spend_btn')}
             </Button>
