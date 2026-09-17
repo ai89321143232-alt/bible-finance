@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
-import { Edit2, Trash2, Coins, MinusCircle, AlertCircle, Lock, TrendingDown, TrendingUp } from 'lucide-react';
+import { Edit2, Trash2, Coins, MinusCircle, RotateCcw, AlertCircle, Lock, TrendingDown, TrendingUp } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -26,6 +26,7 @@ export default function GoalCard({
   onDelete,
   onAddFunds,
   onSpend,
+  onRelease,
   formatCurrency,
   family,
   currentUser,
@@ -282,25 +283,24 @@ export default function GoalCard({
             )}
 
             {isEditable && (
-              <div className={`grid ${goal.type === 'debt_payoff' ? 'grid-cols-1' : 'grid-cols-2'} gap-2 mt-2`}>
-                <Button
-                  variant="outline"
-                  onClick={() => onAddFunds(goal)}
-                  className="rounded-xl"
-                >
+              <div className={`grid ${goal.type === 'debt_payoff' ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-3'} gap-2 mt-2`}>
+                <Button variant="outline" onClick={() => onAddFunds(goal)} className="rounded-xl">
                   <Coins className="w-4 h-4 mr-2" />
                   {goal.type === 'debt_payoff' ? 'Погасить' : 'Пополнить'}
                 </Button>
                 {goal.type !== 'debt_payoff' && (
-                  <Button
-                    variant="outline"
-                    onClick={() => onSpend(goal)}
-                    className="rounded-xl text-rose-600 border-rose-200 hover:bg-rose-50"
-                    disabled={(goal.current_amount || 0) === 0}
-                  >
-                    <MinusCircle className="w-4 h-4 mr-2" />
-                    Потратить
-                  </Button>
+                  <>
+                    <Button variant="outline" onClick={() => onSpend(goal)} className="rounded-xl text-rose-600 border-rose-200 hover:bg-rose-50" disabled={(goal.current_amount || 0) === 0}>
+                      <MinusCircle className="w-4 h-4 mr-2" />
+                      Потратить
+                    </Button>
+                    {(goal.current_amount || 0) > 0 && (
+                      <Button variant="outline" onClick={() => onRelease(goal)} className="rounded-xl text-amber-700 border-amber-200 hover:bg-amber-50 dark:text-amber-300">
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Снять с цели
+                      </Button>
+                    )}
+                  </>
                 )}
               </div>
             )}

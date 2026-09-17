@@ -120,6 +120,42 @@ export const GoalService = {
     });
     return this.update(freshGoal.id, { current_amount: newAmount }, { enrich: false });
   },
+
+  /** Снять средства с цели: разморозить на связанных счетах без списания баланса. */
+  async release(goal, amount) {
+    const requested = parseFloat(amount);
+    if (!requested || requested <= 0) throw new Error('Укажите сумму для снятия');
+
+    const freshGoal = await repo().get(goal.id);
+    const currentAmount = freshGoal.current_amount || 0;
+    const newCurrent = Math.max(currentAmount - requested, 0);
+    const releasedAmount = currentAmount - newCurrent;
+    const accountIds = freshGoal.linked_account_ids?.length
+      ? freshGoal.linked_account_ids
+      : (freshGoal.linked_account_id ? [freshGoal.linked_account_id] : []);
+    const linkedAccounts = (await Promise.all(accountIds.map((id) => AccountService.get(id)))).filter(Boolean);
+    const totalFrozen = linkedAccounts.reduce((sum, account) => sum + (account.frozen_amount || 0), 0);
+
+    await Promise.all(linkedAccounts.map(async (account, index) => {
+      const share = totalFrozen > 0
+        ? releasedAmount * ((account.frozen_amount || 0) / totalFrozen)
+        : releasedAmount / linkedAccounts.length;
+      const newFrozen = Math.max((account.frozen_amount || 0) - share, 0);
+      await AccountService.freezeAmount(account.id, newFrozen);
+      eventBus.emit(EVENTS.ACCOUNT_CHANGED, { id: account.id, action: 'update' });
+    }));
+
+    await TransactionService.createRaw({
+      type: 'transfer',
+      amount: releasedAmount,
+      category: 'Возврат с цели',
+      description: `Цель: ${freshGoal.title} → возврат на счёт`,
+      date: new Date().toISOString(),
+      account_id: linkedAccounts[0]?.id,
+    });
+
+    return this.update(freshGoal.id, { current_amount: newCurrent }, { enrich: false });
+  },
 };
 
 export default GoalService;

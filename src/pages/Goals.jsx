@@ -69,11 +69,13 @@ export default function Goals() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddFundsModal, setShowAddFundsModal] = useState(null);
   const [showSpendModal, setShowSpendModal] = useState(null);
+  const [showReleaseModal, setShowReleaseModal] = useState(null);
   const [showAutoDistribute, setShowAutoDistribute] = useState(false);
   const [editGoal, setEditGoal] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [addFundsAmount, setAddFundsAmount] = useState('');
   const [spendAmount, setSpendAmount] = useState('');
+  const [releaseAmount, setReleaseAmount] = useState('');
   const [spendCategory, setSpendCategory] = useState('');
   const [spendDescription, setSpendDescription] = useState('');
   const [spendAccountId, setSpendAccountId] = useState('');
@@ -336,6 +338,23 @@ export default function Goals() {
     }
   };
 
+  const handleRelease = async () => {
+    if (!showReleaseModal || !releaseAmount || !lockSubmit()) return;
+    try {
+      await GoalService.release(showReleaseModal, releaseAmount);
+      queryClient.invalidateQueries({ queryKey: ['my-goals'] });
+      queryClient.invalidateQueries({ queryKey: ['shared-goals'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      setShowReleaseModal(null);
+      setReleaseAmount('');
+    } catch (error) {
+      toast.error(error?.message || t('common.error'));
+    } finally {
+      releaseSubmit();
+    }
+  };
+
   useEffect(() => {
     const checkNotifications = async () => {
       const allGoals = [...myGoals, ...sharedGoals];
@@ -459,7 +478,7 @@ export default function Goals() {
                 <GoalCard key={goal.id} goal={goal} index={index}
                   isEditable={viewMode === 'personal' || goal.is_family_goal || goal.created_by_id === user?.id || goal.user_id === user?.id}
                   onEdit={handleEdit} onDelete={(id) => setDeleteId(id)}
-                  onAddFunds={setShowAddFundsModal} onSpend={setShowSpendModal}
+                  onAddFunds={setShowAddFundsModal} onSpend={setShowSpendModal} onRelease={setShowReleaseModal}
                   formatCurrency={formatCurrency} family={family} currentUser={user}
                   accounts={accounts} investments={investments} cashFlows={cashFlows} convert={convert} />
               ))}
@@ -472,18 +491,13 @@ export default function Goals() {
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">{t('goals.completed_goals')} 🎉</h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              {completedGoals.map((goal) => (
-                <Card key={goal.id} className="border-0 shadow-sm bg-emerald-50 dark:bg-emerald-900/20">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-xl">✅</div>
-                      <div>
-                        <h3 className="font-medium text-slate-900 dark:text-white">{goal.title}</h3>
-                        <p className="text-sm text-emerald-600">{formatCurrency(goal.target_amount)} {t('goals.saved_word')}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              {completedGoals.map((goal, index) => (
+                <GoalCard key={goal.id} goal={goal} index={index}
+                  isEditable={viewMode === 'personal' || goal.is_family_goal || goal.created_by_id === user?.id || goal.user_id === user?.id}
+                  onEdit={handleEdit} onDelete={(id) => setDeleteId(id)}
+                  onAddFunds={setShowAddFundsModal} onSpend={setShowSpendModal} onRelease={setShowReleaseModal}
+                  formatCurrency={formatCurrency} family={family} currentUser={user}
+                  accounts={accounts} investments={investments} cashFlows={cashFlows} convert={convert} />
               ))}
             </div>
           </div>
@@ -717,6 +731,26 @@ export default function Goals() {
             </div>
             <Button onClick={handleAddFunds} disabled={!addFundsAmount || !selectedAccount || isSubmitting} className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600">
               <Coins className="w-4 h-4 mr-2" />{t('goals.add_funds_btn')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!showReleaseModal} onOpenChange={() => { setShowReleaseModal(null); setReleaseAmount(''); }}>
+        <DialogContent className="rounded-2xl max-w-sm">
+          <DialogHeader><DialogTitle>Снять с цели</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-slate-500">{showReleaseModal?.title}</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300">Средства станут доступными на привязанных счетах. Баланс не изменится.</p>
+            <div>
+              <Label>{t('goals.amount')}</Label>
+              <div className="relative mt-1">
+                <Input type="number" value={releaseAmount} onChange={(e) => setReleaseAmount(e.target.value)} placeholder="0" max={showReleaseModal?.current_amount || 0} className="rounded-xl pr-8 text-xl font-semibold h-14" />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{getCurrencySymbol(showReleaseModal?.currency || user?.currency || 'RUB', language)}</span>
+              </div>
+            </div>
+            <Button onClick={handleRelease} disabled={!releaseAmount || parseFloat(releaseAmount) <= 0 || isSubmitting} className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500">
+              <Coins className="w-4 h-4 mr-2" />Снять
             </Button>
           </div>
         </DialogContent>
