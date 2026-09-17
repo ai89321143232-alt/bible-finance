@@ -160,6 +160,14 @@ const FamilyTitleCard = ({ p, familyCurrentTitle, familyNextTitle, familyProgres
 
 export default function GamificationWidget() {
   const queryClient = useQueryClient();
+  const getLocalDate = () => {
+    const date = new Date();
+    const offset = date.getTimezoneOffset() * 60_000;
+    return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+  };
+  const [titleHidden, setTitleHidden] = useState(() =>
+    localStorage.getItem('gamification_title_hidden_date') === getLocalDate()
+  );
   const [showAchievements, setShowAchievements] = useState(false);
   const [toast, setToast] = useState(null);
   const [showPrayer, setShowPrayer] = useState(false);
@@ -185,6 +193,16 @@ export default function GamificationWidget() {
     });
     return off;
   }, [queryClient]);
+
+  useEffect(() => {
+    if (titleHidden) return undefined;
+    const today = getLocalDate();
+    const timer = setTimeout(() => {
+      localStorage.setItem('gamification_title_hidden_date', today);
+      setTitleHidden(true);
+    }, 60_000);
+    return () => clearTimeout(timer);
+  }, [titleHidden]);
 
   const fireConfetti = () => {
     const colors = ['#8b5cf6', '#6366f1', '#a855f7', '#10b981', '#14b8a6', '#f59e0b'];
@@ -349,12 +367,15 @@ export default function GamificationWidget() {
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="mb-6"
-      >
+      <AnimatePresence>
+        {!titleHidden && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
+            className="mb-6"
+          >
         {useCarousel ? (
           <div className="overflow-hidden">
             <motion.div
@@ -390,7 +411,9 @@ export default function GamificationWidget() {
         ) : (
           cards[0].node
         )}
-      </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Daily prayer reminder */}
       <AnimatePresence>
