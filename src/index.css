@@ -266,7 +266,6 @@
     object-fit: contain;
     padding: 8px 15px 0;
   }
-  .gt-tile:hover { background: #EFEFF3 !important; }
   .gt-tile:active { transform: scale(.97); }
   .gt-label {
     max-width: 116px;
@@ -276,7 +275,6 @@
     font-size: 13px;
   }
   html.dark .gt-tile, html.dark[data-liquid-glass="true"] .gt-tile { background: #18181B !important; }
-  html.dark .gt-tile:hover { background: #212126 !important; }
   html.dark .gt-label { color: #E5E5E5; }
   .card-style-preview { display: none; }
 
