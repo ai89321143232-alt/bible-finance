@@ -238,4 +238,17 @@
   html.dark .gt-tile:hover { background: linear-gradient(145deg,rgba(48,55,68,.9),rgba(25,25,31,.86)); box-shadow: 0 16px 28px rgba(0,0,0,.36), inset 0 1px 0 rgba(255,255,255,.16); }
   html.dark .gt-tile:active { box-shadow: 0 7px 13px rgba(0,0,0,.34), inset 0 2px 5px rgba(0,0,0,.32); }
   html.dark .gt-pedestal { filter: brightness(.8) saturate(.9); }
+
+  /* Светлая тема: подложка для цветных сводных карточек долгов */
+  html:not(.dark) .debt-summary-card {
+    background-color: hsl(var(--card)) !important;
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.18) 55%) !important;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+  }
+  html.dark .debt-summary-card {
+    background-image: none !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }

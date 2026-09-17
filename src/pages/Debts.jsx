@@ -390,7 +390,7 @@ function OverviewTab({ activeDebts, unlinkedCreditAccounts, totalDebt, totalMont
     <div>
       {/* Summary */}
       <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="rounded-2xl border border-rose-500/15 bg-rose-500/5 p-4">
+        <div className="debt-summary-card glass-card rounded-2xl border border-rose-500/15 bg-rose-500/5 p-4">
           <div className="flex items-center gap-2 mb-2">
             <Wallet className="w-4 h-4 text-rose-500" />
             <span className="text-muted-foreground text-xs">{t('debt.total_debt')}</span>
@@ -398,7 +398,7 @@ function OverviewTab({ activeDebts, unlinkedCreditAccounts, totalDebt, totalMont
           <p className="text-rose-500 font-bold text-lg sm:text-xl">{fmt(totalDebt)}</p>
           <p className="text-muted-foreground text-xs mt-0.5">{activeDebts.length} {t('debt.credits_count')}</p>
         </div>
-        <div className="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4">
+        <div className="debt-summary-card glass-card rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4">
           <div className="flex items-center gap-2 mb-2">
             <Calendar className="w-4 h-4 text-amber-500" />
             <span className="text-muted-foreground text-xs">{t('debt.payments_per_month')}</span>
@@ -410,7 +410,7 @@ function OverviewTab({ activeDebts, unlinkedCreditAccounts, totalDebt, totalMont
 
       {/* Unlinked credit accounts warning */}
       {unlinkedCreditAccounts.length > 0 && (
-        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 mb-6">
+        <div className="debt-summary-card glass-card rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 mb-6">
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="w-4 h-4 text-amber-500" />
             <span className="text-foreground text-sm font-medium">{t('debts.unlinked_accounts')}</span>
@@ -504,7 +504,7 @@ function PlanTab({ activeDebts, strategy, setStrategy, extraPayment, setExtraPay
           <p className="text-orange-500 font-bold text-lg sm:text-xl">{fmt(totalOverpayment)}</p>
           <p className="text-muted-foreground text-xs mt-0.5">{t('debt.interest_to_banks')}</p>
         </div>
-        <div className={`rounded-2xl border p-4 ${burdenColors[burden.level]}`}>
+        <div className={`debt-summary-card glass-card rounded-2xl border p-4 ${burdenColors[burden.level]}`}>
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-4 h-4" />
             <span className="text-xs">{t('debt.burden')}</span>
@@ -630,7 +630,7 @@ function AnalyticsTab({ activeDebts, accounts, linkedAccountIds, totalCurrentDeb
     <div>
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div className="rounded-2xl border border-rose-500/15 bg-rose-500/5 p-4">
+        <div className="debt-summary-card glass-card rounded-2xl border border-rose-500/15 bg-rose-500/5 p-4">
           <div className="flex items-center gap-2 mb-2">
             <CreditCard className="w-4 h-4 text-rose-500" />
             <span className="text-muted-foreground text-xs">{t('debt.analytics_total_debt')}</span>
@@ -638,7 +638,7 @@ function AnalyticsTab({ activeDebts, accounts, linkedAccountIds, totalCurrentDeb
           <p className="text-rose-500 font-bold text-xl">{formatCurrency(totalCurrentDebt, primaryCurrency)}</p>
           <p className="text-muted-foreground text-xs mt-0.5">{activeDebts.length} {t('debt.analytics_accounts')}</p>
         </div>
-        <div className="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4">
+        <div className="debt-summary-card glass-card rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4">
           <div className="flex items-center gap-2 mb-2">
             <Calendar className="w-4 h-4 text-amber-500" />
             <span className="text-muted-foreground text-xs">{t('debt.analytics_payments_this_month')}</span>
@@ -646,7 +646,7 @@ function AnalyticsTab({ activeDebts, accounts, linkedAccountIds, totalCurrentDeb
           <p className="text-amber-500 font-bold text-xl">{formatCurrency(totalPaymentsThisMonth, primaryCurrency)}</p>
           <p className="text-muted-foreground text-xs mt-0.5">{ratioThisMonth.toFixed(1)}% {t('debt.analytics_of_income')}</p>
         </div>
-        <div className={`rounded-2xl border p-4 ${debtTrend === 'down' ? 'border-emerald-500/15 bg-emerald-500/5' : debtTrend === 'up' ? 'border-rose-500/15 bg-rose-500/5' : 'border-border bg-muted/30'}`}>
+        <div className={`debt-summary-card glass-card rounded-2xl border p-4 ${debtTrend === 'down' ? 'border-emerald-500/15 bg-emerald-500/5' : debtTrend === 'up' ? 'border-rose-500/15 bg-rose-500/5' : 'border-border bg-muted/30'}`}>
           <div className="flex items-center gap-2 mb-2">
             {debtTrend === 'down' ? <TrendingDown className="w-4 h-4 text-emerald-500" /> : <TrendingUp className="w-4 h-4 text-rose-500" />}
             <span className="text-muted-foreground text-xs">{t('debt.analytics_trend_year')}</span>
@@ -656,7 +656,7 @@ function AnalyticsTab({ activeDebts, accounts, linkedAccountIds, totalCurrentDeb
           </p>
           <p className="text-muted-foreground text-xs mt-0.5">{MONTHS_BACK} {t('debt.analytics_months')}</p>
         </div>
-        <div className="rounded-2xl border border-violet-500/15 bg-violet-500/5 p-4">
+        <div className="debt-summary-card glass-card rounded-2xl border border-violet-500/15 bg-violet-500/5 p-4">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-4 h-4 text-violet-500" />
             <span className="text-muted-foreground text-xs">{t('debt.analytics_avg_burden')}</span>
