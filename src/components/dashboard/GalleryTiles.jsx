@@ -67,7 +67,7 @@ export default function GalleryTiles() {
         const label = item.label || t(item.labelKey);
         try {
           const result = await base44.integrations.Core.GenerateImage({
-            prompt: `A single premium 3D cartoon app icon representing ${label} for a personal finance app. Isolated centered object, ${selectedIconStyle.promptSuffix}, ${style.prompt} pastel palette, soft studio lighting, pure white background, no text, no letters, no device frame.`,
+            prompt: `A single premium 3D cartoon app icon representing ${label} for a personal finance app. Isolated centered object only, ${selectedIconStyle.promptSuffix}, ${style.prompt} pastel palette, soft studio lighting, fully transparent background, with a soft natural drop shadow directly beneath the object, no backdrop, no text, no letters, no device frame.`,
           });
           if (cancelled) return;
           created[item.name] = result.url;
