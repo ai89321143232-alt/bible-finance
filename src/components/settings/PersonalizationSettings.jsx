@@ -65,6 +65,7 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
   const [dashboardBlocks, setDashboardBlocks] = useState(DEFAULT_DASHBOARD_BLOCKS);
   const [blockOrder, setBlockOrder] = useState(DEFAULT_BLOCK_ORDER);
   const [bottomTabOrder, setBottomTabOrder] = useState(DEFAULT_TAB_ORDER);
+  const [dashboardStyle, setDashboardStyle] = useState('classic');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -85,6 +86,7 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
       setBlockOrder(merged);
     }
     setBottomTabOrder(user.bottom_tab_order || user.data?.bottom_tab_order || DEFAULT_TAB_ORDER);
+    setDashboardStyle(user.dashboard_style || user.data?.dashboard_style || 'classic');
   };
 
   const toggleMenuItem = (name) => {
@@ -126,6 +128,7 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
       visible_dashboard_blocks: dashboardBlocks,
       dashboard_block_order: blockOrder,
       bottom_tab_order: bottomTabOrder,
+      dashboard_style: dashboardStyle,
       });
     setSaving(false);
     toast.success('Настройки сохранены');
@@ -145,6 +148,14 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
             Персонализация
           </DialogTitle>
         </DialogHeader>
+
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card p-4">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Дизайн: Модерн</p>
+            <p className="mt-1 text-xs text-muted-foreground">Показывать навигационные плитки под балансом</p>
+          </div>
+          <Switch checked={dashboardStyle === 'modern'} onCheckedChange={(checked) => setDashboardStyle(checked ? 'modern' : 'classic')} />
+        </div>
 
         <Separator className="my-4" />
 

@@ -54,6 +54,7 @@ import ScopeModeSwitcher from '@/components/settings/ScopeModeSwitcher';
 import { TransactionService } from '@/services';
 import { toast } from 'sonner';
 import { isFamilyVisibleRecord, isOwnRecord } from '@/lib/recordOwnership';
+import GalleryTiles from '@/components/dashboard/GalleryTiles';
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -101,6 +102,7 @@ export default function Dashboard() {
   });
 
   const themePreference = localThemeOverride ?? user?.theme_preference ?? null;
+  const dashboardStyle = user?.dashboard_style || user?.data?.dashboard_style || 'classic';
   const businessEnabled = user?.business_enabled !== false;
   const scopeModes = ['personal', 'business', 'all'];
 
@@ -558,6 +560,7 @@ export default function Dashboard() {
             ) : (
               <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} debtAccounts={modeDebtAccounts} />
             )}
+            {dashboardStyle === 'modern' && <GalleryTiles />}
             <NetWorthCard accounts={displayAccounts} investments={modeInvestments} fixedAssets={modeFixedAssets} debtAccounts={modeDebtAccounts} formatCurrency={formatCurrency} onFixedAssetAdded={() => queryClient.invalidateQueries({ queryKey: ['fixed-assets'] })} scope={scopeMode === 'all' ? 'personal' : scopeMode} />
           </section>
         );
