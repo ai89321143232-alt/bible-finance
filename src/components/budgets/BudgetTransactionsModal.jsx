@@ -37,7 +37,10 @@ export default function BudgetTransactionsModal({
     })
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-  const total = budgetTx.reduce((sum, t) => sum + t.amount, 0);
+  const budgetCurrency = budget.currency || 'RUB';
+  const filteredTotal = budgetTx
+    .filter((transaction) => (transaction.currency || 'RUB') === budgetCurrency)
+    .reduce((sum, transaction) => sum + transaction.amount, 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -52,7 +55,7 @@ export default function BudgetTransactionsModal({
         <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400 mb-3">
           <span>Транзакции за период</span>
           <span className="font-semibold text-slate-900 dark:text-white">
-            {budgetTx.length} шт. · {formatCurrency(total)}
+            {budgetTx.length} шт. · {formatCurrency(filteredTotal, budgetCurrency)}
           </span>
         </div>
 
@@ -84,7 +87,7 @@ export default function BudgetTransactionsModal({
                   </p>
                 </div>
                 <span className="font-semibold text-rose-600 dark:text-rose-400 text-sm shrink-0">
-                  −{formatCurrency(tx.amount)}
+                  −{formatCurrency(tx.amount, tx.currency)}
                 </span>
               </motion.div>
             ))
