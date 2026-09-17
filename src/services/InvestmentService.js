@@ -128,15 +128,24 @@ export const InvestmentService = {
     const funds = validateSufficientFunds(account, topUpAmount);
     if (!funds.ok) throw new Error(funds.error);
 
-    const updated = await repo().update(id, {
-      quantity: (investment.quantity || 0) + topUpAmount,
-      purchase_price: (investment.purchase_price || 0) + topUpAmount,
-      current_price: (investment.current_price || investment.purchase_price || 0) + topUpAmount
-    });
+    const currentPrice = Number(investment.current_price || investment.purchase_price) || 0;
+    if (investment.type !== 'deposit' && currentPrice <= 0) {
+      throw new Error('Укажите текущую цену актива перед пополнением');
+    }
+
+    const updated = investment.type === 'deposit'
+      ? await repo().update(id, {
+          purchase_price: (Number(investment.purchase_price) || 0) + topUpAmount,
+          current_price: currentPrice + topUpAmount
+        })
+      : await repo().update(id, {
+          quantity: (Number(investment.quantity) || 0) + topUpAmount / currentPrice,
+          purchase_price: (((Number(investment.quantity) || 0) * (Number(investment.purchase_price) || 0)) + topUpAmount) / ((Number(investment.quantity) || 0) + topUpAmount / currentPrice)
+        });
     await accountRepo().update(account_id, { balance: (account.balance || 0) - topUpAmount });
     const transaction = await txRepo().create(await enrichWithOwnership({
       type: 'expense', amount: topUpAmount, category: INVESTMENT_CATEGORY,
-      description: `Пополнение вклада: ${investment.name}`, date: new Date().toISOString(), account_id,
+      description: `Пополнение инвестиции: ${investment.name}`, date: new Date().toISOString(), account_id,
       scope: investment.scope || 'personal'
     }, user));
     eventBus.emit(EVENTS.TRANSACTION_CHANGED, { action: 'create', transaction });

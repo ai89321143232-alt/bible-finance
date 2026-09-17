@@ -549,9 +549,9 @@ export default function Investments() {
                           {investment.next_payout_date && <span className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400">Следующая: {format(new Date(investment.next_payout_date), 'dd.MM.yyyy')}{forecastPayout > 0 ? ` · ~${formatCurrency(forecastPayout)}` : ''}</span>}
                         </div>
                       )}
-                      <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+                      <div className="mt-3 flex items-center justify-between gap-2 text-xs text-slate-500">
                         <span>Выплат: {cashFlows.filter((flow) => flow.investment_id === investment.id).length}</span>
-                        {isEditable && <Button variant="outline" size="sm" className="rounded-lg" onClick={(e) => { e.stopPropagation(); setPayoutInvestment(investment); setPayoutForm({ type: investment.type === 'bonds' ? 'coupon' : investment.type === 'deposit' ? 'interest' : 'dividend', amount: '', date: new Date().toISOString().slice(0, 10), destination: 'income', linked_goal_id: investment.linked_goal_ids?.[0] || '', account_id: '' }); }}>Добавить поступление</Button>}
+                        {isEditable && <div className="flex gap-2"><Button variant="outline" size="sm" className="rounded-lg" onClick={(e) => { e.stopPropagation(); setTopUpInvestment(investment); setTopUpAmount(''); setTopUpAccountId(''); }}><Plus className="w-3 h-3 mr-1" />Пополнить</Button><Button variant="outline" size="sm" className="rounded-lg" onClick={(e) => { e.stopPropagation(); setPayoutInvestment(investment); setPayoutForm({ type: investment.type === 'bonds' ? 'coupon' : investment.type === 'deposit' ? 'interest' : 'dividend', amount: '', date: new Date().toISOString().slice(0, 10), destination: 'income', linked_goal_id: investment.linked_goal_ids?.[0] || '', account_id: '' }); }}>Добавить поступление</Button></div>}
                       </div>
                       {cashFlows.filter((flow) => flow.investment_id === investment.id).slice(0, 3).map((flow) => <div key={flow.id} className="mt-1 flex justify-between text-xs text-slate-500"><span>{flow.type === 'coupon' ? 'Купон' : flow.type === 'interest' ? 'Проценты' : flow.type === 'rent' ? 'Аренда' : 'Дивиденды'} · {format(new Date(flow.date), 'dd.MM.yyyy')}</span><span className="font-medium text-emerald-600">+{formatCurrency(flow.amount)}</span></div>)}
 
@@ -578,21 +578,6 @@ export default function Investments() {
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 text-xs font-medium">
                               <Wallet className="w-3 h-3" /> Пополняемый
                             </span>
-                          )}
-                          {isEditable && investment.allows_top_up && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setTopUpInvestment(investment);
-                                setTopUpAmount('');
-                                setTopUpAccountId('');
-                              }}
-                              className="ml-auto h-7 rounded-lg text-xs border-violet-200 text-violet-700 dark:text-violet-400"
-                            >
-                              <Plus className="w-3 h-3 mr-1" />Пополнить вклад
-                            </Button>
                           )}
                         </div>
                       )}
@@ -817,11 +802,11 @@ export default function Investments() {
         </DialogContent>
       </Dialog>
 
-      {/* Top-up Deposit Modal */}
+      {/* Top-up Investment Modal */}
       <Dialog open={!!topUpInvestment} onOpenChange={() => { setTopUpInvestment(null); setTopUpAmount(''); setTopUpAccountId(''); }}>
         <DialogContent className="rounded-2xl max-w-sm">
           <DialogHeader>
-            <DialogTitle>Пополнить вклад</DialogTitle>
+            <DialogTitle>Пополнить инвестицию</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {topUpInvestment && (
@@ -856,7 +841,7 @@ export default function Investments() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-slate-400 mt-1">Сумма будет списана со счёта и сохранена как расход на инвестиции.</p>
+              <p className="text-xs text-slate-400 mt-1">Сумма будет списана со счёта и сохранена как расход на инвестиции. Для ценных бумаг количество будет увеличено по текущей цене.</p>
             </div>
             <Button
               onClick={handleTopUp}
