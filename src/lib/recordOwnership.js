@@ -3,13 +3,7 @@ export function isOwnRecord(record, user) {
 }
 
 export function isFamilyVisibleRecord(record, user, family) {
-  return Boolean(
-    record &&
-    user &&
-    family &&
-    record.family_id === family.id &&
-    (record.visibility === 'shared' || record.is_family_goal === true || record.is_family_budget === true)
-  );
+  return Boolean(record && user && family && record.family_id === family.id);
 }
 
 export function hasActiveFamilySubscription(family) {
