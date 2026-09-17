@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, ArrowLeftRight, CreditCard, Target, TrendingUp,
   ListTodo, PieChart, Settings, Users, FileText, Lightbulb, Baby,
-  BarChart2, Check, Eye, EyeOff, Sparkles, Wallet, Layout, GripVertical
+  BarChart2, Check, Eye, EyeOff, Sparkles, Wallet, Layout, GripVertical, Loader2, RefreshCw
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -18,6 +18,10 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import { ALL_TABS, DEFAULT_TAB_ORDER } from '@/components/bottomTabsConfig';
+import MobileSelect from '@/components/mobile/MobileSelect';
+import { SelectItem } from '@/components/ui/select';
+import { ICON_STYLES, DEFAULT_ICON_STYLE } from '@/lib/modernIconStyles';
+import useSubmitGuard from '@/hooks/useSubmitGuard';
 
 // Все пункты меню с метаданными
 const ALL_MENU_ITEMS = [
@@ -66,7 +70,9 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
   const [blockOrder, setBlockOrder] = useState(DEFAULT_BLOCK_ORDER);
   const [bottomTabOrder, setBottomTabOrder] = useState(DEFAULT_TAB_ORDER);
   const [dashboardStyle, setDashboardStyle] = useState('classic');
+  const [modernIconStyle, setModernIconStyle] = useState(DEFAULT_ICON_STYLE);
   const [saving, setSaving] = useState(false);
+  const { isSubmitting: isRegenerating, lock: lockRegeneration, release: releaseRegeneration } = useSubmitGuard();
 
   useEffect(() => {
     if (open) loadSettings();
@@ -87,6 +93,7 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
     }
     setBottomTabOrder(user.bottom_tab_order || user.data?.bottom_tab_order || DEFAULT_TAB_ORDER);
     setDashboardStyle(user.dashboard_style || user.data?.dashboard_style || 'classic');
+    setModernIconStyle(user.modern_icon_style || user.data?.modern_icon_style || DEFAULT_ICON_STYLE);
   };
 
   const toggleMenuItem = (name) => {
@@ -129,12 +136,26 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
       dashboard_block_order: blockOrder,
       bottom_tab_order: bottomTabOrder,
       dashboard_style: dashboardStyle,
+      modern_icon_style: modernIconStyle,
       });
     setSaving(false);
     toast.success('Настройки сохранены');
     onOpenChange(false);
     window.dispatchEvent(new Event('personalization-saved'));
     onSaved?.();
+  };
+
+  const handleRegenerateIcons = async () => {
+    if (!lockRegeneration()) return;
+    try {
+      await base44.auth.updateMe({ modern_icon_style: modernIconStyle, modern_tile_icons: {} });
+      window.dispatchEvent(new Event('personalization-saved'));
+      toast.success('Иконки обновляются…');
+    } catch {
+      toast.error('Не удалось запустить перегенерацию');
+    } finally {
+      releaseRegeneration();
+    }
   };
 
   const visibleCount = ALL_MENU_ITEMS.filter(i => !hiddenMenuItems.includes(i.name)).length;
@@ -156,6 +177,29 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
           </div>
           <Switch checked={dashboardStyle === 'modern'} onCheckedChange={(checked) => setDashboardStyle(checked ? 'modern' : 'classic')} />
         </div>
+
+        {dashboardStyle === 'modern' && (
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/30">
+                <Sparkles className="h-4 w-4 text-violet-600" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">Иконки Модерн</p>
+                <p className="mt-1 text-xs text-muted-foreground">Выберите стиль и обновите иконки плиток.</p>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <MobileSelect value={modernIconStyle} onValueChange={setModernIconStyle} title="Стиль иконок" triggerClassName="w-full text-foreground">
+                {ICON_STYLES.map((style) => <SelectItem key={style.key} value={style.key}>{style.label}</SelectItem>)}
+              </MobileSelect>
+              <Button type="button" variant="outline" onClick={handleRegenerateIcons} disabled={isRegenerating} className="shrink-0 rounded-xl">
+                {isRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                {isRegenerating ? 'Перегенерация…' : 'Перегенерировать иконки'}
+              </Button>
+            </div>
+          </div>
+        )}
 
         <Separator className="my-4" />
 

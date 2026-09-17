@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { createPageUrl } from '@/utils';
 import { MENU_STRUCTURE } from '@/components/Navigation/NavigationMenu';
 import { useTranslation } from '@/lib/LanguageContext';
+import { getModernIconStyle, DEFAULT_ICON_STYLE } from '@/lib/modernIconStyles';
 
 const SECTION_STYLES = {
   general: { prompt: 'cool blue', className: 'gt-pedestal-blue' },
@@ -60,15 +61,20 @@ export default function GalleryTiles() {
     let cancelled = false;
     const createIcons = async () => {
       const created = { ...icons };
+      const selectedIconStyle = getModernIconStyle(user?.modern_icon_style || user?.data?.modern_icon_style || DEFAULT_ICON_STYLE);
       for (const item of missingTiles) {
         const style = SECTION_STYLES[item.section] || SECTION_STYLES.general;
         const label = item.label || t(item.labelKey);
-        const result = await base44.integrations.Core.GenerateImage({
-          prompt: `A single premium 3D cartoon app icon representing ${label} for a personal finance app. Isolated centered object, ${style.prompt} pastel palette, soft studio lighting, polished clay and glass material, light gray background, no text, no letters, no device frame.`,
-        });
-        if (cancelled) return;
-        created[item.name] = result.url;
-        setIcons({ ...created });
+        try {
+          const result = await base44.integrations.Core.GenerateImage({
+            prompt: `A single premium 3D cartoon app icon representing ${label} for a personal finance app. Isolated centered object, ${selectedIconStyle.promptSuffix}, ${style.prompt} pastel palette, soft studio lighting, light gray background, no text, no letters, no device frame.`,
+          });
+          if (cancelled) return;
+          created[item.name] = result.url;
+          setIcons({ ...created });
+        } catch {
+          continue;
+        }
       }
       await base44.auth.updateMe({ modern_tile_icons: created });
     };
