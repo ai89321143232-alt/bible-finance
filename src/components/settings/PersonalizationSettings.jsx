@@ -21,7 +21,6 @@ import { ALL_TABS, DEFAULT_TAB_ORDER } from '@/components/bottomTabsConfig';
 import MobileSelect from '@/components/mobile/MobileSelect';
 import { SelectItem } from '@/components/ui/select';
 import { DEFAULT_CARD_STYLE } from '@/lib/modernIconStyles';
-import CardStylePicker from '@/components/settings/CardStylePicker';
 
 // Все пункты меню с метаданными
 const ALL_MENU_ITEMS = [
@@ -70,7 +69,7 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
   const [blockOrder, setBlockOrder] = useState(DEFAULT_BLOCK_ORDER);
   const [bottomTabOrder, setBottomTabOrder] = useState(DEFAULT_TAB_ORDER);
   const [dashboardStyle, setDashboardStyle] = useState('classic');
-  const [cardStyle, setCardStyle] = useState(DEFAULT_CARD_STYLE);
+  const cardStyle = DEFAULT_CARD_STYLE;
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -92,7 +91,6 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
     }
     setBottomTabOrder(user.bottom_tab_order || user.data?.bottom_tab_order || DEFAULT_TAB_ORDER);
     setDashboardStyle(user.dashboard_style || user.data?.dashboard_style || 'classic');
-    setCardStyle(user.card_style || user.data?.card_style || DEFAULT_CARD_STYLE);
   };
 
   const toggleMenuItem = (name) => {
@@ -172,10 +170,9 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
               </div>
               <div>
                 <p className="text-sm font-semibold text-foreground">Карточки Модерн</p>
-                <p className="mt-1 text-sm text-muted-foreground">Выберите оформление плиток для светлой и тёмной темы.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Единый набор объёмных иконок на нейтральном основании.</p>
               </div>
             </div>
-            <div className="mt-3"><CardStylePicker value={cardStyle} onChange={setCardStyle} /></div>
           </div>
         )}
 

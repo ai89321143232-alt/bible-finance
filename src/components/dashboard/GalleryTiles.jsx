@@ -61,7 +61,7 @@ export default function GalleryTiles() {
             const cardStyle = user?.card_style || user?.data?.card_style || DEFAULT_CARD_STYLE;
             return (
               <Link key={item.name} to={createPageUrl(item.name)} className="gt-tile snap-start">
-                <ModernTileIcon tileName={item.name} styleKey={cardStyle} theme={theme} />
+                <ModernTileIcon tileName={item.name} theme={theme} />
                 <span className="gt-label">{item.label || t(item.labelKey)}</span>
               </Link>
             );

@@ -244,47 +244,41 @@
   .modern-icon-image { width: 54px; height: 54px; object-fit: contain; filter: drop-shadow(0 5px 4px rgba(91, 51, 12, .20)); }
   .modern-icon-glyph { width: 32px; height: 32px; color: #f7941e; }
 
-  /* Цельные карточки навигации: фон, пьедестал и иконка объединены в одном ассете */
+  /* Плитки «Модерн»: отдельная 3D-иконка на чистой поверхности */
   .gt-tile {
     flex: 0 0 120px;
-    min-height: 104px;
+    min-height: 112px;
     justify-content: flex-end;
     gap: 0;
     overflow: hidden;
     border: 0;
     border-radius: 18px;
-    background: transparent !important;
+    background: #F5F5F7 !important;
     box-shadow: none !important;
   }
   .gt-tile::before, .gt-tile::after { display: none; }
   .gt-tile-card {
     position: absolute;
-    inset: 0 0 23px;
+    inset: 0 0 24px;
+    width: 100%;
+    height: calc(100% - 24px);
     display: block;
-    border-radius: 18px;
-    background-repeat: no-repeat;
-    background-size: 600% 400%;
-    box-shadow: 0 8px 18px rgba(15, 23, 42, .24);
+    object-fit: contain;
+    padding: 8px 15px 0;
   }
-  .gt-tile:hover .gt-tile-card { box-shadow: 0 12px 23px rgba(15, 23, 42, .32); }
+  .gt-tile:hover { background: #EFEFF3 !important; }
   .gt-tile:active { transform: scale(.97); }
   .gt-label {
     max-width: 116px;
-    min-height: 22px;
-    padding: 4px 4px 0;
-    color: hsl(var(--foreground));
+    min-height: 24px;
+    padding: 5px 4px 0;
+    color: #333333;
     font-size: 13px;
   }
-  .card-style-preview {
-    display: block;
-    aspect-ratio: 4 / 3;
-    width: 100%;
-    border-radius: 9px;
-    background-position: 0 0;
-    background-repeat: no-repeat;
-    background-size: 600% 400%;
-    box-shadow: 0 3px 8px rgba(15, 23, 42, .14);
-  }
+  html.dark .gt-tile, html.dark[data-liquid-glass="true"] .gt-tile { background: #17171B !important; }
+  html.dark .gt-tile:hover { background: #212126 !important; }
+  html.dark .gt-label { color: #E5E5E5; }
+  .card-style-preview { display: none; }
 
   /* Светлая тема: подложка для цветных сводных карточек долгов */
   html:not(.dark) .debt-summary-card {
