@@ -1,28 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Moon, Sun } from 'lucide-react';
+import { useTheme } from '@/lib/themeManager';
 
 export default function ThemeIconToggle() {
-  const [theme, setTheme] = useState('light');
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    setTheme(savedTheme);
-    applyTheme(savedTheme);
-  }, []);
-
-  const applyTheme = (newTheme) => {
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('theme', newTheme);
-  };
+  const [theme, setTheme] = useTheme();
 
   const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    applyTheme(newTheme);
+    setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
   return (
