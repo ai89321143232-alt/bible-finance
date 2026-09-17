@@ -23,14 +23,10 @@ const getGroupedTiles = () => MENU_STRUCTURE.map((entry) => ({
 
 export default function GalleryTiles() {
   const [user, setUser] = useState(null);
-  const [icons, setIcons] = useState({});
   const t = useTranslation();
 
   useEffect(() => {
-    const loadUser = () => base44.auth.me().then((nextUser) => {
-      setUser(nextUser);
-      setIcons(nextUser?.modern_tile_icons || nextUser?.data?.modern_tile_icons || {});
-    }).catch(() => {});
+    const loadUser = () => base44.auth.me().then(setUser).catch(() => {});
     loadUser();
     window.addEventListener('personalization-saved', loadUser);
     return () => window.removeEventListener('personalization-saved', loadUser);
@@ -55,45 +51,18 @@ export default function GalleryTiles() {
     return [firstRow, secondRow];
   }, [user]);
 
-  useEffect(() => {
-    if (!user) return;
-    const missingTiles = rows.flat().filter((item) => !icons[item.name]);
-    if (!missingTiles.length) return;
-    let cancelled = false;
-    const createIcons = async () => {
-      const created = { ...icons };
-      const selectedIconStyle = getModernIconStyle(user?.modern_icon_style || user?.data?.modern_icon_style || DEFAULT_ICON_STYLE);
-      for (const item of missingTiles) {
-        const style = SECTION_STYLES[item.section] || SECTION_STYLES.general;
-        const label = item.label || t(item.labelKey);
-        try {
-          const result = await base44.integrations.Core.GenerateImage({
-            prompt: `A single premium 3D cartoon app icon representing ${label} for a personal finance app. Isolated centered object only, ${selectedIconStyle.promptSuffix}, ${style.prompt} pastel palette, soft studio lighting, fully transparent background, with a soft natural drop shadow directly beneath the object, no backdrop, no text, no letters, no device frame.`,
-          });
-          if (cancelled) return;
-          created[item.name] = result.url;
-          setIcons({ ...created });
-        } catch {
-          continue;
-        }
-      }
-      await base44.auth.updateMe({ modern_tile_icons: created });
-    };
-    createIcons();
-    return () => { cancelled = true; };
-  }, [user, rows, t]);
-
   return (
     <div className="gt-gallery">
       {rows.map((row, index) => (
         <div key={index} className="gt-row scrollbar-none snap-x snap-mandatory">
           {row.map((item) => {
             const Icon = item.icon;
-            const style = SECTION_STYLES[item.section] || SECTION_STYLES.general;
+            const pedestalClass = SECTION_STYLES[item.section] || SECTION_STYLES.general;
+            const modernIconStyle = user?.modern_icon_style || user?.data?.modern_icon_style || DEFAULT_ICON_STYLE;
             return (
               <Link key={item.name} to={createPageUrl(item.name)} className="gt-tile snap-start">
-                <span className={`gt-pedestal ${style.className}`}>
-                  {icons[item.name] ? <img src={icons[item.name]} alt="" className="gt-icon-image" /> : <Icon className="gt-icon-placeholder" strokeWidth={1.8} />}
+                <span className={`gt-pedestal ${pedestalClass}`}>
+                  <ModernTileIcon icon={Icon} styleKey={modernIconStyle} />
                 </span>
                 <span className="gt-label">{item.label || t(item.labelKey)}</span>
               </Link>

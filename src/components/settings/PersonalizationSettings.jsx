@@ -71,7 +71,6 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
   const [dashboardStyle, setDashboardStyle] = useState('classic');
   const [modernIconStyle, setModernIconStyle] = useState(DEFAULT_ICON_STYLE);
   const [saving, setSaving] = useState(false);
-  const { isSubmitting: isRegenerating, lock: lockRegeneration, release: releaseRegeneration } = useSubmitGuard();
 
   useEffect(() => {
     if (open) loadSettings();
@@ -144,19 +143,6 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
     onSaved?.();
   };
 
-  const handleRegenerateIcons = async () => {
-    if (!lockRegeneration()) return;
-    try {
-      await base44.auth.updateMe({ modern_icon_style: modernIconStyle, modern_tile_icons: {} });
-      window.dispatchEvent(new Event('personalization-saved'));
-      toast.success('Иконки обновляются…');
-    } catch {
-      toast.error('Не удалось запустить перегенерацию');
-    } finally {
-      releaseRegeneration();
-    }
-  };
-
   const visibleCount = ALL_MENU_ITEMS.filter(i => !hiddenMenuItems.includes(i.name)).length;
 
   return (
@@ -188,14 +174,11 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
                 <p className="mt-1 text-xs text-muted-foreground">Выберите стиль и обновите иконки плиток.</p>
               </div>
             </div>
-            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <div className="mt-3">
               <MobileSelect value={modernIconStyle} onValueChange={setModernIconStyle} title="Стиль иконок" triggerClassName="w-full text-foreground">
                 {ICON_STYLES.map((style) => <SelectItem key={style.key} value={style.key}>{style.label}</SelectItem>)}
               </MobileSelect>
-              <Button type="button" variant="outline" onClick={handleRegenerateIcons} disabled={isRegenerating} className="shrink-0 rounded-xl">
-                {isRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                {isRegenerating ? 'Перегенерация…' : 'Перегенерировать иконки'}
-              </Button>
+              <p className="mt-2 text-sm text-muted-foreground">Статические иконки без генерации и фоновых изображений.</p>
             </div>
           </div>
         )}
