@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, ArrowLeftRight, CreditCard, Target, TrendingUp,
   ListTodo, PieChart, Settings, Users, FileText, Lightbulb, Baby,
-  BarChart2, Check, Eye, EyeOff, Sparkles, Wallet, Layout, GripVertical, Loader2, RefreshCw
+  BarChart2, Check, Eye, EyeOff, Sparkles, Wallet, Layout, GripVertical
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -21,7 +21,6 @@ import { ALL_TABS, DEFAULT_TAB_ORDER } from '@/components/bottomTabsConfig';
 import MobileSelect from '@/components/mobile/MobileSelect';
 import { SelectItem } from '@/components/ui/select';
 import { ICON_STYLES, DEFAULT_ICON_STYLE } from '@/lib/modernIconStyles';
-import useSubmitGuard from '@/hooks/useSubmitGuard';
 
 // Все пункты меню с метаданными
 const ALL_MENU_ITEMS = [

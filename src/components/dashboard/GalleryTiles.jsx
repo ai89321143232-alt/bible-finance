@@ -4,15 +4,16 @@ import { base44 } from '@/api/base44Client';
 import { createPageUrl } from '@/utils';
 import { MENU_STRUCTURE } from '@/components/Navigation/NavigationMenu';
 import { useTranslation } from '@/lib/LanguageContext';
-import { getModernIconStyle, DEFAULT_ICON_STYLE } from '@/lib/modernIconStyles';
+import { DEFAULT_ICON_STYLE } from '@/lib/modernIconStyles';
+import ModernTileIcon from '@/components/dashboard/ModernTileIcon';
 
 const SECTION_STYLES = {
-  general: { prompt: 'cool blue', className: 'gt-pedestal-blue' },
-  finance_group: { prompt: 'sky blue', className: 'gt-pedestal-blue' },
-  planning_group: { prompt: 'warm gold', className: 'gt-pedestal-gold' },
-  family_group: { prompt: 'soft pink', className: 'gt-pedestal-pink' },
-  ai_group: { prompt: 'violet purple', className: 'gt-pedestal-purple' },
-  organizer_group: { prompt: 'clear blue', className: 'gt-pedestal-blue' },
+  general: 'gt-pedestal-blue',
+  finance_group: 'gt-pedestal-blue',
+  planning_group: 'gt-pedestal-gold',
+  family_group: 'gt-pedestal-pink',
+  ai_group: 'gt-pedestal-purple',
+  organizer_group: 'gt-pedestal-blue',
 };
 
 const getGroupedTiles = () => MENU_STRUCTURE.map((entry) => ({
