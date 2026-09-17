@@ -32,6 +32,9 @@ import { useActiveWorkspaceId, filterByWorkspace } from '@/components/workspace/
 import { TransactionService } from '@/services';
 import FamilyVisibilityToggle from '@/components/shared/FamilyVisibilityToggle';
 import { useScopeMode } from '@/hooks/useScopeMode';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
+import { buildAccountCurrencyMap, groupTransactionsByCurrency } from '@/lib/groupByCurrency';
+import { INVESTMENT_CATEGORY } from '@/lib/investmentConstants';
 
 const CATEGORY_ICONS = {
   'Еда': '🍔', 'Транспорт': '🚗', 'Жильё': '🏠', 'Развлечения': '🎮',
@@ -137,6 +140,7 @@ export default function Transactions() {
   });
 
   const formatCurrency = useFormatCurrency();
+  const { convert, profileCurrency } = useExchangeRates();
 
   const familyMemberIds = (family?.members || []).map(m => m.user_id).filter(id => id && id !== user?.id);
   const displayedTransactions = scopedTransactions.filter(t => {
@@ -168,8 +172,22 @@ export default function Transactions() {
 
   const sortedDates = Object.keys(groupedTransactions).sort((a, b) => new Date(b) - new Date(a));
   const allCategories = [...new Set(displayedTransactions.map(t => t.category).filter(Boolean))];
-  const totalIncome = filteredTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const totalExpense = filteredTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const accountCurrencyMap = buildAccountCurrencyMap(scopedAccounts);
+  const financialTransactions = filteredTransactions.filter(t => t.category !== INVESTMENT_CATEGORY);
+  const totalForType = (type) => financialTransactions
+    .filter(t => t.type === type)
+    .reduce((sum, t) => {
+      const currency = t.currency || accountCurrencyMap[t.account_id] || profileCurrency;
+      const converted = convert(t.amount, currency, profileCurrency);
+      return converted == null ? sum : sum + converted;
+    }, 0);
+  const totalIncome = totalForType('income');
+  const totalExpense = totalForType('expense');
+  const totalsByCurrency = groupTransactionsByCurrency(financialTransactions, accountCurrencyMap);
+  const showCurrencyBreakdown = Object.keys(totalsByCurrency).length > 1;
+  const formatRawAmount = (amount) => new Intl.NumberFormat(language === 'en' ? 'en-US' : 'ru-RU', {
+    maximumFractionDigits: 2,
+  }).format(amount);
 
   const handleRefresh = async () => {
     await Promise.all([
@@ -212,6 +230,14 @@ export default function Transactions() {
                   <span className="text-sm text-emerald-600">+{formatCurrency(totalIncome)}</span>
                   <span className="text-sm text-rose-600">-{formatCurrency(totalExpense)}</span>
                 </div>
+                {showCurrencyBreakdown && (
+                  <div className="flex flex-wrap justify-center gap-1.5 mt-2">
+                    {Object.entries(totalsByCurrency).flatMap(([currency, totals]) => [
+                      totals.income > 0 && <span key={`${currency}-income`} className="rounded-full bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 text-sm text-emerald-700 dark:text-emerald-300">+{formatRawAmount(totals.income)} {currency}</span>,
+                      totals.expense > 0 && <span key={`${currency}-expense`} className="rounded-full bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 text-sm text-rose-700 dark:text-rose-300">-{formatRawAmount(totals.expense)} {currency}</span>,
+                    ])}
+                  </div>
+                )}
               </div>
               <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="rounded-xl text-slate-700 dark:text-white">
                 <ChevronRight className="w-5 h-5" />
