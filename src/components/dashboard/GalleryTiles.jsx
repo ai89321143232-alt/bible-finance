@@ -4,8 +4,9 @@ import { base44 } from '@/api/base44Client';
 import { createPageUrl } from '@/utils';
 import { MENU_STRUCTURE } from '@/components/Navigation/NavigationMenu';
 import { useTranslation } from '@/lib/LanguageContext';
-import { DEFAULT_ICON_STYLE } from '@/lib/modernIconStyles';
+import { DEFAULT_CARD_STYLE } from '@/lib/modernIconStyles';
 import ModernTileIcon from '@/components/dashboard/ModernTileIcon';
+import { useTheme } from '@/lib/themeManager';
 
 const SECTION_STYLES = {
   general: 'gt-pedestal-blue',
@@ -23,6 +24,7 @@ const getGroupedTiles = () => MENU_STRUCTURE.map((entry) => ({
 
 export default function GalleryTiles() {
   const [user, setUser] = useState(null);
+  const [theme] = useTheme();
   const t = useTranslation();
 
   useEffect(() => {
@@ -56,14 +58,10 @@ export default function GalleryTiles() {
       {rows.map((row, index) => (
         <div key={index} className="gt-row scrollbar-none snap-x snap-mandatory">
           {row.map((item) => {
-            const Icon = item.icon;
-            const pedestalClass = SECTION_STYLES[item.section] || SECTION_STYLES.general;
-            const modernIconStyle = user?.modern_icon_style || user?.data?.modern_icon_style || DEFAULT_ICON_STYLE;
+            const cardStyle = user?.card_style || user?.data?.card_style || DEFAULT_CARD_STYLE;
             return (
               <Link key={item.name} to={createPageUrl(item.name)} className="gt-tile snap-start">
-                <span className={`gt-pedestal ${pedestalClass}`}>
-                  <ModernTileIcon icon={Icon} tileName={item.name} styleKey={modernIconStyle} />
-                </span>
+                <ModernTileIcon tileName={item.name} styleKey={cardStyle} theme={theme} />
                 <span className="gt-label">{item.label || t(item.labelKey)}</span>
               </Link>
             );

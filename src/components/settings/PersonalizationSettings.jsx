@@ -20,7 +20,8 @@ import { toast } from 'sonner';
 import { ALL_TABS, DEFAULT_TAB_ORDER } from '@/components/bottomTabsConfig';
 import MobileSelect from '@/components/mobile/MobileSelect';
 import { SelectItem } from '@/components/ui/select';
-import { ICON_STYLES, DEFAULT_ICON_STYLE, getModernIconStyle } from '@/lib/modernIconStyles';
+import { DEFAULT_CARD_STYLE } from '@/lib/modernIconStyles';
+import CardStylePicker from '@/components/settings/CardStylePicker';
 
 // Все пункты меню с метаданными
 const ALL_MENU_ITEMS = [
@@ -69,7 +70,7 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
   const [blockOrder, setBlockOrder] = useState(DEFAULT_BLOCK_ORDER);
   const [bottomTabOrder, setBottomTabOrder] = useState(DEFAULT_TAB_ORDER);
   const [dashboardStyle, setDashboardStyle] = useState('classic');
-  const [modernIconStyle, setModernIconStyle] = useState(DEFAULT_ICON_STYLE);
+  const [cardStyle, setCardStyle] = useState(DEFAULT_CARD_STYLE);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -91,7 +92,7 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
     }
     setBottomTabOrder(user.bottom_tab_order || user.data?.bottom_tab_order || DEFAULT_TAB_ORDER);
     setDashboardStyle(user.dashboard_style || user.data?.dashboard_style || 'classic');
-    setModernIconStyle(getModernIconStyle(user.modern_icon_style || user.data?.modern_icon_style || DEFAULT_ICON_STYLE).key);
+    setCardStyle(user.card_style || user.data?.card_style || DEFAULT_CARD_STYLE);
   };
 
   const toggleMenuItem = (name) => {
@@ -134,7 +135,7 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
       dashboard_block_order: blockOrder,
       bottom_tab_order: bottomTabOrder,
       dashboard_style: dashboardStyle,
-      modern_icon_style: modernIconStyle,
+      card_style: cardStyle,
       });
     setSaving(false);
     toast.success('Настройки сохранены');
@@ -169,17 +170,12 @@ export default function PersonalizationSettings({ open, onOpenChange, onSaved })
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/30">
                 <Sparkles className="h-4 w-4 text-violet-600" />
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground">Иконки Модерн</p>
-                <p className="mt-1 text-xs text-muted-foreground">Выберите стиль и обновите иконки плиток.</p>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Карточки Модерн</p>
+                <p className="mt-1 text-sm text-muted-foreground">Выберите оформление плиток для светлой и тёмной темы.</p>
               </div>
             </div>
-            <div className="mt-3">
-              <MobileSelect value={modernIconStyle} onValueChange={setModernIconStyle} title="Стиль иконок" triggerClassName="w-full text-foreground">
-                {ICON_STYLES.map((style) => <SelectItem key={style.key} value={style.key}>{style.label}</SelectItem>)}
-              </MobileSelect>
-              <p className="mt-2 text-sm text-muted-foreground">Настоящие 3D-иконки с прозрачным фоном для всех плиток.</p>
-            </div>
+            <div className="mt-3"><CardStylePicker value={cardStyle} onChange={setCardStyle} /></div>
           </div>
         )}
 

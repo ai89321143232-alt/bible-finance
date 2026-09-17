@@ -1,16 +1,18 @@
 import React from 'react';
-import { getModernIconAsset } from '@/lib/modernIconStyles';
+import { getCardTilePosition, getModernIconAsset } from '@/lib/modernIconStyles';
 
-export default function ModernTileIcon({ icon: Icon, styleKey, tileName }) {
-  const imageUrl = getModernIconAsset(styleKey, tileName);
+export default function ModernTileIcon({ styleKey, theme, tileName }) {
+  const imageUrl = getModernIconAsset(styleKey, theme, tileName);
+  const { x, y } = getCardTilePosition(tileName);
 
   return (
-    <span className="modern-icon" aria-hidden="true">
-      {imageUrl ? (
-        <img src={imageUrl} alt="" className="modern-icon-image" />
-      ) : (
-        <Icon className="modern-icon-glyph" strokeWidth={1.8} />
-      )}
-    </span>
+    <span
+      aria-hidden="true"
+      className="gt-tile-card"
+      style={{
+        backgroundImage: `url(${imageUrl})`,
+        backgroundPosition: `${x * 20}% ${y * (100 / 3)}%`,
+      }}
+    />
   );
 }
