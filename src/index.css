@@ -214,11 +214,11 @@
 }
 
 @layer components {
-  .gt-gallery { margin-top: 0.5rem; }
-  .gt-scroll { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(7.5rem, 1fr); grid-template-rows: repeat(2, 5.5rem); gap: 0.75rem; overflow-x: auto; padding: 0.25rem 0.125rem 0.75rem; }
-  .gt-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 0.875rem; text-align: center; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  .gt-gallery { display: grid; gap: 0.75rem; margin-top: 0.5rem; }
+  .gt-row { display: flex; gap: 0.75rem; overflow-x: auto; padding: 0.25rem 0.125rem; }
+  .gt-tile { display: flex; flex: 0 0 7.5rem; min-height: 5.5rem; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 0.875rem; text-align: center; color: hsl(var(--foreground)); transition: transform 0.2s ease, box-shadow 0.2s ease; }
   .gt-tile:active { transform: scale(0.97); }
   .gt-label { font-size: 0.6875rem; font-weight: 600; line-height: 1.15; }
-  .gt-light .gt-tile { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08); color: hsl(var(--foreground)); }
-  .gt-dark .gt-tile { background: linear-gradient(145deg, rgba(30, 41, 59, 0.88), rgba(15, 23, 42, 0.76)); border: 1px solid rgba(148, 163, 184, 0.16); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2), 0 0 16px rgba(99, 102, 241, 0.08); color: #f8fafc; }
+  html:not([data-liquid-glass="true"]) .gt-tile { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08); }
+  html.dark:not([data-liquid-glass="true"]) .gt-tile { background: linear-gradient(145deg, rgba(30, 41, 59, 0.88), rgba(15, 23, 42, 0.76)); border-color: rgba(148, 163, 184, 0.16); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2), 0 0 16px rgba(99, 102, 241, 0.08); color: #f8fafc; }
 }

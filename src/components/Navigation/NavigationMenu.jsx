@@ -14,7 +14,7 @@ import { useTranslation } from '@/lib/LanguageContext';
 // ============================================================
 // Структура меню: плоские пункты (type: 'link') и группы с подменю (type: 'group')
 // ============================================================
-const MENU_STRUCTURE = [
+export const MENU_STRUCTURE = [
   { type: 'link', name: 'Dashboard', labelKey: 'nav.dashboard', icon: Home },
   {
     type: 'group', name: 'finance_group', labelKey: 'nav.finance_group', icon: Wallet,
