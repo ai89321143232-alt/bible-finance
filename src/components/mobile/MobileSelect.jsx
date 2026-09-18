@@ -88,7 +88,7 @@ export default function MobileSelect({
         </svg>
       </button>
 
-      <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+      <Drawer open={drawerOpen} onOpenChange={setDrawerOpen} modal={false}>
         <DrawerContent className="bg-popover border-border text-popover-foreground max-h-[60vh]">
           <DrawerHeader>
             <DrawerTitle className="text-popover-foreground">{title || placeholder}</DrawerTitle>
