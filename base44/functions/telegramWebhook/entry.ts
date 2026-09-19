@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { effect, applyBalanceDelta, applyBudgetDelta, matchAccount } from '../../shared/transactionEffects.ts';
 import { buildAssistantSystemPrompt, invokeAssistantModel, computeFinancialContext } from '../../shared/financialAssistant.ts';
+import { createCurrencyTools } from '../../shared/currencyConvert.ts';
 
 const EXPENSE_CATEGORIES = 'Еда и рестораны, Транспорт, Здоровье, Развлечения, Одежда, ЖКХ, Связь, Образование, Зарплата, Другое';
 
@@ -127,7 +128,8 @@ async function finalizeTransaction({ entities, parsed, account, ownerId, botToke
   await createTransactionRecord({ entities, parsed, account, ownerId });
   const accounts = await entities.Account.filter({ user_id: ownerId });
   const freshAccount = accounts.find(a => a.id === account.id) || account;
-  await sendMessage(botToken, chatId, await buildTransactionReceipt(parsed, freshAccount, accounts));
+  const owner = await entities.User.get(ownerId).catch(() => null);
+  await sendMessage(botToken, chatId, await buildTransactionReceipt(parsed, freshAccount, accounts, owner));
 }
 
 // Отправляет список счетов кнопками и сохраняет операции, ожидающие выбора счёта
@@ -140,22 +142,25 @@ async function requestAccountSelection({ entities, config, accounts, transaction
   await sendMessage(botToken, chatId, `${summary}\n\nВыберите счёт для записи:`, { inline_keyboard: keyboard });
 }
 
-async function buildTransactionReceipt(parsed, account, allAccounts) {
+async function buildTransactionReceipt(parsed, account, allAccounts, owner) {
   const isExpense = parsed.type === 'expense';
   const emoji = isExpense ? '💸' : '💰';
   const sign = isExpense ? '−' : '+';
-  const totalBalance = (allAccounts || []).reduce((s, a) => s + (a.balance || 0), 0);
-  const currency = account?.currency || 'RUB';
+  const accountCurrency = account?.currency || 'RUB';
+  const currency = createCurrencyTools(owner);
+  const totals = currency.summarize((allAccounts || []).map(a => ({ amount: a.balance, currency: a.currency })));
 
   const lines = [
     `📝 <b>${parsed.description || 'Операция из Telegram'}</b>`,
     '',
-    `${emoji} <b>${sign}${parsed.amount.toLocaleString()} ${currency}</b>`,
+    `${emoji} <b>${sign}${currency.format(parsed.amount, parsed.currency || accountCurrency)}</b>`,
     `📂 Категория: ${parsed.category || 'Другое'}`,
     `🏦 Счёт: ${account?.name || '—'}`,
     '──────────────',
-    `💳 Остаток на счёте: <code>${account?.balance.toLocaleString()} ${currency}</code>`,
-    `💰 Общий баланс: <code>${totalBalance.toLocaleString()} ${currency}</code>`
+    `💳 Остаток на счёте: <code>${currency.format(account?.balance, accountCurrency)}</code>`,
+    '💰 Общий баланс:',
+    ...totals.lines.map(line => `<code>${line}</code>`),
+    `<b>Итого: ${currency.format(totals.total)}</b>${totals.missing.length ? ` (без курса: ${totals.missing.join(', ')})` : ''}`
   ];
   return lines.join('\n');
 }
@@ -202,11 +207,14 @@ async function handleAccountCallback({ base44, config, accounts, ownerId, botTok
   const freshAccount = freshAccounts.find(a => a.id === accountId) || account;
 
   if (pending.length === 1) {
-    await sendMessage(botToken, chatId, await buildTransactionReceipt(pending[0], freshAccount, freshAccounts));
+    const owner = await entities.User.get(ownerId).catch(() => null);
+    await sendMessage(botToken, chatId, await buildTransactionReceipt(pending[0], freshAccount, freshAccounts, owner));
   } else {
-    const total = pending.reduce((s, t) => s + (t.amount || 0), 0);
-    const summary = pending.map(t => `  ${t.type === 'expense' ? '💸' : '💰'} ${t.description || 'Операция'} — <b>${t.amount.toLocaleString()} ${account.currency || 'RUB'}</b>`).join('\n');
-    await sendMessage(botToken, chatId, `📝 <b>Записано ${pending.length} операций</b>\n\n${summary}\n\n──────────────\n💳 <b>Остаток на счёте:</b> <code>${freshAccount.balance.toLocaleString()} ${freshAccount.currency || 'RUB'}</code>\n💰 <b>Общий баланс:</b> <code>${freshAccounts.reduce((s, a) => s + (a.balance || 0), 0).toLocaleString()} ${account.currency || 'RUB'}</code>`);
+    const owner = await entities.User.get(ownerId).catch(() => null);
+    const currency = createCurrencyTools(owner);
+    const totals = currency.summarize(freshAccounts.map(a => ({ amount: a.balance, currency: a.currency })));
+    const summary = pending.map(t => `  ${t.type === 'expense' ? '💸' : '💰'} ${t.description || 'Операция'} — <b>${currency.format(t.amount, t.currency || freshAccount.currency)}</b>`).join('\n');
+    await sendMessage(botToken, chatId, `📝 <b>Записано ${pending.length} операций</b>\n\n${summary}\n\n──────────────\n💳 <b>Остаток на счёте:</b> <code>${currency.format(freshAccount.balance, freshAccount.currency)}</code>\n💰 <b>Общий баланс:</b>\n${totals.lines.map(line => `<code>${line}</code>`).join('\n')}\n<b>Итого: ${currency.format(totals.total)}</b>${totals.missing.length ? ` (без курса: ${totals.missing.join(', ')})` : ''}`);
   }
 }
 
@@ -226,7 +234,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
   const allTx = await entities.Transaction.list('-date', 200);
   const recentTx = allTx.filter(t => t.created_by_id === ownerId || t.user_id === ownerId).slice(0, 25);
   const recentTxText = recentTx.map(t =>
-    `id=${t.id} | ${t.date?.slice(0, 10)} | ${t.type === 'expense' ? 'расход' : 'доход'} | ${t.amount} ₽ | ${t.category} | ${t.description || ''}`
+    `id=${t.id} | ${t.date?.slice(0, 10)} | ${t.type === 'expense' ? 'расход' : 'доход'} | ${t.amount} ${t.currency || 'RUB'} | ${t.category} | ${t.description || ''}`
   ).join('\n') || 'нет операций';
 
   const financial_context = await computeFinancialContext(entities, ownerId, config.timezone || 'Europe/Moscow');
@@ -325,7 +333,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         if (t.type === 'expense') await applyBudgetDelta(entities, ownerId, t.category, t.amount);
         const freshAccounts = await entities.Account.filter({ user_id: ownerId });
         const freshAccount = freshAccounts.find(a => a.id === targetAccount.id) || targetAccount;
-        replyText = await buildTransactionReceipt(t, freshAccount, freshAccounts);
+        replyText = await buildTransactionReceipt(t, freshAccount, freshAccounts, owner);
       }
     }
   } else if (action === 'create_investment' && parsed.investment) {
@@ -456,45 +464,48 @@ async function handleBalanceButton({ entities, accounts, ownerId, botToken, chat
     await sendMessage(botToken, chatId, '❌ Не найдено ни одного счёта. Добавьте счёт в приложении.');
     return;
   }
-  const total = accounts.reduce((s, a) => s + (a.balance || 0), 0);
-  const currency = accounts[0]?.currency || 'RUB';
+  const owner = await entities.User.get(ownerId).catch(() => null);
+  const currency = createCurrencyTools(owner);
+  const totals = currency.summarize(accounts.map(a => ({ amount: a.balance, currency: a.currency })));
   const lines = [
     '💰 <b>Ваши балансы</b>',
     '',
-    ...accounts.map(a => `${accountTypeIcon(a.type)} ${a.name}: <code>${(a.balance || 0).toLocaleString()} ${a.currency || currency}</code>${a.is_active === false ? ' (неактивен)' : ''}`),
+    ...accounts.map(a => `${accountTypeIcon(a.type)} ${a.name}: <code>${currency.format(a.balance, a.currency || currency.profileCurrency)}</code>${a.is_active === false ? ' (неактивен)' : ''}`),
     '──────────────',
-    `📊 <b>Общий баланс:</b> <code>${total.toLocaleString()} ${currency}</code>`
+    '<b>Разбивка по валютам:</b>',
+    ...totals.lines.map(line => `<code>${line}</code>`),
+    `<b>📊 Общий баланс:</b> <code>${currency.format(totals.total)}</code>${totals.missing.length ? `\n⚠️ Не включены без курса: ${totals.missing.join(', ')}` : ''}`
   ];
   await sendMessage(botToken, chatId, lines.join('\n'));
 }
 
 async function handleAnalyticsButton({ entities, accounts, ownerId, config, botToken, chatId }) {
   const timezone = config.timezone || 'Europe/Moscow';
+  const owner = await entities.User.get(ownerId).catch(() => null);
+  const currency = createCurrencyTools(owner);
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
+  const parts = fmt.formatToParts(now).reduce((acc, p) => { acc[p.type] = p.value; return acc; }, {});
+  const monthStart = new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, 1));
   const allTx = await entities.Transaction.list('-date', 200);
   const myTx = allTx.filter(t => (t.created_by_id === ownerId || t.user_id === ownerId) && new Date(t.date) >= monthStart);
-
   const expenses = myTx.filter(t => t.type === 'expense');
-  const totalSpent = expenses.reduce((s, t) => s + (t.amount || 0), 0);
-
-  if (!expenses.length) {
-    await sendMessage(botToken, chatId, `📊 <b>Аналитика за месяц</b>\n\nРасходов за текущий месяц не найдено.\n\n💰 Доход: <code>${myTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0).toLocaleString()} ₽</code>`);
-    return;
-  }
-
+  const income = myTx.filter(t => t.type === 'income');
+  const totalSpent = currency.summarize(expenses.map(t => ({ amount: t.amount, currency: t.currency }))).total;
+  const totalIncome = currency.summarize(income.map(t => ({ amount: t.amount, currency: t.currency }))).total;
   const byCategory = {};
   for (const t of expenses) {
+    const converted = currency.convert(t.amount, t.currency || currency.profileCurrency);
+    if (converted == null) continue;
     const cat = t.category || 'Другое';
-    byCategory[cat] = (byCategory[cat] || 0) + (t.amount || 0);
+    byCategory[cat] = (byCategory[cat] || 0) + converted;
   }
   const sorted = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 5);
-
   const lines = [
-    `📊 <b>Аналитика за месяц</b>`,
+    '📊 <b>Аналитика за месяц</b>',
     '',
-    `💸 Всего расходов: <code>${totalSpent.toLocaleString()} ₽</code> в ${expenses.length} операциях`,
-    `💰 Доход: <code>${myTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0).toLocaleString()} ₽</code>`,
+    `💸 Всего расходов: <code>${currency.format(totalSpent)}</code> в ${expenses.length} операциях`,
+    `💰 Доход: <code>${currency.format(totalIncome)}</code>`,
     '',
     '<b>Топ-5 категорий:</b>',
     ''
@@ -502,26 +513,22 @@ async function handleAnalyticsButton({ entities, accounts, ownerId, config, botT
   for (const [cat, amount] of sorted) {
     const pct = totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0;
     const filled = Math.round(pct / 10);
-    const bar = '▓'.repeat(filled) + '░'.repeat(10 - filled);
-    lines.push(`${bar} <b>${cat}</b> — <code>${amount.toLocaleString()} ₽</code> (${pct}%)`);
+    lines.push(`${'▓'.repeat(filled)}${'░'.repeat(10 - filled)} <b>${cat}</b> — <code>${currency.format(amount)}</code> (${pct}%)`);
   }
-
   const budgets = await entities.Budget.filter({ user_id: ownerId });
   const activeBudgets = budgets.filter(b => b.is_active !== false);
   if (activeBudgets.length) {
+    const budgetTotals = currency.summarize(activeBudgets.map(b => ({ amount: b.spent_amount, currency: b.currency })));
     lines.push('', '<b>Бюджеты:</b>', '');
     for (const b of activeBudgets.slice(0, 5)) {
       const limit = b.limit_amount || 0;
       const spent = b.spent_amount || 0;
       const pct = limit > 0 ? Math.min(100, Math.round((spent / limit) * 100)) : 0;
       const status = pct >= 100 ? '🔴' : pct >= 80 ? '🟠' : '🟢';
-      const filled = Math.round(pct / 10);
-      const bar = '▓'.repeat(filled) + '░'.repeat(10 - filled);
-      lines.push(`${status} ${b.name}: <code>${spent.toLocaleString()} / ${limit.toLocaleString()} ₽</code> (${pct}%)`);
-      lines.push(`   ${bar}`);
+      lines.push(`${status} ${b.name}: <code>${currency.format(spent, b.currency || currency.profileCurrency)} / ${currency.format(limit, b.currency || currency.profileCurrency)}</code> (${pct}%)`);
     }
+    lines.push('', `<b>Потрачено по бюджетам:</b> <code>${currency.format(budgetTotals.total)}</code>${budgetTotals.missing.length ? ` (без курса: ${budgetTotals.missing.join(', ')})` : ''}`);
   }
-
   await sendMessage(botToken, chatId, lines.join('\n'));
 }
 
@@ -541,7 +548,7 @@ async function handleOperationsButton({ entities, ownerId, botToken, chatId }) {
     const sign = t.type === 'expense' ? '−' : '+';
     const date = t.date ? new Date(t.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '';
     const desc = t.description ? ` — ${t.description.length > 30 ? t.description.slice(0, 30) + '…' : t.description}` : '';
-    lines.push(`${i + 1}. ${emoji} ${date} <b>${sign}${t.amount.toLocaleString()} ₽</b>\n   📂 ${t.category || 'Другое'}${desc}`);
+    lines.push(`${i + 1}. ${emoji} ${date} <b>${sign}${t.amount.toLocaleString()} ${t.currency || 'RUB'}</b>\n   📂 ${t.category || 'Другое'}${desc}`);
   }
 
   await sendMessage(botToken, chatId, lines.join('\n'));

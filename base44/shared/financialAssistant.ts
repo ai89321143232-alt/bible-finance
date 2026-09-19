@@ -1,6 +1,7 @@
 // Общая логика финансового AI-ассистента: системный промпт, схема ответа, вызов модели
 // и сбор финансового контекста пользователя. Используется в aiChatAssistant (веб-чат)
 // и telegramWebhook (Telegram-бот), чтобы поведение было идентичным в обоих каналах.
+import { createCurrencyTools } from './currencyConvert.ts';
 
 export const ASSISTANT_RESPONSE_SCHEMA = {
   type: 'object',
@@ -188,6 +189,7 @@ export async function computeFinancialContext(entities, ownerId, timezone = 'UTC
     entities.User.get(ownerId).catch(() => null)
   ]);
   const family = owner?.family_id ? await entities.Family.get(owner.family_id).catch(() => null) : null;
+  const currency = createCurrencyTools(owner);
 
   const mine = (arr) => arr.filter(x => x.created_by_id === ownerId || x.user_id === ownerId);
   const transactions = mine(allTransactions);
@@ -195,7 +197,7 @@ export async function computeFinancialContext(entities, ownerId, timezone = 'UTC
   const goals = mine(allGoals).filter(g => g.status === 'active');
   const investments = mine(allInvestments);
   const accounts = mine(allAccounts);
-  const totalBalance = accounts.reduce((sum, a) => sum + (a.balance || 0), 0);
+  const accountTotals = currency.summarize(accounts.map(a => ({ amount: a.balance, currency: a.currency })));
 
   const now = new Date();
   const { year, month, day } = tzDateParts(now, timezone);
@@ -203,24 +205,27 @@ export async function computeFinancialContext(entities, ownerId, timezone = 'UTC
   const todayStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
   const monthTransactions = transactions.filter(t => new Date(t.date) >= monthStart);
-  const monthIncome = monthTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const monthExpenses = monthTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const sumByType = (list, type) => currency.summarize(list.filter(t => t.type === type).map(t => ({ amount: t.amount, currency: t.currency }))).total;
+  const monthIncome = sumByType(monthTransactions, 'income');
+  const monthExpenses = sumByType(monthTransactions, 'expense');
 
   const todayTransactions = transactions.filter(t => (t.date || '').slice(0, 10) === todayStr);
-  const todayIncome = todayTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const todayExpenses = todayTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const todayIncome = sumByType(todayTransactions, 'income');
+  const todayExpenses = sumByType(todayTransactions, 'expense');
 
   const expensesByCategory = monthTransactions
     .filter(t => t.type === 'expense')
     .reduce((acc, t) => {
-      acc[t.category || 'Другое'] = (acc[t.category || 'Другое'] || 0) + t.amount;
+      const converted = currency.convert(t.amount, t.currency || currency.profileCurrency);
+      if (converted != null) acc[t.category || 'Другое'] = (acc[t.category || 'Другое'] || 0) + converted;
       return acc;
     }, {});
 
-  const investmentValue = investments.reduce((sum, inv) => {
+  const investmentRows = investments.map(inv => {
     const price = Number(inv.current_price || inv.purchase_price) || 0;
-    return sum + (inv.type === 'deposit' ? price : (Number(inv.quantity) || 0) * price);
-  }, 0);
+    return { amount: inv.type === 'deposit' ? price : (Number(inv.quantity) || 0) * price, currency: inv.currency || currency.profileCurrency };
+  });
+  const investmentTotals = currency.summarize(investmentRows);
 
   // Расходы по каждому члену семьи за текущий месяц, отсортированные по сумме —
   // чтобы ассистент мог рассказать, кто и куда тратит деньги в семье.
@@ -232,19 +237,13 @@ export async function computeFinancialContext(entities, ownerId, timezone = 'UTC
     );
     const byMember = family.members.map(m => {
       const memberTx = familyMonthExpenses.filter(t => t.user_id === m.user_id || t.created_by_id === m.user_id);
-      const total = memberTx.reduce((s, t) => s + t.amount, 0);
-      const byCat = memberTx.reduce((acc, t) => {
-        const cat = t.category || 'Другое';
-        acc[cat] = (acc[cat] || 0) + t.amount;
-        return acc;
-      }, {});
-      const topCat = Object.entries(byCat).sort((a, b) => b[1] - a[1])[0];
-      return { name: m.display_name || m.name, total, topCat };
+      const total = currency.summarize(memberTx.map(t => ({ amount: t.amount, currency: t.currency }))).total;
+      return { name: m.display_name || m.name, total };
     }).sort((a, b) => b.total - a.total);
 
     familySection = `
-РАСХОДЫ ЧЛЕНОВ СЕМЬИ ЗА МЕСЯЦ (${family.name}), отсортировано по убыванию суммы:
-${byMember.map(b => `- ${b.name}: ${b.total.toLocaleString()} ₽${b.topCat ? ` (больше всего на «${b.topCat[0]}»: ${b.topCat[1].toLocaleString()} ₽)` : ''}`).join('\n')}
+РАСХОДЫ ЧЛЕНОВ СЕМЬИ ЗА МЕСЯЦ (${family.name}) в ${currency.profileCurrency}:
+${byMember.map(b => `- ${b.name}: ${currency.format(b.total)}`).join('\n')}
 `;
   }
 
@@ -252,33 +251,33 @@ ${byMember.map(b => `- ${b.name}: ${b.total.toLocaleString()} ₽${b.topCat ? ` 
 Финансовые данные пользователя:
 
 ОСТАТОК ДЕНЕГ (текущий баланс на счетах прямо сейчас — используй ЭТО значение, если спрашивают "сколько денег", "какой остаток", "баланс"):
-${accounts.map(a => `- ${a.name}: ${(a.balance || 0).toLocaleString()} ₽`).join('\n') || '- Нет счетов'}
-- ИТОГО остаток по всем счетам: ${totalBalance.toLocaleString()} ₽
+${accounts.map(a => `- ${a.name}: ${currency.format(a.balance, a.currency || currency.profileCurrency)}`).join('\n') || '- Нет счетов'}
+Разбивка по валютам:
+${accountTotals.lines.join('\n') || '- Нет счетов'}
+- ИТОГО остаток по всем счетам: ${currency.format(accountTotals.total)}${accountTotals.missing.length ? ` (не включены без курса: ${accountTotals.missing.join(', ')})` : ''}
 
-СЕГОДНЯ (${todayStr}):
-- Доход: ${todayIncome.toLocaleString()} ₽
-- Расходы: ${todayExpenses.toLocaleString()} ₽
+СЕГОДНЯ (${todayStr}) в ${currency.profileCurrency}:
+- Доход: ${currency.format(todayIncome)}
+- Расходы: ${currency.format(todayExpenses)}
 
-ДОХОДЫ И РАСХОДЫ (текущий месяц, НЕ путать с остатком денег):
-- Общий доход: ${monthIncome.toLocaleString()} ₽
-- Общие расходы: ${monthExpenses.toLocaleString()} ₽
-- Разница доход-расход за месяц: ${(monthIncome - monthExpenses).toLocaleString()} ₽
+ДОХОДЫ И РАСХОДЫ (текущий месяц, НЕ путать с остатком денег) в ${currency.profileCurrency}:
+- Общий доход: ${currency.format(monthIncome)}
+- Общие расходы: ${currency.format(monthExpenses)}
+- Разница доход-расход за месяц: ${currency.format(monthIncome - monthExpenses)}
 
-РАСХОДЫ ПО КАТЕГОРИЯМ:
-${Object.entries(expensesByCategory).map(([cat, amount]) => `- ${cat}: ${amount.toLocaleString()} ₽`).join('\n') || '- Нет данных'}
+РАСХОДЫ ПО КАТЕГОРИЯМ (в ${currency.profileCurrency}):
+${Object.entries(expensesByCategory).map(([cat, amount]) => `- ${cat}: ${currency.format(amount)}`).join('\n') || '- Нет данных'}
 
 БЮДЖЕТЫ:
-${budgets.map(b => `- id=${b.id} | ${b.name}: потрачено ${(b.spent_amount || 0).toLocaleString()} из ${b.limit_amount.toLocaleString()} ₽`).join('\n') || '- Нет бюджетов'}
+${budgets.map(b => `- id=${b.id} | ${b.name}: потрачено ${currency.format(b.spent_amount, b.currency || currency.profileCurrency)} из ${currency.format(b.limit_amount, b.currency || currency.profileCurrency)}`).join('\n') || '- Нет бюджетов'}
 
 ФИНАНСОВЫЕ ЦЕЛИ:
-${goals.map(g => `- id=${g.id} | ${g.title}: накоплено ${(g.current_amount || 0).toLocaleString()} из ${g.target_amount.toLocaleString()} ₽`).join('\n') || '- Нет целей'}
+${goals.map(g => `- id=${g.id} | ${g.title}: накоплено ${currency.format(g.current_amount, g.currency || currency.profileCurrency)} из ${currency.format(g.target_amount, g.currency || currency.profileCurrency)}`).join('\n') || '- Нет целей'}
 
 ИНВЕСТИЦИОННЫЙ ПОРТФЕЛЬ:
-- Общая стоимость: ${investmentValue.toLocaleString()} ₽
-${investments.map(inv => {
-  const price = Number(inv.current_price || inv.purchase_price) || 0;
-  const value = inv.type === 'deposit' ? price : (Number(inv.quantity) || 0) * price;
-  return `- id=${inv.id} | ${inv.name} (${inv.type}): ${value.toLocaleString()} ₽`;
-}).join('\n') || '- Нет инвестиций'}
+${investments.map((inv, index) => `- id=${inv.id} | ${inv.name} (${inv.type}): ${currency.format(investmentRows[index].amount, investmentRows[index].currency)}`).join('\n') || '- Нет инвестиций'}
+Разбивка по валютам:
+${investmentTotals.lines.join('\n') || '- Нет инвестиций'}
+- Общая стоимость в ${currency.profileCurrency}: ${currency.format(investmentTotals.total)}${investmentTotals.missing.length ? ` (не включены без курса: ${investmentTotals.missing.join(', ')})` : ''}
 ${familySection}`;
 }
