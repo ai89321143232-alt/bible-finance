@@ -247,34 +247,43 @@
   /* Плитки «Модерн»: отдельная 3D-иконка на чистой поверхности */
   .gt-tile {
     flex: 0 0 120px;
-    min-height: 112px;
-    justify-content: flex-end;
-    gap: 0;
-    overflow: hidden;
+    min-height: 136px;
+    justify-content: flex-start;
+    gap: 4px;
+    overflow: visible;
     border: 0;
     border-radius: 18px;
-    background: #EFEFEF !important;
+    background: transparent !important;
     box-shadow: none !important;
   }
   .gt-tile::before, .gt-tile::after { display: none; }
+  .gt-icon-link {
+    position: relative;
+    display: block;
+    width: 120px;
+    height: 112px;
+    overflow: hidden;
+    border-radius: 18px;
+    background: #EFEFEF;
+    transition: transform .2s ease;
+  }
+  .gt-icon-link:active { transform: scale(.97); }
+  .gt-icon-link:focus-visible { outline: 3px solid rgba(71,127,220,.45); outline-offset: 2px; }
   .gt-tile-card {
-    position: absolute;
-    inset: 0 0 24px;
     width: 100%;
-    height: calc(100% - 24px);
+    height: 100%;
     display: block;
     object-fit: contain;
-    padding: 8px 15px 0;
+    padding: 8px 15px;
   }
-  .gt-tile:active { transform: scale(.97); }
   .gt-label {
     max-width: 116px;
-    min-height: 24px;
-    padding: 5px 4px 0;
+    min-height: 20px;
+    padding: 0 4px;
     color: #333333;
     font-size: 13px;
   }
-  html.dark .gt-tile, html.dark[data-liquid-glass="true"] .gt-tile { background: #0F0F11 !important; }
+  html.dark .gt-icon-link, html.dark[data-liquid-glass="true"] .gt-icon-link { background: #0F0F11; }
   html.dark .gt-label { color: #E5E5E5; }
   .card-style-preview { display: none; }
 

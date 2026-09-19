@@ -60,10 +60,16 @@ export default function GalleryTiles() {
           {row.map((item) => {
             const cardStyle = user?.card_style || user?.data?.card_style || DEFAULT_CARD_STYLE;
             return (
-              <Link key={item.name} to={createPageUrl(item.name)} className="gt-tile snap-start">
-                <ModernTileIcon tileName={item.name} theme={theme} />
+              <div key={item.name} className="gt-tile snap-start">
+                <Link
+                  to={createPageUrl(item.name)}
+                  className="gt-icon-link"
+                  aria-label={item.label || t(item.labelKey)}
+                >
+                  <ModernTileIcon tileName={item.name} theme={theme} />
+                </Link>
                 <span className="gt-label">{item.label || t(item.labelKey)}</span>
-              </Link>
+              </div>
             );
           })}
         </div>
