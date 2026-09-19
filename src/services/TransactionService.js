@@ -21,9 +21,11 @@ import { eventBus, EVENTS } from '@/lib/eventBus';
 import { parseFlexibleDate } from '@/lib/parseDate';
 import { offlineQueue } from '@/lib/offlineQueue';
 import { base44 } from '@/api/base44Client';
+import { INVESTMENT_CATEGORY } from '@/lib/investmentConstants';
 
 const repo = () => getRepository('Transaction');
 const goalRepo = () => getRepository('Goal');
+const investmentRepo = () => getRepository('Investment');
 
 const notifyChanged = (payload = {}) => eventBus.emit(EVENTS.TRANSACTION_CHANGED, payload);
 
@@ -387,6 +389,23 @@ export const TransactionService = {
             ? (account.balance ?? 0) + tx.amount
             : (account.balance ?? 0) - tx.amount;
         await AccountService.setBalance(account.id, reverted);
+      }
+    }
+    if (tx?.category === INVESTMENT_CATEGORY && tx.investment_id) {
+      const investment = await investmentRepo().get(tx.investment_id).catch(() => null);
+      if (investment) {
+        if (investment.type === 'deposit') {
+          const nextAmount = Math.max((Number(investment.purchase_price) || 0) - tx.amount, 0);
+          await investmentRepo().update(investment.id, { purchase_price: nextAmount, current_price: Math.max((Number(investment.current_price) || 0) - tx.amount, 0) });
+        } else if (tx.purchase_unit_price > 0) {
+          const removedQuantity = tx.amount / tx.purchase_unit_price;
+          const nextQuantity = Math.max((Number(investment.quantity) || 0) - removedQuantity, 0);
+          const remainingCost = Math.max(((Number(investment.quantity) || 0) * (Number(investment.purchase_price) || 0)) - tx.amount, 0);
+          await investmentRepo().update(investment.id, {
+            quantity: nextQuantity,
+            purchase_price: nextQuantity > 0 ? remainingCost / nextQuantity : 0,
+          });
+        }
       }
     }
     await repo().delete(id);

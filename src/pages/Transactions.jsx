@@ -136,6 +136,7 @@ export default function Transactions() {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['investments'] });
     }
   });
 

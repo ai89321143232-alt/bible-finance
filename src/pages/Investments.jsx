@@ -75,6 +75,8 @@ export default function Investments() {
   const [transferAccountId, setTransferAccountId] = useState('');
   const [topUpInvestment, setTopUpInvestment] = useState(null);
   const [topUpAmount, setTopUpAmount] = useState('');
+  const [topUpQuantity, setTopUpQuantity] = useState('');
+  const [topUpUnitPrice, setTopUpUnitPrice] = useState('');
   const [topUpAccountId, setTopUpAccountId] = useState('');
   const [showOnlyMine, setShowOnlyMine] = useState(false);
   const [payoutInvestment, setPayoutInvestment] = useState(null);
@@ -165,13 +167,15 @@ export default function Investments() {
   });
 
   const topUpMutation = useMutation({
-    mutationFn: ({ id, account_id, amount }) => InvestmentService.topUpWithTransaction(id, { account_id, amount }),
+    mutationFn: ({ id, account_id, amount, quantity, unit_price }) => InvestmentService.topUpWithTransaction(id, { account_id, amount, quantity, unit_price }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['investments'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setTopUpInvestment(null);
       setTopUpAmount('');
+      setTopUpQuantity('');
+      setTopUpUnitPrice('');
       setTopUpAccountId('');
     }
   });
@@ -272,10 +276,13 @@ export default function Investments() {
   };
 
   const handleTopUp = async () => {
-    if (!topUpInvestment || !topUpAccountId || !topUpAmount) return;
+    if (!topUpInvestment || !topUpAccountId) return;
+    const isDeposit = topUpInvestment.type === 'deposit';
     const amount = parseFloat(topUpAmount);
-    if (amount <= 0) return;
-    await topUpMutation.mutateAsync({ id: topUpInvestment.id, account_id: topUpAccountId, amount });
+    const quantity = parseFloat(topUpQuantity);
+    const unit_price = parseFloat(topUpUnitPrice);
+    if ((isDeposit && amount <= 0) || (!isDeposit && (quantity <= 0 || unit_price <= 0))) return;
+    await topUpMutation.mutateAsync({ id: topUpInvestment.id, account_id: topUpAccountId, amount, quantity, unit_price });
   };
 
   const formatCurrency = (amount) => {
@@ -292,6 +299,9 @@ export default function Investments() {
   const transferAccounts = scopeMode === 'all'
     ? accounts
     : accounts.filter((account) => (account.scope || 'personal') === scopeMode);
+  const topUpAccounts = topUpInvestment
+    ? transferAccounts.filter((account) => (account.currency || 'RUB') === (topUpInvestment.currency || 'RUB'))
+    : [];
   const displayedInvestments = (showOnlyMine && currentUser)
     ? scopedInvestments.filter(inv => inv.created_by_id === currentUser.id || inv.user_id === currentUser.id)
     : scopedInvestments;
@@ -560,7 +570,7 @@ export default function Investments() {
                       )}
                       <div className="mt-3 flex items-center justify-between gap-2 text-sm text-slate-500">
                         <span>Выплат: {cashFlows.filter((flow) => flow.investment_id === investment.id).length}</span>
-                        {isEditable && <div className="flex gap-2"><Button variant="outline" size="sm" className="rounded-lg" onClick={(e) => { e.stopPropagation(); setTopUpInvestment(investment); setTopUpAmount(''); setTopUpAccountId(''); }}><Plus className="w-3 h-3 mr-1" />Пополнить</Button><Button variant="outline" size="sm" className="rounded-lg" onClick={(e) => { e.stopPropagation(); setPayoutInvestment(investment); setPayoutForm({ type: investment.type === 'bonds' ? 'coupon' : investment.type === 'deposit' ? 'interest' : 'dividend', amount: '', date: new Date().toISOString().slice(0, 10), destination: 'income', linked_goal_id: investment.linked_goal_ids?.[0] || '', account_id: '' }); }}>Добавить поступление</Button></div>}
+                        {isEditable && <div className="flex gap-2"><Button variant="outline" size="sm" className="rounded-lg" onClick={(e) => { e.stopPropagation(); setTopUpInvestment(investment); setTopUpAmount(''); setTopUpQuantity(''); setTopUpUnitPrice(''); setTopUpAccountId(''); }}><Plus className="w-3 h-3 mr-1" />Пополнить</Button><Button variant="outline" size="sm" className="rounded-lg" onClick={(e) => { e.stopPropagation(); setPayoutInvestment(investment); setPayoutForm({ type: investment.type === 'bonds' ? 'coupon' : investment.type === 'deposit' ? 'interest' : 'dividend', amount: '', date: new Date().toISOString().slice(0, 10), destination: 'income', linked_goal_id: investment.linked_goal_ids?.[0] || '', account_id: '' }); }}>Добавить поступление</Button></div>}
                       </div>
                       {cashFlows.filter((flow) => flow.investment_id === investment.id).slice(0, 3).map((flow) => <div key={flow.id} className="mt-1 flex justify-between text-sm text-slate-500"><span>{flow.type === 'coupon' ? 'Купон' : flow.type === 'interest' ? 'Проценты' : flow.type === 'rent' ? 'Аренда' : 'Дивиденды'} · {format(new Date(flow.date), 'dd.MM.yyyy')}</span><span className="font-medium text-emerald-600">+{formatCurrency(flow.amount)}</span></div>)}
 
@@ -809,7 +819,7 @@ export default function Investments() {
       </Dialog>
 
       {/* Top-up Investment Modal */}
-      <Dialog open={!!topUpInvestment} onOpenChange={() => { setTopUpInvestment(null); setTopUpAmount(''); setTopUpAccountId(''); }}>
+      <Dialog open={!!topUpInvestment} onOpenChange={() => { setTopUpInvestment(null); setTopUpAmount(''); setTopUpQuantity(''); setTopUpUnitPrice(''); setTopUpAccountId(''); }}>
         <DialogContent className="rounded-2xl max-w-sm">
           <DialogHeader>
             <DialogTitle>Пополнить инвестицию</DialogTitle>
@@ -820,38 +830,30 @@ export default function Investments() {
                 {topUpInvestment.name} · Текущая сумма: {formatCurrency(getInvestmentValue(topUpInvestment))}
               </p>
             )}
-            <div>
-              <Label>Сумма пополнения</Label>
-              <div className="relative mt-1">
-                <Input
-                  type="number"
-                  value={topUpAmount}
-                  onChange={(e) => setTopUpAmount(e.target.value)}
-                  placeholder="0"
-                  className="rounded-xl pr-8 text-xl font-semibold h-14"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
+            {topUpInvestment?.type === 'deposit' ? (
+              <div>
+                <Label>Сумма пополнения</Label>
+                <Input type="number" value={topUpAmount} onChange={(e) => setTopUpAmount(e.target.value)} placeholder="0" className="rounded-xl mt-1 text-xl font-semibold h-14" />
               </div>
-            </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <div><Label>Количество</Label><Input type="number" value={topUpQuantity} onChange={(e) => setTopUpQuantity(e.target.value)} placeholder="0" className="rounded-xl mt-1 h-14" /></div>
+                <div><Label>Цена за единицу</Label><Input type="number" value={topUpUnitPrice} onChange={(e) => setTopUpUnitPrice(e.target.value)} placeholder="0" className="rounded-xl mt-1 h-14" /></div>
+              </div>
+            )}
             <div>
               <Label>Счёт списания</Label>
               <Select value={topUpAccountId} onValueChange={setTopUpAccountId}>
-                <SelectTrigger className="rounded-xl mt-1">
-                  <SelectValue placeholder="Выберите счёт" />
-                </SelectTrigger>
+                <SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="Выберите счёт" /></SelectTrigger>
                 <SelectContent>
-                  {transferAccounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      {account.name} · {formatCurrency(account.balance || 0, account.currency)}
-                    </SelectItem>
-                  ))}
+                  {topUpAccounts.map((account) => <SelectItem key={account.id} value={account.id}>{account.name} · {formatCurrency(account.balance || 0, account.currency)}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <p className="text-sm text-slate-400 mt-1">Сумма будет списана со счёта и сохранена как расход на инвестиции. Для ценных бумаг количество будет увеличено по текущей цене.</p>
+              {topUpAccounts.length === 0 ? <p className="text-sm text-rose-500 mt-1">Нет счёта в валюте инвестиции.</p> : <p className="text-sm text-slate-400 mt-1">Сумма будет списана со счёта и сохранена как расход на инвестиции.</p>}
             </div>
             <Button
               onClick={handleTopUp}
-              disabled={!topUpAmount || !topUpAccountId || topUpMutation.isPending}
+              disabled={topUpInvestment?.type === 'deposit' ? (!topUpAmount || !topUpAccountId || topUpMutation.isPending) : (!topUpQuantity || !topUpUnitPrice || !topUpAccountId || topUpMutation.isPending)}
               className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600"
             >
               <Wallet className="w-4 h-4 mr-2" />Пополнить
