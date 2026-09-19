@@ -262,9 +262,8 @@
     display: block;
     width: 120px;
     height: 112px;
-    overflow: hidden;
-    border-radius: 18px;
-    background: #EDEDED;
+    overflow: visible;
+    background: transparent;
     transition: transform .2s ease;
   }
   .gt-icon-link:active { transform: scale(.97); }
@@ -283,7 +282,6 @@
     color: #333333;
     font-size: 13px;
   }
-  html.dark .gt-icon-link, html.dark[data-liquid-glass="true"] .gt-icon-link { background: #0F0F11; }
   html.dark .gt-label { color: #E5E5E5; }
   .card-style-preview { display: none; }
 
