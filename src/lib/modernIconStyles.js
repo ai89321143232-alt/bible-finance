@@ -3,35 +3,18 @@ export const DEFAULT_CARD_STYLE = 'neutral_3d';
 export const ICON_STYLES = CARD_STYLES;
 export const DEFAULT_ICON_STYLE = DEFAULT_CARD_STYLE;
 
-const UNIVERSAL_ICON_ASSETS = {
-  Dashboard: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/441fc4b4c_generated_image.png',
-  Transactions: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/75aad86d2_generated_image.png',
-  Accounts: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/9374dc493_generated_image.png',
-  Categories: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/8bf59f252_generated_image.png',
-  Budgets: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/d1fbe8890_generated_9cf16d28.png',
-  Subscriptions: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/4cf4e37c6_generated_image.png',
-  FinancialPlanning: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/938178742_generated_image.png',
-  Goals: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/fa6201b3e_generated_image.png',
-  Debts: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/55ea4e3df_generated_image.png',
-  Investments: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/cf7c96975_generated_image.png',
-  Analytics: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/a837249ca_generated_image.png',
-  FamilyFinances: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/8ff2a252d_generated_image.png',
-  ChildExpenses: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/b9f50142e_generated_image.png',
-  FamilyChat: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/c778c8467_generated_image.png',
-  AIAssistant: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/fa9a008d3_generated_image.png',
-  AIAdvisors: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/faa5a7001_generated_image.png',
-  AIPlanning: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/c6bec2402_generated_image.png',
-  Tasks: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/5fd906770_generated_image.png',
-  Notes: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/c18477953_generated_image.png',
-  Education: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/e423397c1_generated_image.png',
-  HelpCenter: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/a2deb5c0a_generated_image.png',
-  Backup: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/affc346b5_generated_image.png',
-  Settings: 'https://media.base44.com/images/public/69a29cb75268c38305d0cae9/9a5804eae_generated_image.png'
-};
+const TILE_NAMES = ['Dashboard', 'Transactions', 'Accounts', 'Categories', 'Budgets', 'Subscriptions', 'FinancialPlanning', 'Goals', 'Debts', 'Investments', 'Analytics', 'FamilyFinances', 'ChildExpenses', 'FamilyChat', 'AIAssistant', 'AIAdvisors', 'AIPlanning', 'Tasks', 'Notes', 'Education', 'HelpCenter', 'Backup', 'Settings'];
 
-export const MODERN_ICON_ASSETS = { neutral_3d: { light: UNIVERSAL_ICON_ASSETS, dark: UNIVERSAL_ICON_ASSETS } };
+const lightUrls = [
+  '73c9a08ff', '79d6f4bb1', 'a497177dd', '280dbe04b', '72f050f57', '05b213fab', '297d7ad28', '1a0f6e939', '32362cd5e', 'fcdfec8bd', 'ae577e5b2', '1c7a298bf', '5246d332c', '2059aba52', '6db0d2845', 'ee79baff0', '7eafca67f', '54342874e', 'dba5cca9a', 'e1fcb455c', 'd0379ceb7', 'c10dcf32d', '1c614f167'
+];
+const darkUrls = [
+  '7eb3f1866', '81a213476', 'de53e188a', '5b1d22dbe', '33cb3b217', 'f0b05588d', '025c62078', '2d8b4318c', 'fc40de233', '53bdb0022', '4e7d03a31', '44c4dcfde', '96272898f', '358418f76', 'd83c66da4', 'f2d2d3cd5', '73535e88b', 'c39f33edc', '13919fdee', 'b86371a2e', '687dc23e9', '3f3347887', 'fc39f34a1'
+];
+const toAssets = (urls) => Object.fromEntries(TILE_NAMES.map((name, index) => [name, `https://media.base44.com/images/public/69a29cb75268c38305d0cae9/${urls[index]}_generated_image.png`]));
 
+export const MODERN_ICON_ASSETS = { neutral_3d: { light: toAssets(lightUrls), dark: toAssets(darkUrls) } };
 export const INDIVIDUAL_CARD_STYLES = ['neutral_3d'];
-export const CARD_TILE_NAMES = Object.keys(MODERN_ICON_ASSETS.neutral_3d.light);
+export const CARD_TILE_NAMES = TILE_NAMES;
 export const getModernIconStyle = () => CARD_STYLES[0];
-export const getModernIconAsset = (_styleKey, _theme, tileName) => UNIVERSAL_ICON_ASSETS[tileName];
+export const getModernIconAsset = (_styleKey, theme, tileName) => MODERN_ICON_ASSETS.neutral_3d[theme === 'dark' ? 'dark' : 'light'][tileName];

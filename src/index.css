@@ -253,7 +253,7 @@
     overflow: hidden;
     border: 0;
     border-radius: 18px;
-    background: transparent !important;
+    background: #EFEFEF !important;
     box-shadow: none !important;
   }
   .gt-tile::before, .gt-tile::after { display: none; }
@@ -274,8 +274,7 @@
     color: #333333;
     font-size: 13px;
   }
-  html.dark .gt-tile, html.dark[data-liquid-glass="true"] .gt-tile { background: transparent !important; }
-  html.dark .gt-tile-card { filter: drop-shadow(0 4px 8px rgba(0, 0, 0, .35)); }
+  html.dark .gt-tile, html.dark[data-liquid-glass="true"] .gt-tile { background: #0F0F11 !important; }
   html.dark .gt-label { color: #E5E5E5; }
   .card-style-preview { display: none; }
 
