@@ -264,7 +264,7 @@
     height: 112px;
     overflow: hidden;
     border-radius: 18px;
-    background: #EFEFEF;
+    background: #EDEDED;
     transition: transform .2s ease;
   }
   .gt-icon-link:active { transform: scale(.97); }
@@ -273,8 +273,8 @@
     width: 100%;
     height: 100%;
     display: block;
-    object-fit: contain;
-    padding: 8px 15px;
+    object-fit: cover;
+    padding: 0;
   }
   .gt-label {
     max-width: 116px;
