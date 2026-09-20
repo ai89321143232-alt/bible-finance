@@ -73,7 +73,9 @@ export const InvestmentService = {
     let transaction = null;
     if (create_transaction && account_id) {
       const user = await getCurrentUser();
-      const totalCost = parseFloat(input.quantity) * parseFloat(input.purchase_price);
+      const totalCost = input.type === 'deposit'
+        ? parseFloat(input.purchase_price)
+        : parseFloat(input.quantity) * parseFloat(input.purchase_price);
 
       // Списываем со счёта
       const account = await accountRepo().get(account_id);
@@ -91,6 +93,9 @@ export const InvestmentService = {
           description: `Покупка актива: ${input.name}`,
           date: new Date().toISOString(),
           account_id,
+          investment_id: investment.id,
+          purchase_unit_price: input.type === 'deposit' ? undefined : parseFloat(input.purchase_price),
+          scope: investment.scope || 'personal',
         },
         user
       );
