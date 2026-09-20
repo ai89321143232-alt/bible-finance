@@ -57,7 +57,6 @@ const CURRENCIES = [
   { code: 'EUR', label: '🇪🇺 EUR' },
   { code: 'KZT', label: '🇰🇿 KZT' },
   { code: 'BYN', label: '🇧🇾 BYN' },
-  { code: 'UAH', label: '🇺🇦 UAH' },
   { code: 'UZS', label: '🇺🇿 UZS' },
 ];
 

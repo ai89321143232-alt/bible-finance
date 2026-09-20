@@ -593,7 +593,6 @@ export default function Settings() {
                       <SelectItem value="EUR">🇪🇺 EUR</SelectItem>
                       <SelectItem value="KZT">🇰🇿 KZT</SelectItem>
                       <SelectItem value="BYN">🇧🇾 BYN</SelectItem>
-                      <SelectItem value="UAH">🇺🇦 UAH</SelectItem>
                       <SelectItem value="UZS">🇺🇿 UZS</SelectItem>
                     </SelectContent>
                   </Select>

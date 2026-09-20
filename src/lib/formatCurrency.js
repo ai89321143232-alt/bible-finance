@@ -62,7 +62,6 @@ export const CURRENCIES = [
   { code: 'KZT', symbol: '₸', label: 'Тенге' },
   { code: 'UZS', symbol: 'сум', label: 'Узбекский сум' },
   { code: 'BYN', symbol: 'Br', label: 'Белорусский рубль' },
-  { code: 'UAH', symbol: '₴', label: 'Гривна' },
   { code: 'GEL', symbol: '₾', label: 'Грузинский лари' },
   { code: 'CNY', symbol: '¥', label: 'Китайский юань' },
 ];

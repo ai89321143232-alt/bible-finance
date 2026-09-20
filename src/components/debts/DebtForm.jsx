@@ -28,7 +28,7 @@ const PAYMENT_TYPES = [
   { value: 'interest_only' },
 ];
 
-const CURRENCIES = ['RUB', 'USD', 'EUR', 'KZT', 'UAH', 'BYN', 'UZS'];
+const CURRENCIES = ['RUB', 'USD', 'EUR', 'KZT', 'BYN', 'UZS'];
 
 export default function DebtForm({ open, onClose, onSave, initialData }) {
   const isEdit = !!initialData;

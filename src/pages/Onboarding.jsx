@@ -16,7 +16,7 @@ const ACCOUNT_TYPES = [
   { value: 'credit', label: 'Кредитная', icon: '💰', color: '#ef4444' },
 ];
 
-const CURRENCIES = ['RUB', 'USD', 'EUR', 'KZT', 'BYN', 'UAH', 'UZS'];
+const CURRENCIES = ['RUB', 'USD', 'EUR', 'KZT', 'BYN', 'UZS'];
 
 const STEPS = [
   { id: 'welcome', title: 'Добро пожаловать!' },
