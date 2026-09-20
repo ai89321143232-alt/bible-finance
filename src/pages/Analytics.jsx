@@ -8,7 +8,7 @@ import { useLanguage } from '@/lib/LanguageContext';
 import { useFormatCurrency } from '@/lib/formatCurrency';
 import { useScopeMode } from '@/hooks/useScopeMode';
 import { useExchangeRates } from '@/hooks/useExchangeRates';
-import { expensesOnly, isInvestmentExpense, ownRecordsOnly, sumInProfileCurrency } from '@/lib/financialAnalytics';
+import { expensesOnly, ownRecordsOnly, sumInProfileCurrency } from '@/lib/financialAnalytics';
 import {
   TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
   Calendar, Download, ChevronLeft, ChevronRight

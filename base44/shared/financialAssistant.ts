@@ -235,8 +235,12 @@ export async function computeFinancialContext(entities, ownerId, timezone = 'UTC
   // чтобы ассистент мог рассказать, кто и куда тратит деньги в семье.
   let familySection = '';
   if (family?.members?.length > 0) {
+    const scopedFamilyAccountIds = new Set(allAccounts
+      .filter(a => scopeMode === 'all' || (a.scope || 'personal') === scopeMode)
+      .map(a => a.id));
     const familyMonthExpenses = allTransactions.filter(t =>
-      t.type === 'expense' && new Date(t.date) >= monthStart &&
+      t.type === 'expense' && !isInvestmentExpense(t) && new Date(t.date) >= monthStart &&
+      scopedFamilyAccountIds.has(t.account_id) &&
       family.members.some(m => t.user_id === m.user_id || t.created_by_id === m.user_id)
     );
     const byMember = family.members.map(m => {
