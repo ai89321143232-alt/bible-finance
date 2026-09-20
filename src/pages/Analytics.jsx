@@ -7,6 +7,8 @@ import { ru, enUS } from 'date-fns/locale';
 import { useLanguage } from '@/lib/LanguageContext';
 import { useFormatCurrency } from '@/lib/formatCurrency';
 import { useScopeMode } from '@/hooks/useScopeMode';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
+import { expensesOnly, isInvestmentExpense, ownRecordsOnly, sumInProfileCurrency } from '@/lib/financialAnalytics';
 import {
   TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
   Calendar, Download, ChevronLeft, ChevronRight
@@ -52,146 +54,83 @@ export default function Analytics() {
   });
 
   const { filterPLTransactions, scopeMode } = useScopeMode();
-
+  const { convertOrZero, profileCurrency } = useExchangeRates();
+  const { data: user } = useQuery({
+    queryKey: ['auth-me'],
+    queryFn: () => base44.auth.me(),
+    staleTime: 5 * 60 * 1000
+  });
   const formatCurrency = useFormatCurrency();
-
-  // Filter transactions by period
-  const getFilteredTransactions = () => {
-    const now = new Date();
-    let startDate, endDate;
-
-    if (period === 'month') {
-      startDate = startOfMonth(selectedMonth);
-      endDate = endOfMonth(selectedMonth);
-    } else if (period === 'year') {
-      startDate = new Date(now.getFullYear(), 0, 1);
-      endDate = new Date(now.getFullYear(), 11, 31);
-    } else {
-      startDate = subDays(now, 7);
-      endDate = now;
-    }
-
-    const periodTx = transactions.filter(t => {
-      const date = new Date(t.date);
-      return date >= startDate && date <= endDate;
-    });
-    return filterPLTransactions(periodTx, accounts);
+  const ownedAccounts = ownRecordsOnly(accounts, user);
+  const scopedTransactions = filterPLTransactions(ownRecordsOnly(transactions, user), ownedAccounts);
+  const sum = (records) => sumInProfileCurrency(records, convertOrZero, profileCurrency);
+  const periodBounds = () => {
+    if (period === 'month') return [startOfMonth(selectedMonth), endOfMonth(selectedMonth)];
+    if (period === 'year') return [new Date(new Date().getFullYear(), 0, 1), new Date(new Date().getFullYear(), 11, 31)];
+    return [subDays(new Date(), 7), new Date()];
   };
-
-  const filteredTransactions = getFilteredTransactions();
-  
-  const totalIncome = filteredTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const totalExpenses = filteredTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const [startDate, endDate] = periodBounds();
+  const filteredTransactions = scopedTransactions.filter((transaction) => {
+    const date = new Date(transaction.date);
+    return date >= startDate && date <= endDate;
+  });
+  const totalIncome = sum(filteredTransactions.filter((transaction) => transaction.type === 'income'));
+  const totalExpenses = sum(expensesOnly(filteredTransactions));
   const netBalance = totalIncome - totalExpenses;
-
-  // Expenses by category
-  const expensesByCategory = filteredTransactions
-    .filter(tx => tx.type === 'expense')
-    .reduce((acc, tx) => {
-      const category = tx.category || t('analytics.other');
-      acc[category] = (acc[category] || 0) + tx.amount;
-      return acc;
-    }, {});
-
-  const categoryData = Object.entries(expensesByCategory)
-    .map(([name, value], index) => ({
-      name,
-      value,
-      color: COLORS[index % COLORS.length],
-      icon: CATEGORY_ICONS[name] || '📦',
-      percent: totalExpenses > 0 ? (value / totalExpenses * 100).toFixed(1) : 0
-    }))
-    .sort((a, b) => b.value - a.value);
-
-  // Income by category
-  const incomeByCategory = filteredTransactions
-    .filter(tx => tx.type === 'income')
-    .reduce((acc, tx) => {
-      const category = tx.category || t('analytics.other');
-      acc[category] = (acc[category] || 0) + t.amount;
-      return acc;
-    }, {});
-
-  const incomeData = Object.entries(incomeByCategory)
-    .map(([name, value], index) => ({
-      name,
-      value,
-      color: COLORS[index % COLORS.length],
-      icon: CATEGORY_ICONS[name] || '📦'
-    }))
-    .sort((a, b) => b.value - a.value);
-
-  // Daily/Monthly trend
+  const expensesByCategory = expensesOnly(filteredTransactions).reduce((acc, transaction) => {
+    const category = transaction.category || t('analytics.other');
+    acc[category] = (acc[category] || 0) + convertOrZero(transaction.amount, transaction.currency || profileCurrency);
+    return acc;
+  }, {});
+  const categoryData = Object.entries(expensesByCategory).map(([name, value], index) => ({
+    name, value, color: COLORS[index % COLORS.length], icon: CATEGORY_ICONS[name] || '📦',
+    percent: totalExpenses > 0 ? (value / totalExpenses * 100).toFixed(1) : 0
+  })).sort((a, b) => b.value - a.value);
+  const incomeByCategory = filteredTransactions.filter((transaction) => transaction.type === 'income').reduce((acc, transaction) => {
+    const category = transaction.category || t('analytics.other');
+    acc[category] = (acc[category] || 0) + convertOrZero(transaction.amount, transaction.currency || profileCurrency);
+    return acc;
+  }, {});
+  const incomeData = Object.entries(incomeByCategory).map(([name, value], index) => ({
+    name, value, color: COLORS[index % COLORS.length], icon: CATEGORY_ICONS[name] || '📦'
+  })).sort((a, b) => b.value - a.value);
   const getTrendData = () => {
     if (period === 'year') {
-      const months = eachMonthOfInterval({
-        start: new Date(new Date().getFullYear(), 0, 1),
-        end: new Date(new Date().getFullYear(), 11, 31)
-      });
-
-      return months.map(month => {
-        const monthTransactions = transactions.filter(t => {
-          const date = new Date(t.date);
+      const months = eachMonthOfInterval({ start: new Date(new Date().getFullYear(), 0, 1), end: new Date(new Date().getFullYear(), 11, 31) });
+      return months.map((month) => {
+        const monthTransactions = scopedTransactions.filter((transaction) => {
+          const date = new Date(transaction.date);
           return date.getMonth() === month.getMonth() && date.getFullYear() === month.getFullYear();
         });
-
-        return {
-          date: format(month, 'MMM', { locale: dateLocale }),
-          income: monthTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0),
-          expenses: monthTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
-        };
+        return { date: format(month, 'MMM', { locale: dateLocale }), income: sum(monthTransactions.filter((t) => t.type === 'income')), expenses: sum(expensesOnly(monthTransactions)) };
       });
     }
-
-    const startDate = period === 'month' ? startOfMonth(selectedMonth) : subDays(new Date(), 7);
-    const endDate = period === 'month' ? endOfMonth(selectedMonth) : new Date();
     const days = eachDayOfInterval({ start: startDate, end: endDate });
-
-    return days.map(day => {
-      const dayTransactions = transactions.filter(t => {
-        const date = new Date(t.date);
-        return format(date, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
-      });
-
-      return {
-        date: format(day, period === 'month' ? 'd' : 'EEE', { locale: dateLocale }),
-        income: dayTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0),
-        expenses: dayTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
-      };
+    return days.map((day) => {
+      const dayTransactions = filteredTransactions.filter((transaction) => format(new Date(transaction.date), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd'));
+      return { date: format(day, period === 'month' ? 'd' : 'EEE', { locale: dateLocale }), income: sum(dayTransactions.filter((t) => t.type === 'income')), expenses: sum(expensesOnly(dayTransactions)) };
     });
   };
-
   const trendData = getTrendData();
-
-  // Compare with previous period
   const getPreviousPeriodData = () => {
     const prevMonth = subMonths(selectedMonth, 1);
-    const prevTransactions = transactions.filter(t => {
-      const date = new Date(t.date);
+    const prevTransactions = scopedTransactions.filter((transaction) => {
+      const date = new Date(transaction.date);
       return date >= startOfMonth(prevMonth) && date <= endOfMonth(prevMonth);
     });
-
-    const prevExpenses = prevTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-    const prevIncome = prevTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const prevExpenses = sum(expensesOnly(prevTransactions));
+    const prevIncome = sum(prevTransactions.filter((transaction) => transaction.type === 'income'));
     const expenseChange = prevExpenses > 0 ? ((totalExpenses - prevExpenses) / prevExpenses * 100).toFixed(1) : null;
     const incomeChange = prevIncome > 0 ? ((totalIncome - prevIncome) / prevIncome * 100).toFixed(1) : null;
-
-    // Build comparison bar chart data (by day of month)
     const daysInMonth = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0).getDate();
     const comparisonData = Array.from({ length: daysInMonth }, (_, i) => {
       const day = i + 1;
-      const curDayExp = filteredTransactions
-        .filter(t => t.type === 'expense' && new Date(t.date).getDate() === day)
-        .reduce((s, t) => s + t.amount, 0);
-      const prevDayExp = prevTransactions
-        .filter(t => t.type === 'expense' && new Date(t.date).getDate() === day)
-        .reduce((s, t) => s + t.amount, 0);
-      return { day: String(day), current: curDayExp, previous: prevDayExp };
+      const current = sum(expensesOnly(filteredTransactions.filter((t) => new Date(t.date).getDate() === day)));
+      const previous = sum(expensesOnly(prevTransactions.filter((t) => new Date(t.date).getDate() === day)));
+      return { day: String(day), current, previous };
     });
-
     return { prevExpenses, prevIncome, expenseChange, incomeChange, comparisonData };
   };
-
   const { prevExpenses, prevIncome, expenseChange, incomeChange, comparisonData } = getPreviousPeriodData();
 
   const CustomTooltip = ({ active, payload, label }) => {

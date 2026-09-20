@@ -192,11 +192,14 @@ export async function computeFinancialContext(entities, ownerId, timezone = 'UTC
   const currency = createCurrencyTools(owner);
 
   const mine = (arr) => arr.filter(x => x.created_by_id === ownerId || x.user_id === ownerId);
-  const transactions = mine(allTransactions);
-  const budgets = mine(allBudgets).filter(b => b.is_active);
-  const goals = mine(allGoals).filter(g => g.status === 'active');
-  const investments = mine(allInvestments);
-  const accounts = mine(allAccounts);
+  const scopeMode = owner?.scope_mode || owner?.data?.scope_mode || 'all';
+  const inScope = (record) => scopeMode === 'all' || (record.scope || 'personal') === scopeMode;
+  const accounts = mine(allAccounts).filter(inScope);
+  const accountIds = new Set(accounts.map(a => a.id));
+  const transactions = mine(allTransactions).filter(t => accountIds.has(t.account_id));
+  const budgets = mine(allBudgets).filter(b => b.is_active && inScope(b));
+  const goals = mine(allGoals).filter(g => g.status === 'active' && inScope(g));
+  const investments = mine(allInvestments).filter(inScope);
   const accountTotals = currency.summarize(accounts.map(a => ({ amount: a.balance, currency: a.currency })));
 
   const now = new Date();
@@ -204,8 +207,9 @@ export async function computeFinancialContext(entities, ownerId, timezone = 'UTC
   const monthStart = new Date(Date.UTC(year, month - 1, 1));
   const todayStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
+  const isInvestmentExpense = (t) => t.category === 'Инвестиции' || t.category === 'Investments';
   const monthTransactions = transactions.filter(t => new Date(t.date) >= monthStart);
-  const sumByType = (list, type) => currency.summarize(list.filter(t => t.type === type).map(t => ({ amount: t.amount, currency: t.currency }))).total;
+  const sumByType = (list, type) => currency.summarize(list.filter(t => t.type === type && (type !== 'expense' || !isInvestmentExpense(t))).map(t => ({ amount: t.amount, currency: t.currency }))).total;
   const monthIncome = sumByType(monthTransactions, 'income');
   const monthExpenses = sumByType(monthTransactions, 'expense');
 
@@ -214,7 +218,7 @@ export async function computeFinancialContext(entities, ownerId, timezone = 'UTC
   const todayExpenses = sumByType(todayTransactions, 'expense');
 
   const expensesByCategory = monthTransactions
-    .filter(t => t.type === 'expense')
+    .filter(t => t.type === 'expense' && !isInvestmentExpense(t))
     .reduce((acc, t) => {
       const converted = currency.convert(t.amount, t.currency || currency.profileCurrency);
       if (converted != null) acc[t.category || 'Другое'] = (acc[t.category || 'Другое'] || 0) + converted;

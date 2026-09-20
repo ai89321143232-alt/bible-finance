@@ -8,6 +8,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getInvestmentValue } from '@/lib/investmentValue';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
+import { useScopeMode } from '@/hooks/useScopeMode';
+import { isOwnRecord, isFamilyVisibleRecord } from '@/lib/recordOwnership';
 import {
   Select,
   SelectContent,
@@ -44,6 +47,9 @@ export default function AIAssistant() {
   const [pendingInvestment, setPendingInvestment] = useState(null);
   const [accountOptions, setAccountOptions] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState('');
+  const [balanceMode, setBalanceMode] = useState('personal');
+  const { convertOrZero, profileCurrency } = useExchangeRates();
+  const { filterPLTransactions, filterAccounts, scopeMode } = useScopeMode();
   const scrollRef = useRef(null);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
@@ -79,6 +85,11 @@ export default function AIAssistant() {
     queryFn: () => base44.entities.Transaction.list('-date', 100)
   });
 
+  const { data: accounts = [] } = useQuery({
+    queryKey: ['accounts'],
+    queryFn: () => base44.entities.Account.list()
+  });
+
   const { data: budgets = [] } = useQuery({
     queryKey: ['budgets'],
     queryFn: () => base44.entities.Budget.list()
@@ -111,77 +122,78 @@ export default function AIAssistant() {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const todayStr = now.toISOString().slice(0, 10);
-
-    const monthTransactions = transactions.filter((t) => new Date(t.date) >= monthStart);
-    const monthIncome = monthTransactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const monthExpenses = monthTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-
-    const todayTransactions = transactions.filter((t) => (t.date || '').slice(0, 10) === todayStr);
-    const todayIncome = todayTransactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const todayExpenses = todayTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-
-    const expensesByCategory = monthTransactions.
-    filter((t) => t.type === 'expense').
-    reduce((acc, t) => {
-      acc[t.category || 'Другое'] = (acc[t.category || 'Другое'] || 0) + t.amount;
+    const isFamilyMode = balanceMode === 'family' && !!family?.id;
+    const belongsToMode = (record) => isFamilyMode
+      ? isFamilyVisibleRecord(record, user, family)
+      : isOwnRecord(record, user);
+    const inScope = (record) => scopeMode === 'all' || (record.scope || 'personal') === scopeMode;
+    const visibleAccounts = filterAccounts(accounts.filter(belongsToMode));
+    const visibleTransactions = filterPLTransactions(transactions.filter(belongsToMode), visibleAccounts);
+    const scopedBudgets = budgets.filter((b) => belongsToMode(b) && inScope(b));
+    const scopedGoals = goals.filter((g) => belongsToMode(g) && inScope(g) && g.status === 'active');
+    const scopedInvestments = investments.filter((i) => belongsToMode(i) && inScope(i));
+    const toProfile = (record) => convertOrZero(record.amount, record.currency || profileCurrency);
+    const isInvestmentExpense = (record) => record.category === 'Инвестиции' || record.category === 'Investments';
+    const expenseTransactions = (list) => list.filter((t) => t.type === 'expense' && !isInvestmentExpense(t));
+    const total = (list) => list.reduce((sum, record) => sum + toProfile(record), 0);
+    const monthTransactions = visibleTransactions.filter((t) => new Date(t.date) >= monthStart);
+    const todayTransactions = visibleTransactions.filter((t) => (t.date || '').slice(0, 10) === todayStr);
+    const monthIncome = total(monthTransactions.filter((t) => t.type === 'income'));
+    const monthExpenses = total(expenseTransactions(monthTransactions));
+    const todayIncome = total(todayTransactions.filter((t) => t.type === 'income'));
+    const todayExpenses = total(expenseTransactions(todayTransactions));
+    const expensesByCategory = expenseTransactions(monthTransactions).reduce((acc, t) => {
+      const category = t.category || 'Другое';
+      acc[category] = (acc[category] || 0) + toProfile(t);
       return acc;
     }, {});
+    const investmentValue = scopedInvestments.reduce((sum, inv) =>
+      sum + convertOrZero(getInvestmentValue(inv), inv.currency || profileCurrency), 0);
 
-    const activeGoals = goals.filter((g) => g.status === 'active');
-
-    const investmentValue = investments.reduce((sum, inv) =>
-    sum + getInvestmentValue(inv), 0
-    );
-
-    // Расходы по каждому члену семьи за месяц, отсортированные по сумме —
-    // чтобы ассистент мог рассказать, кто и куда тратит деньги в семье.
     let familySection = '';
-    if (family?.members?.length > 0) {
-      const familyMonthExpenses = monthTransactions.filter((t) => t.type === 'expense');
+    if (isFamilyMode && family?.members?.length > 0) {
+      const familyMonthExpenses = expenseTransactions(monthTransactions);
       const byMember = family.members.map((m) => {
         const memberTx = familyMonthExpenses.filter((t) => t.user_id === m.user_id || t.created_by_id === m.user_id);
-        const total = memberTx.reduce((s, t) => s + t.amount, 0);
         const byCat = memberTx.reduce((acc, t) => {
-          const cat = t.category || 'Другое';
-          acc[cat] = (acc[cat] || 0) + t.amount;
+          const category = t.category || 'Другое';
+          acc[category] = (acc[category] || 0) + toProfile(t);
           return acc;
         }, {});
-        const topCat = Object.entries(byCat).sort((a, b) => b[1] - a[1])[0];
-        return { name: m.display_name || m.name, total, topCat };
+        return {
+          name: m.display_name || m.name,
+          total: total(memberTx),
+          topCat: Object.entries(byCat).sort((a, b) => b[1] - a[1])[0]
+        };
       }).sort((a, b) => b.total - a.total);
-
-      familySection = `
-
-РАСХОДЫ ЧЛЕНОВ СЕМЬИ ЗА МЕСЯЦ (${family.name}), отсортировано по убыванию суммы:
-${byMember.map((b) => `- ${b.name}: ${b.total.toLocaleString()} ₽${b.topCat ? ` (больше всего на «${b.topCat[0]}»: ${b.topCat[1].toLocaleString()} ₽)` : ''}`).join('\n')}`;
+      familySection = `\n\nРАСХОДЫ ЧЛЕНОВ СЕМЬИ ЗА МЕСЯЦ (${family.name}), отсортировано по убыванию суммы:\n${byMember.map((b) => `- ${b.name}: ${b.total.toLocaleString()} ${profileCurrency}${b.topCat ? ` (больше всего на «${b.topCat[0]}»: ${b.topCat[1].toLocaleString()} ${profileCurrency})` : ''}`).join('\n')}`;
     }
 
     return `
-Финансовые данные пользователя:
+Финансовые данные (${isFamilyMode ? 'семейный' : 'личный'} режим, ${scopeMode === 'business' ? 'бизнес' : scopeMode === 'personal' ? 'личная область' : 'все счета'}) в ${profileCurrency}:
 
 СЕГОДНЯ (${todayStr}):
-- Доход: ${todayIncome.toLocaleString()} ₽
-- Расходы: ${todayExpenses.toLocaleString()} ₽
-${todayTransactions.map((t) => `- ${t.type === 'expense' ? 'расход' : 'доход'}: ${t.amount.toLocaleString()} ₽ (${t.category}${t.description ? ', ' + t.description : ''})`).join('\n') || '- Операций за сегодня нет'}
+- Доход: ${todayIncome.toLocaleString()} ${profileCurrency}
+- Расходы: ${todayExpenses.toLocaleString()} ${profileCurrency}
+${todayTransactions.map((t) => `- ${t.type === 'expense' ? 'расход' : 'доход'}: ${toProfile(t).toLocaleString()} ${profileCurrency} (${t.category}${t.description ? ', ' + t.description : ''})`).join('\n') || '- Операций за сегодня нет'}
 
 ДОХОДЫ И РАСХОДЫ (текущий месяц):
-- Общий доход: ${monthIncome.toLocaleString()} ₽
-- Общие расходы: ${monthExpenses.toLocaleString()} ₽
-- Баланс: ${(monthIncome - monthExpenses).toLocaleString()} ₽
+- Общий доход: ${monthIncome.toLocaleString()} ${profileCurrency}
+- Общие расходы: ${monthExpenses.toLocaleString()} ${profileCurrency}
+- Баланс: ${(monthIncome - monthExpenses).toLocaleString()} ${profileCurrency}
 
 РАСХОДЫ ПО КАТЕГОРИЯМ:
-${Object.entries(expensesByCategory).map(([cat, amount]) => `- ${cat}: ${amount.toLocaleString()} ₽`).join('\n') || '- Нет данных'}
+${Object.entries(expensesByCategory).map(([cat, amount]) => `- ${cat}: ${amount.toLocaleString()} ${profileCurrency}`).join('\n') || '- Нет данных'}
 
 БЮДЖЕТЫ:
-${budgets.map((b) => `- ${b.name} (${b.category}): потрачено ${(b.spent_amount || 0).toLocaleString()} из ${b.limit_amount.toLocaleString()} ₽`).join('\n') || '- Нет бюджетов'}
+${scopedBudgets.map((b) => `- ${b.name}: потрачено ${convertOrZero(b.spent_amount || 0, b.currency || profileCurrency).toLocaleString()} из ${convertOrZero(b.limit_amount, b.currency || profileCurrency).toLocaleString()} ${profileCurrency}`).join('\n') || '- Нет бюджетов'}
 
 ФИНАНСОВЫЕ ЦЕЛИ:
-${activeGoals.map((g) => `- ${g.title}: накоплено ${(g.current_amount || 0).toLocaleString()} из ${g.target_amount.toLocaleString()} ₽`).join('\n') || '- Нет целей'}
+${scopedGoals.map((g) => `- ${g.title}: накоплено ${convertOrZero(g.current_amount || 0, g.currency || profileCurrency).toLocaleString()} из ${convertOrZero(g.target_amount, g.currency || profileCurrency).toLocaleString()} ${profileCurrency}`).join('\n') || '- Нет целей'}
 
 ИНВЕСТИЦИОННЫЙ ПОРТФЕЛЬ:
-- Общая стоимость: ${investmentValue.toLocaleString()} ₽
-${investments.map((i) => `- ${i.name}: ${i.quantity} шт. по ${(i.current_price || i.purchase_price).toLocaleString()} ₽`).join('\n') || ''}
-${familySection}`;
+- Общая стоимость: ${investmentValue.toLocaleString()} ${profileCurrency}
+${scopedInvestments.map((i) => `- ${i.name}: ${i.quantity} шт. по ${convertOrZero(i.current_price || i.purchase_price, i.currency || profileCurrency).toLocaleString()} ${profileCurrency}`).join('\n') || ''}${familySection}`;
   };
 
   const refreshData = () => {
@@ -368,7 +380,16 @@ ${familySection}`;
         <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex-shrink-0">
           <Sparkles className="w-4 h-4 text-white" />
         </div>
-        <h1 className="hidden sm:block flex-1 min-w-0 text-base font-semibold text-slate-900 dark:text-white truncate">AI Ассистент</h1>
+        <div className="hidden sm:flex flex-1 min-w-0 items-center gap-2">
+          <h1 className="text-base font-semibold text-slate-900 dark:text-white truncate">AI Ассистент</h1>
+          <span className="px-2 py-0.5 rounded-md bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-sm font-medium">
+            {scopeMode === 'business' ? 'Бизнес' : scopeMode === 'personal' ? 'Личные' : 'Все счета'}
+          </span>
+        </div>
+        {family?.id && <div className="flex rounded-lg bg-muted p-0.5">
+          <button onClick={() => setBalanceMode('personal')} className={`px-2 py-1 rounded-md text-sm ${balanceMode === 'personal' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}>Личные</button>
+          <button onClick={() => setBalanceMode('family')} className={`px-2 py-1 rounded-md text-sm ${balanceMode === 'family' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}>Семейные</button>
+        </div>}
         <Select value={selectedModel} onValueChange={setSelectedModel}>
           <SelectTrigger className="w-24 sm:w-36 h-8 rounded-lg text-xs flex-1 sm:flex-none">
             <SelectValue />
