@@ -273,6 +273,7 @@
     height: 100%;
     display: block;
     object-fit: cover;
+    border-radius: 18px;
     padding: 0;
   }
   .gt-label {
