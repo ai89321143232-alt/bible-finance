@@ -284,6 +284,7 @@
     font-size: 13px;
   }
   html.dark .gt-label { color: #E5E5E5; }
+  html.dark .gt-tile-card { border: 1px solid rgba(255, 255, 255, 0.18); }
   .card-style-preview { display: none; }
 
   /* Светлая тема: подложка для цветных сводных карточек долгов */
