@@ -184,8 +184,9 @@ export const InvestmentService = {
       description: `Продажа актива: ${investment.name}`,
       date: new Date().toISOString(),
       account_id,
+      investment_id: investment.id,
       scope: investment.scope || 'personal'
-    }, user));
+      }, user));
 
     await accountRepo().update(account_id, { balance: (account.balance || 0) + transferAmount });
     await repo().delete(id);

@@ -4,12 +4,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { InvestmentService, InvestmentCashFlowService } from '@/services';
 import CreatorTag from '@/components/shared/CreatorTag';
 import InvestmentPayoutDialog from '@/components/investments/InvestmentPayoutDialog';
+import InvestmentHistoryDialog from '@/components/investments/InvestmentHistoryDialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { motion } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
   Plus, TrendingUp, TrendingDown, Edit2, Trash2, Check, 
-  PieChart, BarChart2, Bitcoin, Building2, Landmark, Gem, Lock, Wallet
+  PieChart, BarChart2, Bitcoin, Building2, Landmark, Gem, Lock, Wallet, History, MoreHorizontal
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +82,7 @@ export default function Investments() {
   const [topUpAccountId, setTopUpAccountId] = useState('');
   const [showOnlyMine, setShowOnlyMine] = useState(false);
   const [payoutInvestment, setPayoutInvestment] = useState(null);
+  const [historyInvestment, setHistoryInvestment] = useState(null);
   const [payoutForm, setPayoutForm] = useState({ type: 'dividend', amount: '', date: new Date().toISOString().slice(0, 10), destination: 'income', linked_goal_id: '', account_id: '' });
 
   const [formData, setFormData] = useState({ ...INITIAL_FORM });
@@ -103,6 +106,9 @@ export default function Investments() {
   });
   const { data: cashFlows = [] } = useQuery({
     queryKey: ['investment-cash-flows'], queryFn: () => InvestmentCashFlowService.list(), enabled: !!currentUser
+  });
+  const { data: transactions = [] } = useQuery({
+    queryKey: ['transactions'], queryFn: () => base44.entities.Transaction.list('-date', 500), enabled: !!currentUser
   });
 
   const { data: family } = useQuery({
@@ -532,32 +538,18 @@ export default function Investments() {
                               </span>
                             </div>
                           </div>
-                          {isEditable && (
-                            <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEdit(investment);
-                                }}
-                                className="h-8 w-8"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openDeleteDialog(investment);
-                                }}
-                                className="h-8 w-8 text-rose-600"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-9 w-9" onClick={(e) => e.stopPropagation()}><MoreHorizontal className="w-5 h-5" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setHistoryInvestment(investment); }}><History className="w-4 h-4" />История</DropdownMenuItem>
+                              {isEditable && <>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(investment); }}><Edit2 className="w-4 h-4" />Редактировать</DropdownMenuItem>
+                                <DropdownMenuItem className="text-rose-600" onClick={(e) => { e.stopPropagation(); openDeleteDialog(investment); }}><Trash2 className="w-4 h-4" />Удалить</DropdownMenuItem>
+                              </>}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
 
@@ -627,6 +619,17 @@ export default function Investments() {
           </div>
         )}
       </div>
+
+      <InvestmentHistoryDialog
+        investment={historyInvestment}
+        open={!!historyInvestment}
+        onOpenChange={(open) => !open && setHistoryInvestment(null)}
+        transactions={transactions}
+        cashFlows={cashFlows}
+        accounts={accounts}
+        family={family}
+        currentUser={currentUser}
+      />
 
       {/* Add/Edit Modal */}
       <Dialog open={showAddModal} onOpenChange={() => resetForm()}>
