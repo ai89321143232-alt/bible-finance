@@ -17,7 +17,8 @@ export default function BalanceCard({
   formatCurrency,
   accounts = [],
   investments = [],
-  debtAccounts = []
+  debtAccounts = [],
+  transactionMode = 'personal'
 }) {
   const [showBalance, setShowBalance] = useState(true);
   const { t } = useLanguage();
@@ -151,7 +152,7 @@ export default function BalanceCard({
             { label: t('balance.income'), value: formatCurrency(monthIncome), icon: ArrowUpRight, color: 'text-emerald-500', bg: 'bg-emerald-500/10', link: 'Transactions' },
             { label: t('balance.expenses'), value: formatCurrency(monthExpenses), icon: ArrowDownRight, color: 'text-rose-500', bg: 'bg-rose-500/10', link: 'Transactions' },
           ].map((stat) => (
-            <Link key={stat.label} to={createPageUrl(stat.link)}>
+            <Link key={stat.label} to={stat.link === 'Transactions' ? `${createPageUrl(stat.link)}?mode=${transactionMode}` : createPageUrl(stat.link)}>
               <div className="rounded-xl border border-border bg-muted/50 p-3.5 hover:bg-muted transition-all group cursor-pointer">
                 <div className={`w-6 h-6 rounded-md ${stat.bg} flex items-center justify-center mb-2`}>
                   <stat.icon className={`w-3.5 h-3.5 ${stat.color}`} />

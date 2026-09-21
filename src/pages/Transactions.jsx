@@ -63,7 +63,10 @@ export default function Transactions() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [user, setUser] = useState(null);
   const [openSwipeId, setOpenSwipeId] = useState(null);
-  const [showOnlyMine, setShowOnlyMine] = useState(false);
+  const [showOnlyMine, setShowOnlyMine] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('mode') === 'personal';
+  });
   const [ownerFilter, setOwnerFilter] = useState('all');
   const activeWorkspaceId = useActiveWorkspaceId();
 

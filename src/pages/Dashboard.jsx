@@ -121,13 +121,6 @@ export default function Dashboard() {
   }, [user]);
 
   useEffect(() => {
-    if (!user?.family_id) return;
-    base44.functions.invoke('migrateFamilyData', {}).then(() => {
-      setTimeout(() => queryClient.invalidateQueries(), 1000);
-    }).catch((error) => console.error('Migration error:', error));
-  }, [user?.family_id]);
-
-  useEffect(() => {
     const handler = () => queryClient.invalidateQueries({ queryKey: ['auth-me'] });
     window.addEventListener('personalization-saved', handler);
     return () => window.removeEventListener('personalization-saved', handler);
@@ -148,6 +141,23 @@ export default function Dashboard() {
 
   // familyReady: true после того как запрос семьи завершился (null = нет семьи, объект = есть)
   const familyReady = familyLoaded;
+
+  useEffect(() => {
+    if (!user || !family?.id || user.family_id === family.id) return;
+    base44.auth.updateMe({ family_id: family.id }).then(() => {
+      queryClient.setQueryData(['auth-me'], (currentUser) => ({ ...currentUser, family_id: family.id }));
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    });
+  }, [user, family?.id, queryClient]);
+
+  useEffect(() => {
+    if (!user?.family_id) return;
+    base44.functions.invoke('migrateFamilyData', {}).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    });
+  }, [user?.family_id, queryClient]);
 
   const updatePeriod = (type) => {
     const now = new Date();
@@ -540,7 +550,7 @@ export default function Dashboard() {
                   }}>
                   <AnimatePresence mode="wait">
                     <motion.div key={scopeMode} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.2 }}>
-                      <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} debtAccounts={modeDebtAccounts} />
+                      <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} debtAccounts={modeDebtAccounts} transactionMode={balanceMode} />
                     </motion.div>
                   </AnimatePresence>
                 </motion.div>
@@ -553,7 +563,7 @@ export default function Dashboard() {
                 }}>
                 <AnimatePresence mode="wait">
                   <motion.div key={balanceMode} initial={{ opacity: 0, x: balanceMode === 'family' ? 40 : -40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: balanceMode === 'family' ? -40 : 40 }} transition={{ duration: 0.2 }}>
-                    <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} debtAccounts={modeDebtAccounts} />
+                    <BalanceCard totalBalance={totalBalance} monthIncome={monthIncome} monthExpenses={monthExpenses} investmentValue={investmentValue} investmentProfit={investmentProfit} formatCurrency={formatCurrency} accounts={displayAccounts} investments={modeInvestments} debtAccounts={modeDebtAccounts} transactionMode={balanceMode} />
                   </motion.div>
                 </AnimatePresence>
               </motion.div>
