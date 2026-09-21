@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2, Bot, Check, Unlink } from 'lucide-react';
+import TelegramFamilyAccess from '@/components/settings/TelegramFamilyAccess';
 
 const TIMEZONES = [
   { value: 'Europe/Kaliningrad', label: 'Калининград (UTC+2)' },
@@ -42,6 +43,7 @@ const TIMEZONES = [
 export default function TelegramBotSettings({ open, onOpenChange }) {
   const [config, setConfig] = useState(null);
   const [accounts, setAccounts] = useState([]);
+  const [family, setFamily] = useState(null);
   const [botToken, setBotToken] = useState('');
   const [telegramUserId, setTelegramUserId] = useState('');
   const [defaultAccountId, setDefaultAccountId] = useState('');
@@ -58,13 +60,15 @@ export default function TelegramBotSettings({ open, onOpenChange }) {
     setIsLoading(true);
     setError('');
     try {
-      const [configs, accs] = await Promise.all([
+      const [configs, accs, families] = await Promise.all([
         base44.entities.TelegramBotConfig.list(),
         base44.entities.Account.list(),
+        base44.entities.Family.list(),
       ]);
       const existing = configs[0] || null;
       setConfig(existing);
       setAccounts(accs);
+      setFamily(families[0] || null);
       setBotToken(existing?.bot_token || '');
       setTelegramUserId(existing?.telegram_user_id || '');
       setDefaultAccountId(existing?.default_account_id || accs[0]?.id || '');
@@ -101,6 +105,28 @@ export default function TelegramBotSettings({ open, onOpenChange }) {
       setIsSaving(false);
     }
   };
+
+  const updateAccess = async (data) => {
+    if (!config) return;
+    setIsSaving(true);
+    try {
+      await base44.entities.TelegramBotConfig.update(config.id, data);
+      await loadData();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleApproveLink = (request, userId) => {
+    const member = family?.members?.find((item) => item.user_id === userId);
+    return updateAccess({
+      linked_members: [...(config.linked_members || []).filter((item) => item.telegram_user_id !== request.telegram_user_id), { telegram_user_id: request.telegram_user_id, user_id: userId, display_name: member?.display_name || member?.name || 'Участник', linked_date: new Date().toISOString() }],
+      pending_links: (config.pending_links || []).filter((item) => item.telegram_user_id !== request.telegram_user_id)
+    });
+  };
+
+  const handleRejectLink = (telegramUserId) => updateAccess({ pending_links: (config.pending_links || []).filter((item) => item.telegram_user_id !== telegramUserId) });
+  const handleUnlinkMember = (telegramUserId) => updateAccess({ linked_members: (config.linked_members || []).filter((item) => item.telegram_user_id !== telegramUserId) });
 
   const handleDisconnect = async () => {
     setIsSaving(true);
@@ -214,6 +240,15 @@ export default function TelegramBotSettings({ open, onOpenChange }) {
               </Select>
               <p className="text-xs text-slate-400 mt-1">Операции из Telegram будут записываться с датой по этому часовому поясу</p>
             </div>
+
+            <TelegramFamilyAccess
+              config={config}
+              family={family}
+              saving={isSaving}
+              onApprove={handleApproveLink}
+              onReject={handleRejectLink}
+              onUnlink={handleUnlinkMember}
+            />
 
             {error && <p className="text-sm text-rose-600">{error}</p>}
 

@@ -104,15 +104,10 @@ export default function SwipeableTransaction({
                 {transaction.description}
               </p>
             )}
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className={`text-[11px] font-medium ${
-                transaction.source === 'telegram_bot'
-                  ? 'text-sky-600 dark:text-sky-400'
-                  : 'text-slate-400 dark:text-slate-500'
-              }`}>
-                {transaction.source === 'telegram_bot' ? '#бот' : '#вручную'}
-              </span>
-              <CreatorTag creatorId={transaction.created_by_id} family={family} currentUser={currentUser} />
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <CreatorTag creatorId={transaction.created_by_id || transaction.user_id} family={family} currentUser={currentUser} className="text-sm font-medium text-slate-600 dark:text-slate-300" />
+              {transaction.source === 'telegram_bot' && <span className="text-[10px] text-sky-500 dark:text-sky-400">#бот</span>}
+              {transaction.source !== 'telegram_bot' && <span className="text-[10px] text-slate-400 dark:text-slate-500">#вручную</span>}
             </div>
           </div>
         </div>

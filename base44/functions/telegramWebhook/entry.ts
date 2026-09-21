@@ -94,6 +94,22 @@ async function reassignOwnership(entities, entityName, recordId, ownerId, family
   });
 }
 
+function resolveBotActor(config, telegramUserId) {
+  const linked = (config.linked_members || []).find((member) => String(member.telegram_user_id) === String(telegramUserId));
+  if (linked?.user_id) return linked;
+  if (String(config.telegram_user_id) === String(telegramUserId)) return { user_id: config.created_by_id, display_name: 'Владелец' };
+  return null;
+}
+
+async function savePendingLink(entities, config, telegramUserId, telegramUser) {
+  const pending = config.pending_links || [];
+  if (pending.some((item) => String(item.telegram_user_id) === String(telegramUserId))) return;
+  const name = [telegramUser?.first_name, telegramUser?.last_name].filter(Boolean).join(' ') || telegramUser?.username || '';
+  await entities.TelegramBotConfig.update(config.id, {
+    pending_links: [...pending, { telegram_user_id: String(telegramUserId), telegram_display_name: name, requested_date: new Date().toISOString() }]
+  });
+}
+
 async function createTransactionRecord({ entities, parsed, account, ownerId }) {
   let txDate = new Date();
   if (parsed.date) {
@@ -116,6 +132,7 @@ async function createTransactionRecord({ entities, parsed, account, ownerId }) {
     user_id: ownerId,
     created_by_id: ownerId,
     family_id: owner?.family_id || undefined,
+    family_member_id: ownerId,
     source: 'telegram_bot'
   });
   await reassignOwnership(entities, 'Transaction', created.id, ownerId, owner?.family_id);
@@ -133,8 +150,9 @@ async function finalizeTransaction({ entities, parsed, account, ownerId, botToke
 }
 
 // Отправляет список счетов кнопками и сохраняет операции, ожидающие выбора счёта
-async function requestAccountSelection({ entities, config, accounts, transactions, botToken, chatId }) {
-  await entities.TelegramBotConfig.update(config.id, { pending_transactions: transactions });
+async function requestAccountSelection({ entities, config, accounts, transactions, telegramUserId, botToken, chatId }) {
+  const otherPending = (config.pending_transactions || []).filter((item) => String(item.telegram_user_id) !== String(telegramUserId));
+  await entities.TelegramBotConfig.update(config.id, { pending_transactions: [...otherPending, ...transactions.map((item) => ({ ...item, telegram_user_id: String(telegramUserId) }))] });
   const keyboard = accounts.map(a => ([{ text: a.name, callback_data: `acc:${a.id}` }]));
   const summary = transactions.length === 1
     ? `${transactions[0].type === 'expense' ? '💸' : '💰'} ${transactions[0].description || 'Операция'} — ${transactions[0].amount} ₽`
@@ -151,6 +169,7 @@ async function buildTransactionReceipt(parsed, account, allAccounts, owner) {
   const totals = currency.summarize((allAccounts || []).map(a => ({ amount: a.balance, currency: a.currency })));
 
   const lines = [
+    `✅ Записано для <b>${owner?.full_name || 'вас'}</b>`,
     `📝 <b>${parsed.description || 'Операция из Telegram'}</b>`,
     '',
     `${emoji} <b>${sign}${currency.format(parsed.amount, parsed.currency || accountCurrency)}</b>`,
@@ -166,7 +185,7 @@ async function buildTransactionReceipt(parsed, account, allAccounts, owner) {
 }
 
 // Если счёт один — сразу проводит операцию(и), иначе просит выбрать счёт кнопками
-async function finalizeOrAskAccount({ entities, config, accounts, transactions, ownerId, botToken, chatId }) {
+async function finalizeOrAskAccount({ entities, config, accounts, transactions, ownerId, telegramUserId, botToken, chatId }) {
   if (accounts.length <= 1) {
     const account = accounts[0];
     if (!account) {
@@ -178,13 +197,13 @@ async function finalizeOrAskAccount({ entities, config, accounts, transactions, 
     }
     return;
   }
-  await requestAccountSelection({ entities, config, accounts, transactions, botToken, chatId });
+  await requestAccountSelection({ entities, config, accounts, transactions, telegramUserId, botToken, chatId });
 }
 
 // Обработка нажатия кнопки выбора счёта
-async function handleAccountCallback({ base44, config, accounts, ownerId, botToken, chatId, callbackQueryId, accountId, messageId }) {
+async function handleAccountCallback({ base44, config, accounts, ownerId, telegramUserId, botToken, chatId, callbackQueryId, accountId, messageId }) {
   const entities = base44.asServiceRole.entities;
-  const pending = config.pending_transactions || [];
+  const pending = (config.pending_transactions || []).filter((item) => String(item.telegram_user_id) === String(telegramUserId));
   if (pending.length === 0) {
     await answerCallbackQuery(botToken, callbackQueryId, 'Операция уже обработана');
     await removeInlineKeyboard(botToken, chatId, messageId);
@@ -199,7 +218,7 @@ async function handleAccountCallback({ base44, config, accounts, ownerId, botTok
   for (const t of pending) {
     await createTransactionRecord({ entities, parsed: t, account, ownerId });
   }
-  await entities.TelegramBotConfig.update(config.id, { pending_transactions: [] });
+  await entities.TelegramBotConfig.update(config.id, { pending_transactions: (config.pending_transactions || []).filter((item) => String(item.telegram_user_id) !== String(telegramUserId)) });
   await answerCallbackQuery(botToken, callbackQueryId, 'Записано ✅');
   await removeInlineKeyboard(botToken, chatId, messageId);
 
@@ -220,7 +239,7 @@ async function handleAccountCallback({ base44, config, accounts, ownerId, botTok
 
 // Полноценный AI-чат в Telegram — те же вопросы/отчёты/создание/правка/удаление операций,
 // что и в веб AI-ассистенте (aiChatAssistant), с сохранением истории переписки в конфиге бота.
-async function handleTextMessage({ base44, config, account, accounts, ownerId, botToken, chatId, text }) {
+async function handleTextMessage({ base44, config, account, accounts, ownerId, telegramUserId, botToken, chatId, text }) {
   const entities = base44.asServiceRole.entities;
 
   const owner = await entities.User.get(ownerId).catch(() => null);
@@ -268,7 +287,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         await requestAccountSelection({
           entities, config, accounts,
           transactions: items.map(t => ({ type: t.type, amount: t.amount, currency: t.currency, category: t.category || 'Другое', description: t.description || 'Операция из списка', date: t.date })),
-          botToken, chatId
+          telegramUserId, botToken, chatId
         });
         const newHistory = [...history, { role: 'user', content: text }, { role: 'assistant', content: 'Уточняю счёт для записи операций…' }].slice(-20);
         await entities.TelegramBotConfig.update(config.id, { chat_history: newHistory });
@@ -305,7 +324,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
         await requestAccountSelection({
           entities, config, accounts,
           transactions: [{ type: t.type, amount: t.amount, currency: t.currency, category: t.category || 'Другое', description: t.description || 'Операция из Telegram', date: t.date }],
-          botToken, chatId
+          telegramUserId, botToken, chatId
         });
         const newHistory = [...history, { role: 'user', content: text }, { role: 'assistant', content: 'Уточняю счёт для записи операции…' }].slice(-20);
         await entities.TelegramBotConfig.update(config.id, { chat_history: newHistory });
@@ -315,22 +334,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, b
       if (!targetAccount) {
         replyText = '❌ Не найден счёт для записи операции. Добавьте счёт в приложении.';
       } else {
-        const createdTx = await entities.Transaction.create({
-          type: t.type,
-          amount: t.amount,
-          currency: t.currency || targetAccount.currency || owner?.currency || 'RUB',
-          category: t.category || 'Другое',
-          description: t.description || 'Операция из Telegram',
-          date: t.date || new Date().toISOString(),
-          account_id: targetAccount.id,
-          user_id: ownerId,
-          created_by_id: ownerId,
-          family_id: owner?.family_id || undefined,
-          source: 'telegram_bot'
-        });
-        await reassignOwnership(entities, 'Transaction', createdTx.id, ownerId, owner?.family_id);
-        await applyBalanceDelta(entities, targetAccount.id, effect(t.type, t.amount), ownerId);
-        if (t.type === 'expense') await applyBudgetDelta(entities, ownerId, t.category, t.amount);
+        await createTransactionRecord({ entities, parsed: t, account: targetAccount, ownerId });
         const freshAccounts = await entities.Account.filter({ user_id: ownerId });
         const freshAccount = freshAccounts.find(a => a.id === targetAccount.id) || targetAccount;
         replyText = await buildTransactionReceipt(t, freshAccount, freshAccounts, owner);
@@ -560,7 +564,7 @@ function mimeAndNameFromDocument(doc) {
   return { name, mime };
 }
 
-Deno.serve(async (req) => {
+export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const configId = new URL(req.url).searchParams.get('configId');
@@ -585,18 +589,19 @@ Deno.serve(async (req) => {
       const cq = update.callback_query;
       const chatId = cq.message?.chat?.id;
       const fromId = String(cq.from?.id || '');
-      if (fromId !== String(config.telegram_user_id)) {
-        await answerCallbackQuery(botToken, cq.id, 'Этот бот подключён к другому аккаунту.');
+      const actor = resolveBotActor(config, fromId);
+      if (!actor) {
+        await answerCallbackQuery(botToken, cq.id, 'Доступ к боту ожидает подтверждения владельца семьи.');
         return Response.json({ ok: true });
       }
       const data = cq.data || '';
       if (data.startsWith('acc:')) {
         const accountId = data.slice(4);
-        const ownerId = config.created_by_id;
+        const ownerId = actor.user_id;
         const allAccounts = await base44.asServiceRole.entities.Account.filter({ user_id: ownerId });
         const accounts = allAccounts.length > 0 ? allAccounts : await base44.asServiceRole.entities.Account.filter({ created_by_id: ownerId });
         const messageId = cq.message?.message_id;
-        await handleAccountCallback({ base44, config, accounts, ownerId, botToken, chatId, callbackQueryId: cq.id, accountId, messageId });
+        await handleAccountCallback({ base44, config, accounts, ownerId, telegramUserId: fromId, botToken, chatId, callbackQueryId: cq.id, accountId, messageId });
       }
       return Response.json({ ok: true });
     }
@@ -607,18 +612,17 @@ Deno.serve(async (req) => {
     const chatId = message.chat.id;
     const fromId = String(message.from?.id || '');
 
-    if (fromId !== String(config.telegram_user_id)) {
-      await sendMessage(botToken, chatId, 'Этот бот подключён к другому аккаунту в приложении.');
+    const actor = resolveBotActor(config, fromId);
+    if (!actor) {
+      await savePendingLink(base44.asServiceRole.entities, config, fromId, message.from);
+      await sendMessage(botToken, chatId, 'Запрос на доступ отправлен владельцу семьи. После подтверждения напишите /start ещё раз.');
       return Response.json({ ok: true });
     }
 
-    const ownerId = config.created_by_id;
+    const ownerId = actor.user_id;
     const allAccounts = await base44.asServiceRole.entities.Account.filter({ user_id: ownerId });
     const accounts = allAccounts.length > 0 ? allAccounts : await base44.asServiceRole.entities.Account.filter({ created_by_id: ownerId });
-    let account = config.default_account_id
-      ? await base44.asServiceRole.entities.Account.get(config.default_account_id).catch(() => null)
-      : null;
-    if (!account) account = accounts[0];
+    let account = accounts.find((item) => item.id === config.default_account_id) || accounts[0];
     if (!account) {
       await sendMessage(botToken, chatId, 'Не найден счёт для записи операции. Добавьте счёт в приложении.');
       return Response.json({ ok: true });
@@ -644,7 +648,7 @@ Deno.serve(async (req) => {
 
       // Голос обрабатывается через полный AI-ассистент — тот же, что и текстовые сообщения.
       // Это даёт более надёжное распознавание суммы/категории и поддерживает правку/удаление/вопросы.
-      await handleTextMessage({ base44, config, account, accounts, ownerId, botToken, chatId, text: transcript.trim() });
+      await handleTextMessage({ base44, config, account, accounts, ownerId, telegramUserId: fromId, botToken, chatId, text: transcript.trim() });
       return Response.json({ ok: true });
     }
 
@@ -687,7 +691,7 @@ Deno.serve(async (req) => {
         date: out.date
       };
 
-      await finalizeOrAskAccount({ entities, config, accounts, transactions: [parsed], ownerId, botToken, chatId });
+      await finalizeOrAskAccount({ entities, config, accounts, transactions: [parsed], ownerId, telegramUserId: fromId, botToken, chatId });
       return Response.json({ ok: true });
     }
 
@@ -741,7 +745,7 @@ Deno.serve(async (req) => {
         date: r.date
       }));
 
-      await finalizeOrAskAccount({ entities, config, accounts, transactions, ownerId, botToken, chatId });
+      await finalizeOrAskAccount({ entities, config, accounts, transactions, ownerId, telegramUserId: fromId, botToken, chatId });
       return Response.json({ ok: true });
     }
 
@@ -769,7 +773,7 @@ Deno.serve(async (req) => {
       }
 
       try {
-        await handleTextMessage({ base44, config, account, accounts, ownerId, botToken, chatId, text: message.text });
+        await handleTextMessage({ base44, config, account, accounts, ownerId, telegramUserId: fromId, botToken, chatId, text: message.text });
       } catch (e) {
         console.error('handleTextMessage error:', e);
         await sendMessage(botToken, chatId, '⚠️ Не удалось обработать сообщение. Попробуйте ещё раз или переформулируйте.');
@@ -781,4 +785,4 @@ Deno.serve(async (req) => {
     console.error('telegramWebhook error:', error);
     return Response.json({ ok: true });
   }
-});
+}
