@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { differenceInDays } from 'date-fns';
 import { ChevronRight, Plus, Target, TrendingUp } from 'lucide-react';
 import { useLanguage } from '@/lib/LanguageContext';
+import { getInvestmentValue } from '@/lib/investmentValue';
 
 const GOAL_COLORS = {
   savings:        { bar: 'from-emerald-500 to-teal-400', dot: '#10b981' },
@@ -15,8 +16,25 @@ const GOAL_COLORS = {
   other:          { bar: 'from-slate-500 to-slate-400',  dot: '#6b7280' },
 };
 
-export default function AllGoalsProgress({ goals, formatCurrency, convert, profileCurrency }) {
+export default function AllGoalsProgress({ goals, investments = [], cashFlows = [], formatCurrency, convert, profileCurrency }) {
   const { t } = useLanguage();
+  const getEffectiveAmount = (goal) => {
+    const allocationByInvestment = Object.fromEntries(
+      (goal.linked_investment_amounts || []).filter((item) => item.investment_id).map((item) => [item.investment_id, item.amount])
+    );
+    const linkedInvestmentsValue = (goal.linked_investment_ids || []).reduce((sum, investmentId) => {
+      const investment = investments.find((item) => item.id === investmentId);
+      if (!investment) return sum;
+      const value = getInvestmentValue(investment);
+      const inGoalCurrency = convert && investment.currency && investment.currency !== goal.currency
+        ? (convert(value, investment.currency, goal.currency) ?? 0)
+        : value;
+      return sum + (allocationByInvestment[investmentId] != null
+        ? Math.min(inGoalCurrency, allocationByInvestment[investmentId])
+        : inGoalCurrency);
+    }, 0);
+    return (goal.current_amount || 0) + linkedInvestmentsValue;
+  };
   if (goals.length === 0) {
     return (
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
@@ -42,7 +60,7 @@ export default function AllGoalsProgress({ goals, formatCurrency, convert, profi
     return converted != null ? converted : 0;
   };
   const totalTarget = goals.reduce((sum, g) => sum + toProfile(g.target_amount || 0, g), 0);
-  const totalCurrent = goals.reduce((sum, g) => sum + toProfile(g.current_amount || 0, g), 0);
+  const totalCurrent = goals.reduce((sum, g) => sum + toProfile(getEffectiveAmount(g), g), 0);
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
@@ -58,8 +76,9 @@ export default function AllGoalsProgress({ goals, formatCurrency, convert, profi
 
         <div className="p-4 space-y-4">
           {goals.map((goal, idx) => {
+            const effectiveAmount = getEffectiveAmount(goal);
             const progress = goal.target_amount > 0
-              ? Math.min((goal.current_amount / goal.target_amount) * 100, 100)
+              ? Math.min((effectiveAmount / goal.target_amount) * 100, 100)
               : 0;
             const scheme = GOAL_COLORS[goal.type] || GOAL_COLORS.other;
 
@@ -94,7 +113,7 @@ export default function AllGoalsProgress({ goals, formatCurrency, convert, profi
                   />
                 </div>
                 <div className="flex justify-between mt-1.5">
-                  <span className="text-muted-foreground/70 text-xs">{formatCurrency(goal.current_amount || 0)}</span>
+                  <span className="text-muted-foreground/70 text-xs">{formatCurrency(effectiveAmount)}</span>
                   <span className="text-muted-foreground/70 text-xs">{formatCurrency(goal.target_amount)}</span>
                 </div>
 

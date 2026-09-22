@@ -259,6 +259,19 @@ export default function Dashboard() {
     enabled: !!user
   });
 
+  const { data: rawCashFlows = [] } = useQuery({
+    queryKey: ['investment-cash-flows', user?.id, family?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const all = await base44.entities.InvestmentCashFlow.list();
+      return all.filter((flow) =>
+        flow.created_by_id === user.id || flow.user_id === user.id ||
+        family?.id && flow.family_id === family.id
+      );
+    },
+    enabled: !!user
+  });
+
   const { data: rawFixedAssets = [] } = useQuery({
     queryKey: ['fixed-assets', user?.id, family?.id],
     queryFn: async () => {
@@ -317,6 +330,7 @@ export default function Dashboard() {
   const budgets = filterScopedRecords(filterByWorkspace(rawBudgets, activeWorkspaceId));
   const goals = filterScopedRecords(filterByWorkspace(rawGoals, activeWorkspaceId));
   const investments = filterScopedRecords(filterByWorkspace(rawInvestments, activeWorkspaceId));
+  const cashFlows = filterScopedRecords(filterByWorkspace(rawCashFlows, activeWorkspaceId));
   const fixedAssets = filterScopedRecords(filterByWorkspace(rawFixedAssets, activeWorkspaceId));
   const subscriptions = filterByWorkspace(rawSubscriptions, activeWorkspaceId);
   const debtAccounts = filterScopedRecords(filterByWorkspace(rawDebtAccounts, activeWorkspaceId));
@@ -637,7 +651,7 @@ export default function Dashboard() {
       case 'budgets':
                return <div key="budgets" className="mb-6"><BudgetOverview budgets={displayBudgets} transactions={transactions} accounts={allAccounts} formatCurrency={formatCurrency} currentUser={user} convert={convert} /></div>;
              case 'goals':
-               return <div key="goals" className="mb-6"><AllGoalsProgress goals={displayGoals} formatCurrency={formatCurrency} convert={convert} profileCurrency={profileCurrency} /></div>;
+               return <div key="goals" className="mb-6"><AllGoalsProgress goals={displayGoals} investments={modeInvestments} cashFlows={cashFlows} formatCurrency={formatCurrency} convert={convert} profileCurrency={profileCurrency} /></div>;
       case 'aiInsights':
         return (
           <motion.div key="aiInsights" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mb-6">
