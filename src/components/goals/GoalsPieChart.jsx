@@ -1,9 +1,10 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { getInvestmentValue } from '@/lib/investmentValue';
 
 const GOAL_COLORS = ['#10B981', '#EF4444', '#8B5CF6', '#F59E0B', '#3B82F6', '#64748B', '#EC4899', '#14B8A6', '#F97316', '#A855F7'];
 
-export default function GoalsPieChart({ goals, formatCurrency, convert, profileCurrency }) {
+export default function GoalsPieChart({ goals, investments = [], formatCurrency, convert, profileCurrency }) {
   if (!goals || goals.length === 0) return null;
 
   // Конвертируем current_amount каждой цели в валюту профиля для корректного суммирования
@@ -14,12 +15,31 @@ export default function GoalsPieChart({ goals, formatCurrency, convert, profileC
     return converted != null ? converted : 0;
   };
 
+  const getEffectiveAmount = (goal) => {
+    const allocations = Object.fromEntries(
+      (goal.linked_investment_amounts || []).filter((item) => item.investment_id).map((item) => [item.investment_id, item.amount])
+    );
+    const investmentValue = (goal.linked_investment_ids || []).reduce((sum, investmentId) => {
+      const investment = investments.find((item) => item.id === investmentId);
+      if (!investment) return sum;
+      const rawValue = getInvestmentValue(investment);
+      const valueInGoalCurrency = convert && investment.currency && investment.currency !== goal.currency
+        ? (convert(rawValue, investment.currency, goal.currency) ?? 0)
+        : rawValue;
+      return sum + (allocations[investmentId] != null
+        ? Math.min(valueInGoalCurrency, allocations[investmentId])
+        : valueInGoalCurrency);
+    }, 0);
+    return (goal.current_amount || 0) + investmentValue;
+  };
+
   const data = goals.map((goal, idx) => {
-    const convertedValue = toProfile(goal.current_amount || 0, goal);
+    const effectiveAmount = getEffectiveAmount(goal);
+    const convertedValue = toProfile(effectiveAmount, goal);
     return {
       name: goal.title,
       value: convertedValue,
-      rawValue: goal.current_amount || 0,
+      rawValue: effectiveAmount,
       target: goal.target_amount || 0,
       rawTarget: goal.target_amount || 0,
       currency: goal.currency || profileCurrency || 'RUB',

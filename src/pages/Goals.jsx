@@ -487,7 +487,7 @@ export default function Goals() {
         {activeGoals.length > 0 && (
           <>
           <div className="mb-6">
-            <GoalsPieChart goals={activeGoals} formatCurrency={formatCurrency} convert={convert} profileCurrency={profileCurrency} />
+            <GoalsPieChart goals={activeGoals} investments={investments} formatCurrency={formatCurrency} convert={convert} profileCurrency={profileCurrency} />
           </div>
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">{t('goals.active_goals')}</h2>
