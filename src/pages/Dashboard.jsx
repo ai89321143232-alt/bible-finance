@@ -474,6 +474,8 @@ export default function Dashboard() {
     isOwnRecord(goal, user) || isFamilyVisibleRecord(goal, user, family)
   );
   const displayGoals = family && balanceMode === 'family' ? familyGoals : personalGoals;
+  const allVisibleGoals = familyGoals;
+  const allVisibleGoalInvestments = familyInvestments;
 
   // Валюта профиля — дефолт для всех агрегатов (общий баланс, net worth, доход/расход)
   const profileCurrency = hookCurrency;
@@ -651,7 +653,7 @@ export default function Dashboard() {
       case 'budgets':
                return <div key="budgets" className="mb-6"><BudgetOverview budgets={displayBudgets} transactions={transactions} accounts={allAccounts} formatCurrency={formatCurrency} currentUser={user} convert={convert} /></div>;
              case 'goals':
-               return <div key="goals" className="mb-6"><AllGoalsProgress goals={displayGoals} investments={modeInvestments} cashFlows={cashFlows} formatCurrency={formatCurrency} convert={convert} profileCurrency={profileCurrency} /></div>;
+               return <div key="goals" className="mb-6"><AllGoalsProgress goals={allVisibleGoals} investments={allVisibleGoalInvestments} cashFlows={cashFlows} formatCurrency={formatCurrency} convert={convert} profileCurrency={profileCurrency} /></div>;
       case 'aiInsights':
         return (
           <motion.div key="aiInsights" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mb-6">
