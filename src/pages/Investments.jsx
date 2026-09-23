@@ -62,7 +62,7 @@ const INVESTMENT_TYPES = [
 const INITIAL_FORM = {
   name: '', type: 'stocks', ticker: '', quantity: '', purchase_price: '',
   current_price: '', broker: '', interest_rate: '', maturity_date: null,
-  allows_top_up: false, coupon_per_unit: '', dividend_yield: '', payout_frequency: '',
+  allows_top_up: false, is_safety_cushion: false, coupon_per_unit: '', dividend_yield: '', payout_frequency: '',
   next_payout_date: '', nominal_value: '', linked_goal_ids: [],
   account_id: '', deduct_from_account: false
 };
@@ -205,6 +205,7 @@ export default function Investments() {
       interest_rate: investment.interest_rate?.toString() || '',
       maturity_date: investment.maturity_date ? new Date(investment.maturity_date) : null,
       allows_top_up: investment.allows_top_up || false,
+      is_safety_cushion: investment.is_safety_cushion || false,
       coupon_per_unit: investment.coupon_per_unit?.toString() || '', dividend_yield: investment.dividend_yield?.toString() || '',
       payout_frequency: investment.payout_frequency || '', next_payout_date: investment.next_payout_date || '',
       nominal_value: investment.nominal_value?.toString() || '', linked_goal_ids: investment.linked_goal_ids || []
@@ -225,6 +226,7 @@ export default function Investments() {
       maturity_date: formData.type === 'deposit' && formData.maturity_date
         ? format(formData.maturity_date, 'yyyy-MM-dd') : null,
       allows_top_up: formData.type === 'deposit' ? formData.allows_top_up : false,
+      is_safety_cushion: formData.type === 'deposit' ? formData.is_safety_cushion : false,
       coupon_per_unit: parseFloat(formData.coupon_per_unit) || undefined,
       dividend_yield: parseFloat(formData.dividend_yield) || undefined,
       payout_frequency: formData.payout_frequency || undefined, next_payout_date: formData.next_payout_date || undefined,
@@ -239,7 +241,7 @@ export default function Investments() {
         quantity: payload.quantity, purchase_price: payload.purchase_price,
         current_price: payload.current_price, broker: payload.broker,
         interest_rate: payload.interest_rate, maturity_date: payload.maturity_date,
-        allows_top_up: payload.allows_top_up, coupon_per_unit: payload.coupon_per_unit,
+        allows_top_up: payload.allows_top_up, is_safety_cushion: payload.is_safety_cushion, coupon_per_unit: payload.coupon_per_unit,
         dividend_yield: payload.dividend_yield, payout_frequency: payload.payout_frequency,
         next_payout_date: payload.next_payout_date, nominal_value: payload.nominal_value,
         linked_goal_ids: payload.linked_goal_ids
@@ -742,6 +744,15 @@ export default function Investments() {
                     className="rounded"
                   />
                   <span className="text-sm text-slate-700 dark:text-slate-300">Разрешить пополнение вклада</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg bg-sky-50/70 dark:bg-sky-900/10">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_safety_cushion}
+                    onChange={(e) => setFormData({ ...formData, is_safety_cushion: e.target.checked })}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Это подушка безопасности</span>
                 </label>
               </>
             )}
