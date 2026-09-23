@@ -37,8 +37,8 @@ export default function MobileTabShell({ initialTab = 0 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [activatedTabs, setActivatedTabs] = useState(() => new Set([initialTab]));
 
-  // Only regular tabs (non-center) are rendered as tab pages
-  const tabs = allTabs.filter((tab) => !tab.isCenter);
+  // Active indexes must match BottomTabBar, including the center tab.
+  const tabs = allTabs;
 
   // Keep activeTab in sync with the URL
   useEffect(() => {
@@ -53,6 +53,7 @@ export default function MobileTabShell({ initialTab = 0 }) {
       {/* Tab Content — all pages mounted, only active is visible */}
       <div className="flex-1 pb-24">
         {tabs.map((tab, index) => {
+          if (tab.isCenter) return null;
           const PageComponent = PAGE_COMPONENT_MAP[tab.page];
           if (!PageComponent || !activatedTabs.has(index)) return null;
           return (
