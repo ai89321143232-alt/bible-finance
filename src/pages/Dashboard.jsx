@@ -32,6 +32,7 @@ import ThemeSelector from '@/components/onboarding/ThemeSelector';
 import ChildDashboard from '@/components/child/ChildDashboard';
 import PremiumAIAnalytics from '@/components/dashboard/PremiumAIAnalytics';
 import SafeDailyLimit from '@/components/dashboard/SafeDailyLimit';
+import SafetyCushionSettings from '@/components/dashboard/SafetyCushionSettings';
 import EmergencyFund from '@/components/dashboard/EmergencyFund';
 import NetWorthCard from '@/components/dashboard/NetWorthCard';
 import QuickTemplates from '@/components/dashboard/QuickTemplates';
@@ -622,6 +623,7 @@ export default function Dashboard() {
                 </Link>
               </motion.div>
               <SafeDailyLimit budgets={budgets} accounts={allAccounts} transactions={transactions} currentUser={user} subscriptions={subscriptions} formatCurrency={formatCurrency} />
+              <SafetyCushionSettings user={user} accounts={allAccounts} formatCurrency={formatCurrency} onSaved={() => queryClient.invalidateQueries({ queryKey: ['auth-me'] })} />
               <EmergencyFund totalBalance={totalBalance} transactions={transactions} accounts={allAccounts} formatCurrency={formatCurrency} />
             </div>
             <AnalyticsBreakdown

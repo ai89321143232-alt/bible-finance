@@ -55,6 +55,9 @@ export default function AIInsights({ transactions, accounts, budgets, investment
         return converted != null ? converted : 0;
       };
 
+      const incomeCutoff = new Date();
+      incomeCutoff.setDate(incomeCutoff.getDate() - 90);
+      const hasIncomeHistory = transactions.some((t) => t.type === 'income' && new Date(t.date) >= incomeCutoff);
       const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + convertTx(t), 0);
       const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + convertTx(t), 0);
       const totalBalance = accounts.reduce((sum, acc) => {
@@ -100,6 +103,8 @@ ${topCategories.map(([cat, amt]) => `- ${cat}: ${formatCurrency(amt)}`).join('\n
 ${budgetAlerts || '- Все бюджеты в норме'}
 
 Инвестиции: ${investments?.length || 0} позиций
+
+Статус данных: no_income_history=${!hasIncomeHistory}. Если значение true, обязательно укажи в разделе ПРОГНОЗ, что у пользователя пока нет доходов за последние 3 месяца и делать финансовый прогноз преждевременно. Предложи вести учёт 2–3 месяца, не выдумывай прогноз и не называй дневной лимит.
 
 Дай ответ строго в формате:
 ПРОГНОЗ: [1-2 предложения о том, хватит ли денег до конца месяца]
