@@ -23,7 +23,9 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { addFamilyId } from '@/components/FamilyDataWrapper';
+import MobileSelect from '@/components/mobile/MobileSelect';
+import { ChildExpenseService } from '@/services/ChildExpenseService';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
 
 const CATEGORIES = {
   food: { icon: '🍽️', label: 'Еда', color: '#10B981' },
@@ -43,19 +45,26 @@ export default function ChildExpenses() {
     category: 'food',
     amount: '',
     date: new Date().toISOString().split('T')[0],
-    description: ''
+    description: '',
+    account_id: ''
   });
+  const [migrationOpen, setMigrationOpen] = useState(false);
+  const [migrationAccountId, setMigrationAccountId] = useState('');
+  const { profileCurrency, convertOrZero } = useExchangeRates();
 
   const { data: expenses = [] } = useQuery({
     queryKey: ['childExpenses'],
     queryFn: () => base44.entities.ChildExpense.list('-date')
   });
 
+  const { data: accounts = [] } = useQuery({
+    queryKey: ['childExpenseAccounts'],
+    queryFn: () => base44.entities.Account.list(),
+  });
+  const availableAccounts = accounts.filter((account) => account.is_active !== false);
+
   const createMutation = useMutation({
-    mutationFn: async (data) => {
-      const withFamily = await addFamilyId(data);
-      return base44.entities.ChildExpense.create(withFamily);
-    },
+    mutationFn: (data) => ChildExpenseService.create(data, availableAccounts),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['childExpenses'] });
       resetForm();
@@ -64,7 +73,7 @@ export default function ChildExpenses() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.ChildExpense.update(id, data),
+    mutationFn: ({ expense, data }) => ChildExpenseService.update(expense, data, availableAccounts),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['childExpenses'] });
       resetForm();
@@ -73,16 +82,31 @@ export default function ChildExpenses() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.ChildExpense.delete(id),
+    mutationFn: (expense) => ChildExpenseService.remove(expense),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['childExpenses'] });
       toast.success('Расход удалён');
     }
   });
 
+  const migrationMutation = useMutation({
+    mutationFn: async () => (await base44.functions.invoke('migrateChildExpenses', { default_account_id: migrationAccountId })).data,
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['childExpenses'] });
+      queryClient.invalidateQueries({ queryKey: ['childExpenseAccounts'] });
+      setMigrationOpen(false);
+      toast.success(`Перенесено расходов: ${result.migrated}`);
+      if (result.failed?.length) toast.error(`Не удалось перенести: ${result.failed.length}`);
+    }
+  });
+
   const handleSave = () => {
     if (!formData.child_name.trim()) {
       toast.error('Введите имя ребёнка');
+      return;
+    }
+    if (!formData.account_id) {
+      toast.error('Выберите счёт');
       return;
     }
 
@@ -92,7 +116,7 @@ export default function ChildExpenses() {
     };
 
     if (editingExpense) {
-      updateMutation.mutate({ id: editingExpense.id, data });
+      updateMutation.mutate({ expense: editingExpense, data });
     } else {
       createMutation.mutate(data);
     }
@@ -104,8 +128,9 @@ export default function ChildExpenses() {
       category: 'food',
       amount: '',
       date: new Date().toISOString().split('T')[0],
-      description: ''
-    });
+      description: '',
+      account_id: ''
+      });
     setEditingExpense(null);
     setShowModal(false);
   };
@@ -118,19 +143,16 @@ export default function ChildExpenses() {
         category: expense.category,
         amount: expense.amount.toString(),
         date: expense.date,
-        description: expense.description || ''
+        description: expense.description || '',
+        account_id: expense.account_id || ''
       });
     }
     setShowModal(true);
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('ru-RU', { 
-      style: 'currency', 
-      currency: 'RUB',
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
+  const formatCurrency = (amount, currency = profileCurrency) => new Intl.NumberFormat('ru-RU', {
+    style: 'currency', currency, maximumFractionDigits: 0,
+  }).format(amount);
 
   // Группируем по детям
   const expensesByChild = expenses.reduce((acc, exp) => {
@@ -150,11 +172,18 @@ export default function ChildExpenses() {
     return acc;
   }, []);
 
-  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const totalExpenses = expenses.reduce((sum, expense) => sum + convertOrZero(expense.amount, expense.currency || 'RUB'), 0);
+  const pendingMigration = expenses.filter((expense) => !expense.transaction_id);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
+        {pendingMigration.length > 0 && (
+          <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
+            <span>Нужно привязать к счёту: {pendingMigration.length} {pendingMigration.length === 1 ? 'старый расход' : 'старых расходов'}.</span>
+            <Button size="sm" onClick={() => setMigrationOpen(true)}>Привязать счёт</Button>
+          </div>
+        )}
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -260,7 +289,7 @@ export default function ChildExpenses() {
                             <p className="text-sm text-slate-500">{childExpenses.length} записей</p>
                           </div>
                         </div>
-                        <p className="text-2xl font-bold text-violet-600">{formatCurrency(childTotal)}</p>
+                        <p className="text-2xl font-bold text-violet-600">{formatCurrency(childTotal, childExpenses[0]?.currency || 'RUB')}</p>
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -280,7 +309,7 @@ export default function ChildExpenses() {
                                 </div>
                               </div>
                               <div className="flex items-center gap-2">
-                                <p className="font-semibold text-slate-900 dark:text-white">{formatCurrency(expense.amount)}</p>
+                                <p className="font-semibold text-slate-900 dark:text-white">{formatCurrency(expense.amount, expense.currency || 'RUB')}</p>
                                 <div className="flex gap-1">
                                   <Button
                                     variant="ghost"
@@ -293,7 +322,7 @@ export default function ChildExpenses() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => deleteMutation.mutate(expense.id)}
+                                    onClick={() => deleteMutation.mutate(expense)}
                                     className="h-8 w-8 text-rose-600"
                                   >
                                     <Trash2 className="w-4 h-4" />
@@ -356,6 +385,19 @@ export default function ChildExpenses() {
             </div>
 
             <div>
+              <Label>Счёт</Label>
+              <MobileSelect
+                value={formData.account_id}
+                onValueChange={(account_id) => setFormData({ ...formData, account_id })}
+                placeholder="Выберите счёт"
+                title="Счёт списания"
+                triggerClassName="mt-1 w-full h-10"
+              >
+                {availableAccounts.map((account) => <SelectItem key={account.id} value={account.id}>{account.name} · {account.currency || 'RUB'}</SelectItem>)}
+              </MobileSelect>
+            </div>
+
+            <div>
               <Label>Сумма</Label>
               <div className="relative mt-1">
                 <Input
@@ -364,7 +406,7 @@ export default function ChildExpenses() {
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                   placeholder="0"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">₽</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{availableAccounts.find((account) => account.id === formData.account_id)?.currency || profileCurrency}</span>
               </div>
             </div>
 
@@ -394,6 +436,21 @@ export default function ChildExpenses() {
               className="w-full bg-gradient-to-r from-violet-600 to-indigo-600"
             >
               {editingExpense ? 'Сохранить' : 'Добавить'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={migrationOpen} onOpenChange={setMigrationOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Привязать старые расходы</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Выберите счёт: с него будут списаны суммы всех старых расходов без привязки.</p>
+            <MobileSelect value={migrationAccountId} onValueChange={setMigrationAccountId} placeholder="Выберите счёт" title="Счёт для миграции" triggerClassName="w-full h-10">
+              {availableAccounts.map((account) => <SelectItem key={account.id} value={account.id}>{account.name} · {account.currency || 'RUB'}</SelectItem>)}
+            </MobileSelect>
+            <Button className="w-full" disabled={!migrationAccountId || migrationMutation.isPending} onClick={() => migrationMutation.mutate()}>
+              {migrationMutation.isPending ? 'Переносим…' : 'Перенести расходы'}
             </Button>
           </div>
         </DialogContent>

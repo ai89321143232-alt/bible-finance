@@ -40,7 +40,7 @@ export const TransactionService = {
    * @param {object} params { type, amount, category, description, date, account_id, accounts, existingId }
    * @returns {Promise<{ok:boolean, error?:string}>}
    */
-  async saveEntry({ type, amount, category, description, date, account_id, accounts = [], existingId = null, budget_scope = undefined }) {
+  async saveEntry({ type, amount, category, description, date, account_id, accounts = [], existingId = null, budget_scope = undefined, tags = undefined }) {
     const valid = validateTransactionInput({ type, amount, category, account_id });
     if (!valid.ok) return { ok: false, error: valid.error };
 
@@ -95,6 +95,7 @@ export const TransactionService = {
         account_id: account_id || undefined,
         currency: account.currency || 'RUB',
         budget_scope,
+        tags,
       },
       user
     );
@@ -102,6 +103,7 @@ export const TransactionService = {
     if (existingId) {
       await repo().update(existingId, data);
       notifyChanged({ action: 'update', transaction: { id: existingId, ...data } });
+      return { ok: true, transaction: { id: existingId, ...data } };
     } else {
       let created;
       try {
@@ -120,8 +122,8 @@ export const TransactionService = {
       base44.functions.invoke('gamificationDailyCheckin', { action: 'transaction', context: data.family_id ? 'family' : undefined })
         .then(() => eventBus.emit(EVENTS.GAMIFICATION_UPDATED))
         .catch(() => {});
+      return { ok: true, transaction: created };
     }
-    return { ok: true };
   },
 
   /**
