@@ -572,8 +572,8 @@ async function handleAnalyticsButton({ entities, ownerId, config, botToken, chat
     for (const b of activeBudgets.slice(0, 5)) {
       const limit = b.limit_amount || 0;
       const spent = b.spent_amount || 0;
-      const pct = limit > 0 ? Math.min(100, Math.round((spent / limit) * 100)) : 0;
-      const status = pct >= 100 ? '🔴' : pct >= 80 ? '🟠' : '🟢';
+      const pct = limit > 0 ? Math.round((spent / limit) * 100) : 0;
+      const status = pct >= 150 ? '💥' : pct >= 100 ? '🔴' : pct >= 80 ? '🟠' : '🟢';
       lines.push(`${status} ${b.name}: <code>${currency.format(spent, b.currency || currency.profileCurrency)} / ${currency.format(limit, b.currency || currency.profileCurrency)}</code> (${pct}%)`);
     }
     lines.push('', `<b>Потрачено по бюджетам:</b> <code>${currency.format(budgetTotals.total)}</code>${budgetTotals.missing.length ? ` (без курса: ${budgetTotals.missing.join(', ')})` : ''}`);
