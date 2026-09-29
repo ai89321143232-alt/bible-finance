@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { effect, applyBalanceDelta, applyBudgetDelta, matchAccount } from '../../shared/transactionEffects.ts';
+import { effect, applyBalanceDelta, applyBudgetDelta, getBudgetMatches, matchAccount } from '../../shared/transactionEffects.ts';
 import { buildAssistantSystemPrompt, invokeAssistantModel, computeFinancialContext } from '../../shared/financialAssistant.ts';
 import { createCurrencyTools } from '../../shared/currencyConvert.ts';
 
@@ -110,7 +110,7 @@ async function savePendingLink(entities, config, telegramUserId, telegramUser) {
   });
 }
 
-async function createTransactionRecord({ entities, parsed, account, ownerId }) {
+async function createTransactionRecord({ entities, parsed, account, ownerId, budgetScope }) {
   let txDate = new Date();
   if (parsed.date) {
     const d = new Date(parsed.date);
@@ -133,20 +133,51 @@ async function createTransactionRecord({ entities, parsed, account, ownerId }) {
     created_by_id: ownerId,
     family_id: owner?.family_id || undefined,
     family_member_id: ownerId,
+    budget_scope: budgetScope,
     source: 'telegram_bot'
   });
   await reassignOwnership(entities, 'Transaction', created.id, ownerId, owner?.family_id);
 
   await applyBalanceDelta(entities, account.id, effect(parsed.type, parsed.amount), ownerId);
-  if (parsed.type === 'expense') await applyBudgetDelta(entities, ownerId, parsed.category, parsed.amount);
+  if (parsed.type === 'expense') await applyBudgetDelta(entities, ownerId, parsed.category, parsed.amount, budgetScope);
 }
 
-async function finalizeTransaction({ entities, parsed, account, ownerId, botToken, chatId }) {
-  await createTransactionRecord({ entities, parsed, account, ownerId });
+async function requestBudgetSelection({ entities, config, parsed, account, ownerId, telegramUserId, botToken, chatId, matches }) {
+  const pending = (config.pending_budget_transactions || []).filter((item) => String(item.telegram_user_id) !== String(telegramUserId));
+  await entities.TelegramBotConfig.update(config.id, {
+    pending_budget_transactions: [...pending, {
+      telegram_user_id: String(telegramUserId), account_id: account.id,
+      type: parsed.type, amount: parsed.amount, currency: parsed.currency, category: parsed.category,
+      description: parsed.description, date: parsed.date,
+      personal_budget_id: matches.personal[0].id, family_budget_id: matches.family[0].id
+    }]
+  });
+  const personal = matches.personal[0];
+  const family = matches.family[0];
+  await sendMessage(botToken, chatId, 'С какого бюджета списать расход?', {
+    inline_keyboard: [[
+      { text: `Личный: ${personal.name} (${personal.limit_amount - (personal.spent_amount || 0)} ${personal.currency || 'RUB'})`, callback_data: 'budget:personal' },
+      { text: `Семейный: ${family.name} (${family.limit_amount - (family.spent_amount || 0)} ${family.currency || 'RUB'})`, callback_data: 'budget:family' }
+    ]]
+  });
+}
+
+async function finalizeTransaction({ entities, config, parsed, account, ownerId, telegramUserId, botToken, chatId, budgetScope }) {
+  let selectedScope = budgetScope;
+  if (parsed.type === 'expense' && !selectedScope) {
+    const matches = await getBudgetMatches(entities, ownerId, parsed.category || 'Другое');
+    if (matches.personal.length && matches.family.length) {
+      await requestBudgetSelection({ entities, config, parsed, account, ownerId, telegramUserId, botToken, chatId, matches });
+      return false;
+    }
+    selectedScope = matches.family.length ? 'family' : 'personal';
+  }
+  await createTransactionRecord({ entities, parsed, account, ownerId, budgetScope: selectedScope });
   const accounts = await entities.Account.filter({ user_id: ownerId });
   const freshAccount = accounts.find(a => a.id === account.id) || account;
   const owner = await entities.User.get(ownerId).catch(() => null);
   await sendMessage(botToken, chatId, await buildTransactionReceipt(parsed, freshAccount, accounts, owner));
+  return true;
 }
 
 // Отправляет список счетов кнопками и сохраняет операции, ожидающие выбора счёта
@@ -193,7 +224,7 @@ async function finalizeOrAskAccount({ entities, config, accounts, transactions, 
       return;
     }
     for (const t of transactions) {
-      await finalizeTransaction({ entities, parsed: t, account, ownerId, botToken, chatId });
+      await finalizeTransaction({ entities, config, parsed: t, account, ownerId, telegramUserId, botToken, chatId });
     }
     return;
   }
@@ -215,16 +246,19 @@ async function handleAccountCallback({ base44, config, accounts, ownerId, telegr
     return;
   }
 
+  let recorded = 0;
   for (const t of pending) {
-    await createTransactionRecord({ entities, parsed: t, account, ownerId });
+    const completed = await finalizeTransaction({ entities, config, parsed: t, account, ownerId, telegramUserId, botToken, chatId });
+    if (completed) recorded++;
   }
   await entities.TelegramBotConfig.update(config.id, { pending_transactions: (config.pending_transactions || []).filter((item) => String(item.telegram_user_id) !== String(telegramUserId)) });
-  await answerCallbackQuery(botToken, callbackQueryId, 'Записано ✅');
+  await answerCallbackQuery(botToken, callbackQueryId, recorded ? 'Записано ✅' : 'Выберите бюджет');
   await removeInlineKeyboard(botToken, chatId, messageId);
 
   const freshAccounts = await entities.Account.filter({ user_id: ownerId });
   const freshAccount = freshAccounts.find(a => a.id === accountId) || account;
 
+  if (!recorded) return;
   if (pending.length === 1) {
     const owner = await entities.User.get(ownerId).catch(() => null);
     await sendMessage(botToken, chatId, await buildTransactionReceipt(pending[0], freshAccount, freshAccounts, owner));
@@ -250,8 +284,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, t
   const categoryNames = categories.map(c => `${c.name} (${c.type === 'income' ? 'доход' : 'расход'})`).join(', ') || 'нет категорий';
   const accountNames = accounts.map(a => a.name).join(', ') || 'нет счетов';
 
-  const allTx = await entities.Transaction.list('-date', 200);
-  const recentTx = allTx.filter(t => t.created_by_id === ownerId || t.user_id === ownerId).slice(0, 25);
+  const recentTx = (await entities.Transaction.filter({ user_id: ownerId })).slice(0, 25);
   const recentTxText = recentTx.map(t =>
     `id=${t.id} | ${t.date?.slice(0, 10)} | ${t.type === 'expense' ? 'расход' : 'доход'} | ${t.amount} ${t.currency || 'RUB'} | ${t.category} | ${t.description || ''}`
   ).join('\n') || 'нет операций';
@@ -301,8 +334,8 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, t
         const targetAccount = accounts.find(a => a.id === matchedAccountId) || account;
         if (!targetAccount) { errors.push('нет счёта'); continue; }
         try {
-          await createTransactionRecord({ entities, parsed: t, account: targetAccount, ownerId });
-          created++;
+          const completed = await finalizeTransaction({ entities, config, parsed: t, account: targetAccount, ownerId, telegramUserId, botToken, chatId });
+          if (completed) created++;
         } catch (e) {
           errors.push(`${t.description || t.category || 'операция'}: ${e.message || 'ошибка'}`);
         }
@@ -334,10 +367,9 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, t
       if (!targetAccount) {
         replyText = '❌ Не найден счёт для записи операции. Добавьте счёт в приложении.';
       } else {
-        await createTransactionRecord({ entities, parsed: t, account: targetAccount, ownerId });
-        const freshAccounts = await entities.Account.filter({ user_id: ownerId });
-        const freshAccount = freshAccounts.find(a => a.id === targetAccount.id) || targetAccount;
-        replyText = await buildTransactionReceipt(t, freshAccount, freshAccounts, owner);
+        const completed = await finalizeTransaction({ entities, config, parsed: t, account: targetAccount, ownerId, telegramUserId, botToken, chatId });
+        if (!completed) return;
+        replyText = '✅ Операция записана.';
       }
     }
   } else if (action === 'create_investment' && parsed.investment) {
@@ -426,10 +458,10 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, t
       const newCategory = u.category || existing.category;
 
       await applyBalanceDelta(entities, existing.account_id, -effect(existing.type, existing.amount), ownerId);
-      if (existing.type === 'expense') await applyBudgetDelta(entities, ownerId, existing.category, -existing.amount);
+      if (existing.type === 'expense') await applyBudgetDelta(entities, ownerId, existing.category, -existing.amount, existing.budget_scope);
 
       await applyBalanceDelta(entities, existing.account_id, effect(newType, newAmount), ownerId);
-      if (newType === 'expense') await applyBudgetDelta(entities, ownerId, newCategory, newAmount);
+      if (newType === 'expense') await applyBudgetDelta(entities, ownerId, newCategory, newAmount, existing.budget_scope);
 
       const updatePayload = {};
       if (u.type) updatePayload.type = u.type;
@@ -446,7 +478,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, t
       replyText = '❌ Не удалось найти указанную операцию. Укажите точный id из списка ваших последних операций.';
     } else {
       await applyBalanceDelta(entities, existing.account_id, -effect(existing.type, existing.amount), ownerId);
-      if (existing.type === 'expense') await applyBudgetDelta(entities, ownerId, existing.category, -existing.amount);
+      if (existing.type === 'expense') await applyBudgetDelta(entities, ownerId, existing.category, -existing.amount, existing.budget_scope);
       await entities.Transaction.delete(existing.id);
       replyText = '🗑️ Операция удалена';
     }
@@ -483,16 +515,29 @@ async function handleBalanceButton({ entities, accounts, ownerId, botToken, chat
   await sendMessage(botToken, chatId, lines.join('\n'));
 }
 
-async function handleAnalyticsButton({ entities, accounts, ownerId, config, botToken, chatId }) {
+async function showAnalyticsPeriods(botToken, chatId) {
+  await sendMessage(botToken, chatId, 'Выберите период аналитики:', {
+    inline_keyboard: [[
+      { text: 'Месяц', callback_data: 'analytics:month' },
+      { text: 'Квартал', callback_data: 'analytics:quarter' },
+      { text: 'Год', callback_data: 'analytics:year' }
+    ]]
+  });
+}
+
+async function handleAnalyticsButton({ entities, ownerId, config, botToken, chatId, period = 'month' }) {
   const timezone = config.timezone || 'Europe/Moscow';
   const owner = await entities.User.get(ownerId).catch(() => null);
   const currency = createCurrencyTools(owner);
   const now = new Date();
   const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
   const parts = fmt.formatToParts(now).reduce((acc, p) => { acc[p.type] = p.value; return acc; }, {});
-  const monthStart = new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, 1));
-  const allTx = await entities.Transaction.list('-date', 200);
-  const myTx = allTx.filter(t => (t.created_by_id === ownerId || t.user_id === ownerId) && new Date(t.date) >= monthStart);
+  const year = Number(parts.year);
+  const month = Number(parts.month) - 1;
+  const startMonth = period === 'year' ? 0 : period === 'quarter' ? Math.floor(month / 3) * 3 : month;
+  const periodStart = new Date(Date.UTC(year, startMonth, 1));
+  const periodEnd = period === 'year' ? new Date(Date.UTC(year + 1, 0, 1)) : period === 'quarter' ? new Date(Date.UTC(year, startMonth + 3, 1)) : new Date(Date.UTC(year, month + 1, 1));
+  const myTx = await entities.Transaction.filter({ user_id: ownerId, date: { $gte: periodStart.toISOString(), $lt: periodEnd.toISOString() } });
   const expenses = myTx.filter(t => t.type === 'expense');
   const income = myTx.filter(t => t.type === 'income');
   const totalSpent = currency.summarize(expenses.map(t => ({ amount: t.amount, currency: t.currency }))).total;
@@ -506,7 +551,7 @@ async function handleAnalyticsButton({ entities, accounts, ownerId, config, botT
   }
   const sorted = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 5);
   const lines = [
-    '📊 <b>Аналитика за месяц</b>',
+    `📊 <b>Аналитика за ${period === 'year' ? 'год' : period === 'quarter' ? 'квартал' : 'месяц'}</b>`, 
     '',
     `💸 Всего расходов: <code>${currency.format(totalSpent)}</code> в ${expenses.length} операциях`,
     `💰 Доход: <code>${currency.format(totalIncome)}</code>`,
@@ -536,9 +581,26 @@ async function handleAnalyticsButton({ entities, accounts, ownerId, config, botT
   await sendMessage(botToken, chatId, lines.join('\n'));
 }
 
+async function handleBudgetCallback({ entities, config, ownerId, telegramUserId, budgetScope, botToken, chatId, callbackQueryId, messageId }) {
+  const pending = (config.pending_budget_transactions || []).filter((item) => String(item.telegram_user_id) === String(telegramUserId));
+  if (!pending.length) {
+    await answerCallbackQuery(botToken, callbackQueryId, 'Операция уже обработана');
+    await removeInlineKeyboard(botToken, chatId, messageId);
+    return;
+  }
+  for (const item of pending) {
+    const account = await entities.Account.get(item.account_id);
+    if (account) await finalizeTransaction({ entities, config, parsed: item, account, ownerId, telegramUserId, botToken, chatId, budgetScope });
+  }
+  await entities.TelegramBotConfig.update(config.id, {
+    pending_budget_transactions: (config.pending_budget_transactions || []).filter((item) => String(item.telegram_user_id) !== String(telegramUserId))
+  });
+  await answerCallbackQuery(botToken, callbackQueryId, 'Записано ✅');
+  await removeInlineKeyboard(botToken, chatId, messageId);
+}
+
 async function handleOperationsButton({ entities, ownerId, botToken, chatId }) {
-  const allTx = await entities.Transaction.list('-date', 30);
-  const myTx = allTx.filter(t => t.created_by_id === ownerId || t.user_id === ownerId).slice(0, 10);
+  const myTx = (await entities.Transaction.filter({ user_id: ownerId })).slice(0, 10);
 
   if (!myTx.length) {
     await sendMessage(botToken, chatId, '📋 <b>Последние операции</b>\n\nОпераций пока нет. Отправьте голосовое, фото чека или опишите покупку текстом.');
@@ -598,10 +660,15 @@ export default async function (req) {
       if (data.startsWith('acc:')) {
         const accountId = data.slice(4);
         const ownerId = actor.user_id;
-        const allAccounts = await base44.asServiceRole.entities.Account.filter({ user_id: ownerId });
-        const accounts = allAccounts.length > 0 ? allAccounts : await base44.asServiceRole.entities.Account.filter({ created_by_id: ownerId });
+        const accounts = await base44.asServiceRole.entities.Account.filter({ user_id: ownerId });
         const messageId = cq.message?.message_id;
         await handleAccountCallback({ base44, config, accounts, ownerId, telegramUserId: fromId, botToken, chatId, callbackQueryId: cq.id, accountId, messageId });
+      } else if (data.startsWith('budget:')) {
+        await handleBudgetCallback({ entities: base44.asServiceRole.entities, config, ownerId: actor.user_id, telegramUserId: fromId, budgetScope: data.slice(7), botToken, chatId, callbackQueryId: cq.id, messageId: cq.message?.message_id });
+      } else if (data.startsWith('analytics:')) {
+        await handleAnalyticsButton({ entities: base44.asServiceRole.entities, ownerId: actor.user_id, config, botToken, chatId, period: data.slice(10) });
+        await answerCallbackQuery(botToken, cq.id, 'Готово');
+        await removeInlineKeyboard(botToken, chatId, cq.message?.message_id);
       }
       return Response.json({ ok: true });
     }
@@ -620,8 +687,7 @@ export default async function (req) {
     }
 
     const ownerId = actor.user_id;
-    const allAccounts = await base44.asServiceRole.entities.Account.filter({ user_id: ownerId });
-    const accounts = allAccounts.length > 0 ? allAccounts : await base44.asServiceRole.entities.Account.filter({ created_by_id: ownerId });
+    const accounts = await base44.asServiceRole.entities.Account.filter({ user_id: ownerId });
     let account = accounts.find((item) => item.id === config.default_account_id) || accounts[0];
     if (!account) {
       await sendMessage(botToken, chatId, 'Не найден счёт для записи операции. Добавьте счёт в приложении.');
@@ -764,7 +830,7 @@ export default async function (req) {
         return Response.json({ ok: true });
       }
       if (text === '📊 Аналитика') {
-        await handleAnalyticsButton({ entities, accounts, ownerId, config, botToken, chatId });
+        await showAnalyticsPeriods(botToken, chatId);
         return Response.json({ ok: true });
       }
       if (text === '📋 Операции') {

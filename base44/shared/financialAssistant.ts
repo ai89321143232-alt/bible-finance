@@ -180,26 +180,21 @@ function tzDateParts(date, timezone) {
 // timezone (IANA, например "Europe/Moscow") — часовой пояс пользователя, чтобы "сегодня"/"этот месяц"
 // определялись по его локальному времени, а не по времени сервера.
 export async function computeFinancialContext(entities, ownerId, timezone = 'UTC') {
-  const [allTransactions, allBudgets, allGoals, allInvestments, allAccounts, owner] = await Promise.all([
-    entities.Transaction.list('-date', 300),
-    entities.Budget.list(),
-    entities.Goal.list(),
-    entities.Investment.list(),
-    entities.Account.list(),
+  const [transactions, budgetsRaw, goalsRaw, investmentsRaw, accountsRaw, owner] = await Promise.all([
+    entities.Transaction.filter({ user_id: ownerId }),
+    entities.Budget.filter({ user_id: ownerId }),
+    entities.Goal.filter({ user_id: ownerId }),
+    entities.Investment.filter({ user_id: ownerId }),
+    entities.Account.filter({ user_id: ownerId }),
     entities.User.get(ownerId).catch(() => null)
   ]);
-  const family = owner?.family_id ? await entities.Family.get(owner.family_id).catch(() => null) : null;
   const currency = createCurrencyTools(owner);
-
-  const mine = (arr) => arr.filter(x => x.created_by_id === ownerId || x.user_id === ownerId);
   const scopeMode = owner?.scope_mode || owner?.data?.scope_mode || 'all';
   const inScope = (record) => scopeMode === 'all' || (record.scope || 'personal') === scopeMode;
-  const accounts = mine(allAccounts).filter(inScope);
-  const accountIds = new Set(accounts.map(a => a.id));
-  const transactions = mine(allTransactions).filter(t => accountIds.has(t.account_id));
-  const budgets = mine(allBudgets).filter(b => b.is_active && inScope(b));
-  const goals = mine(allGoals).filter(g => g.status === 'active' && inScope(g));
-  const investments = mine(allInvestments).filter(inScope);
+  const accounts = accountsRaw.filter(inScope);
+  const budgets = budgetsRaw.filter((budget) => budget.is_active !== false && inScope(budget));
+  const goals = goalsRaw.filter((goal) => goal.status === 'active' && inScope(goal));
+  const investments = investmentsRaw.filter(inScope);
   const accountTotals = currency.summarize(accounts.map(a => ({ amount: a.balance, currency: a.currency })));
 
   const now = new Date();
@@ -230,30 +225,6 @@ export async function computeFinancialContext(entities, ownerId, timezone = 'UTC
     return { amount: inv.type === 'deposit' ? price : (Number(inv.quantity) || 0) * price, currency: inv.currency || currency.profileCurrency };
   });
   const investmentTotals = currency.summarize(investmentRows);
-
-  // Расходы по каждому члену семьи за текущий месяц, отсортированные по сумме —
-  // чтобы ассистент мог рассказать, кто и куда тратит деньги в семье.
-  let familySection = '';
-  if (family?.members?.length > 0) {
-    const scopedFamilyAccountIds = new Set(allAccounts
-      .filter(a => scopeMode === 'all' || (a.scope || 'personal') === scopeMode)
-      .map(a => a.id));
-    const familyMonthExpenses = allTransactions.filter(t =>
-      t.type === 'expense' && !isInvestmentExpense(t) && new Date(t.date) >= monthStart &&
-      scopedFamilyAccountIds.has(t.account_id) &&
-      family.members.some(m => t.user_id === m.user_id || t.created_by_id === m.user_id)
-    );
-    const byMember = family.members.map(m => {
-      const memberTx = familyMonthExpenses.filter(t => t.user_id === m.user_id || t.created_by_id === m.user_id);
-      const total = currency.summarize(memberTx.map(t => ({ amount: t.amount, currency: t.currency }))).total;
-      return { name: m.display_name || m.name, total };
-    }).sort((a, b) => b.total - a.total);
-
-    familySection = `
-РАСХОДЫ ЧЛЕНОВ СЕМЬИ ЗА МЕСЯЦ (${family.name}) в ${currency.profileCurrency}:
-${byMember.map(b => `- ${b.name}: ${currency.format(b.total)}`).join('\n')}
-`;
-  }
 
   return `
 Финансовые данные пользователя:
@@ -286,6 +257,5 @@ ${goals.map(g => `- id=${g.id} | ${g.title}: накоплено ${currency.forma
 ${investments.map((inv, index) => `- id=${inv.id} | ${inv.name} (${inv.type}): ${currency.format(investmentRows[index].amount, investmentRows[index].currency)}`).join('\n') || '- Нет инвестиций'}
 Разбивка по валютам:
 ${investmentTotals.lines.join('\n') || '- Нет инвестиций'}
-- Общая стоимость в ${currency.profileCurrency}: ${currency.format(investmentTotals.total)}${investmentTotals.missing.length ? ` (не включены без курса: ${investmentTotals.missing.join(', ')})` : ''}
-${familySection}`;
+- Общая стоимость в ${currency.profileCurrency}: ${currency.format(investmentTotals.total)}${investmentTotals.missing.length ? ` (не включены без курса: ${investmentTotals.missing.join(', ')})` : ''}`;
 }
