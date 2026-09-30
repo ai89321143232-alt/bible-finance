@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { effect, applyBalanceDelta, applyBudgetDelta, getBudgetMatches, matchAccount } from '../../shared/transactionEffects.ts';
 import { buildAssistantSystemPrompt, invokeAssistantModel, computeFinancialContext } from '../../shared/financialAssistant.ts';
 import { createCurrencyTools } from '../../shared/currencyConvert.ts';
@@ -110,6 +110,77 @@ async function savePendingLink(entities, config, telegramUserId, telegramUser) {
   });
 }
 
+const CATEGORY_ICONS = [
+  ['🛒 Покупки', 'ShoppingCart'], ['🍽 Еда', 'Utensils'], ['🚗 Транспорт', 'Car'],
+  ['🏠 Дом', 'Home'], ['💊 Здоровье', 'HeartPulse'], ['🎓 Учёба', 'GraduationCap']
+];
+const CATEGORY_COLORS = [['🟣 Фиолетовый', '#8B5CF6'], ['🔵 Синий', '#3B82F6'], ['🟢 Зелёный', '#22C55E'], ['🟠 Оранжевый', '#F97316'], ['🔴 Красный', '#EF4444'], ['🩷 Розовый', '#EC4899']];
+
+function categoryMatches(budget, categoryName) {
+  return (budget.categories || (budget.category ? [budget.category] : [])).some((item) => String(item).toLowerCase() === String(categoryName).toLowerCase());
+}
+
+async function saveCategorySetup(entities, config, telegramUserId, setup) {
+  const remaining = (config.pending_category_setup || []).filter((item) => String(item.telegram_user_id) !== String(telegramUserId));
+  await entities.TelegramBotConfig.update(config.id, { pending_category_setup: [...remaining, { ...setup, telegram_user_id: String(telegramUserId) }] });
+}
+
+async function completeCategorySetup({ entities, config, setup, ownerId, telegramUserId, botToken, chatId, budgetScope }) {
+  const account = await entities.Account.get(setup.account_id);
+  if (!account) {
+    await sendMessage(botToken, chatId, 'Не удалось найти выбранный счёт. Отправьте операцию ещё раз.');
+    return;
+  }
+  await createTransactionRecord({ entities, parsed: setup, account, ownerId, budgetScope });
+  const accounts = await entities.Account.filter({ user_id: ownerId });
+  const owner = await entities.User.get(ownerId).catch(() => null);
+  await entities.TelegramBotConfig.update(config.id, { pending_category_setup: (config.pending_category_setup || []).filter((item) => String(item.telegram_user_id) !== String(telegramUserId)) });
+  await sendMessage(botToken, chatId, await buildTransactionReceipt(setup, accounts.find((item) => item.id === account.id) || account, accounts, owner));
+}
+
+async function showBudgetChoice({ entities, config, setup, ownerId, telegramUserId, botToken, chatId }) {
+  if (setup.category_type !== 'expense') {
+    await completeCategorySetup({ entities, config, setup, ownerId, telegramUserId, botToken, chatId });
+    return;
+  }
+  const budgets = (await entities.Budget.filter({ user_id: ownerId })).filter((budget) => budget.is_active !== false);
+  await saveCategorySetup(entities, config, telegramUserId, { ...setup, stage: 'budget_choice' });
+  await sendMessage(botToken, chatId, `Категория «${setup.category}» пока не входит ни в один бюджет. Выберите бюджет или создайте новый:`, {
+    inline_keyboard: [
+      ...budgets.map((budget) => [{ text: `${budget.name} — ${budget.limit_amount} ${budget.currency || 'RUB'}`, callback_data: `cat:budget:${budget.id}` }]),
+      [{ text: '➕ Новый бюджет', callback_data: 'cat:newbudget' }],
+      [{ text: '← Назад', callback_data: 'cat:back' }]
+    ]
+  });
+}
+
+async function beginCategorySetup({ entities, config, parsed, account, ownerId, telegramUserId, botToken, chatId }) {
+  await saveCategorySetup(entities, config, telegramUserId, { ...parsed, account_id: account.id, owner_id: ownerId, stage: 'category_type' });
+  await sendMessage(botToken, chatId, `Категории «${parsed.category}» ещё нет. Сначала выберите её тип:`, {
+    inline_keyboard: [[
+      { text: '💸 Расход', callback_data: 'cat:type:expense' },
+      { text: '💰 Доход', callback_data: 'cat:type:income' }
+    ]]
+  });
+}
+
+async function ensureCategoryAndBudget({ entities, config, parsed, account, ownerId, telegramUserId, botToken, chatId }) {
+  const categories = await entities.Category.list();
+  const category = categories.find((item) => String(item.name).trim().toLowerCase() === String(parsed.category || 'Другое').trim().toLowerCase());
+  if (!category) {
+    await beginCategorySetup({ entities, config, parsed, account, ownerId, telegramUserId, botToken, chatId });
+    return false;
+  }
+  if (parsed.type === 'expense') {
+    const budgets = (await entities.Budget.filter({ user_id: ownerId })).filter((budget) => budget.is_active !== false);
+    if (!budgets.some((budget) => categoryMatches(budget, parsed.category))) {
+      await showBudgetChoice({ entities, config, setup: { ...parsed, account_id: account.id, category_type: 'expense', category_id: category.id }, ownerId, telegramUserId, botToken, chatId });
+      return false;
+    }
+  }
+  return true;
+}
+
 async function createTransactionRecord({ entities, parsed, account, ownerId, budgetScope }) {
   let txDate = new Date();
   if (parsed.date) {
@@ -163,6 +234,8 @@ async function requestBudgetSelection({ entities, config, parsed, account, owner
 }
 
 async function finalizeTransaction({ entities, config, parsed, account, ownerId, telegramUserId, botToken, chatId, budgetScope }) {
+  const ready = await ensureCategoryAndBudget({ entities, config, parsed, account, ownerId, telegramUserId, botToken, chatId });
+  if (!ready) return false;
   let selectedScope = budgetScope;
   if (parsed.type === 'expense' && !selectedScope) {
     const matches = await getBudgetMatches(entities, ownerId, parsed.category || 'Другое');
@@ -599,6 +672,69 @@ async function handleBudgetCallback({ entities, config, ownerId, telegramUserId,
   await removeInlineKeyboard(botToken, chatId, messageId);
 }
 
+async function handleCategoryCallback({ entities, config, ownerId, telegramUserId, data, botToken, chatId, callbackQueryId, messageId }) {
+  const setup = (config.pending_category_setup || []).find((item) => String(item.telegram_user_id) === String(telegramUserId));
+  if (!setup) {
+    await answerCallbackQuery(botToken, callbackQueryId, 'Настройка уже завершена');
+    await removeInlineKeyboard(botToken, chatId, messageId);
+    return;
+  }
+  if (data === 'cat:back') {
+    const previousStage = setup.stage === 'category_icon' ? 'category_type' : setup.stage === 'category_color' ? 'category_icon' : 'budget_choice';
+    await saveCategorySetup(entities, config, telegramUserId, { ...setup, stage: previousStage });
+    if (previousStage === 'category_type') {
+      await sendMessage(botToken, chatId, 'Выберите тип категории:', { inline_keyboard: [[{ text: '💸 Расход', callback_data: 'cat:type:expense' }, { text: '💰 Доход', callback_data: 'cat:type:income' }]] });
+    } else if (previousStage === 'category_icon') {
+      await sendMessage(botToken, chatId, 'Выберите иконку:', { inline_keyboard: [...CATEGORY_ICONS.map(([label, icon]) => [{ text: label, callback_data: `cat:icon:${icon}` }]), [{ text: '← Назад', callback_data: 'cat:back' }]] });
+    }
+  } else if (data.startsWith('cat:type:')) {
+    const categoryType = data.slice(9);
+    await saveCategorySetup(entities, config, telegramUserId, { ...setup, stage: 'category_icon', category_type: categoryType });
+    await sendMessage(botToken, chatId, 'Выберите иконку:', { inline_keyboard: [...CATEGORY_ICONS.map(([label, icon]) => [{ text: label, callback_data: `cat:icon:${icon}` }]), [{ text: '← Назад', callback_data: 'cat:back' }]] });
+  } else if (data.startsWith('cat:icon:')) {
+    await saveCategorySetup(entities, config, telegramUserId, { ...setup, stage: 'category_color', icon: data.slice(9) });
+    await sendMessage(botToken, chatId, 'Выберите цвет:', { inline_keyboard: [...CATEGORY_COLORS.map(([label, color]) => [{ text: label, callback_data: `cat:color:${color}` }]), [{ text: '← Назад', callback_data: 'cat:back' }]] });
+  } else if (data.startsWith('cat:color:')) {
+    const owner = await entities.User.get(ownerId).catch(() => null);
+    const category = await entities.Category.create({ name: setup.category, type: setup.category_type, icon: setup.icon, color: data.slice(10), family_id: owner?.family_id || undefined, created_by_id: ownerId });
+    await reassignOwnership(entities, 'Category', category.id, ownerId, owner?.family_id);
+    await showBudgetChoice({ entities, config, setup: { ...setup, stage: 'budget_choice', color: data.slice(10), category_id: category.id }, ownerId, telegramUserId, botToken, chatId });
+  } else if (data.startsWith('cat:budget:')) {
+    const budget = await entities.Budget.get(data.slice(11));
+    if (!budget) return;
+    const categories = Array.from(new Set([...(budget.categories || (budget.category ? [budget.category] : [])), setup.category]));
+    await entities.Budget.update(budget.id, { categories });
+    await completeCategorySetup({ entities, config, setup, ownerId, telegramUserId, botToken, chatId, budgetScope: budget.is_family_budget ? 'family' : 'personal' });
+  } else if (data === 'cat:newbudget') {
+    await saveCategorySetup(entities, config, telegramUserId, { ...setup, stage: 'budget_name' });
+    await sendMessage(botToken, chatId, 'Напишите название нового бюджета:');
+  }
+  await answerCallbackQuery(botToken, callbackQueryId, 'Готово');
+  await removeInlineKeyboard(botToken, chatId, messageId);
+}
+
+async function handlePendingCategoryText({ entities, config, ownerId, telegramUserId, botToken, chatId, text }) {
+  const setup = (config.pending_category_setup || []).find((item) => String(item.telegram_user_id) === String(telegramUserId));
+  if (!setup) return false;
+  if (setup.stage === 'budget_name') {
+    await saveCategorySetup(entities, config, telegramUserId, { ...setup, stage: 'budget_limit', budget_name: text.trim() });
+    await sendMessage(botToken, chatId, 'Укажите месячный лимит бюджета числом:');
+    return true;
+  }
+  if (setup.stage === 'budget_limit') {
+    const limit = normalizeAmount(text);
+    if (!limit) {
+      await sendMessage(botToken, chatId, 'Введите лимит числом, например: 15000');
+      return true;
+    }
+    const owner = await entities.User.get(ownerId).catch(() => null);
+    await entities.Budget.create({ name: setup.budget_name || `Бюджет: ${setup.category}`, categories: [setup.category], limit_amount: limit, spent_amount: 0, period: 'monthly', currency: setup.currency || owner?.currency || 'RUB', user_id: ownerId, created_by_id: ownerId, family_id: owner?.family_id || undefined, visibility: 'private', is_active: true, start_date: new Date().toISOString().slice(0, 10) });
+    await completeCategorySetup({ entities, config, setup, ownerId, telegramUserId, botToken, chatId, budgetScope: 'personal' });
+    return true;
+  }
+  return false;
+}
+
 async function handleOperationsButton({ entities, ownerId, botToken, chatId }) {
   const myTx = (await entities.Transaction.filter({ user_id: ownerId })).slice(0, 10);
 
@@ -669,6 +805,8 @@ export default async function (req) {
         await handleAnalyticsButton({ entities: base44.asServiceRole.entities, ownerId: actor.user_id, config, botToken, chatId, period: data.slice(10) });
         await answerCallbackQuery(botToken, cq.id, 'Готово');
         await removeInlineKeyboard(botToken, chatId, cq.message?.message_id);
+      } else if (data.startsWith('cat:')) {
+        await handleCategoryCallback({ entities: base44.asServiceRole.entities, config, ownerId: actor.user_id, telegramUserId: fromId, data, botToken, chatId, callbackQueryId: cq.id, messageId: cq.message?.message_id });
       }
       return Response.json({ ok: true });
     }
@@ -835,6 +973,10 @@ export default async function (req) {
       }
       if (text === '📋 Операции') {
         await handleOperationsButton({ entities, ownerId, botToken, chatId });
+        return Response.json({ ok: true });
+      }
+
+      if (await handlePendingCategoryText({ entities, config, ownerId, telegramUserId: fromId, botToken, chatId, text })) {
         return Response.json({ ok: true });
       }
 
