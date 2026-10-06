@@ -1,0 +1,15 @@
+import React, { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { base44 } from '@/api/base44Client';
+import { ArrowLeft, CheckCircle2, Lock } from 'lucide-react';
+import LessonViewer from '@/components/learning/LessonViewer';
+
+export default function LearningCourse() {
+  const { courseId } = useParams(); const [course, setCourse] = useState(null); const [lessons, setLessons] = useState([]); const [progress, setProgress] = useState([]); const [selectedId, setSelectedId] = useState(null);
+  const load = () => Promise.all([base44.entities.LearningCourse.get(courseId), base44.entities.LearningLesson.filter({ course_id: courseId }, { sort: 'sort_order', limit: 200 }), base44.entities.LessonProgress.filter({ course_id: courseId }, { limit: 500 })]).then(([c, l, p]) => { setCourse(c); setLessons(l.items); setProgress(p.items); setSelectedId((current) => current || l.items[0]?.id); });
+  useEffect(() => { load(); }, [courseId]);
+  if (!course) return <div className="p-8 text-center text-sm text-muted-foreground">Загрузка курса…</div>;
+  const selectedIndex = lessons.findIndex((item) => item.id === selectedId); const selected = lessons[selectedIndex]; const selectedProgress = progress.find((item) => item.lesson_id === selectedId); const canOpen = selectedIndex <= 0 || progress.some((item) => item.lesson_id === lessons[selectedIndex - 1]?.id && item.completed);
+  const saveProgress = async (data) => { if (selectedProgress) await base44.entities.LessonProgress.update(selectedProgress.id, data); else await base44.entities.LessonProgress.create({ course_id: courseId, lesson_id: selectedId, user_id: (await base44.auth.me()).id, ...data }); await load(); };
+  return <div className="max-w-5xl mx-auto px-4 sm:px-6 py-7 pb-24 lg:pb-8"><Link to="/LearningCourses" className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-5"><ArrowLeft className="w-4 h-4" />Моё обучение</Link><h1 className="text-2xl font-bold text-foreground">{course.title}</h1><p className="mt-1 text-sm text-muted-foreground">{course.description}</p><div className="grid lg:grid-cols-[260px_1fr] gap-5 mt-6"><aside className="space-y-2">{lessons.map((lesson, index) => { const done = progress.some((item) => item.lesson_id === lesson.id && item.completed); const open = index === 0 || progress.some((item) => item.lesson_id === lessons[index - 1]?.id && item.completed); return <button key={lesson.id} onClick={() => open && setSelectedId(lesson.id)} className={`w-full flex gap-2 p-3 text-left rounded-lg border text-sm ${selectedId === lesson.id ? 'border-primary bg-primary/5' : 'border-border'} ${open ? '' : 'opacity-60 cursor-not-allowed'}`}>{done ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> : open ? <span className="w-4 text-center">{index + 1}</span> : <Lock className="w-4 h-4 shrink-0" />}<span>{lesson.title}</span></button>; })}</aside>{selected && <LessonViewer lesson={selected} progress={selectedProgress} canOpen={canOpen} onSave={saveProgress} />}</div></div>;
+}

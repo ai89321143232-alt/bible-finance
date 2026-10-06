@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Lock, CheckCircle2, ChevronRight, RotateCcw, BookOpen, PlayCircle, ClipboardList } from 'lucide-react';
@@ -12,6 +13,8 @@ import { useEducationProgress } from '@/hooks/useEducationProgress';
 // ============================================================
 export default function Education() {
   const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => { base44.auth.me().then((user) => setIsAdmin(user?.role === 'admin')); }, []);
   const {
     loading,
     isModuleUnlocked,
@@ -75,7 +78,21 @@ export default function Education() {
         )}
       </div>
 
-      {/* Список модулей */}
+      <div className="mb-6 grid gap-3 sm:grid-cols-2">
+        <Card className="p-4 glass-card">
+          <div className="font-semibold text-foreground">Назначенные курсы</div>
+          <p className="mt-1 text-sm text-muted-foreground">Проходите курсы, которые назначил администратор.</p>
+          <Button className="mt-3 w-full sm:w-auto" onClick={() => navigate('/LearningCourses')}>Открыть моё обучение</Button>
+        </Card>
+        {isAdmin && <Card className="p-4 glass-card">
+          <div className="font-semibold text-foreground">Управление обучением</div>
+          <p className="mt-1 text-sm text-muted-foreground">Создавайте курсы, группы и назначайте участников.</p>
+          <Button variant="outline" className="mt-3 w-full sm:w-auto" onClick={() => navigate('/LearningAdmin')}>Открыть кабинет</Button>
+        </Card>}
+      </div>
+
+      {/* Существующий курс */}
+      <div className="mb-3"><h2 className="text-base font-semibold text-foreground">Библейские принципы</h2><p className="text-sm text-muted-foreground">Доступный всем базовый курс</p></div>
       <div className="space-y-3">
         {EDUCATION_MODULES.map((module, index) => {
           const Icon = module.icon;

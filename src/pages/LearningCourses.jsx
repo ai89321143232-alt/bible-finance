@@ -1,0 +1,13 @@
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { base44 } from '@/api/base44Client';
+import { BookOpen, GraduationCap } from 'lucide-react';
+import CourseCard from '@/components/learning/CourseCard';
+
+export default function LearningCourses() {
+  const [assignments, setAssignments] = useState([]); const [courses, setCourses] = useState([]); const [lessons, setLessons] = useState([]); const [progress, setProgress] = useState([]); const [loading, setLoading] = useState(true); const navigate = useNavigate();
+  useEffect(() => { Promise.all([base44.entities.CourseAssignment.filter({}, { limit: 50 }), base44.entities.LearningCourse.filter({ status: 'published' }, { sort: 'sort_order', limit: 100 }), base44.entities.LearningLesson.filter({ course_status: 'published' }, { limit: 500 }), base44.entities.LessonProgress.filter({}, { limit: 500 })]).then(([a, c, l, p]) => { setAssignments(a.items); setCourses(c.items); setLessons(l.items); setProgress(p.items); setLoading(false); }); }, []);
+  const enrolled = courses.filter((course) => assignments.some((item) => item.course_id === course.id));
+  const courseProgress = (courseId) => { const courseLessons = lessons.filter((item) => item.course_id === courseId); if (!courseLessons.length) return 0; const completed = progress.filter((item) => item.course_id === courseId && item.completed).length; return Math.round(completed / courseLessons.length * 100); };
+  return <div className="max-w-4xl mx-auto px-4 sm:px-6 py-7 pb-24 lg:pb-8"><div className="flex items-center gap-3 mb-6"><div className="w-11 h-11 rounded-xl bg-primary/10 grid place-items-center"><GraduationCap className="w-5 h-5 text-primary" /></div><div><h1 className="text-2xl font-bold text-foreground">Моё обучение</h1><p className="text-sm text-muted-foreground">Ваши назначенные курсы и прогресс</p></div></div>{loading ? <p className="text-sm text-muted-foreground">Загрузка обучения…</p> : enrolled.length ? <div className="space-y-3">{enrolled.map((course) => <CourseCard key={course.id} course={course} progress={courseProgress(course.id)} onOpen={() => navigate(`/LearningCourse/${course.id}`)} />)}</div> : <div className="rounded-2xl border border-border p-8 text-center"><BookOpen className="w-8 h-8 mx-auto text-muted-foreground mb-3" /><div className="font-semibold text-foreground">Пока нет назначенных курсов</div><p className="text-sm text-muted-foreground mt-1">Администратор добавит вас в учебную группу.</p></div>}</div>;
+}

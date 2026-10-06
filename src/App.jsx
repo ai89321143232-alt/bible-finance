@@ -46,6 +46,9 @@ const Subscriptions = React.lazy(() => import('./pages/Subscriptions'));
 const AIPlanning = React.lazy(() => import('./pages/AIPlanning'));
 const Backup = React.lazy(() => import('./pages/Backup'));
 const MindfulFinances = React.lazy(() => import('./pages/MindfulFinances'));
+const LearningCourses = React.lazy(() => import('./pages/LearningCourses'));
+const LearningCourse = React.lazy(() => import('./pages/LearningCourse'));
+const LearningAdmin = React.lazy(() => import('./pages/LearningAdmin'));
 import SplashScreen from './components/SplashScreen';
 import PushNotificationManager from '@/components/PushNotificationManager';
 import GlobalCacheSync from './components/GlobalCacheSync';
@@ -145,6 +148,9 @@ const AuthenticatedApp = () => {
         <Route path="/AIPlanning" element={<LayoutWrapper currentPageName="AIPlanning"><AIPlanning /></LayoutWrapper>} />
         <Route path="/Backup" element={<LayoutWrapper currentPageName="Backup"><Backup /></LayoutWrapper>} />
         <Route path="/MindfulFinances" element={<LayoutWrapper currentPageName="MindfulFinances"><MindfulFinances /></LayoutWrapper>} />
+        <Route path="/LearningCourses" element={<LayoutWrapper currentPageName="Education"><LearningCourses /></LayoutWrapper>} />
+        <Route path="/LearningCourse/:courseId" element={<LayoutWrapper currentPageName="Education"><LearningCourse /></LayoutWrapper>} />
+        <Route path="/LearningAdmin" element={<LayoutWrapper currentPageName="Education"><LearningAdmin /></LayoutWrapper>} />
       </Route>
 
       {/* 404 */}
