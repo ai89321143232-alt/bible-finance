@@ -1,0 +1,42 @@
+{
+  "name": "\u0410\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0430\u044f \u0432\u044b\u0434\u0430\u0447\u0430 \u0441\u0435\u0440\u0442\u0438\u0444\u0438\u043a\u0430\u0442\u0430",
+  "description": "\u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u0442 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u0438\u0435 \u043a\u0443\u0440\u0441\u0430 \u043f\u043e\u0441\u043b\u0435 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f \u043f\u0440\u043e\u0433\u0440\u0435\u0441\u0441\u0430 \u0438 \u0432\u044b\u0434\u0430\u0451\u0442 \u0441\u0435\u0440\u0442\u0438\u0444\u0438\u043a\u0430\u0442 \u0443\u0447\u0435\u043d\u0438\u043a\u0443.",
+  "trigger": {
+    "config": {
+      "trigger_type": "entity",
+      "entity_name": "LessonProgress",
+      "events": [
+        "create",
+        "update"
+      ]
+    },
+    "condition": "${ .trigger.event_type == \"create\" or ((.trigger.changed_fields // []) | index(\"completed\") != null) or ((.trigger.changed_fields // []) | index(\"practice_completed\") != null) }"
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "issue_course_certificate",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "check_completion": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "issueCourseCertificate",
+            "args": {
+              "courseId": "${ .trigger.data.course_id }",
+              "userId": "${ .trigger.data.user_id }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u0438\u0435 \u043a\u0443\u0440\u0441\u0430",
+            "description": "\u0412\u044b\u0434\u0430\u0442\u044c \u0441\u0435\u0440\u0442\u0438\u0444\u0438\u043a\u0430\u0442 \u043f\u0440\u0438 \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u0438 \u0443\u0441\u043b\u043e\u0432\u0438\u0439"
+          }
+        }
+      }
+    ]
+  }
+}
