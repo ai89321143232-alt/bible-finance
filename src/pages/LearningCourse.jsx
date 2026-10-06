@@ -77,7 +77,10 @@ export default function LearningCourse() {
       let finalText = answer_text || '';
 
       if (answer_format === 'audio' && audio_blob) {
-        const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file: audio_blob });
+        const fileObj = audio_blob instanceof File
+          ? audio_blob
+          : new File([audio_blob], `answer-${Date.now()}.webm`, { type: audio_blob.type || 'audio/webm' });
+        const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file: fileObj });
         audio_uri = file_uri;
       }
 
