@@ -1,0 +1,122 @@
+{
+  "name": "LessonAnswer",
+  "type": "object",
+  "properties": {
+    "course_id": {
+      "type": "string",
+      "description": "ID \u043a\u0443\u0440\u0441\u0430"
+    },
+    "lesson_id": {
+      "type": "string",
+      "description": "ID \u0443\u0440\u043e\u043a\u0430 (\u043d\u0435\u0434\u0435\u043b\u0438)"
+    },
+    "module_id": {
+      "type": "string",
+      "description": "ID \u043c\u043e\u0434\u0443\u043b\u044f"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID \u0441\u0442\u0443\u0434\u0435\u043d\u0442\u0430"
+    },
+    "day_index": {
+      "type": "number",
+      "description": "\u0418\u043d\u0434\u0435\u043a\u0441 \u0434\u043d\u044f (0-5) \u0432 \u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0435 \u0443\u0440\u043e\u043a\u0430"
+    },
+    "question_index": {
+      "type": "number",
+      "description": "\u0418\u043d\u0434\u0435\u043a\u0441 \u0432\u043e\u043f\u0440\u043e\u0441\u0430 \u0432\u043d\u0443\u0442\u0440\u0438 \u0434\u043d\u044f"
+    },
+    "question_text": {
+      "type": "string",
+      "description": "\u0422\u0435\u043a\u0441\u0442 \u0432\u043e\u043f\u0440\u043e\u0441\u0430 (\u043a\u043e\u043f\u0438\u044f \u0434\u043b\u044f \u043a\u043e\u043d\u0442\u0435\u043a\u0441\u0442\u0430 \u0418\u0418)"
+    },
+    "answer_text": {
+      "type": "string",
+      "description": "\u0422\u0435\u043a\u0441\u0442 \u043e\u0442\u0432\u0435\u0442\u0430 \u0441\u0442\u0443\u0434\u0435\u043d\u0442\u0430 (\u0432\u0432\u0435\u0434\u0451\u043d \u0438\u043b\u0438 \u0440\u0430\u0441\u043f\u043e\u0437\u043d\u0430\u043d \u0438\u0437 \u0430\u0443\u0434\u0438\u043e)"
+    },
+    "audio_uri": {
+      "type": "string",
+      "description": "URI \u0430\u0443\u0434\u0438\u043e\u0444\u0430\u0439\u043b\u0430 \u0432 \u043f\u0440\u0438\u0432\u0430\u0442\u043d\u043e\u043c \u0445\u0440\u0430\u043d\u0438\u043b\u0438\u0449\u0435 (\u0435\u0441\u043b\u0438 \u043e\u0442\u0432\u0435\u0442 \u0433\u043e\u043b\u043e\u0441\u043e\u043c)"
+    },
+    "answer_format": {
+      "type": "string",
+      "enum": [
+        "text",
+        "audio"
+      ],
+      "default": "text",
+      "description": "\u0424\u043e\u0440\u043c\u0430\u0442 \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u043d\u043e\u0433\u043e \u043e\u0442\u0432\u0435\u0442\u0430"
+    },
+    "ai_feedback": {
+      "type": "string",
+      "description": "\u0411\u0435\u0440\u0435\u0436\u043d\u0430\u044f \u043e\u0431\u0440\u0430\u0442\u043d\u0430\u044f \u0441\u0432\u044f\u0437\u044c \u043e\u0442 \u0418\u0418-\u043d\u0430\u0441\u0442\u0430\u0432\u043d\u0438\u043a\u0430"
+    },
+    "feedback_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "processing",
+        "done",
+        "error"
+      ],
+      "default": "pending",
+      "description": "\u0421\u0442\u0430\u0442\u0443\u0441 \u0433\u0435\u043d\u0435\u0440\u0430\u0446\u0438\u0438 \u043e\u0431\u0440\u0430\u0442\u043d\u043e\u0439 \u0441\u0432\u044f\u0437\u0438"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "feedback_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "course_id",
+    "lesson_id",
+    "user_id",
+    "day_index",
+    "question_index"
+  ],
+  "rls": {
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
