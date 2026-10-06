@@ -6,7 +6,7 @@ import {
   Home, Wallet, ArrowLeftRight, CreditCard, BarChart2, PieChart, Repeat,
   Target, Lightbulb, AlertTriangle, TrendingUp, TrendingDown, Users, Baby, MessageSquare,
   Bot, MessageCircle, Sparkles, CheckSquare, ListTodo, FileText,
-  GraduationCap, Library, Settings, ChevronDown, Cloud
+  GraduationCap, Library, Settings, ChevronDown, Cloud, Heart
 } from 'lucide-react';
 import useUnreadFamilyChat from '@/hooks/useUnreadFamilyChat';
 import { useTranslation } from '@/lib/LanguageContext';
@@ -60,6 +60,7 @@ export const MENU_STRUCTURE = [
     ],
   },
   { type: 'link', name: 'Education', labelKey: 'nav.education', icon: GraduationCap },
+  { type: 'link', name: 'MindfulFinances', label: 'Осознанные финансы', icon: Heart },
   { type: 'link', name: 'HelpCenter', labelKey: 'nav.library', icon: Library },
   { type: 'link', name: 'Backup', label: 'Резервные копии', icon: Cloud },
   { type: 'link', name: 'Settings', labelKey: 'nav.settings', icon: Settings },

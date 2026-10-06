@@ -45,6 +45,7 @@ const FamilyChat = React.lazy(() => import('./pages/FamilyChat'));
 const Subscriptions = React.lazy(() => import('./pages/Subscriptions'));
 const AIPlanning = React.lazy(() => import('./pages/AIPlanning'));
 const Backup = React.lazy(() => import('./pages/Backup'));
+const MindfulFinances = React.lazy(() => import('./pages/MindfulFinances'));
 import SplashScreen from './components/SplashScreen';
 import PushNotificationManager from '@/components/PushNotificationManager';
 import GlobalCacheSync from './components/GlobalCacheSync';
@@ -143,6 +144,7 @@ const AuthenticatedApp = () => {
         <Route path="/Subscriptions" element={<LayoutWrapper currentPageName="Subscriptions"><Subscriptions /></LayoutWrapper>} />
         <Route path="/AIPlanning" element={<LayoutWrapper currentPageName="AIPlanning"><AIPlanning /></LayoutWrapper>} />
         <Route path="/Backup" element={<LayoutWrapper currentPageName="Backup"><Backup /></LayoutWrapper>} />
+        <Route path="/MindfulFinances" element={<LayoutWrapper currentPageName="MindfulFinances"><MindfulFinances /></LayoutWrapper>} />
       </Route>
 
       {/* 404 */}
