@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { ArrowLeft, CheckCircle2, Lock } from 'lucide-react';
@@ -16,6 +16,7 @@ export default function LearningCourse() {
   const [certificate, setCertificate] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const viewerRef = useRef(null);
 
   const load = async () => {
     const user = await base44.auth.me();
@@ -47,6 +48,12 @@ export default function LearningCourse() {
   };
 
   useEffect(() => { load(); }, [courseId]);
+
+  useEffect(() => {
+    if (selectedId && viewerRef.current) {
+      viewerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [selectedId]);
 
   if (!course) return <div className="p-8 text-center text-sm text-muted-foreground">Загрузка курса…</div>;
 
@@ -141,7 +148,7 @@ export default function LearningCourse() {
           ))}
           {!modules.length && lessons.map(lessonButton)}
         </aside>
-        {selected && <LessonViewer lesson={selected} progress={selectedProgress} canOpen={canOpen} onSave={saveProgress} answers={selectedAnswers} onAnswer={submitAnswer} />}
+        {selected && <div ref={viewerRef}><LessonViewer lesson={selected} progress={selectedProgress} canOpen={canOpen} onSave={saveProgress} answers={selectedAnswers} onAnswer={submitAnswer} /></div>}
       </div>
     </div>
   );

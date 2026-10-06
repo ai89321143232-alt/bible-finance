@@ -115,39 +115,54 @@ export default function LessonViewer({ lesson, progress, canOpen, onSave, answer
       </div>
 
       {hasDays && (
-        <div className="space-y-3 border-t border-border pt-4">
+        <div className="space-y-4 border-t border-border pt-4">
           <div className="flex items-center gap-2 font-medium text-foreground">
             <BookOpen className="w-4 h-4" />Задания по дням
           </div>
-          {days.map((day, di) => {
-            const isOpen = openDay === di;
-            const dayAnswers = answers.filter((a) => a.day_index === di);
-            const dayTotal = (day.questions || []).length;
-            const dayDone = dayAnswers.filter((a) => {
-              const qi = answers.indexOf(a);
-              return a.feedback_status === 'done';
-            }).length;
-            const dayQuestionsAnswered = (day.questions || []).filter((_, qi) => {
-              const a = dayAnswers.find((x) => x.question_index === qi);
-              return a?.feedback_status === 'done';
-            }).length;
-            return (
-              <div key={di} className="rounded-lg border border-border overflow-hidden">
+          {/* Day stepper — каждый день отдельным шагом */}
+          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+            {days.map((day, di) => {
+              const dayAnswers = answers.filter((a) => a.day_index === di);
+              const dayTotal = (day.questions || []).length;
+              const dayQuestionsAnswered = (day.questions || []).filter((_, qi) => {
+                const a = dayAnswers.find((x) => x.question_index === qi);
+                return a?.feedback_status === 'done';
+              }).length;
+              const dayComplete = dayTotal > 0 && dayQuestionsAnswered >= dayTotal && (!day.practice_prompt || isDayPracticeDone(di));
+              const isActive = openDay === di;
+              return (
                 <button
-                  onClick={() => setOpenDay(isOpen ? -1 : di)}
-                  className="w-full flex items-center justify-between p-3 text-left bg-muted/30"
+                  key={di}
+                  onClick={() => setOpenDay(di)}
+                  className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : dayComplete
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                      : 'bg-muted/50 text-foreground border-border'
+                  }`}
                 >
-                  <span className="text-sm font-medium text-foreground">
-                    {day.title || `День ${di + 1}`}
-                    {day.scripture_ref && <span className="ml-2 text-xs text-muted-foreground">{day.scripture_ref}</span>}
-                  </span>
-                  <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {dayTotal > 0 && <span>{dayQuestionsAnswered}/{dayTotal}</span>}
-                    {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                  </span>
+                  {dayComplete && !isActive ? <Check className="w-3.5 h-3.5 inline mr-1" /> : null}
+                  {day.title || `День ${di + 1}`}
+                  {dayTotal > 0 && <span className="ml-1.5 text-xs opacity-70">{dayQuestionsAnswered}/{dayTotal}</span>}
                 </button>
-                {isOpen && (
-                  <div className="p-4 space-y-4">
+              );
+            })}
+          </div>
+
+          {/* Active day content */}
+          {days[openDay] && (
+            <div className="rounded-lg border border-border p-4 space-y-4">
+              {(() => {
+                const di = openDay;
+                const day = days[di];
+                const dayAnswers = answers.filter((a) => a.day_index === di);
+                return (
+                  <>
+                    <div className="flex items-center justify-between gap-2 border-b border-border pb-3">
+                      <h3 className="text-base font-semibold text-foreground">{day.title || `День ${di + 1}`}</h3>
+                      {day.scripture_ref && <span className="text-xs text-muted-foreground">{day.scripture_ref}</span>}
+                    </div>
                     {day.scripture && (
                       <div className="rounded-md bg-primary/5 p-3 text-sm italic text-foreground border-l-2 border-primary">
                         {day.scripture}
@@ -187,11 +202,35 @@ export default function LessonViewer({ lesson, progress, canOpen, onSave, answer
                         </div>
                       </div>
                     )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                    {/* Day navigation */}
+                    {days.length > 1 && (
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={openDay === 0}
+                          onClick={() => setOpenDay(Math.max(0, openDay - 1))}
+                        >
+                          <ChevronRight className="w-4 h-4 rotate-180 mr-1" />Предыдущий
+                        </Button>
+                        <span className="text-xs text-muted-foreground">День {openDay + 1} из {days.length}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={openDay === days.length - 1}
+                          onClick={() => setOpenDay(Math.min(days.length - 1, openDay + 1))}
+                        >
+                          Следующий<ChevronRight className="w-4 h-4 ml-1" />
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          )}
         </div>
       )}
 
