@@ -29,11 +29,21 @@ export default function LearningCourse() {
     ]);
     setCourse(c);
     setModules(m.items);
-    setLessons(l.items);
+    const moduleOrder = new Map(m.items.map((mod, i) => [mod.id, i]));
+    const sortedLessons = [...l.items].sort((a, b) => {
+      const am = moduleOrder.get(a.module_id) ?? 999;
+      const bm = moduleOrder.get(b.module_id) ?? 999;
+      if (am !== bm) return am - bm;
+      const as = a.sort_order ?? 0;
+      const bs = b.sort_order ?? 0;
+      if (as !== bs) return as - bs;
+      return (a.created_date || '').localeCompare(b.created_date || '');
+    });
+    setLessons(sortedLessons);
     setProgress(p.items);
     setCertificate(certs.items[0] || null);
     setAnswers(ans.items);
-    setSelectedId((current) => current || l.items[0]?.id);
+    setSelectedId((current) => current || sortedLessons[0]?.id);
   };
 
   useEffect(() => { load(); }, [courseId]);

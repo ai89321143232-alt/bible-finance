@@ -92,6 +92,21 @@ export default function LearningAdmin() {
     navigate(`/LearningCourse/${selected.id}`);
   };
 
+  const resetProgress = async () => {
+    if (!selected) return;
+    if (!confirm(`Сбросить весь прогресс курса «${selected.title}» для всех учеников?`)) return;
+    setSaving(true);
+    try {
+      await base44.functions.invoke('resetCourseProgress', { courseId: selected.id });
+      alert('Прогресс курса сброшен.');
+    } catch (e) {
+      alert('Ошибка: ' + (e?.message || e));
+    } finally {
+      setSaving(false);
+      load();
+    }
+  };
+
   const saveGroup = async () => {
     setSaving(true);
     const created = await base44.entities.LearningGroup.create(group);
@@ -120,7 +135,7 @@ export default function LearningAdmin() {
         {groups.length ? <div className="space-y-2">{groups.map((item) => <div key={item.id} className="p-3 rounded-lg border border-border"><div className="font-medium text-foreground">{item.title}</div><div className="text-sm text-muted-foreground">Участников: {item.member_ids?.length || 0}</div></div>)}</div> : <p className="text-sm text-muted-foreground">Групп пока нет.</p>}
       </Card>
     </div>
-    {selected && <Card className="p-5 glass-card mt-5"><div className="flex justify-between gap-3 mb-5"><div><h2 className="font-semibold">{selected.title}</h2><p className="text-sm text-muted-foreground">Добавляйте модули и уроки по порядку.</p></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={selfEnroll} disabled={saving || selected.status !== 'published'}>{saving ? '…' : 'Проверить как студент'}</Button><Button variant="outline" size="sm" onClick={() => setCourseOpen(true)}><Settings2 className="w-4 h-4 mr-1" />Изменить</Button></div></div><div className="space-y-7"><LearningImport course={selected} onDone={() => { load(); base44.entities.LearningModule.filter({ course_id: selected.id }, { sort: 'sort_order', limit: 100 }).then((res) => setModules(res.items)); }} /><ModuleLessonForm modules={modules} onCreateModule={addModule} onCreateLesson={addLesson} saving={saving} /></div></Card>}
+    {selected && <Card className="p-5 glass-card mt-5"><div className="flex justify-between gap-3 mb-5"><div><h2 className="font-semibold">{selected.title}</h2><p className="text-sm text-muted-foreground">Добавляйте модули и уроки по порядку.</p></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={selfEnroll} disabled={saving || selected.status !== 'published'}>{saving ? '…' : 'Проверить как студент'}</Button><Button variant="outline" size="sm" onClick={resetProgress} disabled={saving}>Сбросить прогресс</Button><Button variant="outline" size="sm" onClick={() => setCourseOpen(true)}><Settings2 className="w-4 h-4 mr-1" />Изменить</Button></div></div><div className="space-y-7"><LearningImport course={selected} onDone={() => { load(); base44.entities.LearningModule.filter({ course_id: selected.id }, { sort: 'sort_order', limit: 100 }).then((res) => setModules(res.items)); }} /><ModuleLessonForm modules={modules} onCreateModule={addModule} onCreateLesson={addLesson} saving={saving} /></div></Card>}
     <Dialog open={courseOpen} onOpenChange={setCourseOpen}><DialogContent><DialogHeader><DialogTitle>{selected ? 'Настройки курса' : 'Новый курс'}</DialogTitle></DialogHeader><CourseForm course={selected} onSave={saveCourse} saving={saving} /></DialogContent></Dialog>
     <Dialog open={groupOpen} onOpenChange={setGroupOpen}><DialogContent><DialogHeader><DialogTitle>Новая учебная группа</DialogTitle></DialogHeader><div className="space-y-4"><div><Label>Название группы</Label><Input className="mt-1" value={group.title} onChange={(e) => setGroup({ ...group, title: e.target.value })} /></div><div><Label>Курс</Label><select className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={group.course_id} onChange={(e) => setGroup({ ...group, course_id: e.target.value })}><option value="">Выберите курс</option>{courses.filter((item) => item.status === 'published').map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></div><div><Label>Участники</Label><div className="mt-2 max-h-48 overflow-y-auto space-y-2">{users.filter((item) => item.role !== 'admin').map((item) => <label className="flex gap-2 text-sm" key={item.id}><input type="checkbox" checked={group.member_ids.includes(item.id)} onChange={(e) => setGroup({ ...group, member_ids: e.target.checked ? [...group.member_ids, item.id] : group.member_ids.filter((id) => id !== item.id) })} />{item.full_name || item.email}</label>)}</div></div><Button className="w-full" disabled={!group.title || !group.course_id || saving} onClick={saveGroup}>{saving ? 'Сохранение…' : 'Создать группу'}</Button></div></DialogContent></Dialog>
   </div>;

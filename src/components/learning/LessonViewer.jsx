@@ -12,6 +12,8 @@ export default function LessonViewer({ lesson, progress, canOpen, onSave, answer
   const [practice, setPractice] = useState(progress?.practice_answer || '');
   const [answers2, setAnswers2] = useState(progress?.quiz_answers || []);
   const [openDay, setOpenDay] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
   const questions = lesson.quiz_questions || [];
   const days = lesson.days || [];
 
@@ -19,6 +21,7 @@ export default function LessonViewer({ lesson, progress, canOpen, onSave, answer
     setPractice(progress?.practice_answer || '');
     setAnswers2(progress?.quiz_answers || []);
     setOpenDay(0);
+    setError(null);
   }, [lesson.id, progress?.practice_answer, progress?.quiz_answers]);
 
   if (!canOpen) return <Card className="p-5 text-sm text-muted-foreground">Сначала завершите предыдущий урок.</Card>;
@@ -30,13 +33,38 @@ export default function LessonViewer({ lesson, progress, canOpen, onSave, answer
     await onAnswer({ day_index: dayIndex, question_index: questionIndex, question_text: question.text, ...payload });
   };
 
-  const complete = () => onSave({
-    practice_answer: practice,
-    quiz_answers: answers2,
-    quiz_passed: false,
-    completed: true,
-    completed_at: new Date().toISOString(),
-  });
+  // Check completion requirements
+  const totalDayQuestions = hasDays
+    ? days.reduce((sum, d) => sum + (d.questions || []).length, 0)
+    : 0;
+  const answeredDayQuestions = hasDays
+    ? answers.filter((a) => a.feedback_status === 'done').length
+    : 0;
+  const dayQuestionsDone = !hasDays || totalDayQuestions === 0 || answeredDayQuestions >= totalDayQuestions;
+
+  const practiceRequired = !hasDays && !!lesson.practice_prompt;
+  const practiceDone = !practiceRequired || !!(progress?.practice_completed || (practice && practice.trim()));
+
+  const canComplete = dayQuestionsDone && practiceDone;
+
+  const complete = async () => {
+    if (!canComplete || saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await onSave({
+        practice_answer: practice,
+        quiz_answers: answers2,
+        quiz_passed: false,
+        completed: true,
+        completed_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      setError(e?.message || 'Не удалось сохранить. Попробуйте ещё раз.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <Card className="p-5 glass-card space-y-5">
@@ -132,8 +160,16 @@ export default function LessonViewer({ lesson, progress, canOpen, onSave, answer
 
       {questions.length > 0 && <QuizTest questions={questions} answers={answers2} setAnswers={setAnswers2} submitted={progress?.completed} />}
 
-      <Button className="w-full" onClick={complete} disabled={progress?.completed}>
-        {progress?.completed ? <><CheckCircle2 className="w-4 h-4 mr-2" />Урок завершён</> : 'Завершить урок'}
+      {hasDays && totalDayQuestions > 0 && (
+        <div className="text-sm text-muted-foreground">
+          Отвечено вопросов: {answeredDayQuestions} из {totalDayQuestions}
+        </div>
+      )}
+
+      {error && <div className="text-sm text-destructive">{error}</div>}
+
+      <Button className="w-full" onClick={complete} disabled={progress?.completed || saving || !canComplete}>
+        {progress?.completed ? <><CheckCircle2 className="w-4 h-4 mr-2" />Урок завершён</> : saving ? 'Сохранение…' : !canComplete ? 'Завершите задания урока' : 'Завершить урок'}
       </Button>
     </Card>
   );
