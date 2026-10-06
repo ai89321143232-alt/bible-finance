@@ -20,6 +20,12 @@
     "resource_url": {
       "type": "string"
     },
+    "lesson_file_uri": {
+      "type": "string"
+    },
+    "assignment_file_uri": {
+      "type": "string"
+    },
     "practice_prompt": {
       "type": "string"
     },
