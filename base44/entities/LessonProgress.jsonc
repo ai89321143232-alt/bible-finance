@@ -46,6 +46,14 @@
     "practice_answer": {
       "type": "string"
     },
+    "practice_completed": {
+      "type": "boolean",
+      "default": false
+    },
+    "practice_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
     "completed_at": {
       "type": "string",
       "format": "date-time"

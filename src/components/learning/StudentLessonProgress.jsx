@@ -1,0 +1,7 @@
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { CheckCircle2 } from 'lucide-react';
+
+export default function StudentLessonProgress({ lessons, progress, onTogglePractice }) {
+  return <div className="space-y-3">{lessons.map((lesson) => { const item = progress.find((entry) => entry.lesson_id === lesson.id); const hasPractice = Boolean(lesson.practice_prompt); return <div key={lesson.id} className="rounded-lg border border-border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-medium text-foreground">{lesson.title}</h3><p className="mt-1 text-sm text-muted-foreground">Урок: {item?.completed ? 'пройден' : 'не пройден'}</p></div>{item?.completed && <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-500" />}</div>{hasPractice && <div className="mt-3 border-t border-border pt-3"><p className="text-sm font-medium text-foreground">Практическое задание</p><p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{lesson.practice_prompt}</p><p className="mt-3 whitespace-pre-wrap rounded-md bg-muted p-3 text-sm text-foreground">{item?.practice_answer || 'Ответ ученика пока не сохранён.'}</p><Button className="mt-3" size="sm" variant={item?.practice_completed ? 'secondary' : 'outline'} onClick={() => onTogglePractice(lesson, item)}>{item?.practice_completed ? 'Отменить выполнение' : 'Отметить выполненным'}</Button></div>}</div>; })}</div>;
+}

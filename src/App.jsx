@@ -49,6 +49,7 @@ const MindfulFinances = React.lazy(() => import('./pages/MindfulFinances'));
 const LearningCourses = React.lazy(() => import('./pages/LearningCourses'));
 const LearningCourse = React.lazy(() => import('./pages/LearningCourse'));
 const LearningAdmin = React.lazy(() => import('./pages/LearningAdmin'));
+const LearningAnalytics = React.lazy(() => import('./pages/LearningAnalytics'));
 import SplashScreen from './components/SplashScreen';
 import PushNotificationManager from '@/components/PushNotificationManager';
 import GlobalCacheSync from './components/GlobalCacheSync';
@@ -151,6 +152,7 @@ const AuthenticatedApp = () => {
         <Route path="/LearningCourses" element={<LayoutWrapper currentPageName="Education"><LearningCourses /></LayoutWrapper>} />
         <Route path="/LearningCourse/:courseId" element={<LayoutWrapper currentPageName="Education"><LearningCourse /></LayoutWrapper>} />
         <Route path="/LearningAdmin" element={<LayoutWrapper currentPageName="Education"><LearningAdmin /></LayoutWrapper>} />
+        <Route path="/LearningAnalytics" element={<LayoutWrapper currentPageName="Education"><LearningAnalytics /></LayoutWrapper>} />
       </Route>
 
       {/* 404 */}

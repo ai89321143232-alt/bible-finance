@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Users, Plus, Settings2 } from 'lucide-react';
+import { BarChart3, Users, Plus, Settings2 } from 'lucide-react';
 import CourseForm from '@/components/learning/CourseForm';
 import ModuleLessonForm from '@/components/learning/ModuleLessonForm';
 import LearningImport from '@/components/learning/LearningImport';
@@ -96,7 +96,7 @@ export default function LearningAdmin() {
   return <div className="max-w-6xl mx-auto px-4 sm:px-6 py-7 pb-24 lg:pb-8">
     <div className="flex items-center justify-between gap-3 mb-6">
       <div><h1 className="text-2xl font-bold text-foreground">Управление обучением</h1><p className="text-sm text-muted-foreground">Курсы, группы и прогресс участников</p></div>
-      <Button onClick={() => { setSelected(null); setCourseOpen(true); }}><Plus className="w-4 h-4 mr-2" />Курс</Button>
+      <div className="flex gap-2"><Button asChild variant="outline"><Link to="/LearningAnalytics"><BarChart3 className="w-4 h-4 mr-2" />Аналитика</Link></Button><Button onClick={() => { setSelected(null); setCourseOpen(true); }}><Plus className="w-4 h-4 mr-2" />Курс</Button></div>
     </div>
     <div className="grid lg:grid-cols-2 gap-5">
       <Card className="p-5 glass-card">
