@@ -130,13 +130,13 @@ export default function LearningCourse() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-7 pb-24 lg:pb-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-7 pb-24 lg:pb-8 overflow-x-hidden">
       <Link to="/LearningCourses" className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-5"><ArrowLeft className="w-4 h-4" />Моё обучение</Link>
       <h1 className="text-2xl font-bold text-foreground">{course.title}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{course.description}</p>
       <CourseCertificateCard certificate={certificate} />
-      <div className="grid lg:grid-cols-[260px_1fr] gap-5 mt-6">
-        <aside className="space-y-4">
+      <div className="grid lg:grid-cols-[260px_1fr] gap-5 mt-6 min-w-0">
+        <aside className="space-y-4 min-w-0">
           {modules.map((module) => (
             <section key={module.id} className="space-y-2">
               <div className="overflow-hidden rounded-lg border border-border bg-card max-w-full">
