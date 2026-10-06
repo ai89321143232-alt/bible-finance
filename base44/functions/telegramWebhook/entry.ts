@@ -116,8 +116,14 @@ const CATEGORY_ICONS = [
 ];
 const CATEGORY_COLORS = [['🟣 Фиолетовый', '#8B5CF6'], ['🔵 Синий', '#3B82F6'], ['🟢 Зелёный', '#22C55E'], ['🟠 Оранжевый', '#F97316'], ['🔴 Красный', '#EF4444'], ['🩷 Розовый', '#EC4899']];
 
+function normalizeCategory(s) {
+  return String(s || '').trim().toLowerCase();
+}
+
 function categoryMatches(budget, categoryName) {
-  return (budget.categories || (budget.category ? [budget.category] : [])).some((item) => String(item).toLowerCase() === String(categoryName).toLowerCase());
+  const categories = budget.categories || (budget.category ? [budget.category] : []);
+  const norm = normalizeCategory(categoryName);
+  return categories.some((item) => normalizeCategory(item) === norm);
 }
 
 async function saveCategorySetup(entities, config, telegramUserId, setup) {

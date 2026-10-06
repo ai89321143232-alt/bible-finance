@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { calcBudgetSpent } from '../../shared/budgetSpent.ts';
+import { calcBudgetSpent, normalizeCategory } from '../../shared/budgetSpent.ts';
 
 Deno.serve(async (req) => {
     try {
@@ -56,7 +56,8 @@ Deno.serve(async (req) => {
 
             // Проверяем категорию
             const budgetCategories = b.categories || (b.category ? [b.category] : []);
-            const categoryMatches = budgetCategories.length === 0 || budgetCategories.includes(category);
+            const normCategory = normalizeCategory(category);
+            const categoryMatches = budgetCategories.length === 0 || budgetCategories.some((c) => normalizeCategory(c) === normCategory);
             if (!categoryMatches) return false;
 
             // Семейный и личный бюджет с одинаковой категорией не должны оба получать

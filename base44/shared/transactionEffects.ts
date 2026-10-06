@@ -17,9 +17,14 @@ export async function applyBalanceDelta(entities, accountId, delta, ownerId) {
   await entities.Account.update(accountId, { balance: (account.balance || 0) + delta });
 }
 
+function normalizeCategory(s) {
+  return String(s || '').trim().toLowerCase();
+}
+
 function includesCategory(budget, category) {
   const categories = budget.categories?.length ? budget.categories : (budget.category ? [budget.category] : []);
-  return categories.includes(category);
+  const norm = normalizeCategory(category);
+  return categories.some((c) => normalizeCategory(c) === norm);
 }
 
 export async function getBudgetMatches(entities, userId, category) {

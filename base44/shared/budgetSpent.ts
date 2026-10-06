@@ -10,6 +10,15 @@
 // ============================================================
 
 /**
+ * Нормализует название категории для устойчивого сопоставления:
+ * убирает лишние пробелы и приводит к нижнему регистру.
+ * Отображаемое название в бюджете не меняется — только сравнение.
+ */
+export function normalizeCategory(s) {
+  return String(s || '').trim().toLowerCase();
+}
+
+/**
  * @param {object} budget — объект бюджета (is_family_budget, categories, category, start_date, end_date, scope)
  * @param {Array} transactions — транзакции владельца/семьи (уже отфильтрованные по доступу)
  * @param {string} currentUserId — ID текущего пользователя (для личного бюджета)
@@ -34,22 +43,24 @@ export function getBudgetPeriod(budget, now = new Date()) {
 }
 
 export function calcBudgetSpent(budget, transactions, currentUserId, accountScopeMap) {
-  const { periodStart, periodEnd } = getBudgetPeriod(budget);
-
   const categories = budget.categories?.length > 0
     ? budget.categories
     : (budget.category ? [budget.category] : []);
+  const normalizedCategories = categories.map(normalizeCategory);
   const budgetScope = budget.scope || 'personal';
 
   return (transactions || [])
     .filter(t => {
       if (t.type !== 'expense') return false;
-      if (categories.length > 0 && !categories.includes(t.category)) return false;
+      if (normalizedCategories.length > 0 && !normalizedCategories.includes(normalizeCategory(t.category))) return false;
       const td = new Date(t.date);
       if (isNaN(td.getTime())) {
         console.warn(`[budgetSpent] Transaction ${t.id || 'unknown'} has invalid date: ${t.date}`);
         return false;
       }
+      // Период определяется датой самой операции, а не текущей датой —
+      // расход за прошлый месяц учитывается в прошлом периоде, а не в текущем.
+      const { periodStart, periodEnd } = getBudgetPeriod(budget, td);
       if (td < periodStart || td > periodEnd) return false;
 
       // Семейный бюджет: все расходы семьи, кроме явно личных (budget_scope='personal')
