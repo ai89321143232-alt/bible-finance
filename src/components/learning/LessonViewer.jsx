@@ -67,7 +67,8 @@ export default function LessonViewer({ lesson, progress, canOpen, onSave, answer
   const dayPracticeAllDone = !dayPracticeRequired || days.every((d, di) => !d.practice_prompt || isDayPracticeDone(di));
 
   const practiceRequired = !hasDays && !!lesson.practice_prompt;
-  const practiceDone = !practiceRequired || !!(progress?.practice_completed || (practice && practice.trim()));
+  const practiceAnswer = answers.find((a) => a.day_index === 0 && a.question_index === 0);
+  const practiceDone = !practiceRequired || !!(practiceAnswer?.answer_text?.trim() || practiceAnswer?.audio_uri);
 
   const canComplete = dayQuestionsDone && dayPracticeAllDone && practiceDone;
 
@@ -235,10 +236,16 @@ export default function LessonViewer({ lesson, progress, canOpen, onSave, answer
       )}
 
       {lesson.practice_prompt && !hasDays && (
-        <div className="space-y-2">
-          <div className="font-medium text-foreground">Практическое задание</div>
-          <p className="text-sm text-muted-foreground">{lesson.practice_prompt}</p>
-          <Textarea disabled={progress?.completed} value={practice} onChange={(e) => setPractice(e.target.value)} placeholder="Ваш ответ" />
+        <div className="space-y-3 border-t border-border pt-4">
+          <div className="flex items-center gap-2 font-medium text-foreground">
+            <BookOpen className="w-4 h-4" />Практическое задание
+          </div>
+          <DayQuestionAnswer
+            question={{ text: lesson.practice_prompt, type: 'practice' }}
+            answer={answers.find((a) => a.day_index === 0 && a.question_index === 0)}
+            saving={answers.find((a) => a.day_index === 0 && a.question_index === 0)?.feedback_status === 'processing'}
+            onSubmit={(payload) => submitDayAnswer(0, 0, { text: lesson.practice_prompt }, payload)}
+          />
         </div>
       )}
 
