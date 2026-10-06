@@ -139,8 +139,8 @@ export default function LearningCourse() {
         <aside className="space-y-4">
           {modules.map((module) => (
             <section key={module.id} className="space-y-2">
-              <div className="overflow-hidden rounded-lg border border-border bg-card">
-                {module.poster_uri && (module.poster_uri.startsWith('http') ? <img src={module.poster_uri} alt={module.title} className="block w-full h-auto object-contain" /> : <PrivateImage fileUri={module.poster_uri} alt={module.title} className="block w-full h-auto object-contain" />)}
+              <div className="overflow-hidden rounded-lg border border-border bg-card max-w-full">
+                {module.poster_uri && (module.poster_uri.startsWith('http') ? <img src={module.poster_uri} alt={module.title} className="block w-full max-w-full h-auto object-contain" /> : <PrivateImage fileUri={module.poster_uri} alt={module.title} className="block w-full max-w-full h-auto object-contain" />)}
                 <div className="p-3">
                   <h2 className="text-sm font-semibold text-foreground">{module.title}</h2>
                   {module.description && <p className="mt-1 text-sm text-muted-foreground">{module.description}</p>}
