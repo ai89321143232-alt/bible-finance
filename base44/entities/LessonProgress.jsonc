@@ -19,7 +19,24 @@
       "type": "array",
       "default": [],
       "items": {
-        "type": "number"
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "index": {
+            "type": "number"
+          }
+        }
       }
     },
     "quiz_passed": {

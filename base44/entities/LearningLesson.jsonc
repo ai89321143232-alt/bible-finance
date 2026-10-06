@@ -32,6 +32,15 @@
           "question": {
             "type": "string"
           },
+          "type": {
+            "type": "string",
+            "enum": [
+              "single",
+              "multiple",
+              "text"
+            ],
+            "default": "single"
+          },
           "options": {
             "type": "array",
             "items": {
@@ -40,6 +49,15 @@
           },
           "correct_index": {
             "type": "number"
+          },
+          "correct_indexes": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "correct_text": {
+            "type": "string"
           }
         }
       }
