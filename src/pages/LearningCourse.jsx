@@ -140,7 +140,7 @@ export default function LearningCourse() {
           {modules.map((module) => (
             <section key={module.id} className="space-y-2">
               <div className="overflow-hidden rounded-lg border border-border bg-card">
-                {module.poster_uri && (module.poster_uri.startsWith('http') ? <div className="aspect-video w-full"><img src={module.poster_uri} alt={module.title} className="h-full w-full object-cover" /></div> : <div className="aspect-video w-full"><PrivateImage fileUri={module.poster_uri} alt={module.title} className="h-full w-full object-cover" /></div>)}
+                {module.poster_uri && (module.poster_uri.startsWith('http') ? <div className="aspect-video w-full overflow-hidden"><img src={module.poster_uri} alt={module.title} className="h-full w-full object-contain" /></div> : <div className="aspect-video w-full overflow-hidden"><PrivateImage fileUri={module.poster_uri} alt={module.title} className="h-full w-full object-contain" /></div>)}
                 <div className="p-3">
                   <h2 className="text-sm font-semibold text-foreground">{module.title}</h2>
                   {module.description && <p className="mt-1 text-sm text-muted-foreground">{module.description}</p>}
