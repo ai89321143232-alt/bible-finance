@@ -50,6 +50,7 @@ const LearningCourses = React.lazy(() => import('./pages/LearningCourses'));
 const LearningCourse = React.lazy(() => import('./pages/LearningCourse'));
 const LearningAdmin = React.lazy(() => import('./pages/LearningAdmin'));
 const LearningAnalytics = React.lazy(() => import('./pages/LearningAnalytics'));
+const InvestmentAgent = React.lazy(() => import('./pages/InvestmentAgent'));
 import SplashScreen from './components/SplashScreen';
 import PushNotificationManager from '@/components/PushNotificationManager';
 import GlobalCacheSync from './components/GlobalCacheSync';
@@ -153,6 +154,7 @@ const AuthenticatedApp = () => {
         <Route path="/LearningCourse/:courseId" element={<LayoutWrapper currentPageName="Education"><LearningCourse /></LayoutWrapper>} />
         <Route path="/LearningAdmin" element={<LayoutWrapper currentPageName="Education"><LearningAdmin /></LayoutWrapper>} />
         <Route path="/LearningAnalytics" element={<LayoutWrapper currentPageName="Education"><LearningAnalytics /></LayoutWrapper>} />
+        <Route path="/InvestmentAgent" element={<LayoutWrapper currentPageName="InvestmentAgent"><InvestmentAgent /></LayoutWrapper>} />
       </Route>
 
       {/* 404 */}
