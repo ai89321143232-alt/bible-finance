@@ -49,6 +49,10 @@ export function calcBudgetSpent(budget, transactions, currentUserId, accountScop
   const normalizedCategories = categories.map(normalizeCategory);
   const budgetScope = budget.scope || 'personal';
 
+  // Период определяется один раз по текущей дате — операции из прошлых
+  // и будущих месяцев не должны влиять на расход текущего периода.
+  const { periodStart, periodEnd } = getBudgetPeriod(budget, new Date());
+
   return (transactions || [])
     .filter(t => {
       if (t.type !== 'expense') return false;
@@ -58,9 +62,6 @@ export function calcBudgetSpent(budget, transactions, currentUserId, accountScop
         console.warn(`[budgetSpent] Transaction ${t.id || 'unknown'} has invalid date: ${t.date}`);
         return false;
       }
-      // Период определяется датой самой операции, а не текущей датой —
-      // расход за прошлый месяц учитывается в прошлом периоде, а не в текущем.
-      const { periodStart, periodEnd } = getBudgetPeriod(budget, td);
       if (td < periodStart || td > periodEnd) return false;
 
       // Семейный бюджет: все расходы семьи, кроме явно личных (budget_scope='personal')
