@@ -13,7 +13,28 @@
       "allowed_operations": [
         "read"
       ]
+    },
+    {
+      "entity_name": "DebtAccount",
+      "allowed_operations": [
+        "read"
+      ]
     }
   ],
+  "context_files": [],
+  "app_user_connector_configs": [],
+  "selected_skill_names": [],
+  "selected_workspace_skill_ids": [],
+  "model": "automatic",
+  "whatsapp_greeting": "",
+  "telegram_greeting": "",
+  "line_greeting": "",
+  "memory_config": {
+    "enabled": true,
+    "scope": "both",
+    "include_other_conversation_context": false,
+    "instructions": null
+  },
+  "allow_anonymous_access": false,
   "name": "budget_analyst"
 }
