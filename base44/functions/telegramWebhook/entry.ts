@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { effect, applyBalanceDelta, applyBudgetDelta, getBudgetMatches, matchAccount } from '../../shared/transactionEffects.ts';
+import { effect, applyBalanceDelta, applyBudgetDelta, getBudgetMatches, getAccessibleBudgets, matchAccount } from '../../shared/transactionEffects.ts';
 import { buildAssistantSystemPrompt, invokeAssistantModel, computeFinancialContext } from '../../shared/financialAssistant.ts';
 import { createCurrencyTools } from '../../shared/currencyConvert.ts';
 
@@ -149,7 +149,7 @@ async function showBudgetChoice({ entities, config, setup, ownerId, telegramUser
     await completeCategorySetup({ entities, config, setup, ownerId, telegramUserId, botToken, chatId });
     return;
   }
-  const budgets = (await entities.Budget.filter({ user_id: ownerId })).filter((budget) => budget.is_active !== false);
+  const budgets = await getAccessibleBudgets(entities, ownerId);
   await saveCategorySetup(entities, config, telegramUserId, { ...setup, stage: 'budget_choice' });
   await sendMessage(botToken, chatId, `Категория «${setup.category}» пока не входит ни в один бюджет. Выберите бюджет или создайте новый:`, {
     inline_keyboard: [
@@ -178,7 +178,7 @@ async function ensureCategoryAndBudget({ entities, config, parsed, account, owne
     return false;
   }
   if (parsed.type === 'expense') {
-    const budgets = (await entities.Budget.filter({ user_id: ownerId })).filter((budget) => budget.is_active !== false);
+    const budgets = await getAccessibleBudgets(entities, ownerId);
     if (!budgets.some((budget) => categoryMatches(budget, parsed.category))) {
       await showBudgetChoice({ entities, config, setup: { ...parsed, account_id: account.id, category_type: 'expense', category_id: category.id }, ownerId, telegramUserId, botToken, chatId });
       return false;

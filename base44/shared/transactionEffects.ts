@@ -59,6 +59,26 @@ export async function applyBudgetDelta(entities, userId, category, delta, budget
   }
 }
 
+// Все активные бюджеты, доступные пользователю: личные (user_id),
+// семейные (family_id) и общие (share_with). Согласовано с RLS-правилами Budget
+// и с логикой getBudgetMatches — чтобы проверка привязки категории и выбор
+// бюджета при списании использовали один и тот же набор доступных бюджетов.
+export async function getAccessibleBudgets(entities, userId) {
+  const owner = await entities.User.get(userId).catch(() => null);
+  const [personal, family] = await Promise.all([
+    entities.Budget.filter({ user_id: userId, is_active: true }),
+    owner?.family_id ? entities.Budget.filter({ family_id: owner.family_id, is_active: true }) : Promise.resolve([])
+  ]);
+  // Совмещаем, убираем дубликаты по id
+  const seen = new Set();
+  const all = [...personal, ...family];
+  return all.filter((b) => {
+    if (seen.has(b.id)) return false;
+    seen.add(b.id);
+    return true;
+  });
+}
+
 // Подбор счёта под транзакцию: единственный счёт пользователя, иначе по подсказке (account_hint) от модели.
 export function matchAccount(accounts, hint) {
   if (accounts.length === 1) return accounts[0].id;
