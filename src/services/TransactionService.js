@@ -381,9 +381,38 @@ export const TransactionService = {
 
   /** Удалить операцию с откатом баланса счёта. */
   async remove(id) {
-    const all = await repo().list('-date', 500);
-    const tx = all.find((t) => t.id === id);
-    if (tx?.account_id && tx.type !== 'transfer') {
+    const tx = await repo().get(id).catch(() => null);
+    if (!tx) return;
+
+    if (tx.type === 'transfer') {
+      // Откат перевода: вернуть сумму на источник (или разморозить, если шло на цель)
+      // и списать с получателя (или уменьшить накопления цели).
+      if (tx.account_id) {
+        const source = await AccountService.get(tx.account_id).catch(() => null);
+        if (source) {
+          if (tx.to_account_id?.startsWith('goal_')) {
+            await AccountService.freezeAmount(source.id, (source.frozen_amount || 0) - tx.amount);
+          } else {
+            await AccountService.setBalance(source.id, (source.balance ?? 0) + tx.amount);
+          }
+        }
+      }
+      if (tx.to_account_id?.startsWith('goal_')) {
+        const oldGoalId = tx.to_account_id.replace('goal_', '');
+        const oldGoal = await goalRepo().get(oldGoalId).catch(() => null);
+        if (oldGoal) {
+          await goalRepo().update(oldGoalId, {
+            current_amount: Math.max((oldGoal.current_amount || 0) - tx.amount, 0),
+          });
+          eventBus.emit(EVENTS.GOAL_CHANGED, { id: oldGoalId });
+        }
+      } else if (tx.to_account_id) {
+        const dest = await AccountService.get(tx.to_account_id).catch(() => null);
+        if (dest) {
+          await AccountService.setBalance(dest.id, (dest.balance ?? 0) - tx.amount);
+        }
+      }
+    } else if (tx.account_id) {
       const account = await AccountService.get(tx.account_id);
       if (account) {
         const reverted =
@@ -399,7 +428,7 @@ export const TransactionService = {
         if (investment.type === 'deposit') {
           const nextAmount = Math.max((Number(investment.purchase_price) || 0) - tx.amount, 0);
           await investmentRepo().update(investment.id, { purchase_price: nextAmount, current_price: Math.max((Number(investment.current_price) || 0) - tx.amount, 0) });
-        } else if (tx.purchase_unit_price > 0) {
+        } else if (tx.purchase_unit_price > 0 && tx.amount > 0) {
           const removedQuantity = tx.amount / tx.purchase_unit_price;
           const nextQuantity = Math.max((Number(investment.quantity) || 0) - removedQuantity, 0);
           const remainingCost = Math.max(((Number(investment.quantity) || 0) * (Number(investment.purchase_price) || 0)) - tx.amount, 0);

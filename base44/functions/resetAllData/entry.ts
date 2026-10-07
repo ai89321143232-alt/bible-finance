@@ -5,21 +5,17 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
 // Сущности, у которых есть поле user_id — удаляем и по created_by_id, и по user_id,
 // чтобы захватить записи, созданные через сервисные функции (Telegram-бот и т.п.).
+// Список синхронизирован с deleteAccount.
 const ENTITIES_WITH_USER_ID = [
-  'Transaction',
-  'Account',
-  'Budget',
-  'Goal',
-  'Investment',
-  'ChildExpense',
+  'Transaction', 'Account', 'Budget', 'Goal', 'Investment', 'InvestmentCashFlow',
+  'RecurringPayment', 'DebtAccount', 'ChildExpense', 'PushSubscription',
+  'TelegramBotConfig', 'UserGamification', 'ChildGameProfile', 'WorkspaceMember',
+  'BackupRecord'
 ];
 
 // Сущности без user_id — удаляем только по created_by_id.
 const ENTITIES_BY_CREATOR = [
-  'Note',
-  'TransactionTemplate',
-  'FixedAsset',
-  'Task',
+  'Category', 'Note', 'Task', 'TransactionTemplate', 'FixedAsset'
 ];
 
 Deno.serve(async (req) => {

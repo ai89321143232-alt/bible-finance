@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
     // === Create ===
     if (action === 'create_transaction' && parsed.transaction) {
       const t = parsed.transaction;
-      if (!t.amount || !t.type) {
+      if (!t.amount || !t.type || typeof t.amount !== 'number' || t.amount <= 0) {
         return Response.json({ reply: '❌ Не удалось распознать сумму или тип операции. Укажите: сумму, тип (расход/доход) и категорию.' });
       }
 
@@ -262,10 +262,10 @@ Deno.serve(async (req) => {
 
       // Revert old effect, apply new effect
       await applyBalanceDelta(entities, existing.account_id, -effect(existing.type, existing.amount), user.id);
-      if (existing.type === 'expense') await applyBudgetDelta(entities, user.id, existing.category, -existing.amount);
+      if (existing.type === 'expense') await applyBudgetDelta(entities, user.id, existing.category, -existing.amount, existing.budget_scope);
 
       await applyBalanceDelta(entities, existing.account_id, effect(newType, newAmount), user.id);
-      if (newType === 'expense') await applyBudgetDelta(entities, user.id, newCategory, newAmount);
+      if (newType === 'expense') await applyBudgetDelta(entities, user.id, newCategory, newAmount, existing.budget_scope);
 
       const updatePayload = {};
       if (u.type) updatePayload.type = u.type;

@@ -44,8 +44,15 @@ Deno.serve(async (req) => {
         // одновременно в личном и семейном бюджете.
         const effectiveBudgetScope = budgetScope || (familyId ? 'family' : 'personal');
 
-        // Получаем все активные бюджеты пользователя/семьи
-        const allBudgets = await base44.asServiceRole.entities.Budget.list();
+        // Загружаем только бюджеты владельца операции (personal) и семьи (family),
+        // а не все бюджеты приложения — иначе на росте базы каждый вебхук тратит квоты.
+        const [userBudgets, familyBudgets] = await Promise.all([
+            base44.asServiceRole.entities.Budget.filter({ user_id: ownerId, is_active: true }).catch(() => []),
+            familyId
+                ? base44.asServiceRole.entities.Budget.filter({ family_id: familyId, is_active: true }).catch(() => [])
+                : Promise.resolve([])
+        ]);
+        const allBudgets = [...userBudgets, ...familyBudgets];
 
         const matchingBudgets = allBudgets.filter(b => {
             if (!b.is_active) return false;
@@ -96,20 +103,24 @@ Deno.serve(async (req) => {
 
         // Идемпотентный пересчёт: используем единую формулу calcBudgetSpent
         // (тот же код, что и в UI — BudgetOverview).
-        // Загружаем аккаунты для построения карты scope (personal/business).
-        const accounts = await base44.asServiceRole.entities.Account.list();
-        const accountScopeMap = new Map(accounts.map(a => [a.id, a.scope || 'personal']));
+        // Загружаем только счета и транзакции владельца бюджета, а не все записи приложения.
+        const budgetOwnerIds = [...new Set(matchingBudgets.map(b => b.user_id || b.created_by_id).filter(Boolean))];
+        const accountScopeMap = new Map();
+        const transactionsByOwner = {};
+
+        await Promise.all(budgetOwnerIds.map(async (oid) => {
+            const [accs, txs] = await Promise.all([
+                base44.asServiceRole.entities.Account.filter({ user_id: oid }).catch(() => []),
+                base44.asServiceRole.entities.Transaction.filter({ user_id: oid }).catch(() => [])
+            ]);
+            for (const a of accs) accountScopeMap.set(a.id, a.scope || 'personal');
+            transactionsByOwner[oid] = txs;
+        }));
 
         for (const budget of matchingBudgets) {
             const budgetOwnerId = budget.user_id || budget.created_by_id;
-
-            // Загружаем все транзакции владельца бюджета
-            const allTransactions = await base44.asServiceRole.entities.Transaction.filter({
-                user_id: budgetOwnerId
-            });
-
+            const allTransactions = transactionsByOwner[budgetOwnerId] || [];
             const realSpent = calcBudgetSpent(budget, allTransactions, budgetOwnerId, accountScopeMap);
-
             await base44.asServiceRole.entities.Budget.update(budget.id, {
                 spent_amount: realSpent
             });

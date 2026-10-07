@@ -42,14 +42,24 @@ export default async function(req) {
         [entity.userField]: user.id,
       });
 
-      // Create from snapshot
+      // Create from snapshot.
+      // user_id сохраняем (он не перезаписывается платформой), а created_by_id
+      // восстанавливаем после bulkCreate, т.к. service-role create перезаписывает
+      // его системным ID (тот же паттерн, что в telegramWebhook → reassignOwnership).
       const records = backupData.data[entityKey] || [];
       if (records.length > 0) {
         const cleanRecords = records.map((r) => {
-          const { id, created_date, updated_date, created_by_id, ...rest } = r;
+          const { id, created_date, updated_date, ...rest } = r;
           return rest;
         });
-        await base44.asServiceRole.entities[entity.name].bulkCreate(cleanRecords);
+        const created = await base44.asServiceRole.entities[entity.name].bulkCreate(cleanRecords);
+        const createdRecords = created?.records || created || [];
+        const recordsArray = Array.isArray(createdRecords) ? createdRecords : [createdRecords];
+        for (const rec of recordsArray) {
+          if (rec?.id) {
+            await base44.asServiceRole.entities[entity.name].update(rec.id, { created_by_id: user.id });
+          }
+        }
       }
       results[entityKey] = { restored: records.length };
     }

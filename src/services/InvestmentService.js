@@ -167,8 +167,25 @@ export const InvestmentService = {
   },
 
   async remove(id) {
+    // Находим и откатываем связанную транзакцию покупки (если есть),
+    // чтобы баланс счёта не остался списанным после удаления актива.
+    const linkedTx = await txRepo().list('-date', 100);
+    const related = linkedTx.filter((t) => t.investment_id === id);
+    for (const tx of related) {
+      if (tx.account_id && tx.type !== 'transfer') {
+        const account = await accountRepo().get(tx.account_id).catch(() => null);
+        if (account) {
+          const reverted = tx.type === 'expense'
+            ? (account.balance ?? 0) + tx.amount
+            : (account.balance ?? 0) - tx.amount;
+          await accountRepo().update(tx.account_id, { balance: reverted });
+        }
+      }
+      await txRepo().delete(tx.id);
+    }
     await repo().delete(id);
     eventBus.emit(EVENTS.ACCOUNT_CHANGED, { id, action: 'investment-delete' });
+    if (related.length) eventBus.emit(EVENTS.TRANSACTION_CHANGED, { action: 'bulk-delete' });
   },
 
   async removeWithTransfer(id, { account_id, amount }) {

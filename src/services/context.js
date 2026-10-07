@@ -101,7 +101,16 @@ export const enrichWithOwnership = async (data, user) => {
     : await resolveWorkspaceContext(user);
 
   if (!ws) {
-    throw new Error('Не удалось определить рабочее пространство');
+    // Фолбэк: если resolveWorkspace недоступен (сетевой сбой), не блокируем
+    // создание операций — сохраняем как личную запись, синхронизация пройдёт позже.
+    return {
+      ...data,
+      family_id: undefined,
+      user_id: user.id,
+      workspace_id: null,
+      visibility: 'private',
+      currency: data.currency || user?.currency || 'RUB',
+    };
   }
 
   if (isFamilyGoal) {

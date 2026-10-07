@@ -43,20 +43,9 @@ Deno.serve(async (req) => {
                 });
             }
 
-            // Update matching budget for expenses (only user's own budgets)
-            if (parsed.type === 'expense' && parsed.category) {
-                const budgets = await base44.asServiceRole.entities.Budget.filter({ is_active: true, user_id: user.id });
-                for (const budget of budgets) {
-                    const cats = budget.categories?.length > 0
-                        ? budget.categories
-                        : budget.category ? [budget.category] : [];
-                    if (cats.includes(parsed.category)) {
-                        await base44.asServiceRole.entities.Budget.update(budget.id, {
-                            spent_amount: (budget.spent_amount || 0) + amount
-                        });
-                    }
-                }
-            }
+            // Budget recalculation is handled by the updateBudgetOnTransaction workflow
+            // (entity trigger) — it recalculates spent_amount from real transactions using
+            // the same calcBudgetSpent formula as the UI, so we must NOT increment here.
 
             return Response.json({ success: true, transaction, parsed });
         }
@@ -167,20 +156,9 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // Update budget for expenses (only user's own budgets)
-            if (result.type === 'expense' && result.category) {
-                const budgets = await base44.asServiceRole.entities.Budget.filter({ is_active: true, user_id: user.id });
-                for (const budget of budgets) {
-                    const cats = budget.categories?.length > 0
-                        ? budget.categories
-                        : budget.category ? [budget.category] : [];
-                    if (cats.includes(result.category)) {
-                        await base44.asServiceRole.entities.Budget.update(budget.id, {
-                            spent_amount: (budget.spent_amount || 0) + result.amount
-                        });
-                    }
-                }
-            }
+            // Budget recalculation is handled by the updateBudgetOnTransaction workflow
+            // (entity trigger) — it recalculates spent_amount from real transactions using
+            // the same calcBudgetSpent formula as the UI, so we must NOT increment here.
 
             return Response.json({
                 success: true,

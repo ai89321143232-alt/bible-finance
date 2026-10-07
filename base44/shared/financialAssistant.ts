@@ -181,7 +181,7 @@ function tzDateParts(date, timezone) {
 // определялись по его локальному времени, а не по времени сервера.
 export async function computeFinancialContext(entities, ownerId, timezone = 'UTC') {
   const [transactions, budgetsRaw, goalsRaw, investmentsRaw, accountsRaw, owner] = await Promise.all([
-    entities.Transaction.filter({ user_id: ownerId }),
+    entities.Transaction.filter({ user_id: ownerId }, { sort: '-date', limit: 200 }),
     entities.Budget.filter({ user_id: ownerId }),
     entities.Goal.filter({ user_id: ownerId }),
     entities.Investment.filter({ user_id: ownerId }),

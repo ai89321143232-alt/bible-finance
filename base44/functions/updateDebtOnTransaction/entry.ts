@@ -29,9 +29,9 @@ Deno.serve(async (req) => {
         return Response.json({ message: 'Not a credit account, skip' });
       }
 
-      // Загружаем все долги и проверяем, есть ли уже привязанный
-      const allDebts = await base44.asServiceRole.entities.DebtAccount.list();
-      const existing = allDebts.find(d => d.linked_account_id === account.id);
+      // Загружаем только долги, привязанные к этому счёту, а не все долги приложения
+      const allDebts = await base44.asServiceRole.entities.DebtAccount.filter({ linked_account_id: account.id }).catch(() => []);
+      const existing = allDebts[0];
 
       if (existing) {
         // Синхронизируем остаток
@@ -84,20 +84,22 @@ Deno.serve(async (req) => {
       return Response.json({ message: 'No affected accounts' });
     }
 
-    // Загружаем все DebtAccount и все Account (для проверки типа)
-    const allDebts = await base44.asServiceRole.entities.DebtAccount.list();
-    const allAccounts = await base44.asServiceRole.entities.Account.list();
+    // Загружаем только затронутые счета и их долги, а не все записи приложения
+    const accIdsArray = Array.from(affectedAccountIds);
+    const accounts = await Promise.all(
+      accIdsArray.map(id => base44.asServiceRole.entities.Account.get(id).catch(() => null))
+    );
+    const validAccounts = accounts.filter(Boolean);
 
-    // Для каждого затронутого счёта: если он кредитный — найти или создать долг
     const results = [];
 
-    for (const accId of affectedAccountIds) {
-      const account = allAccounts.find(a => a.id === accId);
-      if (!account || account.type !== 'credit') {
+    for (const account of validAccounts) {
+      if (account.type !== 'credit') {
         continue;
       }
 
-      const existing = allDebts.find(d => d.linked_account_id === accId);
+      const accDebts = await base44.asServiceRole.entities.DebtAccount.filter({ linked_account_id: account.id }).catch(() => []);
+      const existing = accDebts[0];
       const newRemaining = Math.abs(Math.min(account.balance || 0, 0));
 
       if (existing) {
