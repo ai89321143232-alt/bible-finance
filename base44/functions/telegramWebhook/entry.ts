@@ -363,7 +363,8 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, t
   const categoryNames = categories.map(c => `${c.name} (${c.type === 'income' ? 'доход' : 'расход'})`).join(', ') || 'нет категорий';
   const accountNames = accounts.map(a => a.name).join(', ') || 'нет счетов';
 
-  const recentTx = (await entities.Transaction.filter({ user_id: ownerId }, { sort: '-date', limit: 25 })).slice(0, 25);
+  const recentTxPage = await entities.Transaction.filter({ user_id: ownerId }, { sort: '-date', limit: 25 });
+  const recentTx = (recentTxPage.items || recentTxPage).slice(0, 25);
   const recentTxText = recentTx.map(t =>
     `id=${t.id} | ${t.date?.slice(0, 10)} | ${t.type === 'expense' ? 'расход' : 'доход'} | ${t.amount} ${t.currency || 'RUB'} | ${t.category} | ${t.description || ''}`
   ).join('\n') || 'нет операций';

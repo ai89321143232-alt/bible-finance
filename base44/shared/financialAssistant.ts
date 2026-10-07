@@ -180,7 +180,7 @@ function tzDateParts(date, timezone) {
 // timezone (IANA, например "Europe/Moscow") — часовой пояс пользователя, чтобы "сегодня"/"этот месяц"
 // определялись по его локальному времени, а не по времени сервера.
 export async function computeFinancialContext(entities, ownerId, timezone = 'UTC') {
-  const [transactions, budgetsRaw, goalsRaw, investmentsRaw, accountsRaw, owner] = await Promise.all([
+  const [txPage, budgetsRaw, goalsRaw, investmentsRaw, accountsRaw, owner] = await Promise.all([
     entities.Transaction.filter({ user_id: ownerId }, { sort: '-date', limit: 200 }),
     entities.Budget.filter({ user_id: ownerId }),
     entities.Goal.filter({ user_id: ownerId }),
@@ -188,6 +188,7 @@ export async function computeFinancialContext(entities, ownerId, timezone = 'UTC
     entities.Account.filter({ user_id: ownerId }),
     entities.User.get(ownerId).catch(() => null)
   ]);
+  const transactions = txPage.items || txPage;
   const currency = createCurrencyTools(owner);
   const scopeMode = owner?.scope_mode || owner?.data?.scope_mode || 'all';
   const inScope = (record) => scopeMode === 'all' || (record.scope || 'personal') === scopeMode;
