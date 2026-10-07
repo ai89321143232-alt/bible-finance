@@ -32,10 +32,22 @@ export async function getBudgetMatches(entities, userId, category) {
   const owner = await entities.User.get(userId);
   const personal = (await entities.Budget.filter({ user_id: userId, is_active: true }))
     .filter((budget) => !budget.is_family_budget && includesCategory(budget, category));
-  const family = owner?.family_id
-    ? (await entities.Budget.filter({ family_id: owner.family_id, is_active: true }))
-      .filter((budget) => budget.is_family_budget && includesCategory(budget, category))
-    : [];
+  let family = [];
+  if (owner?.family_id) {
+    // Семейные бюджеты бывают без family_id — ищем также по создателям из семьи
+    const members = await entities.User.filter({ family_id: owner.family_id }).catch(() => []);
+    const memberIds = [...new Set([userId, ...members.map((m) => m.id)])];
+    const [byFamily, byMembers] = await Promise.all([
+      entities.Budget.filter({ family_id: owner.family_id, is_active: true }),
+      entities.Budget.filter({ user_id: { $in: memberIds }, is_family_budget: true, is_active: true })
+    ]);
+    const seen = new Set();
+    family = [...byFamily, ...byMembers].filter((budget) => {
+      if (seen.has(budget.id)) return false;
+      seen.add(budget.id);
+      return budget.is_family_budget && includesCategory(budget, category);
+    });
+  }
   return { personal, family };
 }
 
@@ -44,7 +56,7 @@ export async function applyBudgetDelta(entities, userId, category, delta, budget
   if (!category) return;
   const { calcBudgetSpent } = await import('../shared/budgetSpent.ts');
   const { personal, family } = await getBudgetMatches(entities, userId, category);
-  const budgets = budgetScope === 'family' ? family : personal;
+  const budgets = budgetScope === 'both' ? [...personal, ...family] : budgetScope === 'family' ? family : personal;
   const owner = await entities.User.get(userId);
   const [accounts, ownTransactions, familyTransactions] = await Promise.all([
     entities.Account.filter({ user_id: userId }),
@@ -52,8 +64,8 @@ export async function applyBudgetDelta(entities, userId, category, delta, budget
     owner?.family_id ? entities.Transaction.filter({ family_id: owner.family_id }) : Promise.resolve([])
   ]);
   const accountScope = new Map(accounts.map((account) => [account.id, account.scope || 'personal']));
-  const transactions = budgetScope === 'family' ? familyTransactions : ownTransactions;
   for (const budget of budgets) {
+    const transactions = budget.is_family_budget ? familyTransactions : ownTransactions;
     const realSpent = calcBudgetSpent(budget, transactions, userId, accountScope);
     await entities.Budget.update(budget.id, { spent_amount: realSpent });
   }

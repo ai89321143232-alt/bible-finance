@@ -253,6 +253,8 @@ async function requestBudgetSelection({ entities, config, parsed, account, owner
     inline_keyboard: [[
       { text: `Личный: ${personal.name} (${personal.limit_amount - (personal.spent_amount || 0)} ${personal.currency || 'RUB'})`, callback_data: 'budget:personal' },
       { text: `Семейный: ${family.name} (${family.limit_amount - (family.spent_amount || 0)} ${family.currency || 'RUB'})`, callback_data: 'budget:family' }
+    ], [
+      { text: '👥 В оба бюджета', callback_data: 'budget:both' }
     ]]
   });
 }
