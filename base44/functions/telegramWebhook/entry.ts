@@ -127,7 +127,11 @@ function categoryMatches(budget, categoryName) {
 }
 
 async function saveCategorySetup(entities, config, telegramUserId, setup) {
-  const remaining = (config.pending_category_setup || []).filter((item) => String(item.telegram_user_id) !== String(telegramUserId));
+  // Сохраняем несколько setup-ов для разных категорий (при обработке списка операций),
+  // но обновляем существующий для той же категории.
+  const remaining = (config.pending_category_setup || []).filter((item) =>
+    !(String(item.telegram_user_id) === String(telegramUserId) &&
+      normalizeCategory(item.category) === normalizeCategory(setup.category)));
   await entities.TelegramBotConfig.update(config.id, { pending_category_setup: [...remaining, { ...setup, telegram_user_id: String(telegramUserId) }] });
 }
 
@@ -140,8 +144,22 @@ async function completeCategorySetup({ entities, config, setup, ownerId, telegra
   await createTransactionRecord({ entities, parsed: setup, account, ownerId, budgetScope });
   const accounts = await entities.Account.filter({ user_id: ownerId });
   const owner = await entities.User.get(ownerId).catch(() => null);
-  await entities.TelegramBotConfig.update(config.id, { pending_category_setup: (config.pending_category_setup || []).filter((item) => String(item.telegram_user_id) !== String(telegramUserId)) });
+  await entities.TelegramBotConfig.update(config.id, { pending_category_setup: (config.pending_category_setup || []).filter((item) =>
+    !(String(item.telegram_user_id) === String(telegramUserId) &&
+      normalizeCategory(item.category) === normalizeCategory(setup.category))) });
   await sendMessage(botToken, chatId, await buildTransactionReceipt(setup, accounts.find((item) => item.id === account.id) || account, accounts, owner));
+
+  // Если есть ещё ожидающие setup-ы (другие категории из списка операций) — обрабатываем следующий
+  const remaining = (config.pending_category_setup || []).filter((item) =>
+    String(item.telegram_user_id) === String(telegramUserId) &&
+    normalizeCategory(item.category) !== normalizeCategory(setup.category));
+  if (remaining.length > 0) {
+    const nextSetup = remaining[0];
+    const nextAccount = await entities.Account.get(nextSetup.account_id);
+    if (nextAccount) {
+      await finalizeTransaction({ entities, config, parsed: nextSetup, account: nextAccount, ownerId, telegramUserId, botToken, chatId });
+    }
+  }
 }
 
 async function showBudgetChoice({ entities, config, setup, ownerId, telegramUserId, botToken, chatId }) {
@@ -408,6 +426,7 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, t
       }
       await sendMessage(botToken, chatId, `📝 Записываю ${items.length} операци(й/ии)…`);
       let created = 0;
+      let pendingSetup = false;
       const errors = [];
       for (const t of items) {
         const matchedAccountId = matchAccount(accounts, t.account_hint);
@@ -416,12 +435,19 @@ async function handleTextMessage({ base44, config, account, accounts, ownerId, t
         try {
           const completed = await finalizeTransaction({ entities, config, parsed: t, account: targetAccount, ownerId, telegramUserId, botToken, chatId });
           if (completed) created++;
+          else pendingSetup = true;
         } catch (e) {
           errors.push(`${t.description || t.category || 'операция'}: ${e.message || 'ошибка'}`);
         }
       }
       const total = items.reduce((s, t) => s + (t.amount || 0), 0);
       const freshAccounts = await entities.Account.filter({ user_id: ownerId });
+      if (pendingSetup && created === 0) {
+        // Бот уже показал выбор бюджета — не отправляем ошибку, просто обновляем историю
+        const newHistory = [...history, { role: 'user', content: text }, { role: 'assistant', content: 'Уточняю бюджет для записи операций…' }].slice(-20);
+        await entities.TelegramBotConfig.update(config.id, { chat_history: newHistory });
+        return;
+      }
       replyText = created > 0
         ? `📝 <b>Записано ${created} из ${items.length} операций</b>\n💰 Сумма: <b>${total.toLocaleString()} ₽</b>${errors.length ? `\n⚠️ Не записано: ${errors.join('; ')}` : ''}\n──────────────\n💰 <b>Общий баланс:</b> <code>${freshAccounts.reduce((s, a) => s + (a.balance || 0), 0).toLocaleString()} ₽</code>`
         : `❌ Не удалось записать ни одной операции${errors.length ? `: ${errors.join('; ')}` : ''}`;
