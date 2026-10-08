@@ -126,9 +126,28 @@ function categoryMatches(budget, categoryName) {
   return categories.some((item) => normalizeCategory(item) === norm);
 }
 
+// Свежая копия конфига: в одном запросе мы обновляем ожидания несколько раз,
+// и устаревший снимок затирал бы соседние операции из списка.
+async function freshConfig(entities, config) {
+  return (await entities.TelegramBotConfig.get(config.id).catch(() => null)) || config;
+}
+
+const isMine = (telegramUserId) => (item) => String(item.telegram_user_id) === String(telegramUserId);
+
+async function cancelPending(entities, config, telegramUserId) {
+  const c = await freshConfig(entities, config);
+  const notMine = (item) => !isMine(telegramUserId)(item);
+  await entities.TelegramBotConfig.update(config.id, {
+    pending_transactions: (c.pending_transactions || []).filter(notMine),
+    pending_budget_transactions: (c.pending_budget_transactions || []).filter(notMine),
+    pending_category_setup: (c.pending_category_setup || []).filter(notMine)
+  });
+}
+
 async function saveCategorySetup(entities, config, telegramUserId, setup) {
   // Сохраняем несколько setup-ов для разных категорий (при обработке списка операций),
   // но обновляем существующий для той же категории.
+  config = await freshConfig(entities, config);
   const remaining = (config.pending_category_setup || []).filter((item) =>
     !(String(item.telegram_user_id) === String(telegramUserId) &&
       normalizeCategory(item.category) === normalizeCategory(setup.category)));
@@ -141,12 +160,14 @@ async function completeCategorySetup({ entities, config, setup, ownerId, telegra
     await sendMessage(botToken, chatId, 'Не удалось найти выбранный счёт. Отправьте операцию ещё раз.');
     return;
   }
-  await createTransactionRecord({ entities, parsed: setup, account, ownerId, budgetScope });
-  const accounts = await entities.Account.filter({ user_id: ownerId });
-  const owner = await entities.User.get(ownerId).catch(() => null);
+  // Сначала снимаем ожидание (защита от двойного нажатия), потом записываем
+  config = await freshConfig(entities, config);
   await entities.TelegramBotConfig.update(config.id, { pending_category_setup: (config.pending_category_setup || []).filter((item) =>
     !(String(item.telegram_user_id) === String(telegramUserId) &&
       normalizeCategory(item.category) === normalizeCategory(setup.category))) });
+  await createTransactionRecord({ entities, parsed: setup, account, ownerId, budgetScope });
+  const accounts = await entities.Account.filter({ user_id: ownerId });
+  const owner = await entities.User.get(ownerId).catch(() => null);
   await sendMessage(botToken, chatId, await buildTransactionReceipt(setup, accounts.find((item) => item.id === account.id) || account, accounts, owner));
 
   // Если есть ещё ожидающие setup-ы (другие категории из списка операций) — обрабатываем следующий
@@ -238,7 +259,9 @@ async function createTransactionRecord({ entities, parsed, account, ownerId, bud
 }
 
 async function requestBudgetSelection({ entities, config, parsed, account, ownerId, telegramUserId, botToken, chatId, matches }) {
-  const pending = (config.pending_budget_transactions || []).filter((item) => String(item.telegram_user_id) !== String(telegramUserId));
+  config = await freshConfig(entities, config);
+  // Не затираем другие ожидающие операции этого пользователя (из того же списка)
+  const pending = config.pending_budget_transactions || [];
   await entities.TelegramBotConfig.update(config.id, {
     pending_budget_transactions: [...pending, {
       telegram_user_id: String(telegramUserId), account_id: account.id,
@@ -249,7 +272,7 @@ async function requestBudgetSelection({ entities, config, parsed, account, owner
   });
   const personal = matches.personal[0];
   const family = matches.family[0];
-  await sendMessage(botToken, chatId, 'С какого бюджета списать расход?', {
+  await sendMessage(botToken, chatId, `С какого бюджета списать «${parsed.description || parsed.category}» — ${parsed.amount} ${parsed.currency || account.currency || ''}?`, {
     inline_keyboard: [[
       { text: `Личный: ${personal.name} (${personal.limit_amount - (personal.spent_amount || 0)} ${personal.currency || 'RUB'})`, callback_data: 'budget:personal' },
       { text: `Семейный: ${family.name} (${family.limit_amount - (family.spent_amount || 0)} ${family.currency || 'RUB'})`, callback_data: 'budget:family' }
@@ -281,6 +304,7 @@ async function finalizeTransaction({ entities, config, parsed, account, ownerId,
 
 // Отправляет список счетов кнопками и сохраняет операции, ожидающие выбора счёта
 async function requestAccountSelection({ entities, config, accounts, transactions, telegramUserId, botToken, chatId }) {
+  config = await freshConfig(entities, config);
   const otherPending = (config.pending_transactions || []).filter((item) => String(item.telegram_user_id) !== String(telegramUserId));
   await entities.TelegramBotConfig.update(config.id, { pending_transactions: [...otherPending, ...transactions.map((item) => ({ ...item, telegram_user_id: String(telegramUserId) }))] });
   const keyboard = accounts.map(a => ([{ text: a.name, callback_data: `acc:${a.id}` }]));
@@ -345,12 +369,13 @@ async function handleAccountCallback({ base44, config, accounts, ownerId, telegr
     return;
   }
 
+  // Снимаем ожидание до записи — повторное нажатие не создаст дубль
+  await entities.TelegramBotConfig.update(config.id, { pending_transactions: (config.pending_transactions || []).filter((item) => String(item.telegram_user_id) !== String(telegramUserId)) });
   let recorded = 0;
   for (const t of pending) {
     const completed = await finalizeTransaction({ entities, config, parsed: t, account, ownerId, telegramUserId, botToken, chatId });
     if (completed) recorded++;
   }
-  await entities.TelegramBotConfig.update(config.id, { pending_transactions: (config.pending_transactions || []).filter((item) => String(item.telegram_user_id) !== String(telegramUserId)) });
   await answerCallbackQuery(botToken, callbackQueryId, recorded ? 'Записано ✅' : 'Выберите бюджет');
   await removeInlineKeyboard(botToken, chatId, messageId);
 
@@ -696,13 +721,20 @@ async function handleBudgetCallback({ entities, config, ownerId, telegramUserId,
     await removeInlineKeyboard(botToken, chatId, messageId);
     return;
   }
-  for (const item of pending) {
-    const account = await entities.Account.get(item.account_id);
-    if (account) await finalizeTransaction({ entities, config, parsed: item, account, ownerId, telegramUserId, botToken, chatId, budgetScope });
-  }
+  // Обрабатываем первую ожидающую операцию; остальные спросим следующими сообщениями
+  const [item, ...rest] = pending;
   await entities.TelegramBotConfig.update(config.id, {
-    pending_budget_transactions: (config.pending_budget_transactions || []).filter((item) => String(item.telegram_user_id) !== String(telegramUserId))
+    pending_budget_transactions: [...(config.pending_budget_transactions || []).filter((p) => String(p.telegram_user_id) !== String(telegramUserId)), ...rest]
   });
+  const account = await entities.Account.get(item.account_id).catch(() => null);
+  if (account) await finalizeTransaction({ entities, config, parsed: item, account, ownerId, telegramUserId, botToken, chatId, budgetScope });
+  else await sendMessage(botToken, chatId, 'Счёт для этой операции не найден — запрос устарел.');
+  if (rest.length) {
+    const next = rest[0];
+    await sendMessage(botToken, chatId, `С какого бюджета списать «${next.description || next.category}» — ${next.amount} ${next.currency || ''}?`, {
+      inline_keyboard: [[{ text: 'Личный', callback_data: 'budget:personal' }, { text: 'Семейный', callback_data: 'budget:family' }], [{ text: '👥 В оба бюджета', callback_data: 'budget:both' }]]
+    });
+  }
   await answerCallbackQuery(botToken, callbackQueryId, 'Записано ✅');
   await removeInlineKeyboard(botToken, chatId, messageId);
 }
@@ -994,6 +1026,12 @@ export default async function (req) {
 
       if (text === '/start') {
         await sendMessage(botToken, chatId, 'Привет! 👋 Я твой финансовый ассистент.\n\nОтравь голосовое, фото чека, PDF/CSV выписку или просто опиши покупку текстом — и я всё запишу.\n\nИспользуй кнопки внизу для быстрого доступа:\n💰 <b>Баланс</b> — остатки по всем счетам\n📊 <b>Аналитика</b> — расходы за месяц по категориям\n📋 <b>Операции</b> — последние 10 транзакций');
+        return Response.json({ ok: true });
+      }
+
+      if (['/cancel', 'отмена', 'отменить'].includes(text.toLowerCase())) {
+        await cancelPending(entities, config, fromId);
+        await sendMessage(botToken, chatId, '🧹 Все ожидающие операции отменены. Можно отправлять новые.');
         return Response.json({ ok: true });
       }
 

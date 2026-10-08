@@ -29,7 +29,13 @@ function includesCategory(budget, category) {
 
 // Свои бюджеты: по user_id или по создателю (старые записи могли хранить прежний user_id)
 async function getOwnBudgets(entities, userId) {
-  return entities.Budget.filter({ $or: [{ user_id: userId }, { created_by_id: userId }], is_active: true });
+  // Два отдельных запроса надёжнее $or по created_by_id в service-role фильтре
+  const [byUser, byCreator] = await Promise.all([
+    entities.Budget.filter({ user_id: userId, is_active: true }),
+    entities.Budget.filter({ created_by_id: userId, is_active: true })
+  ]);
+  const seen = new Set();
+  return [...byUser, ...byCreator].filter((b) => !seen.has(b.id) && seen.add(b.id));
 }
 
 export async function getBudgetMatches(entities, userId, category) {

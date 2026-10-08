@@ -97,6 +97,7 @@ export function buildAssistantSystemPrompt({ categoryNames, accountNames, recent
 10) Оформляй КАЖДЫЙ текстовый ответ дружелюбно и структурированно для Telegram: используй подходящие эмодзи в заголовках и возле ключевых сумм (например, 💰 для баланса, 📈 для инвестиций, 📉 для расходов, ✅ для подтверждения). Длинные ответы разделяй на короткие смысловые блоки с переносами строк; перечисления оформляй отдельными строками с маркерами. Не злоупотребляй эмодзи: одного на заголовок или строку достаточно. Сохраняй точность чисел и не добавляй вымышленных данных.
 
 Доступные категории: ${categoryNames}
+КАТЕГОРИЯ ОПЕРАЦИИ: выбирай название ТОЧНО как в списке категорий; если в разделе БЮДЖЕТЫ есть подходящая категория бюджета — используй именно её написание.
 Доступные счета пользователя: ${accountNames}
 
 Последние операции пользователя (используй id для правки/удаления, выбирай наиболее подходящую по описанию/сумме/дате из сообщения пользователя):
@@ -180,15 +181,18 @@ function tzDateParts(date, timezone) {
 // timezone (IANA, например "Europe/Moscow") — часовой пояс пользователя, чтобы "сегодня"/"этот месяц"
 // определялись по его локальному времени, а не по времени сервера.
 export async function computeFinancialContext(entities, ownerId, timezone = 'UTC') {
-  const [txPage, budgetsRaw, goalsRaw, investmentsRaw, accountsRaw, owner] = await Promise.all([
+  const [txPage, budgetsByUser, budgetsByCreator, goalsRaw, investmentsRaw, accountsRaw, owner] = await Promise.all([
     entities.Transaction.filter({ user_id: ownerId }, { sort: '-date', limit: 200 }),
     entities.Budget.filter({ user_id: ownerId }),
+    entities.Budget.filter({ created_by_id: ownerId }),
     entities.Goal.filter({ user_id: ownerId }),
     entities.Investment.filter({ user_id: ownerId }),
     entities.Account.filter({ user_id: ownerId }),
     entities.User.get(ownerId).catch(() => null)
   ]);
   const transactions = txPage.items || txPage;
+  const budgetSeen = new Set();
+  const budgetsRaw = [...budgetsByUser, ...budgetsByCreator].filter((b) => !budgetSeen.has(b.id) && budgetSeen.add(b.id));
   const currency = createCurrencyTools(owner);
   const scopeMode = owner?.scope_mode || owner?.data?.scope_mode || 'all';
   const inScope = (record) => scopeMode === 'all' || (record.scope || 'personal') === scopeMode;
@@ -249,7 +253,7 @@ ${accountTotals.lines.join('\n') || '- Нет счетов'}
 ${Object.entries(expensesByCategory).map(([cat, amount]) => `- ${cat}: ${currency.format(amount)}`).join('\n') || '- Нет данных'}
 
 БЮДЖЕТЫ:
-${budgets.map(b => `- id=${b.id} | ${b.name}: потрачено ${currency.format(b.spent_amount, b.currency || currency.profileCurrency)} из ${currency.format(b.limit_amount, b.currency || currency.profileCurrency)}`).join('\n') || '- Нет бюджетов'}
+${budgets.map(b => `- id=${b.id} | ${b.name} [категории: ${(b.categories?.length ? b.categories : [b.category]).filter(Boolean).join(', ')}]: потрачено ${currency.format(b.spent_amount, b.currency || currency.profileCurrency)} из ${currency.format(b.limit_amount, b.currency || currency.profileCurrency)}`).join('\n') || '- Нет бюджетов'}
 
 ФИНАНСОВЫЕ ЦЕЛИ:
 ${goals.map(g => `- id=${g.id} | ${g.title}: накоплено ${currency.format(g.current_amount, g.currency || currency.profileCurrency)} из ${currency.format(g.target_amount, g.currency || currency.profileCurrency)}`).join('\n') || '- Нет целей'}
