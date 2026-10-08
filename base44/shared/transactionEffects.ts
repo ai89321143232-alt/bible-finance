@@ -27,10 +27,15 @@ function includesCategory(budget, category) {
   return categories.some((c) => normalizeCategory(c) === norm);
 }
 
+// Свои бюджеты: по user_id или по создателю (старые записи могли хранить прежний user_id)
+async function getOwnBudgets(entities, userId) {
+  return entities.Budget.filter({ $or: [{ user_id: userId }, { created_by_id: userId }], is_active: true });
+}
+
 export async function getBudgetMatches(entities, userId, category) {
   if (!category) return { personal: [], family: [] };
   const owner = await entities.User.get(userId);
-  const personal = (await entities.Budget.filter({ user_id: userId, is_active: true }))
+  const personal = (await getOwnBudgets(entities, userId))
     .filter((budget) => !budget.is_family_budget && includesCategory(budget, category));
   let family = [];
   if (owner?.family_id) {
@@ -78,7 +83,7 @@ export async function applyBudgetDelta(entities, userId, category, delta, budget
 export async function getAccessibleBudgets(entities, userId) {
   const owner = await entities.User.get(userId).catch(() => null);
   const [personal, family] = await Promise.all([
-    entities.Budget.filter({ user_id: userId, is_active: true }),
+    getOwnBudgets(entities, userId),
     owner?.family_id ? entities.Budget.filter({ family_id: owner.family_id, is_active: true }) : Promise.resolve([])
   ]);
   // Совмещаем, убираем дубликаты по id
