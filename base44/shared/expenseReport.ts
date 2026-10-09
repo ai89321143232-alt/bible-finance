@@ -13,7 +13,7 @@ function localToday(timezone) {
 }
 
 // Полночь локальной даты (YYYY-MM-DD) в часовом поясе пользователя → момент UTC
-function localMidnightUtc(dateStr, timezone) {
+export function localMidnightUtc(dateStr, timezone) {
   const [y, m, d] = dateStr.split('-').map(Number);
   const guess = Date.UTC(y, m - 1, d);
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
