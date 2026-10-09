@@ -26,15 +26,15 @@ export default function Education() {
   const completedCount = EDUCATION_MODULES.filter(m => isModuleCompleted(m.id)).length;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 pb-24 lg:pb-8">
+    <div className="max-w-4xl mx-auto w-full overflow-x-hidden px-3 sm:px-6 py-8 pb-24 lg:pb-8">
       {/* Hero с прогрессом */}
       <div className="mb-8 p-5 sm:p-6 rounded-2xl bg-card/90 backdrop-blur-sm border border-border shadow-sm">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+          <div className="w-10 h-10 flex-shrink-0 rounded-xl bg-primary/10 flex items-center justify-center">
             <BookOpen className="w-5 h-5 text-primary" />
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight break-words">
               Библейские принципы управления финансами
             </h1>
             <p className="text-sm text-muted-foreground">Практический онлайн-курс · 7 модулей</p>
@@ -116,7 +116,7 @@ export default function Education() {
                   style={{ backgroundColor: completed ? '#10B981' : unlocked ? module.color : 'transparent' }}
                 />
 
-                <div className="flex items-center gap-4 p-4 sm:p-5 flex-1 min-w-0">
+                <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-5 flex-1 min-w-0">
                   {/* Номер модуля / иконка статуса */}
                   <div className="flex-shrink-0">
                     {completed ? (
@@ -161,7 +161,7 @@ export default function Education() {
                         {module.video.duration}
                       </span>
                     </div>
-                    <div className="font-semibold text-foreground mt-0.5">{module.title}</div>
+                    <div className="font-semibold text-foreground mt-0.5 break-words">{module.title}</div>
                     <p className="text-sm text-muted-foreground leading-relaxed mt-0.5 line-clamp-2">
                       {module.description}
                     </p>
