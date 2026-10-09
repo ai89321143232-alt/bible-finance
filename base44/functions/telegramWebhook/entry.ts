@@ -671,7 +671,8 @@ async function handleAnalyticsButton({ entities, ownerId, config, botToken, chat
   const startMonth = period === 'year' ? 0 : period === 'quarter' ? Math.floor(month / 3) * 3 : month;
   const periodStart = new Date(Date.UTC(year, startMonth, 1));
   const periodEnd = period === 'year' ? new Date(Date.UTC(year + 1, 0, 1)) : period === 'quarter' ? new Date(Date.UTC(year, startMonth + 3, 1)) : new Date(Date.UTC(year, month + 1, 1));
-  const myTx = await entities.Transaction.filter({ user_id: ownerId, date: { $gte: periodStart.toISOString(), $lt: periodEnd.toISOString() } });
+  const txPage = await entities.Transaction.filter({ user_id: ownerId, date: { $gte: periodStart.toISOString(), $lt: periodEnd.toISOString() } }, { limit: 5000 });
+  const myTx = txPage.items || txPage;
   const expenses = myTx.filter(t => t.type === 'expense');
   const income = myTx.filter(t => t.type === 'income');
   const totalSpent = currency.summarize(expenses.map(t => ({ amount: t.amount, currency: t.currency }))).total;
@@ -698,14 +699,22 @@ async function handleAnalyticsButton({ entities, ownerId, config, botToken, chat
     const filled = Math.round(pct / 10);
     lines.push(`${'▓'.repeat(filled)}${'░'.repeat(10 - filled)} <b>${cat}</b> — <code>${currency.format(amount)}</code> (${pct}%)`);
   }
-  const budgets = await entities.Budget.filter({ user_id: ownerId });
+  const budgets = await getAccessibleBudgets(entities, ownerId);
   const activeBudgets = budgets.filter(b => b.is_active !== false);
   if (activeBudgets.length) {
-    const budgetTotals = currency.summarize(activeBudgets.map(b => ({ amount: b.spent_amount, currency: b.currency })));
-    lines.push('', '<b>Бюджеты:</b>', '');
-    for (const b of activeBudgets.slice(0, 5)) {
-      const limit = b.limit_amount || 0;
-      const spent = b.spent_amount || 0;
+    // Траты по бюджету считаем по операциям выбранного периода, лимит — пропорционально периоду
+    const months = period === 'year' ? 12 : period === 'quarter' ? 3 : 1;
+    const scale = { weekly: months * 4.33, monthly: months, quarterly: months / 3, yearly: months / 12 };
+    const rows = activeBudgets.map(b => {
+      const cats = (b.categories || (b.category ? [b.category] : [])).map(c => String(c).trim().toLowerCase());
+      const spent = expenses
+        .filter(t => cats.includes(String(t.category || '').trim().toLowerCase()) && (t.currency || 'RUB') === (b.currency || 'RUB'))
+        .reduce((s, t) => s + (t.amount || 0), 0);
+      return { b, spent, limit: Math.round((b.limit_amount || 0) * (scale[b.period] ?? months)) };
+    }).sort((x, y) => y.spent - x.spent);
+    const budgetTotals = currency.summarize(rows.map(r => ({ amount: r.spent, currency: r.b.currency })));
+    lines.push('', '<b>Бюджеты за период:</b>', '');
+    for (const { b, spent, limit } of rows) {
       const pct = limit > 0 ? Math.round((spent / limit) * 100) : 0;
       const status = pct >= 150 ? '💥' : pct >= 100 ? '🔴' : pct >= 80 ? '🟠' : '🟢';
       lines.push(`${status} ${b.name}: <code>${currency.format(spent, b.currency || currency.profileCurrency)} / ${currency.format(limit, b.currency || currency.profileCurrency)}</code> (${pct}%)`);
