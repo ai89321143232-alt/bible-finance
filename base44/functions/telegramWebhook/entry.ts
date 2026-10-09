@@ -1036,7 +1036,10 @@ export default async function (req) {
       }
 
       // Обработка кнопок основной клавиатуры — до AI, чтобы не тратить LLM-вызовы
-      if (text === '💰 Баланс') {
+      // Запросы о балансе/статусе счетов — сразу полный список всех счетов, без AI
+      const lower = text.toLowerCase();
+      const isBalanceQuery = !/\d/.test(lower) && /(баланс|сч[её]т|остат|сколько.*денег)/.test(lower);
+      if (text === '💰 Баланс' || isBalanceQuery) {
         await handleBalanceButton({ entities, accounts, ownerId, botToken, chatId });
         return Response.json({ ok: true });
       }

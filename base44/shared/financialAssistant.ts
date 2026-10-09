@@ -196,7 +196,8 @@ export async function computeFinancialContext(entities, ownerId, timezone = 'UTC
   const currency = createCurrencyTools(owner);
   const scopeMode = owner?.scope_mode || owner?.data?.scope_mode || 'all';
   const inScope = (record) => scopeMode === 'all' || (record.scope || 'personal') === scopeMode;
-  const accounts = accountsRaw.filter(inScope);
+  // Баланс — всегда по всем счетам пользователя (личные и бизнес), без фильтра по режиму
+  const accounts = accountsRaw;
   const budgets = budgetsRaw.filter((budget) => budget.is_active !== false && inScope(budget));
   const goals = goalsRaw.filter((goal) => goal.status === 'active' && inScope(goal));
   const investments = investmentsRaw.filter(inScope);
