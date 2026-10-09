@@ -257,7 +257,7 @@ ${Object.entries(expensesByCategory).map(([cat, amount]) => `- ${cat}: ${currenc
 ${budgets.map(b => `- id=${b.id} | ${b.name} [категории: ${(b.categories?.length ? b.categories : [b.category]).filter(Boolean).join(', ')}]: потрачено ${currency.format(b.spent_amount, b.currency || currency.profileCurrency)} из ${currency.format(b.limit_amount, b.currency || currency.profileCurrency)}`).join('\n') || '- Нет бюджетов'}
 
 ФИНАНСОВЫЕ ЦЕЛИ:
-${goals.map(g => `- id=${g.id} | ${g.title}: накоплено ${currency.format(g.current_amount, g.currency || currency.profileCurrency)} из ${currency.format(g.target_amount, g.currency || currency.profileCurrency)}`).join('\n') || '- Нет целей'}
+${goals.map(g => `- id=${g.id} | ${g.title}: накоплено ${currency.format((g.current_amount || 0) + investmentsRaw.reduce((s, inv) => s + (inv.linked_investment_amounts || []).filter(l => l.goal_id === g.id).reduce((a, l) => a + (Number(l.amount) || 0), 0), 0), g.currency || currency.profileCurrency)} из ${currency.format(g.target_amount, g.currency || currency.profileCurrency)}`).join('\n') || '- Нет целей'}
 
 ИНВЕСТИЦИОННЫЙ ПОРТФЕЛЬ:
 ${investments.map((inv, index) => `- id=${inv.id} | ${inv.name} (${inv.type}): ${currency.format(investmentRows[index].amount, investmentRows[index].currency)}`).join('\n') || '- Нет инвестиций'}
