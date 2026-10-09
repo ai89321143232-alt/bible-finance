@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { effect, applyBalanceDelta, applyBudgetDelta, getBudgetMatches, getAccessibleBudgets, matchAccount } from '../../shared/transactionEffects.ts';
 import { buildAssistantSystemPrompt, invokeAssistantModel, computeFinancialContext } from '../../shared/financialAssistant.ts';
 import { createCurrencyTools } from '../../shared/currencyConvert.ts';
+import { looksLikeExpenseReport, buildExpenseReport } from '../../shared/expenseReport.ts';
 
 const EXPENSE_CATEGORIES = 'Еда и рестораны, Транспорт, Здоровье, Развлечения, Одежда, ЖКХ, Связь, Образование, Зарплата, Другое';
 
@@ -1054,6 +1055,16 @@ export default async function (req) {
 
       if (await handlePendingCategoryText({ entities, config, ownerId, telegramUserId: fromId, botToken, chatId, text })) {
         return Response.json({ ok: true });
+      }
+
+      if (looksLikeExpenseReport(text)) {
+        const report = await buildExpenseReport({ base44, entities, ownerId, timezone: config.timezone || 'Europe/Moscow', text });
+        if (report) {
+          await sendMessage(botToken, chatId, report);
+          const history = (config.chat_history || []).slice(-10);
+          await entities.TelegramBotConfig.update(config.id, { chat_history: [...history, { role: 'user', content: text }, { role: 'assistant', content: report }].slice(-20) });
+          return Response.json({ ok: true });
+        }
       }
 
       try {
