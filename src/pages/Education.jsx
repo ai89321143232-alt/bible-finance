@@ -92,7 +92,7 @@ export default function Education() {
       </div>
 
       {/* Существующий курс */}
-      <div className="mb-3"><h2 className="text-base font-semibold text-foreground">Библейские принципы</h2><p className="text-sm text-muted-foreground">Доступный всем базовый курс</p></div>
+      <div className="mb-3"><h2 className="text-base font-semibold text-foreground">Библейские принципы</h2><p className="text-sm text-muted-foreground">Доступный всем базовый курс</p><p className="mt-1 text-sm text-muted-foreground break-words">Все учебные материалы взяты из курса «Компас» — <a href="https://compasseurasia.org" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline underline-offset-2">CompassEurasia.org</a></p></div>
       <div className="space-y-3">
         {EDUCATION_MODULES.map((module, index) => {
           const Icon = module.icon;
