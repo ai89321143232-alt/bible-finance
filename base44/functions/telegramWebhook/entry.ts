@@ -3,6 +3,45 @@ import { effect, applyBalanceDelta, applyBudgetDelta, getBudgetMatches, getAcces
 import { buildAssistantSystemPrompt, invokeAssistantModel, computeFinancialContext } from '../../shared/financialAssistant.ts';
 import { createCurrencyTools } from '../../shared/currencyConvert.ts';
 import { looksLikeExpenseReport, buildExpenseReport } from '../../shared/expenseReport.ts';
+import { getFamilyId, loadScopeAccounts, loadScopeTransactions, filterScopeBudgets, resolveMode, modeLabel } from '../../shared/familyScope.ts';
+
+function savedMode(config, telegramUserId) {
+  return (config.user_modes || []).find((m) => String(m.telegram_user_id) === String(telegramUserId))?.mode || 'personal';
+}
+
+async function saveMode(entities, config, telegramUserId, mode) {
+  const c = await entities.TelegramBotConfig.get(config.id).catch(() => config);
+  const others = (c.user_modes || []).filter((m) => String(m.telegram_user_id) !== String(telegramUserId));
+  await entities.TelegramBotConfig.update(config.id, { user_modes: [...others, { telegram_user_id: String(telegramUserId), mode }] });
+}
+
+const NO_FAMILY_TEXT = '👨‍👩‍👧 Семейный режим недоступен: ваш аккаунт не привязан к семье. Присоединитесь к семье в приложении — пока показываю данные в личном режиме.';
+
+async function showModePicker(botToken, chatId, current) {
+  await sendMessage(botToken, chatId, `Текущий режим: <b>${modeLabel(current)}</b>\nВыберите, по каким данным отвечать:`, {
+    inline_keyboard: [[{ text: '👤 Личный', callback_data: 'mode:personal' }, { text: '👨‍👩‍👧 Семейный', callback_data: 'mode:family' }]]
+  });
+}
+
+async function handleBudgetsButton({ entities, ownerId, mode, botToken, chatId }) {
+  const owner = await entities.User.get(ownerId).catch(() => null);
+  const currency = createCurrencyTools(owner);
+  const budgets = filterScopeBudgets(await getAccessibleBudgets(entities, ownerId), mode);
+  if (!budgets.length) {
+    await sendMessage(botToken, chatId, `${modeLabel(mode)} режим\n\nБюджетов пока нет.`);
+    return;
+  }
+  const lines = [`${modeLabel(mode)} режим`, '📑 <b>Бюджеты</b>', ''];
+  for (const b of budgets) {
+    const cur = b.currency || 'RUB';
+    const spent = b.spent_amount || 0;
+    const limit = b.limit_amount || 0;
+    const pct = limit > 0 ? Math.round((spent / limit) * 100) : 0;
+    const status = pct >= 100 ? '🔴' : pct >= 80 ? '🟠' : '🟢';
+    lines.push(`${status} <b>${b.name}</b>: <code>${currency.format(spent, cur)} / ${currency.format(limit, cur)}</code> (${pct}%)\n   Остаток: <code>${currency.format(limit - spent, cur)}</code>`);
+  }
+  await sendMessage(botToken, chatId, lines.join('\n'));
+}
 
 const EXPENSE_CATEGORIES = 'Еда и рестораны, Транспорт, Здоровье, Развлечения, Одежда, ЖКХ, Связь, Образование, Зарплата, Другое';
 
@@ -28,7 +67,8 @@ function normalizeAmount(raw) {
 const REPLY_KEYBOARD = {
   keyboard: [
     [{ text: '💰 Баланс' }, { text: '📊 Аналитика' }],
-    [{ text: '📋 Операции' }]
+    [{ text: '📋 Операции' }, { text: '📑 Бюджеты' }],
+    [{ text: '🔄 Режим' }]
   ],
   resize_keyboard: true,
   one_time: false
@@ -629,7 +669,7 @@ function accountTypeIcon(type) {
   return icons[type] || '💳';
 }
 
-async function handleBalanceButton({ entities, accounts, ownerId, botToken, chatId }) {
+async function handleBalanceButton({ entities, accounts, ownerId, botToken, chatId, mode = 'personal' }) {
   if (!accounts.length) {
     await sendMessage(botToken, chatId, '❌ Не найдено ни одного счёта. Добавьте счёт в приложении.');
     return;
@@ -638,7 +678,8 @@ async function handleBalanceButton({ entities, accounts, ownerId, botToken, chat
   const currency = createCurrencyTools(owner);
   const totals = currency.summarize(accounts.map(a => ({ amount: a.balance, currency: a.currency })));
   const lines = [
-    '💰 <b>Ваши балансы</b>',
+    `${modeLabel(mode)} режим`,
+    mode === 'family' ? '💰 <b>Семейные балансы</b>' : '💰 <b>Ваши балансы</b>',
     '',
     ...accounts.map(a => `${accountTypeIcon(a.type)} ${a.name}: <code>${currency.format(a.balance, a.currency || currency.profileCurrency)}</code>${a.is_active === false ? ' (неактивен)' : ''}`),
     '──────────────',
@@ -659,7 +700,7 @@ async function showAnalyticsPeriods(botToken, chatId) {
   });
 }
 
-async function handleAnalyticsButton({ entities, ownerId, config, botToken, chatId, period = 'month' }) {
+async function handleAnalyticsButton({ entities, ownerId, config, botToken, chatId, period = 'month', mode = 'personal', familyId = null }) {
   const timezone = config.timezone || 'Europe/Moscow';
   const owner = await entities.User.get(ownerId).catch(() => null);
   const currency = createCurrencyTools(owner);
@@ -671,8 +712,7 @@ async function handleAnalyticsButton({ entities, ownerId, config, botToken, chat
   const startMonth = period === 'year' ? 0 : period === 'quarter' ? Math.floor(month / 3) * 3 : month;
   const periodStart = new Date(Date.UTC(year, startMonth, 1));
   const periodEnd = period === 'year' ? new Date(Date.UTC(year + 1, 0, 1)) : period === 'quarter' ? new Date(Date.UTC(year, startMonth + 3, 1)) : new Date(Date.UTC(year, month + 1, 1));
-  const txPage = await entities.Transaction.filter({ user_id: ownerId, date: { $gte: periodStart.toISOString(), $lt: periodEnd.toISOString() } }, { limit: 5000 });
-  const myTx = txPage.items || txPage;
+  const myTx = await loadScopeTransactions(entities, ownerId, mode, familyId, { date: { $gte: periodStart.toISOString(), $lt: periodEnd.toISOString() } });
   const expenses = myTx.filter(t => t.type === 'expense');
   const income = myTx.filter(t => t.type === 'income');
   const totalSpent = currency.summarize(expenses.map(t => ({ amount: t.amount, currency: t.currency }))).total;
@@ -686,6 +726,7 @@ async function handleAnalyticsButton({ entities, ownerId, config, botToken, chat
   }
   const sorted = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 5);
   const lines = [
+    `${modeLabel(mode)} режим`,
     `📊 <b>Аналитика за ${period === 'year' ? 'год' : period === 'quarter' ? 'квартал' : 'месяц'}</b>`, 
     '',
     `💸 Всего расходов: <code>${currency.format(totalSpent)}</code> в ${expenses.length} операциях`,
@@ -700,7 +741,7 @@ async function handleAnalyticsButton({ entities, ownerId, config, botToken, chat
     lines.push(`${'▓'.repeat(filled)}${'░'.repeat(10 - filled)} <b>${cat}</b> — <code>${currency.format(amount)}</code> (${pct}%)`);
   }
   const budgets = await getAccessibleBudgets(entities, ownerId);
-  const activeBudgets = budgets.filter(b => b.is_active !== false);
+  const activeBudgets = filterScopeBudgets(budgets, mode);
   if (activeBudgets.length) {
     // Траты по бюджету считаем по операциям выбранного периода, лимит — пропорционально периоду
     const months = period === 'year' ? 12 : period === 'quarter' ? 3 : 1;
@@ -878,8 +919,24 @@ export default async function (req) {
         await handleAccountCallback({ base44, config, accounts, ownerId, telegramUserId: fromId, botToken, chatId, callbackQueryId: cq.id, accountId, messageId });
       } else if (data.startsWith('budget:')) {
         await handleBudgetCallback({ entities: base44.asServiceRole.entities, config, ownerId: actor.user_id, telegramUserId: fromId, budgetScope: data.slice(7), botToken, chatId, callbackQueryId: cq.id, messageId: cq.message?.message_id });
+      } else if (data.startsWith('mode:')) {
+        const ents = base44.asServiceRole.entities;
+        const wanted = data.slice(5) === 'family' ? 'family' : 'personal';
+        const familyId = await getFamilyId(ents, actor.user_id);
+        if (wanted === 'family' && !familyId) {
+          await saveMode(ents, config, fromId, 'personal');
+          await sendMessage(botToken, chatId, NO_FAMILY_TEXT);
+        } else {
+          await saveMode(ents, config, fromId, wanted);
+          await sendMessage(botToken, chatId, `✅ Режим: <b>${modeLabel(wanted)}</b>. Баланс, отчёты и бюджеты теперь показываются в этом режиме.`);
+        }
+        await answerCallbackQuery(botToken, cq.id, 'Готово');
+        await removeInlineKeyboard(botToken, chatId, cq.message?.message_id);
       } else if (data.startsWith('analytics:')) {
-        await handleAnalyticsButton({ entities: base44.asServiceRole.entities, ownerId: actor.user_id, config, botToken, chatId, period: data.slice(10) });
+        const ents = base44.asServiceRole.entities;
+        const familyId = await getFamilyId(ents, actor.user_id);
+        const mode = savedMode(config, fromId) === 'family' && familyId ? 'family' : 'personal';
+        await handleAnalyticsButton({ entities: ents, ownerId: actor.user_id, config, botToken, chatId, period: data.slice(10), mode, familyId });
         await answerCallbackQuery(botToken, cq.id, 'Готово');
         await removeInlineKeyboard(botToken, chatId, cq.message?.message_id);
       } else if (data.startsWith('cat:')) {
@@ -1049,8 +1106,27 @@ export default async function (req) {
       // Запросы о балансе/статусе счетов — сразу полный список всех счетов, без AI
       const lower = text.toLowerCase();
       const isBalanceQuery = !/\d/.test(lower) && /(баланс|сч[её]т|остат|сколько.*денег)/.test(lower);
+      if (text === '🔄 Режим' || text === '/mode') {
+        await showModePicker(botToken, chatId, savedMode(config, fromId));
+        return Response.json({ ok: true });
+      }
+
+      // Режим: разовый из текста («семейный баланс») или сохранённый для этого Telegram-аккаунта
+      const familyId = await getFamilyId(entities, ownerId);
+      let mode = resolveMode(text, savedMode(config, fromId));
+      const needsScope = text === '💰 Баланс' || isBalanceQuery || text === '📑 Бюджеты' || /бюджет/.test(lower) && !/\d/.test(lower) || looksLikeExpenseReport(text);
+      if (mode === 'family' && !familyId) {
+        if (needsScope) await sendMessage(botToken, chatId, NO_FAMILY_TEXT);
+        mode = 'personal';
+      }
+
       if (text === '💰 Баланс' || isBalanceQuery) {
-        await handleBalanceButton({ entities, accounts, ownerId, botToken, chatId });
+        const scopeAccounts = mode === 'family' ? await loadScopeAccounts(entities, ownerId, 'family', familyId) : accounts;
+        await handleBalanceButton({ entities, accounts: scopeAccounts, ownerId, botToken, chatId, mode });
+        return Response.json({ ok: true });
+      }
+      if (text === '📑 Бюджеты' || (/^(мои |личные |семейные )?бюджеты?$/i.test(lower))) {
+        await handleBudgetsButton({ entities, ownerId, mode, botToken, chatId });
         return Response.json({ ok: true });
       }
       if (text === '📊 Аналитика') {
@@ -1067,7 +1143,7 @@ export default async function (req) {
       }
 
       if (looksLikeExpenseReport(text)) {
-        const report = await buildExpenseReport({ base44, entities, ownerId, timezone: config.timezone || 'Europe/Moscow', text });
+        const report = await buildExpenseReport({ base44, entities, ownerId, timezone: config.timezone || 'Europe/Moscow', text, mode, familyId });
         if (report) {
           await sendMessage(botToken, chatId, report);
           const history = (config.chat_history || []).slice(-10);

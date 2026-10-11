@@ -54,38 +54,25 @@ async function detectPeriod(base44, text, today) {
   return { start: res.start_date, end, category: (res.category || '').trim() };
 }
 
-async function loadExpenses(entities, ownerId, fromIso, toIso) {
-  const all = [];
-  let cursor;
-  do {
-    const page = await entities.Transaction.filter(
-      { user_id: ownerId, type: 'expense', date: { $gte: fromIso, $lt: toIso } },
-      { limit: 1000, cursor, fields: ['amount', 'currency', 'category'] }
-    );
-    const items = page.items || page;
-    all.push(...items);
-    cursor = page.has_more ? page.next_cursor : null;
-  } while (cursor);
-  return all;
-}
+import { loadScopeTransactions, modeLabel } from './familyScope.ts';
 
 function money(amount, code) {
   return `${Math.round(amount * 100) / 100 === Math.round(amount) ? Math.round(amount).toLocaleString('ru-RU') : amount.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} ${code === 'RUB' ? '₽' : code}`;
 }
 
 // Возвращает готовый текст отчёта или null, если сообщение не является запросом отчёта
-export async function buildExpenseReport({ base44, entities, ownerId, timezone, text }) {
+export async function buildExpenseReport({ base44, entities, ownerId, timezone, text, mode = 'personal', familyId = null }) {
   const today = localToday(timezone);
   const period = await detectPeriod(base44, text, today);
   if (!period) return null;
 
   const fromIso = localMidnightUtc(period.start, timezone).toISOString();
   const toIso = localMidnightUtc(addDays(period.end, 1), timezone).toISOString();
-  let expenses = await loadExpenses(entities, ownerId, fromIso, toIso);
+  let expenses = await loadScopeTransactions(entities, ownerId, mode, familyId, { type: 'expense', date: { $gte: fromIso, $lt: toIso } });
   const catNorm = period.category.toLowerCase();
   if (catNorm) expenses = expenses.filter((t) => String(t.category || '').toLowerCase() === catNorm);
 
-  const header = `📊 <b>Расходы за ${fmtDate(period.start)} — ${fmtDate(period.end)}</b>${period.category ? `\n📂 Категория: ${period.category}` : ''}`;
+  const header = `${modeLabel(mode)} режим\n📊 <b>Расходы за ${fmtDate(period.start)} — ${fmtDate(period.end)}</b>${period.category ? `\n📂 Категория: ${period.category}` : ''}`;
   if (!expenses.length) return `${header}\n\nЗа этот период расходов не найдено.`;
 
   const byCurrency = {};
