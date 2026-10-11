@@ -15,6 +15,12 @@ import { eventBus, EVENTS } from '@/lib/eventBus';
 
 const repo = () => getRepository('Budget');
 
+// Запись лимита за текущий месяц (повторное изменение в месяце перезаписывает значение)
+function withLimitHistory(history, amount, currency) {
+  const month = new Date().toISOString().slice(0, 7);
+  return [...(history || []).filter((h) => h.month !== month), { month, amount, currency: currency || 'RUB' }];
+}
+
 export const BudgetService = {
   list() {
     return repo().list();
@@ -31,7 +37,8 @@ export const BudgetService = {
 
     const user = await getCurrentUser();
     const data = await enrichWithOwnership(
-      { ...input, limit_amount: parseFloat(input.limit_amount), is_active: true },
+      { ...input, limit_amount: parseFloat(input.limit_amount), is_active: true,
+        limit_history: withLimitHistory([], parseFloat(input.limit_amount), input.currency) },
       user
     );
     const created = await repo().create(data);
@@ -47,6 +54,11 @@ export const BudgetService = {
   async update(id, input, { enrich = true } = {}) {
     const user = await getCurrentUser();
     const data = enrich ? await enrichWithOwnership({ ...input }, user) : { ...input };
+    if (input.limit_amount !== undefined) {
+      const current = await repo().get(id);
+      data.limit_amount = parseFloat(input.limit_amount);
+      data.limit_history = withLimitHistory(current?.limit_history, data.limit_amount, input.currency || current?.currency);
+    }
     const updated = await repo().update(id, data);
     eventBus.emit(EVENTS.BUDGET_CHANGED, { id, action: 'update' });
     return updated;

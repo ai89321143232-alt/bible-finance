@@ -768,7 +768,20 @@ async function handleAnalyticsButton({ entities, ownerId, config, botToken, chat
       const spent = expenses
         .filter(t => cats.includes(String(t.category || '').trim().toLowerCase()) && (t.currency || 'RUB') === (b.currency || 'RUB'))
         .reduce((s, t) => s + (t.amount || 0), 0);
-      return { b, spent, limit: Math.round((b.limit_amount || 0) * (scale[b.period] ?? months)) };
+      let limit;
+      if (b.period === 'monthly' && (b.limit_history || []).length) {
+        // Сумма лимитов, действовавших в каждом месяце периода
+        const hist = [...b.limit_history].sort((x, y) => x.month.localeCompare(y.month));
+        limit = 0;
+        for (let i = 0; i < months; i++) {
+          const m = new Date(Date.UTC(year, startMonth + i, 1)).toISOString().slice(0, 7);
+          const entry = hist.filter(h => h.month <= m).pop() || hist[0];
+          limit += entry.amount || 0;
+        }
+      } else {
+        limit = Math.round((b.limit_amount || 0) * (scale[b.period] ?? months));
+      }
+      return { b, spent, limit };
     }).sort((x, y) => y.spent - x.spent);
     const budgetTotals = currency.summarize(rows.map(r => ({ amount: r.spent, currency: r.b.currency })));
     lines.push('', '<b>Бюджеты за период:</b>', '');
