@@ -24,6 +24,11 @@ export async function loadScopeAccounts(entities, ownerId, mode, familyId) {
   return accounts.filter((a) => a.user_id === ownerId || a.created_by_id === ownerId || a.visibility === 'shared');
 }
 
+// Семейный баланс: все счета с family_id семьи (включая счета других участников)
+export async function loadFamilyBalanceAccounts(entities, familyId) {
+  return loadAll(entities.Account, { family_id: familyId });
+}
+
 // Операции периода. В семейном режиме — свои + общие + операции по общим счетам семьи.
 export async function loadScopeTransactions(entities, ownerId, mode, familyId, query) {
   if (mode !== 'family' || !familyId) return loadAll(entities.Transaction, { user_id: ownerId, ...query });

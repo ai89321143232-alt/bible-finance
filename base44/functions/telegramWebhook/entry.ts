@@ -3,7 +3,7 @@ import { effect, applyBalanceDelta, applyBudgetDelta, getBudgetMatches, getAcces
 import { buildAssistantSystemPrompt, invokeAssistantModel, computeFinancialContext } from '../../shared/financialAssistant.ts';
 import { createCurrencyTools } from '../../shared/currencyConvert.ts';
 import { looksLikeExpenseReport, buildExpenseReport } from '../../shared/expenseReport.ts';
-import { getFamilyId, loadScopeAccounts, loadScopeTransactions, filterScopeBudgets, resolveMode, modeLabel } from '../../shared/familyScope.ts';
+import { getFamilyId, loadScopeAccounts, loadFamilyBalanceAccounts, loadScopeTransactions, filterScopeBudgets, resolveMode, modeLabel } from '../../shared/familyScope.ts';
 
 function savedMode(config, telegramUserId) {
   return (config.user_modes || []).find((m) => String(m.telegram_user_id) === String(telegramUserId))?.mode || 'personal';
@@ -1105,7 +1105,8 @@ export default async function (req) {
       // Обработка кнопок основной клавиатуры — до AI, чтобы не тратить LLM-вызовы
       // Запросы о балансе/статусе счетов — сразу полный список всех счетов, без AI
       const lower = text.toLowerCase();
-      const isBalanceQuery = !/\d/.test(lower) && /(баланс|сч[её]т|остат|сколько.*денег)/.test(lower);
+      const isFamilyBalanceQuery = /семейн\S*\s+баланс|баланс\S*\s+(семь|семейн)/.test(lower);
+      const isBalanceQuery = isFamilyBalanceQuery || (!/\d/.test(lower) && /(баланс|сч[её]т|остат|сколько.*денег)/.test(lower));
       if (text === '🔄 Режим' || text === '/mode') {
         await showModePicker(botToken, chatId, savedMode(config, fromId));
         return Response.json({ ok: true });
@@ -1121,7 +1122,7 @@ export default async function (req) {
       }
 
       if (text === '💰 Баланс' || isBalanceQuery) {
-        const scopeAccounts = mode === 'family' ? await loadScopeAccounts(entities, ownerId, 'family', familyId) : accounts;
+        const scopeAccounts = mode === 'family' ? await loadFamilyBalanceAccounts(entities, familyId) : accounts;
         await handleBalanceButton({ entities, accounts: scopeAccounts, ownerId, botToken, chatId, mode });
         return Response.json({ ok: true });
       }
