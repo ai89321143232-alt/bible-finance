@@ -40,6 +40,11 @@ export async function loadScopeTransactions(entities, ownerId, mode, familyId, q
   return txs.filter((t) => t.user_id === ownerId || t.created_by_id === ownerId || t.visibility === 'shared' || accIds.has(t.account_id));
 }
 
+// Календарные бюджеты, действующие сегодня: start_date/end_date включают текущую дату
+export function filterCurrentBudgets(budgets, today) {
+  return budgets.filter((b) => (!b.start_date || b.start_date <= today) && (!b.end_date || b.end_date >= today));
+}
+
 export function filterScopeBudgets(budgets, mode) {
   return budgets.filter((b) => b.is_active !== false && (mode === 'family' ? b.is_family_budget : !b.is_family_budget));
 }

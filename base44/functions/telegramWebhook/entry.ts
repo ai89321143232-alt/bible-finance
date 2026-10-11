@@ -3,7 +3,8 @@ import { effect, applyBalanceDelta, applyBudgetDelta, getBudgetMatches, getAcces
 import { buildAssistantSystemPrompt, invokeAssistantModel, computeFinancialContext } from '../../shared/financialAssistant.ts';
 import { createCurrencyTools } from '../../shared/currencyConvert.ts';
 import { looksLikeExpenseReport, buildExpenseReport } from '../../shared/expenseReport.ts';
-import { getFamilyId, loadScopeAccounts, loadFamilyBalanceAccounts, loadScopeTransactions, filterScopeBudgets, resolveMode, modeLabel } from '../../shared/familyScope.ts';
+import { getFamilyId, loadScopeAccounts, loadFamilyBalanceAccounts, loadScopeTransactions, filterScopeBudgets, filterCurrentBudgets, resolveMode, modeLabel } from '../../shared/familyScope.ts';
+import { calcBudgetSpent } from '../../shared/budgetSpent.ts';
 
 function savedMode(config, telegramUserId) {
   return (config.user_modes || []).find((m) => String(m.telegram_user_id) === String(telegramUserId))?.mode || 'personal';
@@ -23,13 +24,25 @@ async function showModePicker(botToken, chatId, current) {
   });
 }
 
-async function handleBudgetsButton({ entities, ownerId, mode, botToken, chatId }) {
+async function handleBudgetsButton({ entities, ownerId, mode, botToken, chatId, timezone }) {
   const owner = await entities.User.get(ownerId).catch(() => null);
   const currency = createCurrencyTools(owner);
-  const budgets = filterScopeBudgets(await getAccessibleBudgets(entities, ownerId), mode);
+  const today = localDateString(timezone || 'Europe/Moscow');
+  const budgets = filterCurrentBudgets(filterScopeBudgets(await getAccessibleBudgets(entities, ownerId), mode), today);
   if (!budgets.length) {
-    await sendMessage(botToken, chatId, `${modeLabel(mode)} режим\n\nБюджетов пока нет.`);
+    await sendMessage(botToken, chatId, `${modeLabel(mode)} режим\n\nТекущих бюджетов нет.`);
     return;
+  }
+  // Траты считаем по реальным операциям, а не по сохранённому spent_amount
+  const familyId = owner?.family_id;
+  const [accounts, ownTx, familyTx] = await Promise.all([
+    entities.Account.filter({ user_id: ownerId }),
+    entities.Transaction.filter({ user_id: ownerId, type: 'expense' }),
+    mode === 'family' && familyId ? entities.Transaction.filter({ family_id: familyId, type: 'expense' }) : Promise.resolve([])
+  ]);
+  const accountScope = new Map(accounts.map((a) => [a.id, a.scope || 'personal']));
+  for (const b of budgets) {
+    b.spent_amount = calcBudgetSpent(b, b.is_family_budget ? familyTx : ownTx, ownerId, accountScope);
   }
   const lines = [`${modeLabel(mode)} режим`, '📑 <b>Бюджеты</b>', ''];
   for (const b of budgets) {
@@ -1127,7 +1140,7 @@ export default async function (req) {
         return Response.json({ ok: true });
       }
       if (text === '📑 Бюджеты' || (/^(мои |личные |семейные )?бюджеты?$/i.test(lower))) {
-        await handleBudgetsButton({ entities, ownerId, mode, botToken, chatId });
+        await handleBudgetsButton({ entities, ownerId, mode, botToken, chatId, timezone: config.timezone });
         return Response.json({ ok: true });
       }
       if (text === '📊 Аналитика') {
