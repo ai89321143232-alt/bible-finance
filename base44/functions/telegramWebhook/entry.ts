@@ -726,9 +726,12 @@ async function handleAnalyticsButton({ entities, ownerId, config, botToken, chat
   const periodStart = new Date(Date.UTC(year, startMonth, 1));
   const periodEnd = period === 'year' ? new Date(Date.UTC(year + 1, 0, 1)) : period === 'quarter' ? new Date(Date.UTC(year, startMonth + 3, 1)) : new Date(Date.UTC(year, month + 1, 1));
   const myTx = await loadScopeTransactions(entities, ownerId, mode, familyId, { date: { $gte: periodStart.toISOString(), $lt: periodEnd.toISOString() } });
-  const expenses = myTx.filter(t => t.type === 'expense');
+  const isInvestment = (t) => String(t.category || '').trim().toLowerCase() === 'инвестиции';
+  const expenses = myTx.filter(t => t.type === 'expense' && !isInvestment(t));
+  const investments = myTx.filter(t => t.type === 'expense' && isInvestment(t));
   const income = myTx.filter(t => t.type === 'income');
   const totalSpent = currency.summarize(expenses.map(t => ({ amount: t.amount, currency: t.currency }))).total;
+  const totalInvested = currency.summarize(investments.map(t => ({ amount: t.amount, currency: t.currency }))).total;
   const totalIncome = currency.summarize(income.map(t => ({ amount: t.amount, currency: t.currency }))).total;
   const byCategory = {};
   for (const t of expenses) {
@@ -744,6 +747,7 @@ async function handleAnalyticsButton({ entities, ownerId, config, botToken, chat
     '',
     `💸 Всего расходов: <code>${currency.format(totalSpent)}</code> в ${expenses.length} операциях`,
     `💰 Доход: <code>${currency.format(totalIncome)}</code>`,
+    `📈 Инвестиции: <code>${currency.format(totalInvested)}</code> в ${investments.length} операциях`,
     '',
     '<b>Топ-5 категорий:</b>',
     ''
