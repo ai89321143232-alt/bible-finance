@@ -124,7 +124,7 @@ export default function LearningCourse() {
     return (
       <button key={lesson.id} onClick={() => open && setSelectedId(lesson.id)} className={`w-full flex gap-2 p-3 text-left rounded-lg border text-sm ${selectedId === lesson.id ? 'border-primary bg-primary/5' : 'border-border'} ${open ? '' : 'opacity-60 cursor-not-allowed'}`}>
         {done ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> : open ? <span className="w-4 text-center">{index + 1}</span> : <Lock className="w-4 h-4 shrink-0" />}
-        <span>{lesson.title}</span>
+        <span className="min-w-0">{lesson.title}</span>
       </button>
     );
   };
@@ -135,7 +135,7 @@ export default function LearningCourse() {
       <h1 className="text-2xl font-bold text-foreground">{course.title}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{course.description}</p>
       <CourseCertificateCard certificate={certificate} />
-      <div className="grid lg:grid-cols-[260px_1fr] gap-5 mt-6 min-w-0">
+      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] w-full break-words [overflow-wrap:anywhere] gap-5 mt-6 min-w-0">
         <aside className="space-y-4 min-w-0">
           {modules.map((module) => (
             <section key={module.id} className="space-y-2">
@@ -150,7 +150,7 @@ export default function LearningCourse() {
           ))}
           {!modules.length && lessons.map(lessonButton)}
         </aside>
-        {selected && <div ref={viewerRef}><LessonViewer lesson={selected} progress={selectedProgress} canOpen={canOpen} onSave={saveProgress} answers={selectedAnswers} onAnswer={submitAnswer} /></div>}
+        {selected && <div ref={viewerRef} className="min-w-0"><LessonViewer lesson={selected} progress={selectedProgress} canOpen={canOpen} onSave={saveProgress} answers={selectedAnswers} onAnswer={submitAnswer} /></div>}
       </div>
     </div>
   );
