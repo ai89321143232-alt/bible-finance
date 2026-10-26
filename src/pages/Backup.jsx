@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Cloud, RotateCcw, Trash2, Plus, Loader2, Shield, Clock } from 'lucide-react';
 import RestoreDialog from '@/components/backup/RestoreDialog';
+import PortableBackupPanel from '@/components/backup/PortableBackupPanel';
 import { toast } from 'sonner';
 
 const ENTITY_LABELS = {
@@ -35,7 +36,7 @@ export default function Backup() {
         '-backup_date',
         50
       );
-      setBackups(records);
+      setBackups(records.filter((b) => b.kind !== 'full_app'));
     } catch (e) {
       toast.error('Ошибка загрузки бэкапов');
     } finally {
@@ -126,6 +127,8 @@ export default function Backup() {
           </div>
         </CardContent>
       </Card>
+
+      {user?.role === 'admin' && <PortableBackupPanel />}
 
       {/* Info banner */}
       <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/5 border border-blue-500/20 text-sm">

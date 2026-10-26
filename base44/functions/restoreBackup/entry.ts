@@ -22,6 +22,9 @@ export default async function(req) {
     if (!backup || backup.user_id !== user.id) {
       return Response.json({ error: 'Backup not found' }, { status: 404 });
     }
+    if (backup.kind === 'full_app') {
+      return Response.json({ error: 'Полный бэкап восстанавливается через загрузку JSON-файла' }, { status: 400 });
+    }
 
     // Create pre-restore snapshot
     const preRestoreResult = await backupUser(base44, user.id, true);
