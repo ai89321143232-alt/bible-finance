@@ -56,7 +56,8 @@ export function calcBudgetSpent(budget, transactions, currentUserId, accountScop
   return (transactions || [])
     .filter(t => {
       if (t.type !== 'expense') return false;
-      if (normalizedCategories.length > 0 && !normalizedCategories.includes(normalizeCategory(t.category))) return false;
+      // Бюджет без категорий ничего не отслеживает — не засчитываем в него все расходы подряд
+      if (!normalizedCategories.includes(normalizeCategory(t.category))) return false;
       const td = new Date(t.date);
       if (isNaN(td.getTime())) {
         console.warn(`[budgetSpent] Transaction ${t.id || 'unknown'} has invalid date: ${t.date}`);
