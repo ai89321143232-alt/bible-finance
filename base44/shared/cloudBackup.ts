@@ -28,6 +28,24 @@ export async function collectSnapshot(base44, userId) {
   return { snapshot, summary };
 }
 
+// Загружает данные всех указанных пользователей одним запросом на сущность
+// (вместо 10 запросов на каждого пользователя) — чтобы не упираться в лимит запросов.
+export async function collectSnapshotsForUsers(base44, userIds) {
+  const byUser = new Map(userIds.map((id) => [id, { snapshot: {}, summary: {} }]));
+  for (const entity of BACKUP_ENTITIES) {
+    const records = await base44.asServiceRole.entities[entity.name].filter(
+      { [entity.userField]: { $in: userIds } }, '-created_date', 50000
+    );
+    for (const entry of byUser.values()) entry.snapshot[entity.key] = [];
+    for (const r of records) {
+      const entry = byUser.get(r[entity.userField]);
+      if (entry) entry.snapshot[entity.key].push(r);
+    }
+    for (const entry of byUser.values()) entry.summary[entity.key] = entry.snapshot[entity.key].length;
+  }
+  return byUser;
+}
+
 export async function getOrCreateDriveFolder(accessToken, folderName) {
   const searchRes = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(
@@ -102,10 +120,11 @@ export function computeChecksum(content) {
   return Math.abs(hash).toString(16);
 }
 
-export async function backupUser(base44, userId, isPreRestore = false) {
-  const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
+export async function backupUser(base44, userId, isPreRestore = false, prebuilt = null, token = null) {
+  const accessToken = token
+    || (await base44.asServiceRole.connectors.getConnection('googledrive')).accessToken;
 
-  const { snapshot, summary } = await collectSnapshot(base44, userId);
+  const { snapshot, summary } = prebuilt || await collectSnapshot(base44, userId);
   const totalRecords = Object.values(summary).reduce((a, b) => a + b, 0);
   if (totalRecords === 0) return { skipped: true, reason: 'no_data', summary };
 
@@ -138,6 +157,8 @@ export async function backupUser(base44, userId, isPreRestore = false) {
     checksum: computeChecksum(content),
     summary,
     is_pre_restore: isPreRestore,
+    kind: 'user',
+    total_records: totalRecords,
     user_id: userId,
   });
 

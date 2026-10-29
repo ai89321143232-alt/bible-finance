@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
-import { backupUser } from '../../shared/cloudBackup.ts';
+import { backupUser, collectSnapshotsForUsers } from '../../shared/cloudBackup.ts';
 
 export default async function(req) {
   try {
@@ -8,33 +8,43 @@ export default async function(req) {
 
     // Cron mode: backup all users with changes since last backup
     if (body.all) {
+      const caller = await base44.auth.me().catch(() => null);
+      if (caller && caller.role !== 'admin') {
+        return Response.json({ error: 'Forbidden' }, { status: 403 });
+      }
       const users = await base44.asServiceRole.entities.User.list();
+      const todayStart = new Date();
+      todayStart.setUTCHours(0, 0, 0, 0);
+      const todayBackups = await base44.asServiceRole.entities.BackupRecord.filter({
+        is_pre_restore: false,
+        kind: { $ne: 'full_app' },
+        backup_date: { $gte: todayStart.toISOString() },
+      }, '-backup_date', 5000);
+      const doneToday = new Set(todayBackups.map((b) => b.user_id));
+      const pending = users.filter((u) => !doneToday.has(u.id));
+      const snapshots = pending.length
+        ? await collectSnapshotsForUsers(base44, pending.map((u) => u.id))
+        : new Map();
+      const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
+
       const results = [];
       for (const user of users) {
         try {
-          const lastBackups = await base44.asServiceRole.entities.BackupRecord.filter({
-            user_id: user.id,
-            is_pre_restore: false,
-          });
-          const lastBackup = lastBackups
-            .sort((a, b) => new Date(b.backup_date) - new Date(a.backup_date))[0];
-
-          if (lastBackup) {
-            const hoursSince =
-              (Date.now() - new Date(lastBackup.backup_date).getTime()) / 3600000;
-            if (hoursSince < 20) {
-              results.push({ user: user.id, skipped: 'recent_backup' });
-              continue;
-            }
+          if (doneToday.has(user.id)) {
+            results.push({ user: user.id, skipped: 'already_today' });
+            continue;
           }
-
-          const result = await backupUser(base44, user.id);
-          results.push({ user: user.id, ...result });
+          const r = await backupUser(base44, user.id, false, snapshots.get(user.id), accessToken);
+          results.push({ user: user.id, skipped: r.skipped, reason: r.reason, file: r.record?.file_name, total: r.record?.total_records });
         } catch (e) {
+          console.error(`[createBackup] user ${user.id}: ${e.message}`);
           results.push({ user: user.id, error: e.message });
         }
       }
-      return Response.json({ results });
+      const created = results.filter((r) => r.skipped === false).length;
+      const failed = results.filter((r) => r.error).length;
+      console.log(`[createBackup] users=${users.length} created=${created} failed=${failed}`);
+      return Response.json({ users: users.length, created, failed, results });
     }
 
     // Manual mode: backup current user
